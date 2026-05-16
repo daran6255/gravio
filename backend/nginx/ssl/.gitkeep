@@ -1,0 +1,4 @@
+# Placeholder for SSL certificates
+# Add your SSL certificates here when deploying to production
+# - cert.pem
+# - key.pem

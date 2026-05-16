@@ -1,0 +1,39 @@
+{% extends "base_email.html" %}
+
+{% block header_title %}NEW CANDIDATE ALERT{% endblock %}
+
+{% block content %}
+<h2>Registration Details</h2>
+<p>A new candidate has successfully registered on the WinVinaya CRM portal.</p>
+
+<div class="summary-box">
+    <strong>Action Required:</strong> Please review the candidacy and initiate the screening/counseling workflow.
+</div>
+
+<table class="details-table">
+    <tr>
+        <th>Candidate Name</th>
+        <td>{{ candidate.name }}</td>
+    </tr>
+    <tr>
+        <th>Email Address</th>
+        <td>{{ candidate.email }}</td>
+    </tr>
+    <tr>
+        <th>Phone Number</th>
+        <td>{{ candidate.phone }}</td>
+    </tr>
+    <tr>
+        <th>Disability Status</th>
+        <td>{{ disability_type }}</td>
+    </tr>
+</table>
+
+<div class="button-container">
+    <a href="https://crm.winvinaya.com/candidates" class="button">View CRM Dashboard</a>
+</div>
+{% endblock %}
+
+{% block footer %}
+&copy; 2025 WinVinaya | Internal Sourcing Notification
+{% endblock %}

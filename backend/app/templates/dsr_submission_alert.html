@@ -1,0 +1,57 @@
+{% extends "base_email.html" %}
+
+{% block header_title %}DSR SUBMISSION ALERT{% endblock %}
+
+{% block content %}
+<h2>New DSR Submitted</h2>
+<p>A new Daily Status Report has been submitted on the WinVinaya portal.</p>
+
+<table class="details-table">
+    <tr>
+        <th>Submitted By</th>
+        <td>{{ user_name }}</td>
+    </tr>
+    <tr>
+        <th>Report Date</th>
+        <td>{{ report_date }}</td>
+    </tr>
+    <tr>
+        <th>Total Hours</th>
+        <td><strong>{{ total_hours }} hrs</strong></td>
+    </tr>
+    <tr>
+        <th>Status</th>
+        <td><span class="status-badge status-submitted">SUBMITTED</span></td>
+    </tr>
+</table>
+
+<h3>Work Details</h3>
+<table class="dsr-table">
+    <thead>
+        <tr>
+            <th>Project</th>
+            <th>Activity</th>
+            <th>Description</th>
+            <th>Hours</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in items %}
+        <tr>
+            <td>{{ item.get('project_name', 'N/A') }}</td>
+            <td>{{ item.get('activity_name', 'N/A') }}</td>
+            <td>{{ item.get('description', 'N/A') }}</td>
+            <td style="text-align: center;">{{ item.get('hours', 0) }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="button-container">
+    <a href="https://crm.winvinaya.com/projects/dsr/admin" class="button">Review Submission</a>
+</div>
+{% endblock %}
+
+{% block footer %}
+&copy; 2025 WinVinaya | DSR Notification System
+{% endblock %}

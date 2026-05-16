@@ -1,0 +1,23 @@
+export const COURSES = [
+	'English',
+	'Soft Skills',
+	'MS Word',
+	'MS Excel',
+	'MS PPT',
+	'Zoho books',
+	'Tally',
+	'Financial Accounting',
+	'Core Banking',
+	'Power BI',
+	'Python',
+	'Java',
+	'Postgres SQL',
+	'Full Stack(React+Python Flask+Postgres)',
+	'Git',
+	'Selenium/Playwright',
+	'AWS',
+	'React JS',
+	'Angular JS',
+	'Speed Typing',
+	'Accessibility Testing'
+];

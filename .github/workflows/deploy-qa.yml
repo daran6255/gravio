@@ -1,0 +1,48 @@
+name: Deploy to QA
+
+on:
+  push:
+    branches: [ qa ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: GH_PAT
+          script: |
+            # Navigate to project
+            cd /var/www/winvinaya-crm
+            
+            # Configure git with PAT
+            git remote set-url origin https://$GH_PAT@github.com/winvinayainfosystemsindia/winvinaya-crm.git
+
+            # Pull latest changes
+            git fetch origin qa
+            git checkout qa
+            git reset --hard origin/qa
+            
+            # Make scripts executable
+            chmod +x deploy/*.sh
+            
+            # Deploy Backend
+            ./deploy/backend-deploy.sh qa
+            
+            # Deploy Frontend
+            ./deploy/frontend-deploy.sh qa
+            
+            # Optional: Run health check
+            if [ -f "./deploy/health-check.sh" ]; then
+                ./deploy/health-check.sh qa
+            fi
+            
+            echo "✅ QA Deployment Complete"

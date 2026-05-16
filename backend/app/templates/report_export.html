@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Ready for Download</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f9; color: #333;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed; background-color: #f4f7f9;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="background-color: #1a73e8; padding: 40px 20px;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">Report Ready</h1>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.5;">Dear <strong>{{ user_name }}</strong>,</p>
+                            <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.5;">The <strong>{{ report_name }}</strong> you requested has been generated successfully.</p>
+                            <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.5;">Please find the attached Excel file containing the data requested on {{ date }}. This export includes all records matching your current filter criteria.</p>
+                            
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8f9fa; border-radius: 4px; margin: 30px 0; border: 1px solid #e9ecef;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                            <tr>
+                                                <td width="100" style="font-size: 14px; color: #6c757d; font-weight: 600;">Report:</td>
+                                                <td style="font-size: 14px; color: #212529;">{{ report_name }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding-top: 8px; font-size: 14px; color: #6c757d; font-weight: 600;">Date:</td>
+                                                <td style="padding-top: 8px; font-size: 14px; color: #212529;">{{ date }}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #6c757d;">
+                                If you did not request this report, please ignore this email or contact our support team at <a href="mailto:{{ support_email }}" style="color: #1a73e8; text-decoration: none;">{{ support_email }}</a>.
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td align="center" style="padding: 20px; background-color: #f8f9fa; border-top: 1px solid #eeeeee;">
+                            <p style="margin: 0; font-size: 12px; color: #adb5bd;">
+                                &copy; {{ year }} WinVinaya Foundation. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

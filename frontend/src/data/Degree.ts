@@ -1,0 +1,23 @@
+export const degrees = [
+	"B.Tech",
+	"B.E",
+	"B.Sc",
+	"B.Com",
+	"B.A",
+	"B.B.A",
+	"B.C.A",
+	"M.Tech",
+	"M.E",
+	"M.Sc",
+	"M.Com",
+	"M.A",
+	"M.B.A",
+	"M.C.A",
+	"Ph.D",
+	"Diploma",
+	"10th",
+	"12th",
+	"ITI",
+	"Polytechnic",
+	"Other"
+];

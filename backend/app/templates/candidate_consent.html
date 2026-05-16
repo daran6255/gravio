@@ -1,0 +1,31 @@
+{% extends "base_email.html" %}
+
+{% block header_title %}WinVinaya Foundation{% endblock %}
+
+{% block content %}
+<h2>Hello {{ candidate_name }},</h2>
+
+<p>Congratulations on completing the initial screening process with WinVinaya Foundation.</p>
+
+<p>As part of our standard onboarding and support process, we require your consent for certain data usage and placement support activities. This is a critical step that helps us provide the best possible support for your career journey.</p>
+
+<div class="summary-box">
+    <strong>Action Required:</strong> Please review and provide your consent by clicking the button below. This will take you to our secure digital consent portal.
+</div>
+
+<div class="button-container">
+    <a href="{{ consent_url }}" class="button">Provide Consent</a>
+</div>
+
+<p>If the button above doesn't work, you can copy and paste the following link into your browser:</p>
+<p style="word-break: break-all; font-size: 13px; color: #0066cc;">{{ consent_url }}</p>
+
+<p>Thank you,<br>
+<strong>WinVinaya Foundation Team</strong></p>
+{% endblock %}
+
+{% block footer %}
+&copy; {{ current_year }} WinVinaya Foundation. All rights reserved.<br>
+Empowering persons with disabilities with dignity through job-oriented training and placement.<br>
+This is an automated message, please do not reply.
+{% endblock %}
