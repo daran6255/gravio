@@ -26,6 +26,10 @@ const AppRouter: React.FC = () => {
 					<Route path="/" element={<Navigate to="/dashboard" replace />} />
 					<Route path="dashboard" element={<Dashboard />} />
 					<Route path="users" element={<UserManagement />} />
+					
+					{/* Prefixed Tenant Routes */}
+					<Route path="org/:orgId/dashboard" element={<Dashboard />} />
+					<Route path="org/:orgId/users" element={<UserManagement />} />
 				</Route>
 			</Route>
 

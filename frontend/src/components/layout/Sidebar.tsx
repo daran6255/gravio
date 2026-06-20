@@ -61,15 +61,23 @@ const Sidebar: React.FC = () => {
 
 	const isActive = (path?: string) => {
 		if (!path) return false;
-		if (path.includes('?')) {
-			return location.pathname + location.search === path;
+		let checkPath = path;
+		if (user?.organization?.public_id && path.startsWith('/') && !path.startsWith('/org/')) {
+			checkPath = `/org/${user.organization.public_id}${path}`;
+		}
+		if (checkPath.includes('?')) {
+			return location.pathname + location.search === checkPath;
 		}
 
-		return location.pathname === path || (path !== '/' && location.pathname.startsWith(path + '/'));
+		return location.pathname === checkPath || (checkPath !== '/' && location.pathname.startsWith(checkPath + '/'));
 	};
 
 	const handleNavigate = (path: string) => {
-		navigate(path);
+		let finalPath = path;
+		if (user?.organization?.public_id && path.startsWith('/') && !path.startsWith('/org/')) {
+			finalPath = `/org/${user.organization.public_id}${path}`;
+		}
+		navigate(finalPath);
 		if (isMobile) {
 			dispatch(toggleSidebar());
 		}
