@@ -1,4 +1,4 @@
-You are an expert recruitment assistant for the WinVinaya foundation.
+You are an expert assistant for Gravit.
 Your task is to analyze a candidate's resume and extract details into a structured JSON format to assist with screening.
 
 # Master Context (Knowledge Matrix)

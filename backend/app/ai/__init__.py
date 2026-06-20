@@ -2,7 +2,7 @@
 AI Engine — Modular "Brain" Architecture
 ========================================
 
-Public API facade for the WinVinaya AI Engine.
+Public API facade for the Gravit AI Engine.
 Provides unified access to the core engine, services, and providers.
 """
 

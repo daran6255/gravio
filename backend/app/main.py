@@ -56,7 +56,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    description="Production-grade FastAPI boilerplate with PostgreSQL, Redis, rate limiting, and comprehensive monitoring",
+    description="Gravit backend engine with multi-tenancy, rate limiting, and integrated AI Brain.",
     docs_url="/docs",
     redoc_url=None,  # Disable default ReDoc, we'll create custom one
     openapi_url="/openapi.json",
@@ -242,17 +242,16 @@ def custom_openapi():
         title=settings.APP_NAME,
         version=settings.APP_VERSION,
         description="""
-        ## Production-Grade FastAPI Boilerplate
+        ## Gravit Backend API
         
-        This API provides a complete production-ready backend with:
+        This API provides the complete production-ready backend engine for Gravit, featuring:
         
-        - **Authentication**: JWT-based authentication with access and refresh tokens
-        - **Rate Limiting**: Redis-based rate limiting to prevent abuse
-        - **Database**: PostgreSQL with SQLAlchemy ORM and Alembic migrations
+        - **Multi-Tenancy**: Data isolation mapped dynamically to request context
+        - **Integrated AI Brain**: Advanced planning, reasoning, and tool executions
+        - **Rate Limiting**: Custom limits per endpoint to prevent abuse
+        - **Database**: PostgreSQL with SQLAlchemy ORM, Alembic migrations, and transparent query filters
         - **Validation**: Pydantic models for request/response validation
-        - **Logging**: Structured logging with request tracking
-        - **Monitoring**: Health check endpoints and performance metrics
-        - **API Versioning**: Organized endpoints with version prefixes
+        - **Logging & Monitoring**: Consolidated request logging, error handling, and health metrics
         
         ### Authentication
         

@@ -1,6 +1,6 @@
 # Skills Reference Matrix (SRM)
 
-This file serves as the canonical reference for skills in the WinVinaya CRM. 
+This file serves as the canonical reference for skills in Gravit. 
 The AI Engine should prioritize these names when extracting or normalizing skills.
 
 ## Technical Skills

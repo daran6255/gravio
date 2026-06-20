@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     """Application settings with environment variable support"""
     
     # Application
-    APP_NAME: str = "CRM - WinVinaya"
+    APP_NAME: str = "Gravit"
     APP_VERSION: str = "1.0.0"
     API_V1_PREFIX: str = "/api/v1"
     DEBUG: bool = False
@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     
     # Security
     SECRET_KEY: str
-    ANALYTICS_SECRET_KEY: str = "winvinaya-crm-analytics-secret-123" # Default for dev
+    ANALYTICS_SECRET_KEY: str = "gravit-analytics-secret-123" # Default for dev
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
@@ -94,8 +94,8 @@ class Settings(BaseSettings):
     EMAILS_FROM_NAME: Optional[str] = None
     
     # Email Recipients (Override in .env)
-    SOURCING_EMAIL: str = "sourcing@winvinayafoundation.org"
-    TIMESHEET_SUBMISSION_EMAIL: str = "timesheet.submission@winvinaya.com"
+    SOURCING_EMAIL: str = "sourcing@gravit.com"
+    TIMESHEET_SUBMISSION_EMAIL: str = "timesheet.submission@gravit.com"
 
     # ── AI Engine ─────────────────────────────────────────────────────────────
     AI_ENABLED: bool = True

@@ -1,5 +1,5 @@
 """
-Centralized master data constants for the WinVinaya CRM.
+Centralized master data constants for Gravit.
 These should match the values used in the frontend dropdowns.
 """
 
