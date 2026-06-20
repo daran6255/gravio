@@ -26,6 +26,7 @@ import {
 } from '@mui/icons-material';
 import useToast from '../../hooks/useToast';
 import authService from '../../services/authService';
+import { useColorMode } from '../../theme/ThemeContext';
 
 const steps = ['Organization Info', 'Admin Profile'];
 
@@ -33,6 +34,7 @@ const Register: React.FC = () => {
 	const theme = useTheme();
 	const navigate = useNavigate();
 	const toast = useToast();
+	const { mode } = useColorMode();
 
 	const [activeStep, setActiveStep] = useState(0);
 	const [loading, setLoading] = useState(false);
@@ -117,16 +119,15 @@ const Register: React.FC = () => {
 		>
 			<Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
 				<Box sx={{ mb: 4, textAlign: 'center' }}>
-					<Typography
-						variant="h4"
+					<Box
+						component="img"
+						src={mode === 'dark' ? '/assets/img/logo/gravit-dark.svg' : '/assets/img/logo/gravit-light.svg'}
+						alt="Gravit Logo"
 						sx={{
-							fontWeight: 800,
-							color: theme.palette.secondary.light,
-							letterSpacing: '-0.03em',
+							height: 48,
+							mb: 1.5,
 						}}
-					>
-						Gravit
-					</Typography>
+					/>
 					<Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontWeight: 500 }}>
 						Register your organization and activate your 30-day free trial.
 					</Typography>

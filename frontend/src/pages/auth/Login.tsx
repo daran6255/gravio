@@ -11,12 +11,14 @@ import useToast from '../../hooks/useToast';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { loginUser, clearError } from '../../store/slices/authSlice';
 import LoginForm from '../../components/auth/LoginForm';
+import { useColorMode } from '../../theme/ThemeContext';
 
 const Login: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 	const toast = useToast();
 	const theme = useTheme();
+	const { mode } = useColorMode();
 	const { loading, error, isAuthenticated, isInitialized } = useAppSelector((state) => state.auth);
 
 	useEffect(() => {
@@ -89,29 +91,15 @@ const Login: React.FC = () => {
 			<Container maxWidth="xs" sx={{ position: 'relative', zIndex: 1 }}>
 				<Fade in={true} timeout={800}>
 					<Box sx={{ mb: 5, textAlign: 'center' }}>
-						<Typography
-							variant="h4"
-							component="h1"
+						<Box
+							component="img"
+							src={mode === 'dark' ? '/assets/img/logo/gravit-dark.svg' : '/assets/img/logo/gravit-light.svg'}
+							alt="Gravit Logo"
 							sx={{
-								fontWeight: 800,
-								color: theme.palette.secondary.light,
-								letterSpacing: '-0.03em',
-								display: 'flex',
-								alignItems: 'center',
-								justifyContent: 'center',
-								gap: 1
+								height: 48,
+								mb: 1.5,
 							}}
-						>
-							<Box
-								component="span"
-								sx={{
-									color: theme.palette.primary.main,
-									position: 'relative'
-								}}
-							>
-								Gravit
-							</Box>
-						</Typography>
+						/>
 						<Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontWeight: 500 }}>
 							Enterprise Tenant Platform
 						</Typography>

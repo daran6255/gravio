@@ -15,10 +15,12 @@ import {
 	ErrorOutline as ErrorIcon,
 } from '@mui/icons-material';
 import authService from '../../services/authService';
+import { useColorMode } from '../../theme/ThemeContext';
 
 const VerifyEmail: React.FC = () => {
 	const theme = useTheme();
 	const navigate = useNavigate();
+	const { mode } = useColorMode();
 	const [searchParams] = useSearchParams();
 	const token = searchParams.get('token');
 
@@ -67,16 +69,15 @@ const VerifyEmail: React.FC = () => {
 		>
 			<Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
 				<Box sx={{ mb: 4, textAlign: 'center' }}>
-					<Typography
-						variant="h4"
+					<Box
+						component="img"
+						src={mode === 'dark' ? '/assets/img/logo/gravit-dark.svg' : '/assets/img/logo/gravit-light.svg'}
+						alt="Gravit Logo"
 						sx={{
-							fontWeight: 800,
-							color: theme.palette.secondary.light,
-							letterSpacing: '-0.03em',
+							height: 48,
+							mb: 1.5,
 						}}
-					>
-						Gravit
-					</Typography>
+					/>
 				</Box>
 
 				<Fade in={true} timeout={600}>

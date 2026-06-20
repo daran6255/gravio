@@ -56,9 +56,18 @@ const Navbar: React.FC = () => {
 				>
 					<MenuIcon aria-hidden="true" />
 				</IconButton>
-				<Typography variant="navLogo" noWrap component="div" sx={{ display: { xs: 'none', md: 'block' }, mr: 2 }}>
-					Gravit
-				</Typography>
+				<Box
+					component="img"
+					src="/assets/img/logo/gravit-dark.svg"
+					alt="Gravit logo"
+					sx={{
+						height: 28,
+						display: { xs: 'none', md: 'block' },
+						mr: 2,
+						cursor: 'pointer'
+					}}
+					onClick={() => navigate('/')}
+				/>
 
 				<GlobalSearch />
 				<Box sx={{ flexGrow: 1 }} />
