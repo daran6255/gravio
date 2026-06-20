@@ -7,7 +7,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy.exc import SQLAlchemyError
 from pydantic import ValidationError
 from loguru import logger
-from app.core.exceptions import AppError
+from app.middleware.exceptions import AppError
 
 
 class ErrorHandlerMiddleware(BaseHTTPMiddleware):

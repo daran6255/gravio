@@ -5,3 +5,7 @@ tenant_context: ContextVar[int | None] = ContextVar("tenant_context", default=No
 
 # Store the superuser status for the request lifecycle to allow bypassing tenant checks
 superuser_context: ContextVar[bool] = ContextVar("superuser_context", default=False)
+
+# Store the current user's timezone for the request lifecycle
+timezone_context: ContextVar[str] = ContextVar("timezone_context", default="UTC")
+
