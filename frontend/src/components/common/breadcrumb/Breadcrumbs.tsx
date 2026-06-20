@@ -33,7 +33,9 @@ const Breadcrumbs: React.FC = () => {
 
 	const pathnames = location.pathname.split('/').filter((x) => x);
 
-	if (pathnames.length === 0) {
+	const isDashboard = location.pathname === '/' || location.pathname === '/dashboard' || location.pathname.endsWith('/dashboard');
+
+	if (pathnames.length === 0 || isDashboard) {
 		return null;
 	}
 
