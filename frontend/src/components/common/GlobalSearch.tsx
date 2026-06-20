@@ -25,7 +25,7 @@ import userService from '../../services/userService';
 
 const SearchContainer = styled('div')(({ theme }) => ({
 	position: 'relative',
-	borderRadius: 18, // Rounded pill shape as in mockup
+	borderRadius: 5, // Rounded pill shape as in mockup
 	backgroundColor: theme.palette.mode === 'light' ? '#f3f4f6' : '#1e293b',
 	border: `1px solid ${theme.palette.mode === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)'}`,
 	'&:hover': {

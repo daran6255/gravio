@@ -435,7 +435,7 @@ const Sidebar: React.FC = () => {
 						src={isDarkSidebar ? '/assets/img/logo/gravit-dark.svg' : '/assets/img/logo/gravit-light.svg'}
 						alt="Gravit logo"
 						sx={{
-							height: 42, // Enlarged logo
+							height: 62, // Enlarged logo
 							cursor: 'pointer'
 						}}
 						onClick={() => navigate('/')}
