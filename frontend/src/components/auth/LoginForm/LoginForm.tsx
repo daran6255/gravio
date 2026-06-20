@@ -9,12 +9,17 @@ import {
 	CircularProgress,
 	IconButton,
 	InputAdornment,
-	useTheme,
 	Link,
 	Checkbox,
 	FormControlLabel,
 } from '@mui/material';
-import { Visibility, VisibilityOff, LockOutlined } from '@mui/icons-material';
+import {
+	Visibility,
+	VisibilityOff,
+	MailOutline as MailIcon,
+	LockOutlined as LockIcon,
+	Login as LoginIcon,
+} from '@mui/icons-material';
 
 interface LoginFormProps {
 	loading: boolean;
@@ -23,11 +28,10 @@ interface LoginFormProps {
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
-	const theme = useTheme();
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [showPassword, setShowPassword] = useState(false);
-	const [acceptedPolicy, setAcceptedPolicy] = useState(false);
+	const [rememberDevice, setRememberDevice] = useState(false);
 
 	const handleTogglePasswordVisibility = () => {
 		setShowPassword((prev) => !prev);
@@ -35,54 +39,61 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!acceptedPolicy) return;
 		onLogin(email, password);
 	};
 
 	return (
 		<Paper
-			elevation={1}
+			elevation={0}
 			sx={{
-				p: { xs: 3, sm: 4 },
+				p: { xs: 4, sm: 5 },
 				display: 'flex',
 				flexDirection: 'column',
 				borderRadius: 2,
-				backgroundColor: theme.palette.background.paper,
-				border: `1px solid ${theme.palette.divider}`,
-				maxWidth: 400,
+				backgroundColor: '#11141e',
+				border: '1px solid rgba(255, 255, 255, 0.05)',
 				width: '100%',
 				position: 'relative',
 				overflow: 'hidden',
-				'&::before': {
-					content: '""',
-					position: 'absolute',
-					top: 0,
-					left: 0,
-					right: 0,
-					height: 4,
-					backgroundColor: theme.palette.primary.main,
-				}
 			}}
 		>
-			<Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+			{/* Top Centered Brand Icon Box */}
+			<Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
 				<Box
 					sx={{
-						backgroundColor: (theme) => `${theme.palette.primary.main}15`,
-						p: 1,
-						borderRadius: 1,
-						display: 'flex'
+						backgroundColor: '#1c1e2b',
+						p: 1.5,
+						borderRadius: 2,
+						display: 'flex',
+						border: '1px solid rgba(139, 124, 246, 0.2)',
+						boxShadow: '0 4px 12px rgba(139, 124, 246, 0.1)',
 					}}
 				>
-					<LockOutlined sx={{ color: theme.palette.primary.main }} />
+					{/* Embedded SVG of Gravit G symbol mark */}
+					<svg width="40" height="40" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+						<defs>
+							<linearGradient id="lum-card-icon" x1="0" y1="0" x2="1" y2="1">
+								<stop offset="0" stop-color="#8B7CF6"/>
+								<stop offset="1" stop-color="#4EA8FF"/>
+							</linearGradient>
+						</defs>
+						<g transform="translate(90,90) scale(0.92)">
+							<path d="M 36 -54 A 65 65 0 1 0 65 12 L 18 12" fill="none" stroke="url(#lum-card-icon)" stroke-width="13" stroke-linecap="round"/>
+							<circle cx="58" cy="-66" r="10" fill="#4EA8FF"/>
+						</g>
+					</svg>
 				</Box>
-				<Typography component="h2" variant="h5" sx={{ fontWeight: 600 }}>
-					Sign in
-				</Typography>
 			</Box>
 
-			<Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-				Enter your credentials to access your Gravit account.
-			</Typography>
+			{/* Heading and Subheading */}
+			<Box sx={{ mb: 4, textAlign: 'center' }}>
+				<Typography component="h1" variant="h5" sx={{ fontWeight: 700, color: '#F4F5F7', mb: 1 }}>
+					Sign in to your account
+				</Typography>
+				<Typography variant="body2" sx={{ color: '#94A3B8', fontWeight: 500 }}>
+					Enter your credentials to access the platform
+				</Typography>
+			</Box>
 
 			{/* Accessible error announcement */}
 			{error && (
@@ -92,10 +103,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 					sx={{
 						mb: 3,
 						p: 1.5,
-						bgcolor: (theme) => `${theme.palette.error.main}10`,
-						color: theme.palette.error.main,
+						bgcolor: 'rgba(239, 68, 68, 0.1)',
+						color: '#ef4444',
 						borderRadius: 1,
-						border: `1px solid ${theme.palette.error.main}30`,
+						border: '1px solid rgba(239, 68, 68, 0.2)',
 						fontSize: '0.875rem'
 					}}
 				>
@@ -106,8 +117,19 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 			)}
 
 			<Box component="form" onSubmit={handleSubmit} noValidate>
-				<Box sx={{ mb: 2 }}>
-					<Typography variant="awsFieldLabel" sx={{ mb: 1 }}>
+				{/* Email Address */}
+				<Box sx={{ mb: 2.5 }}>
+					<Typography
+						sx={{
+							fontSize: '0.7rem',
+							fontWeight: 700,
+							color: '#94A3B8',
+							textTransform: 'uppercase',
+							letterSpacing: '0.05em',
+							mb: 1,
+							display: 'block'
+						}}
+					>
 						Email Address
 					</Typography>
 					<TextField
@@ -115,7 +137,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 						fullWidth
 						id="email"
 						name="email"
-						placeholder="email@example.com"
+						placeholder="name@company.com"
 						autoComplete="email"
 						autoFocus
 						size="small"
@@ -124,27 +146,63 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 						inputProps={{
 							'aria-required': 'true'
 						}}
+						InputProps={{
+							startAdornment: (
+								<InputAdornment position="start">
+									<MailIcon sx={{ color: '#64748b', fontSize: 18, mr: 0.5 }} />
+								</InputAdornment>
+							)
+						}}
 						sx={{
 							'& .MuiOutlinedInput-root': {
-								borderRadius: 1,
+								bgcolor: '#191c28',
+								borderRadius: 1.5,
+								color: '#F4F5F7',
+								border: '1px solid rgba(255, 255, 255, 0.08)',
+								'& fieldset': {
+									border: 'none',
+								},
+								'&:hover': {
+									border: '1px solid rgba(255, 255, 255, 0.15)',
+								},
+								'&.Mui-focused': {
+									border: '1px solid #8B7CF6',
+									boxShadow: '0 0 0 3px rgba(139, 124, 246, 0.15)',
+								},
+							},
+							'& input::placeholder': {
+								color: '#64748b',
+								opacity: 1,
 							}
 						}}
 					/>
 				</Box>
 
-				<Box sx={{ mb: 2 }}>
+				{/* Password */}
+				<Box sx={{ mb: 3 }}>
 					<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-						<Typography variant="awsFieldLabel" sx={{ mb: 0 }}>
+						<Typography
+							sx={{
+								fontSize: '0.7rem',
+								fontWeight: 700,
+								color: '#94A3B8',
+								textTransform: 'uppercase',
+								letterSpacing: '0.05em',
+								mb: 0,
+								display: 'block'
+							}}
+						>
 							Password
 						</Typography>
 						<Link
-							href="/forgot-password"
+							component={RouterLink}
+							to="/forgot-password"
 							variant="body2"
 							sx={{
-								color: theme.palette.primary.main,
+								color: '#8B7CF6',
 								textDecoration: 'none',
-								fontWeight: 500,
-								fontSize: '0.8rem',
+								fontWeight: 600,
+								fontSize: '0.75rem',
 								'&:hover': { textDecoration: 'underline' }
 							}}
 						>
@@ -166,6 +224,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 							'aria-required': 'true'
 						}}
 						InputProps={{
+							startAdornment: (
+								<InputAdornment position="start">
+									<LockIcon sx={{ color: '#64748b', fontSize: 18, mr: 0.5 }} />
+								</InputAdornment>
+							),
 							endAdornment: (
 								<InputAdornment position="end">
 									<IconButton
@@ -174,104 +237,120 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 										edge="end"
 										size="small"
 										title={showPassword ? "Hide password" : "Show password"}
+										sx={{ color: '#64748b' }}
 									>
 										{showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
 									</IconButton>
 								</InputAdornment>
-							),
-							sx: { borderRadius: 1 }
+							)
+						}}
+						sx={{
+							'& .MuiOutlinedInput-root': {
+								bgcolor: '#191c28',
+								borderRadius: 1.5,
+								color: '#F4F5F7',
+								border: '1px solid rgba(255, 255, 255, 0.08)',
+								'& fieldset': {
+									border: 'none',
+								},
+								'&:hover': {
+									border: '1px solid rgba(255, 255, 255, 0.15)',
+								},
+								'&.Mui-focused': {
+									border: '1px solid #8B7CF6',
+									boxShadow: '0 0 0 3px rgba(139, 124, 246, 0.15)',
+								},
+							},
+							'& input::placeholder': {
+								color: '#64748b',
+								opacity: 1,
+							}
 						}}
 					/>
 				</Box>
 
+				{/* Remember Device Box */}
 				<Box sx={{ mb: 3 }}>
 					<FormControlLabel
 						control={
 							<Checkbox
 								size="small"
-								checked={acceptedPolicy}
-								onChange={(e) => setAcceptedPolicy(e.target.checked)}
+								checked={rememberDevice}
+								onChange={(e) => setRememberDevice(e.target.checked)}
 								sx={{
-									color: theme.palette.divider,
+									color: 'rgba(255, 255, 255, 0.15)',
 									'&.Mui-checked': {
-										color: theme.palette.primary.main,
+										color: '#8B7CF6',
 									},
 								}}
 							/>
 						}
 						label={
-							<Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
-								I agree to the{' '}
-								<Link
-									href="/privacy-policy"
-									sx={{
-										color: theme.palette.primary.main,
-										textDecoration: 'none',
-										fontWeight: 500,
-										'&:hover': { textDecoration: 'underline' }
-									}}
-								>
-									Privacy Policy
-								</Link>{' '}
-								and{' '}
-								<Link
-									href="/terms"
-									sx={{
-										color: theme.palette.primary.main,
-										textDecoration: 'none',
-										fontWeight: 500,
-										'&:hover': { textDecoration: 'underline' }
-									}}
-								>
-									Terms of Service
-								</Link>
+							<Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: 500 }}>
+								Remember this device for 30 days
 							</Typography>
 						}
 					/>
 				</Box>
 
+				{/* Submit Button */}
 				<Button
 					type="submit"
 					fullWidth
 					variant="contained"
-					disabled={loading || !acceptedPolicy}
+					disabled={loading}
 					aria-busy={loading}
 					aria-label={loading ? "Signing in" : "Sign in"}
+					endIcon={!loading && <LoginIcon sx={{ fontSize: 18 }} />}
 					sx={{
 						py: 1.25,
-						backgroundColor: theme.palette.primary.main,
+						backgroundColor: '#8B7CF6',
+						color: '#ffffff',
 						'&:hover': { 
-							backgroundColor: theme.palette.primary.dark,
-							boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+							backgroundColor: '#7a6ae6',
+							boxShadow: '0 4px 12px rgba(139, 124, 246, 0.3)'
 						},
 						'&.Mui-disabled': {
-							backgroundColor: theme.palette.action.disabledBackground,
-							color: theme.palette.action.disabled,
+							backgroundColor: 'rgba(255, 255, 255, 0.05)',
+							color: 'rgba(255, 255, 255, 0.3)',
 						},
 						textTransform: 'none',
 						fontWeight: 700,
 						fontSize: '0.95rem',
 						transition: 'all 0.2s',
-						borderRadius: 1,
+						borderRadius: 1.5,
 					}}
 				>
 					{loading ? <CircularProgress size={24} color="inherit" aria-hidden="true" /> : 'Sign In'}
 				</Button>
 
-				<Box sx={{ mt: 3, textAlign: 'center' }}>
-					<Typography variant="body2" color="text.secondary">
+				{/* Terms Disclaimer */}
+				<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2.5, textAlign: 'center', opacity: 0.6, fontSize: '0.75rem', lineHeight: 1.4 }}>
+					By signing in, you agree to our{' '}
+					<Link component={RouterLink} to="/terms" sx={{ color: '#8B7CF6', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+						Terms of Service
+					</Link>{' '}
+					and{' '}
+					<Link component={RouterLink} to="/privacy-policy" sx={{ color: '#8B7CF6', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+						Privacy Policy
+					</Link>.
+				</Typography>
+
+				{/* Redirect Link */}
+				<Box sx={{ mt: 3.5, textAlign: 'center' }}>
+					<Typography variant="body2" sx={{ color: '#94A3B8' }}>
 						Don't have an account?{' '}
 						<Link
 							component={RouterLink}
 							to="/register"
 							sx={{
-								color: theme.palette.primary.main,
+								color: '#8B7CF6',
 								textDecoration: 'none',
 								fontWeight: 600,
 								'&:hover': { textDecoration: 'underline' }
 							}}
 						>
-							Register your organization
+							Create an account
 						</Link>
 					</Typography>
 				</Box>
