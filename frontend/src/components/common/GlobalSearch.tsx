@@ -18,11 +18,9 @@ import {
 	Search as SearchIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useSearchActions, CandidatesIcon, UserIcon, ProjectIcon } from '../../hooks/useSearchActions';
+import { useSearchActions, UserIcon } from '../../hooks/useSearchActions';
 import type { SearchAction } from '../../hooks/useSearchActions';
-import { candidateService } from '../../services/candidateService';
 import userService from '../../services/userService';
-import dsrProjectService from '../../services/dsrProjectService';
 
 const SearchContainer = styled('div')(({ theme }) => ({
 	position: 'relative',
@@ -171,20 +169,7 @@ const GlobalSearch: React.FC = () => {
 
 			setLoading(true);
 			try {
-				const [candidateData, userData, projectData] = await Promise.all([
-					candidateService.getAll(0, 5, query),
-					userService.search(query, 0, 5),
-					dsrProjectService.getProjects(0, 5, false, query)
-						.catch(() => ({ items: [] }))
-				]);
-
-				const candidateActions: SearchAction[] = candidateData.items.map(c => ({
-					id: `candidate-${c.public_id}`,
-					title: c.name,
-					path: `/candidates/${c.public_id}`,
-					category: 'Candidate',
-					icon: CandidatesIcon
-				}));
+				const userData = await userService.search(query, 0, 5);
 
 				const userActions: SearchAction[] = userData.map(u => ({
 					id: `user-${u.id}`,
@@ -194,15 +179,7 @@ const GlobalSearch: React.FC = () => {
 					icon: UserIcon
 				}));
 
-				const projectActions: SearchAction[] = (projectData.items || []).map((p: any) => ({
-					id: `project-${p.public_id}`,
-					title: p.name,
-					path: `/projects`, // Linking to projects list as detail might be complex
-					category: 'Project',
-					icon: ProjectIcon
-				}));
-
-				setDynamicResults([...candidateActions, ...userActions, ...projectActions]);
+				setDynamicResults(userActions);
 			} catch (error) {
 				console.error('Global search error:', error);
 				setDynamicResults([]);

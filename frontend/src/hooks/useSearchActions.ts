@@ -54,28 +54,7 @@ export const useSearchActions = () => {
 	const allActions: SearchAction[] = useMemo(() => [
 		{ id: 'dashboard', title: 'Home / Dashboard', path: '/dashboard', category: 'General', icon: HomeIcon },
 		{ id: 'users', title: 'User Management', path: '/users', category: 'Admin', roles: ['admin'], icon: UserIcon },
-
-		// Project Management
-		{ id: 'projects', title: 'Projects', path: '/projects', category: 'Projects', icon: ProjectIcon },
-		{ id: 'activities', title: 'Activities', path: '/projects/activities', category: 'Projects', icon: ActivitiesIcon },
-		{ id: 'timesheet', title: 'Timesheet', path: '/projects/timesheet', category: 'Projects', icon: TimesheetIcon },
-
-		// Candidates
-		{ id: 'all-candidates', title: 'All Candidates', path: '/candidates', category: 'Candidates', icon: CandidatesIcon },
-		{ id: 'screening', title: 'Candidate Screening', path: '/candidates/screening', category: 'Candidates', roles: ['admin', 'sourcing'], icon: ScreeningIcon },
-		{ id: 'counseling', title: 'Candidate Counseling', path: '/candidates/counseling', category: 'Candidates', roles: ['admin', 'trainer'], icon: CounselingIcon },
-		{ id: 'documents', title: 'Document Collection', path: '/candidates/documents', category: 'Candidates', roles: ['admin', 'sourcing'], icon: DocumentsIcon },
-
-		// Training
-		{ id: 'training-batches', title: 'Training Batches', path: '/training/batches', category: 'Training', icon: TrainingIcon },
-		{ id: 'training-weekly-plan', title: 'Weekly Training Plan', path: '/training/weekly-plan', category: 'Training', icon: WeeklyPlanIcon },
-		{ id: 'training-allocation', title: 'Candidate Batch Allocation', path: '/training/allocation', category: 'Training', icon: AllocationIcon },
-		{ id: 'training-attendance', title: 'Attendance', path: '/training/attendance', category: 'Training', icon: AttendanceIcon },
-
-		// General
-		{ id: 'reports', title: 'Reports & Analytics', path: '/reports', category: 'General', icon: AssessmentIcon },
 		{ id: 'settings', title: 'Settings', path: '/settings', category: 'General', icon: SettingsIcon },
-		{ id: 'support', title: 'Help and Support', path: '/support', category: 'General', icon: HelpIcon },
 	], []);
 
 	const filteredActions = useMemo(() => {

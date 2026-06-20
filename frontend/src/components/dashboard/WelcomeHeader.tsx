@@ -1,7 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { useAppSelector } from '../../store/hooks';
-import RegistrationLinkModal from './RegistrationLinkModal';
 
 const WelcomeHeader: React.FC = () => {
     const { user } = useAppSelector((state) => state.auth);
@@ -39,7 +38,6 @@ const WelcomeHeader: React.FC = () => {
                     Welcome back to the WinVinaya MIS. Here's what's happening today, {formattedDate}.
                 </Typography>
             </Box>
-            <RegistrationLinkModal />
         </Box>
     );
 };

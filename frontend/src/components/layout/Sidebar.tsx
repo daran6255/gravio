@@ -65,34 +65,6 @@ const Sidebar: React.FC = () => {
 			return location.pathname + location.search === path;
 		}
 
-		if (path === '/projects') {
-			if (location.pathname === path) return true;
-			if (location.pathname.startsWith(path + '/')) {
-				const subPath = location.pathname.substring(path.length);
-				if (subPath.startsWith('/activities') ||
-					subPath.startsWith('/dsr') ||
-					subPath.startsWith('/timesheet')) {
-					return false;
-				}
-				return true;
-			}
-			return false;
-		}
-
-		if (path === '/candidates') {
-			if (location.pathname === path) return true;
-			if (location.pathname.startsWith(path + '/')) {
-				const subPath = location.pathname.substring(path.length);
-				if (subPath.startsWith('/screening') ||
-					subPath.startsWith('/counseling') ||
-					subPath.startsWith('/documents')) {
-					return false;
-				}
-				return true;
-			}
-			return false;
-		}
-
 		return location.pathname === path || (path !== '/' && location.pathname.startsWith(path + '/'));
 	};
 

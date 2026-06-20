@@ -5,11 +5,9 @@ import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 import Breadcrumbs from '../common/breadcrumb/Breadcrumbs';
-import { useNotificationWatcher } from '../../hooks/useNotificationWatcher';
 import AIChatWidget from '../ai/AIChatWidget';
 
 const MainLayout: React.FC = () => {
-	useNotificationWatcher();
 
 	return (
 		<Box sx={{ display: 'flex', minHeight: '100vh' }}>
