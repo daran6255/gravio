@@ -212,6 +212,8 @@ def custom_openapi():
     )
     
     # Add security scheme
+    if "components" not in openapi_schema:
+        openapi_schema["components"] = {}
     openapi_schema["components"]["securitySchemes"] = {
         "HTTPBearer": {
             "type": "http",
