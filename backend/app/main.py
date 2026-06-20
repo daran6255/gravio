@@ -14,6 +14,7 @@ from app.core.database import init_db, close_db, get_db
 from app.core.rate_limiter import limiter
 from app.middleware.error_handler import ErrorHandlerMiddleware
 from app.middleware.timezone import TimezoneMiddleware
+from app.middleware.garbage_collector import GarbageCollectorMiddleware, memory_monitor_task
 from app.api.v1.router import router as v1_router
 from loguru import logger
 from fastapi.exceptions import RequestValidationError
@@ -25,6 +26,10 @@ async def lifespan(app: FastAPI):
     logger.info("Starting up application...")
     setup_logging()
     
+    # Start memory monitoring background task
+    import asyncio
+    monitor_task = asyncio.create_task(memory_monitor_task(interval_seconds=60))
+    
     # You can uncomment this to create tables on startup (not recommended for production)
     # await init_db()
     # logger.info("Database initialized")
@@ -35,6 +40,14 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("Shutting down application...")
+    
+    # Cancel memory monitor task
+    monitor_task.cancel()
+    try:
+        await monitor_task
+    except asyncio.CancelledError:
+        pass
+        
     await close_db()
     logger.info("Application shutdown complete")
 
@@ -78,6 +91,7 @@ app.add_middleware(
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(ErrorHandlerMiddleware)
 app.add_middleware(TimezoneMiddleware)
+app.add_middleware(GarbageCollectorMiddleware)
 
 # Include API routers with versioning
 app.include_router(
