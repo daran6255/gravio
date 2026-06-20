@@ -18,13 +18,12 @@ const EnterpriseAvatar: React.FC<EnterpriseAvatarProps> = ({ name, size = 40, sx
 	const colors = [
 		theme.palette.primary.main,
 		theme.palette.secondary.main,
-		'#ec7211', // AWS Orange
-		'#232f3e', // AWS Dark Blue
-		'#007eb9', // AWS Blue
-		'#1d8102', // AWS Green
-		'#d13212', // AWS Red
-		'#ff9900', // Amazon Orange
-		'#545b64', // AWS Gray
+		'#4EA8FF', // Gravit Sky Blue
+		'#6c5ce7', // Purple
+		'#0f172a', // Slate Dark
+		'#10b981', // Success Green
+		'#ef4444', // Error Red
+		'#64748b', // Slate Gray
 	];
 
 	const stringToColor = (str: string) => {

@@ -30,7 +30,7 @@ const WelcomeHeader: React.FC = () => {
         }}>
             <Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#16191f', letterSpacing: '-0.02em' }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary', letterSpacing: '-0.02em' }}>
                         {getGreeting()}, {user?.full_name?.split(' ')[0] || user?.username}! 👋
                     </Typography>
                 </Box>

@@ -37,17 +37,17 @@ declare module '@mui/material/Typography' {
 const theme = createTheme({
 	palette: {
 		primary: {
-			main: '#004de6', // Enterprise Blue
-			light: '#4d88ff',
-			dark: '#0033cc',
+			main: '#8B7CF6', // Logo Purple
+			light: '#b2a7ff',
+			dark: '#6052d9',
 		},
 		secondary: {
-			main: '#16191f', // Premium Console Dark
-			light: '#232f3e',
-			dark: '#0f141a',
+			main: '#0B0D12', // Logo Dark
+			light: '#1a1e26',
+			dark: '#040507',
 		},
 		background: {
-			default: '#f1f5f9', // Slightly cooler background
+			default: '#F4F5F7', // Logo Light Gray
 			paper: '#ffffff',
 		},
 		text: {
@@ -64,12 +64,12 @@ const theme = createTheme({
 			main: '#ef4444',
 		},
 		info: {
-			main: '#3b82f6',
+			main: '#4EA8FF', // Logo Blue
 		},
 		accent: {
-			main: '#ec7211', // Enterprise Brand Orange
-			light: '#ff8a33',
-			dark: '#c15d0e',
+			main: '#4EA8FF', // Logo Blue
+			light: '#85c3ff',
+			dark: '#157cd4',
 		}
 	},
 	typography: {
@@ -145,7 +145,10 @@ const theme = createTheme({
 					}
 				},
 				containedPrimary: {
-					backgroundColor: '#004de6',
+					backgroundColor: '#8B7CF6',
+					'&:hover': {
+						backgroundColor: '#6052d9',
+					}
 				}
 			},
 			defaultProps: {
@@ -189,7 +192,7 @@ const theme = createTheme({
 		MuiDrawer: {
 			styleOverrides: {
 				paper: {
-					backgroundColor: '#16191f',
+					backgroundColor: '#0B0D12',
 					borderRight: '1px solid #000000',
 					color: '#f2f3f3',
 				}
