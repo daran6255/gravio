@@ -1,6 +1,5 @@
-import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import theme from './theme/theme';
+import { ColorModeProvider } from './theme/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { Provider } from 'react-redux';
 import { SnackbarProvider } from 'notistack';
@@ -14,7 +13,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 function App() {
   return (
     <Provider store={store}>
-      <ThemeProvider theme={theme}>
+      <ColorModeProvider>
         <CssBaseline />
         <SnackbarProvider maxSnack={3}>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -27,7 +26,7 @@ function App() {
             </Router>
           </LocalizationProvider>
         </SnackbarProvider>
-      </ThemeProvider>
+      </ColorModeProvider>
     </Provider>
   );
 }

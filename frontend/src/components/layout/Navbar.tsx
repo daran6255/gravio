@@ -5,12 +5,15 @@ import {
 	AccountCircle,
 	KeyboardArrowDown as ArrowDownIcon,
 	ExitToApp as LogoutIcon,
-	Person as ProfileIcon
+	Person as ProfileIcon,
+	LightMode as LightModeIcon,
+	DarkMode as DarkModeIcon
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { toggleSidebar } from '../../store/slices/uiSlice';
 import { logoutUser } from '../../store/slices/authSlice';
 import { useNavigate } from 'react-router-dom';
+import { useColorMode } from '../../theme/ThemeContext';
 
 import GlobalSearch from '../common/GlobalSearch';
 
@@ -20,6 +23,7 @@ const Navbar: React.FC = () => {
 	const navigate = useNavigate();
 	const { user } = useAppSelector((state) => state.auth);
 	const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+	const { mode, toggleColorMode } = useColorMode();
 
 	const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
 		setAnchorEl(event.currentTarget);
@@ -59,6 +63,15 @@ const Navbar: React.FC = () => {
 				<GlobalSearch />
 				<Box sx={{ flexGrow: 1 }} />
 				<Box sx={{ display: 'flex', alignItems: 'center' }}>
+					<IconButton
+						onClick={toggleColorMode}
+						color="inherit"
+						sx={{ mr: 1.5 }}
+						aria-label={`switch to ${mode === 'dark' ? 'light' : 'dark'} mode`}
+						title={`Switch to ${mode === 'dark' ? 'light' : 'dark'} mode`}
+					>
+						{mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+					</IconButton>
 
 					{user && (
 						<Button
