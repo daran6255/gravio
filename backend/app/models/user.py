@@ -87,10 +87,10 @@ class User(BaseModel):
         index=True,
     )
 
-    organization_id: Mapped[int] = mapped_column(
+    organization_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("organizations.id"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     

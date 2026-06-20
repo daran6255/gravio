@@ -6,6 +6,7 @@ os.environ.setdefault("POSTGRES_USER", "postgres")
 os.environ.setdefault("POSTGRES_PASSWORD", "password")
 os.environ.setdefault("POSTGRES_DB", "testdb")
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
+os.environ.setdefault("RATE_LIMIT_ENABLED", "False")
 
 import pytest
 from typing import AsyncGenerator
