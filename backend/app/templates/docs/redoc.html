@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{{ app_name }} — API Reference</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%234F46E5'/%3E%3Ctext x='16' y='22' font-family='Arial, sans-serif' font-size='16' font-weight='700' fill='white' text-anchor='middle'%3EG%3C/text%3E%3C/svg%3E">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .topbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 56px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            background: #1F2333;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        .topbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #F3F4F6;
+            font-weight: 600;
+            font-size: 15px;
+            letter-spacing: 0.2px;
+        }
+        .topbar-mark {
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            background: #4F46E5;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .topbar-version {
+            font-size: 11px;
+            font-weight: 500;
+            color: #A5B4FC;
+            background: rgba(79,70,229,0.15);
+            border: 1px solid rgba(99,102,241,0.35);
+            border-radius: 999px;
+            padding: 2px 9px;
+            margin-left: 6px;
+        }
+        .topbar-links {
+            display: flex;
+            gap: 20px;
+        }
+        .topbar-links a {
+            color: #D1D5DB;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .topbar-links a:hover {
+            color: #ffffff;
+        }
+        #redoc-container {
+            margin-top: 56px;
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="topbar-brand">
+            <span class="topbar-mark">G</span>
+            <span>{{ app_name }} API Reference</span>
+            <span class="topbar-version">v{{ version }}</span>
+        </div>
+        <div class="topbar-links">
+            <a href="{{ docs_url }}">Swagger UI</a>
+            <a href="{{ openapi_url }}">OpenAPI Spec</a>
+            <a href="/health">Status</a>
+        </div>
+    </div>
+    <div id="redoc-container"></div>
+    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+    <script>
+        Redoc.init('{{ openapi_url }}', {
+            theme: {
+                colors: {
+                    primary: { main: '#4F46E5' },
+                    success: { main: '#16A34A' },
+                    warning: { main: '#D97706' },
+                    error: { main: '#DC2626' },
+                    text: { primary: '#1F2937', secondary: '#6B7280' },
+                    http: {
+                        get: '#16A34A',
+                        post: '#4F46E5',
+                        put: '#D97706',
+                        options: '#0EA5E9',
+                        patch: '#9333EA',
+                        delete: '#DC2626',
+                        basic: '#6B7280'
+                    }
+                },
+                typography: {
+                    fontSize: '15px',
+                    lineHeight: '1.6em',
+                    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                    headings: {
+                        fontFamily: "'Inter', sans-serif",
+                        fontWeight: '600'
+                    },
+                    code: {
+                        fontFamily: "'Fira Code', 'Source Code Pro', monospace",
+                        fontSize: '13px',
+                        color: '#C7254E',
+                        backgroundColor: 'rgba(79,70,229,0.06)'
+                    }
+                },
+                sidebar: {
+                    width: '300px',
+                    backgroundColor: '#1F2333',
+                    textColor: '#E5E7EB',
+                    activeTextColor: '#818CF8',
+                    groupItems: { activeBackgroundColor: 'rgba(79,70,229,0.15)' },
+                    level1Items: { activeBackgroundColor: 'rgba(79,70,229,0.15)' }
+                },
+                rightPanel: {
+                    backgroundColor: '#16182A',
+                    width: '40%'
+                }
+            },
+            scrollYOffset: 56,
+            hideDownloadButton: false,
+            expandResponses: '200,201',
+            jsonSampleExpandLevel: 2,
+            pathInMiddlePanel: true,
+            requiredPropsFirst: true,
+            sortPropsAlphabetically: true,
+            hideHostname: false,
+            menuToggle: true
+        }, document.getElementById('redoc-container'));
+    </script>
+</body>
+</html>

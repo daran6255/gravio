@@ -140,31 +140,19 @@ async def root():
 @app.get("/redoc", include_in_schema=False)
 async def redoc_html():
     """
-    Custom ReDoc documentation with working CDN
+    Custom-branded ReDoc documentation page, rendered from
+    app/templates/docs/redoc.html
     """
     from fastapi.responses import HTMLResponse
-    
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>{settings.APP_NAME} - ReDoc</title>
-        <meta charset="utf-8"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">
-        <style>
-            body {{
-                margin: 0;
-                padding: 0;
-            }}
-        </style>
-    </head>
-    <body>
-        <redoc spec-url="/openapi.json"></redoc>
-        <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
-    </body>
-    </html>
-    """
+    from app.templates import render_template
+
+    html_content = render_template(
+        "docs/redoc.html",
+        app_name=settings.APP_NAME,
+        version=settings.APP_VERSION,
+        openapi_url="/openapi.json",
+        docs_url="/docs",
+    )
     return HTMLResponse(content=html_content)
 
 
