@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import {
 	Button,
 	Box,
@@ -256,6 +257,24 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 				>
 					{loading ? <CircularProgress size={24} color="inherit" aria-hidden="true" /> : 'Sign In'}
 				</Button>
+
+				<Box sx={{ mt: 3, textAlign: 'center' }}>
+					<Typography variant="body2" color="text.secondary">
+						Don't have an account?{' '}
+						<Link
+							component={RouterLink}
+							to="/register"
+							sx={{
+								color: theme.palette.primary.main,
+								textDecoration: 'none',
+								fontWeight: 600,
+								'&:hover': { textDecoration: 'underline' }
+							}}
+						>
+							Register your organization
+						</Link>
+					</Typography>
+				</Box>
 			</Box>
 		</Paper>
 	);

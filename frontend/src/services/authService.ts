@@ -75,7 +75,7 @@ const authService = {
 			}
 
 			return response.data;
-		} catch (error) {
+		} catch {
 			// If refresh fails, clear all tokens
 			authService.clearTokens();
 			return null;
@@ -85,7 +85,15 @@ const authService = {
 	/**
 	 * Logout user and clear tokens
 	 */
-	logout: () => {
+	logout: async (): Promise<void> => {
+		const refreshToken = authService.getRefreshToken();
+		if (refreshToken) {
+			try {
+				await api.post('/auth/logout', { refresh_token: refreshToken });
+			} catch (error) {
+				console.error('Failed to logout on server:', error);
+			}
+		}
 		authService.clearTokens();
 	},
 
@@ -119,7 +127,7 @@ const authService = {
 			const decoded = jwtDecode<JWTPayload>(token);
 			// Check if token expires within next 60 seconds (buffer for network latency)
 			return decoded.exp * 1000 < Date.now() + 60000;
-		} catch (error) {
+		} catch {
 			// If token can't be decoded, consider it expired
 			return true;
 		}
