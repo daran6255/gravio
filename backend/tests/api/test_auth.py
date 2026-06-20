@@ -88,6 +88,7 @@ async def test_login_nonexistent_user(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_refresh_token(client: AsyncClient, test_user_data: dict):
     """Test token refresh"""
+    import asyncio
     # Register and login
     await client.post("/api/v1/auth/register", json=test_user_data)
     login_response = await client.post(
@@ -99,6 +100,9 @@ async def test_refresh_token(client: AsyncClient, test_user_data: dict):
     )
     
     tokens = login_response.json()
+    
+    # Sleep to ensure iat changes
+    await asyncio.sleep(1)
     
     # Refresh token
     response = await client.post(
