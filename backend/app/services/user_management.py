@@ -1,6 +1,7 @@
 """Org Admin user management service (Flow C) — invite, list, deactivate/reactivate"""
 
 import secrets
+import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
@@ -114,3 +115,72 @@ async def set_user_active(
     await db.commit()
     await db.refresh(updated)
     return updated
+
+
+async def delete_org_user(
+    db: AsyncSession,
+    *,
+    current_user: User,
+    target_public_id: uuid.UUID,
+) -> User:
+    """Delete (cancel invite for) an unverified user in the current admin's organization.
+
+    Raises:
+        NotFoundError: Target user doesn't exist or belongs to a different org.
+        BadRequestError: User is already verified (cannot delete active/verified users, they must be deactivated),
+                        or trying to delete self.
+    """
+    target = await UserRepository.get_by_public_id(db, target_public_id)
+    if not target or target.organization_id != current_user.organization_id:
+        raise NotFoundError("User not found.")
+
+    if target.id == current_user.id:
+        raise BadRequestError("You cannot delete your own account.")
+
+    if target.is_verified:
+        raise BadRequestError("Cannot delete an accepted user. Deactivate them instead.")
+
+    await UserRepository.delete(db, target)
+    await db.commit()
+    return target
+
+
+async def resend_user_invite(
+    db: AsyncSession,
+    *,
+    current_user: User,
+    target_public_id: uuid.UUID,
+) -> User:
+    """Resend the invite email to an unverified user in the current admin's organization.
+
+    Raises:
+        NotFoundError: Target user doesn't exist or belongs to a different org.
+        BadRequestError: User is already verified/accepted, or is inactive.
+    """
+    target = await UserRepository.get_by_public_id(db, target_public_id)
+    if not target or target.organization_id != current_user.organization_id:
+        raise NotFoundError("User not found.")
+
+    if target.is_verified:
+        raise BadRequestError("This user has already accepted the invite.")
+
+    if not target.is_active:
+        raise BadRequestError("Cannot resend invite to a deactivated user.")
+
+    org = await OrganizationRepository.get_by_id(db, current_user.organization_id)
+
+    import asyncio
+    from app.utils.email import send_invite_email
+
+    asyncio.create_task(
+        send_invite_email(
+            to_email=target.email,
+            full_name=target.full_name or target.username,
+            org_name=org.name if org else "your organization",
+            role=target.role.value,
+            user_id=target.id,
+        )
+    )
+
+    return target
+

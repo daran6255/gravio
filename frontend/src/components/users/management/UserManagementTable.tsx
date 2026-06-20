@@ -8,6 +8,8 @@ interface UserManagementTableProps {
 	onAddUser: () => void;
 	onDeactivateUser: (user: TeamMember) => void;
 	onReactivateUser: (user: TeamMember) => void;
+	onResendInvite: (user: TeamMember) => void;
+	onCancelInvite: (user: TeamMember) => void;
 }
 
 const UserManagementTable: React.FC<UserManagementTableProps> = ({
@@ -15,6 +17,8 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
 	onAddUser,
 	onDeactivateUser,
 	onReactivateUser,
+	onResendInvite,
+	onCancelInvite,
 }) => {
 	return (
 		<Box>
@@ -23,6 +27,8 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
 				onAddUser={onAddUser}
 				onDeactivateUser={onDeactivateUser}
 				onReactivateUser={onReactivateUser}
+				onResendInvite={onResendInvite}
+				onCancelInvite={onCancelInvite}
 			/>
 		</Box>
 	);

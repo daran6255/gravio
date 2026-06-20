@@ -7,7 +7,7 @@ import {
 	useMediaQuery,
 	useTheme
 } from '@mui/material';
-import { Block, CheckCircleOutline } from '@mui/icons-material';
+import { Block, CheckCircleOutline, Delete, MailOutline } from '@mui/icons-material';
 
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTeamUsers } from '../../../store/slices/userSlice';
@@ -21,9 +21,18 @@ interface UserTableProps {
 	onAddUser?: () => void;
 	onDeactivateUser: (user: TeamMember) => void;
 	onReactivateUser: (user: TeamMember) => void;
+	onResendInvite: (user: TeamMember) => void;
+	onCancelInvite: (user: TeamMember) => void;
 }
 
-const UserTable: React.FC<UserTableProps> = ({ refreshKey, onAddUser, onDeactivateUser, onReactivateUser }) => {
+const UserTable: React.FC<UserTableProps> = ({
+	refreshKey,
+	onAddUser,
+	onDeactivateUser,
+	onReactivateUser,
+	onResendInvite,
+	onCancelInvite,
+}) => {
 	const theme = useTheme();
 	const dispatch = useAppDispatch();
 	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -47,21 +56,43 @@ const UserTable: React.FC<UserTableProps> = ({ refreshKey, onAddUser, onDeactiva
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [fetchData, refreshKey]);
 
-	const getRowActions = (user: TeamMember): TableMenuAction<TeamMember>[] =>
-		user.is_active
-			? [{
-				label: 'Deactivate',
-				icon: <Block fontSize="small" />,
-				onClick: () => onDeactivateUser(user),
+	const getRowActions = (user: TeamMember): TableMenuAction<TeamMember>[] => {
+		const actions: TableMenuAction<TeamMember>[] = [];
+
+		if (!user.is_verified) {
+			actions.push({
+				label: 'Resend Invite',
+				icon: <MailOutline fontSize="small" />,
+				onClick: () => onResendInvite(user),
+				color: 'primary.main',
+			});
+			actions.push({
+				label: 'Cancel Invite',
+				icon: <Delete fontSize="small" />,
+				onClick: () => onCancelInvite(user),
 				color: 'error.main',
-				hidden: user.public_id === currentUser?.public_id,
-			}]
-			: [{
-				label: 'Reactivate',
-				icon: <CheckCircleOutline fontSize="small" />,
-				onClick: () => onReactivateUser(user),
-				color: 'success.main',
-			}];
+			});
+		} else {
+			if (user.is_active) {
+				actions.push({
+					label: 'Deactivate',
+					icon: <Block fontSize="small" />,
+					onClick: () => onDeactivateUser(user),
+					color: 'error.main',
+					hidden: user.public_id === currentUser?.public_id,
+				});
+			} else {
+				actions.push({
+					label: 'Reactivate',
+					icon: <CheckCircleOutline fontSize="small" />,
+					onClick: () => onReactivateUser(user),
+					color: 'success.main',
+				});
+			}
+		}
+
+		return actions;
+	};
 
 	const renderRow = (user: TeamMember) => (
 		<TableRow key={user.public_id} sx={{ '&:last-child td': { borderBottom: 0 } }}>

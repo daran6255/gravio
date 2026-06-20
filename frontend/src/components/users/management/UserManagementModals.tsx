@@ -14,6 +14,11 @@ interface UserManagementModalsProps {
 	statusLoading: boolean;
 	onCancelStatusChange: () => void;
 	onConfirmStatusChange: () => void;
+
+	cancelDialogOpen: boolean;
+	cancelLoading: boolean;
+	onCancelInviteClose: () => void;
+	onConfirmCancelInvite: () => void;
 }
 
 const UserManagementModals: React.FC<UserManagementModalsProps> = ({
@@ -26,6 +31,10 @@ const UserManagementModals: React.FC<UserManagementModalsProps> = ({
 	statusLoading,
 	onCancelStatusChange,
 	onConfirmStatusChange,
+	cancelDialogOpen,
+	cancelLoading,
+	onCancelInviteClose,
+	onConfirmCancelInvite,
 }) => {
 	const isDeactivate = statusAction === 'deactivate';
 
@@ -52,6 +61,19 @@ const UserManagementModals: React.FC<UserManagementModalsProps> = ({
 				cancelLabel="Cancel"
 				severity={isDeactivate ? 'warning' : 'success'}
 				loading={statusLoading}
+			/>
+
+			<ConfirmationDialog
+				open={cancelDialogOpen}
+				onClose={onCancelInviteClose}
+				onConfirm={onConfirmCancelInvite}
+				title="Cancel Invite"
+				subtitle="Remove pending team member invite"
+				message={`Are you sure you want to cancel the invitation for ${targetUser?.full_name || targetUser?.username}? This will remove them from the system, and their invite link will no longer work.`}
+				confirmLabel="Cancel Invite"
+				cancelLabel="Keep Invite"
+				severity="error"
+				loading={cancelLoading}
 			/>
 		</>
 	);

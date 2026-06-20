@@ -30,6 +30,18 @@ const userService = {
 		const response = await api.post<TeamMember>(`/users/${publicId}/reactivate`);
 		return response.data;
 	},
+
+	// Delete/cancel a pending user invite
+	deleteUser: async (publicId: string): Promise<TeamMember> => {
+		const response = await api.delete<TeamMember>(`/users/${publicId}`);
+		return response.data;
+	},
+
+	// Resend an invite link to an unverified user
+	resendInvite: async (publicId: string): Promise<TeamMember> => {
+		const response = await api.post<TeamMember>(`/users/${publicId}/resend-invite`);
+		return response.data;
+	},
 };
 
 export default userService;

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Box, Container, Button } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { useAppDispatch } from '../../store/hooks';
-import { deactivateTeamUser, reactivateTeamUser } from '../../store/slices/userSlice';
+import { deactivateTeamUser, reactivateTeamUser, deleteTeamUser, resendTeamUserInvite } from '../../store/slices/userSlice';
 import useToast from '../../hooks/useToast';
 import type { TeamMember } from '../../models/user';
 
@@ -25,6 +25,8 @@ const UserManagement: React.FC = () => {
 	const [statusAction, setStatusAction] = useState<'deactivate' | 'reactivate'>('deactivate');
 	const [targetUser, setTargetUser] = useState<TeamMember | null>(null);
 	const [statusLoading, setStatusLoading] = useState(false);
+	const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+	const [cancelLoading, setCancelLoading] = useState(false);
 	const [refreshKey, setRefreshKey] = useState(0);
 
 	const refreshData = () => setRefreshKey((prev) => prev + 1);
@@ -64,6 +66,36 @@ const UserManagement: React.FC = () => {
 		}
 	};
 
+	const handleResendInvite = async (user: TeamMember) => {
+		try {
+			await dispatch(resendTeamUserInvite(user.public_id)).unwrap();
+			toast.success(`Invite email resent to ${user.email}.`);
+		} catch (error: any) {
+			toast.error(error || 'Failed to resend invite');
+		}
+	};
+
+	const handleCancelInvite = (user: TeamMember) => {
+		setTargetUser(user);
+		setCancelDialogOpen(true);
+	};
+
+	const handleConfirmCancelInvite = async () => {
+		if (!targetUser) return;
+		setCancelLoading(true);
+		try {
+			await dispatch(deleteTeamUser(targetUser.public_id)).unwrap();
+			toast.success(`Invitation for ${targetUser.full_name || targetUser.username} has been cancelled.`);
+			refreshData();
+		} catch (error: any) {
+			toast.error(error || 'Failed to cancel invite');
+		} finally {
+			setCancelLoading(false);
+			setCancelDialogOpen(false);
+			setTargetUser(null);
+		}
+	};
+
 	const headerAction = (
 		<Button
 			variant="contained"
@@ -98,6 +130,8 @@ const UserManagement: React.FC = () => {
 					onAddUser={handleAddUser}
 					onDeactivateUser={handleDeactivateUser}
 					onReactivateUser={handleReactivateUser}
+					onResendInvite={handleResendInvite}
+					onCancelInvite={handleCancelInvite}
 				/>
 
 				<UserManagementModals
@@ -114,6 +148,10 @@ const UserManagement: React.FC = () => {
 					statusLoading={statusLoading}
 					onCancelStatusChange={() => { setStatusDialogOpen(false); setTargetUser(null); }}
 					onConfirmStatusChange={handleConfirmStatusChange}
+					cancelDialogOpen={cancelDialogOpen}
+					cancelLoading={cancelLoading}
+					onCancelInviteClose={() => { setCancelDialogOpen(false); setTargetUser(null); }}
+					onConfirmCancelInvite={handleConfirmCancelInvite}
 				/>
 
 			</Container>

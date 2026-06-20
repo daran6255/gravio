@@ -66,6 +66,29 @@ export const reactivateTeamUser = createAsyncThunk(
 	}
 );
 
+export const deleteTeamUser = createAsyncThunk(
+	'users/delete',
+	async (publicId: string, { rejectWithValue }) => {
+		try {
+			return await userService.deleteUser(publicId);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to delete user invite');
+		}
+	}
+);
+
+export const resendTeamUserInvite = createAsyncThunk(
+	'users/resendInvite',
+	async (publicId: string, { rejectWithValue }) => {
+		try {
+			return await userService.resendInvite(publicId);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to resend invite');
+		}
+	}
+);
+
+
 const userSlice = createSlice({
 	name: 'users',
 	initialState,
@@ -116,6 +139,20 @@ const userSlice = createSlice({
 				if (idx !== -1) state.users[idx] = action.payload;
 			})
 			.addCase(reactivateTeamUser.rejected, (state, action: PayloadAction<any>) => {
+				state.error = action.payload;
+			})
+			.addCase(deleteTeamUser.fulfilled, (state, action: PayloadAction<TeamMember>) => {
+				state.users = state.users.filter((u) => u.public_id !== action.payload.public_id);
+				state.total = Math.max(0, state.total - 1);
+			})
+			.addCase(deleteTeamUser.rejected, (state, action: PayloadAction<any>) => {
+				state.error = action.payload;
+			})
+			.addCase(resendTeamUserInvite.fulfilled, (state, action: PayloadAction<TeamMember>) => {
+				const idx = state.users.findIndex((u) => u.public_id === action.payload.public_id);
+				if (idx !== -1) state.users[idx] = action.payload;
+			})
+			.addCase(resendTeamUserInvite.rejected, (state, action: PayloadAction<any>) => {
 				state.error = action.payload;
 			});
 	},

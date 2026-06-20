@@ -9,7 +9,7 @@ from app.api.deps import require_roles
 from app.models.user import User, UserRole
 from app.schemas.common import PaginatedResponse
 from app.schemas.user_management import InviteUserRequest, UserListItem
-from app.services.user_management import invite_user, list_org_users, set_user_active
+from app.services.user_management import invite_user, list_org_users, set_user_active, delete_org_user, resend_user_invite
 
 router = APIRouter(prefix="/users", tags=["User Management"])
 
@@ -83,3 +83,32 @@ async def reactivate_user_endpoint(
 ) -> UserListItem:
     user = await set_user_active(db, current_user=current_user, target_public_id=public_id, active=True)
     return UserListItem.model_validate(user)
+
+
+@router.delete(
+    "/{public_id}",
+    response_model=UserListItem,
+    summary="Delete / cancel invite for an unverified user in your organization",
+)
+async def delete_user_endpoint(
+    public_id: uuid.UUID,
+    current_user: User = Depends(require_org_admin),
+    db: AsyncSession = Depends(get_db),
+) -> UserListItem:
+    user = await delete_org_user(db, current_user=current_user, target_public_id=public_id)
+    return UserListItem.model_validate(user)
+
+
+@router.post(
+    "/{public_id}/resend-invite",
+    response_model=UserListItem,
+    summary="Resend invite email to an unverified user",
+)
+async def resend_invite_endpoint(
+    public_id: uuid.UUID,
+    current_user: User = Depends(require_org_admin),
+    db: AsyncSession = Depends(get_db),
+) -> UserListItem:
+    user = await resend_user_invite(db, current_user=current_user, target_public_id=public_id)
+    return UserListItem.model_validate(user)
+

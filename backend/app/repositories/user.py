@@ -162,3 +162,13 @@ class UserRepository:
             user.is_active = active
             await db.flush()
         return user
+
+    @staticmethod
+    async def delete(db: AsyncSession, user: User) -> None:
+        """Delete a user record from the database.
+
+        Does NOT commit — the calling service owns the transaction boundary.
+        """
+        await db.delete(user)
+        await db.flush()
+
