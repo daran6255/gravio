@@ -13,7 +13,7 @@ from app.models.base import BaseModel, TenantAwareMixin
 
 if TYPE_CHECKING:
     from app.models.user import User
-    from app.models.ai_task_log import AITaskLog
+    from app.ai.models.ai_task_log import AITaskLog
 
 
 class AIChatSession(BaseModel, TenantAwareMixin):

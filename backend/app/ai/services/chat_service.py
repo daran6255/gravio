@@ -22,14 +22,13 @@ from app.ai.brain.journal import TaskJournal
 from app.ai.providers import get_llm_provider
 from app.ai.mcp.registry import registry
 from app.ai.brain.exceptions import LLMAuthError, LLMRateLimitError
-from app.models.ai_chat import AIChatSession, AIChatMessage
-from app.models.ai_task_log import AITaskStatus, AITaskTrigger
-from app.repositories.system_setting_repository import SystemSettingRepository
+from app.ai.models.ai_chat import AIChatSession, AIChatMessage
+from app.ai.models.ai_task_log import AITaskStatus, AITaskTrigger
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
     from app.models.user import User
-    from app.schemas.ai_chat import AIChatSessionCreate, AIChatMessageCreate
+    from app.ai.schemas.ai_chat import AIChatSessionCreate, AIChatMessageCreate
 
 logger = logging.getLogger(__name__)
 
@@ -117,9 +116,7 @@ class AIChatService:
         history = [{"role": m.role, "content": m.content} for m in session.messages[-6:]]
 
         # 4. Agentic Execution Flow
-        repo = SystemSettingRepository(self._db)
-        stored_prompt = await repo.get_by_key("AI_SYSTEM_PROMPT")
-        system_prompt_override = stored_prompt.value if stored_prompt else None
+        system_prompt_override = None
 
         try:
             provider = await get_llm_provider(self._db)

@@ -30,7 +30,7 @@ from app.ai.brain.journal import TaskJournal
 from app.ai.mcp.registry import registry as global_registry
 import app.ai.mcp.tools  # Trigger tool discovery and registration
 from app.core.config import settings
-from app.models.ai_task_log import AITaskStatus, AITaskTrigger
+from app.ai.models.ai_task_log import AITaskStatus, AITaskTrigger
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession

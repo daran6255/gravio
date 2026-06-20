@@ -10,7 +10,7 @@ the accuracy of the planner and extraction services.
 import logging
 from typing import Any, TYPE_CHECKING
 from sqlalchemy import select, text
-from app.models.ai_task_log import AITaskLog, AITaskStatus
+from app.ai.models.ai_task_log import AITaskLog, AITaskStatus
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession

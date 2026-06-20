@@ -14,7 +14,7 @@ from app.models.base import BaseModel, TenantAwareMixin
 
 if TYPE_CHECKING:
     from app.models.user import User
-    from app.models.ai_chat import AIChatSession
+    from app.ai.models.ai_chat import AIChatSession
 
 
 class AITaskStatus(str, enum.Enum):

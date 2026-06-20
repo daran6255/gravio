@@ -8,7 +8,6 @@ from app.core.database import get_db
 from app.core.security import decode_token, verify_token_type
 from app.core.config import settings
 from app.models.user import User
-from app.repositories.user_repository import UserRepository
 from app.core.context import tenant_context, superuser_context
 
 
@@ -82,8 +81,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    user_repo = UserRepository(db)
-    user = await user_repo.get(int(user_id))
+    user = await db.get(User, int(user_id))
     
     if user is None:
         raise HTTPException(
