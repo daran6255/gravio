@@ -1,0 +1,21 @@
+{% extends "email/base_email.html" %}
+{% block content %}
+                            <h2 style="margin:0 0 16px; font-family:'Inter',Arial,sans-serif; font-size:20px; font-weight:700; color:#0B0D12;">
+                                You're invited, {{ full_name }}!
+                            </h2>
+                            <p style="margin:0 0 28px; font-family:'Inter',Arial,sans-serif; font-size:14px; line-height:1.6; color:rgba(11,13,18,0.7);">
+                                You've been invited to join <strong>{{ org_name }}</strong> on {{ app_name }} as <strong>{{ role }}</strong>. Set your password below to activate your account.
+                            </p>
+                            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+                                <tr>
+                                    <td style="border-radius:8px; background-color:#8B7CF6; background-image:linear-gradient(135deg,#8B7CF6,#4EA8FF);">
+                                        <a href="{{ link }}" style="display:inline-block; padding:13px 30px; font-family:'Inter',Arial,sans-serif; font-size:14px; font-weight:600; color:#ffffff; text-decoration:none;">
+                                            Set Password &amp; Join
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin:0; font-family:'Inter',Arial,sans-serif; font-size:12px; line-height:1.5; color:rgba(11,13,18,0.45);">
+                                This invite link expires in {{ expire_days }} days. If you weren't expecting this, you can safely ignore this email.
+                            </p>
+{% endblock %}

@@ -1,17 +1,111 @@
 """Admin endpoints — operations restricted to Gravit Super Admins"""
 
 import uuid
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.api.deps import get_current_superuser
 from app.models.user import User
 from app.repositories.organization import OrganizationRepository
-from app.schemas.admin import TrialExtensionRequest, TrialExtensionResponse
+from app.schemas.admin import (
+    CreateOrganizationRequest,
+    CreateOrganizationResponse,
+    OrganizationListItem,
+    TrialExtensionRequest,
+    TrialExtensionResponse,
+)
+from app.schemas.common import PaginatedResponse
+from app.schemas.onboarding import OrgPublic, UserPublic
+from app.services.admin import create_organization, list_organizations
 from app.middleware.exceptions import NotFoundError
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
+
+
+# ── Flow B: Create Organization ─────────────────────────────────────────────────
+
+@router.post(
+    "/organizations",
+    response_model=CreateOrganizationResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Provision a new organization + admin (Super Admin)",
+    description=(
+        "Creates a new tenant organization with a 30-day trial and an invite-based "
+        "admin user — no password is collected here, the admin sets one via "
+        "POST /auth/accept-invite from the emailed invite link."
+    ),
+)
+async def create_organization_endpoint(
+    payload: CreateOrganizationRequest,
+    current_user: User = Depends(get_current_superuser),
+    db: AsyncSession = Depends(get_db),
+) -> CreateOrganizationResponse:
+    org, admin_user = await create_organization(db, payload)
+    return CreateOrganizationResponse(
+        message=f"Organization '{org.name}' has been created. An invite has been emailed to its admin.",
+        organization=OrgPublic.model_validate(org),
+        admin_user=UserPublic.model_validate(admin_user),
+    )
+
+
+@router.get(
+    "/organizations",
+    response_model=PaginatedResponse[OrganizationListItem],
+    summary="List organizations (Super Admin)",
+)
+async def list_organizations_endpoint(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    search: str | None = Query(None, description="Case-insensitive substring match on org name"),
+    current_user: User = Depends(get_current_superuser),
+    db: AsyncSession = Depends(get_db),
+) -> PaginatedResponse[OrganizationListItem]:
+    items, total = await list_organizations(db, page=page, page_size=page_size, search=search)
+    return PaginatedResponse[OrganizationListItem](
+        items=[OrganizationListItem.model_validate(o) for o in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.post(
+    "/organizations/{public_id}/deactivate",
+    response_model=OrganizationListItem,
+    summary="Deactivate an organization (Super Admin)",
+)
+async def deactivate_organization_endpoint(
+    public_id: uuid.UUID,
+    current_user: User = Depends(get_current_superuser),
+    db: AsyncSession = Depends(get_db),
+) -> OrganizationListItem:
+    org = await OrganizationRepository.get_by_public_id(db, public_id)
+    if not org:
+        raise NotFoundError(f"Organization with ID '{public_id}' not found.")
+    updated = await OrganizationRepository.set_active(db, org.id, active=False)
+    await db.commit()
+    await db.refresh(updated)
+    return OrganizationListItem.model_validate(updated)
+
+
+@router.post(
+    "/organizations/{public_id}/reactivate",
+    response_model=OrganizationListItem,
+    summary="Reactivate an organization (Super Admin)",
+)
+async def reactivate_organization_endpoint(
+    public_id: uuid.UUID,
+    current_user: User = Depends(get_current_superuser),
+    db: AsyncSession = Depends(get_db),
+) -> OrganizationListItem:
+    org = await OrganizationRepository.get_by_public_id(db, public_id)
+    if not org:
+        raise NotFoundError(f"Organization with ID '{public_id}' not found.")
+    updated = await OrganizationRepository.set_active(db, org.id, active=True)
+    await db.commit()
+    await db.refresh(updated)
+    return OrganizationListItem.model_validate(updated)
 
 
 @router.post(

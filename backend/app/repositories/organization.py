@@ -105,3 +105,36 @@ class OrganizationRepository:
             org.is_active = active
             await db.flush()
         return org
+
+    @staticmethod
+    async def list_all(
+        db: AsyncSession,
+        *,
+        page: int = 1,
+        page_size: int = 20,
+        search: Optional[str] = None,
+    ) -> tuple[list[Organization], int]:
+        """Return a page of organizations, plus the total count.
+
+        Args:
+            search: Optional case-insensitive substring match on organization name.
+        """
+        from sqlalchemy import func
+
+        conditions = []
+        if search:
+            conditions.append(Organization.name.ilike(f"%{search}%"))
+
+        count_result = await db.execute(
+            select(func.count()).select_from(Organization).where(*conditions)
+        )
+        total = count_result.scalar_one()
+
+        result = await db.execute(
+            select(Organization)
+            .where(*conditions)
+            .order_by(Organization.id)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        return list(result.scalars().all()), total

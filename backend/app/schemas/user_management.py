@@ -1,0 +1,33 @@
+"""Pydantic schemas for Org-Admin-side user management (Flow C)"""
+
+import uuid
+from typing import Optional
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from app.models.user import UserRole
+
+
+class InviteUserRequest(BaseModel):
+    """Org Admin invites a teammate into their organization"""
+    username: str = Field(
+        ...,
+        min_length=3,
+        max_length=100,
+        pattern=r"^[a-z0-9_]+$",
+        description="Lowercase alphanumeric username (underscores allowed)",
+    )
+    email: EmailStr = Field(..., description="Invitee's email address")
+    full_name: str = Field(..., min_length=2, max_length=255)
+    role: UserRole = Field(..., description="Role to assign within the organization")
+
+
+class UserListItem(BaseModel):
+    """A single row in the org's user list"""
+    model_config = ConfigDict(from_attributes=True)
+
+    public_id: uuid.UUID
+    username: str
+    email: str
+    full_name: Optional[str]
+    role: str
+    is_active: bool
+    is_verified: bool

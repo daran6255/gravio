@@ -9,6 +9,7 @@ from app.repositories.user import UserRepository
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.core.security import (
     verify_password,
+    get_password_hash,
     create_access_token,
     create_refresh_token,
     decode_token,
@@ -16,6 +17,7 @@ from app.core.security import (
 )
 from app.middleware.exceptions import UnauthorizedError, ForbiddenError, BadRequestError
 from app.schemas.auth import TokenResponse
+from app.utils.password import validate_password_strength
 
 
 # ── Login ──────────────────────────────────────────────────────────────────────
@@ -60,6 +62,11 @@ async def login(
         
         org = await OrganizationRepository.get_by_id(db, user.organization_id)
         if org:
+            if not org.is_active:
+                raise ForbiddenError(
+                    "Your organization's account has been deactivated. Please contact support."
+                )
+
             now = datetime.now(timezone.utc)
             if org.subscription_status == "expired" or (
                 org.subscription_status == "trial" and org.trial_expires_at and org.trial_expires_at < now
@@ -210,4 +217,56 @@ async def verify_email(db: AsyncSession, *, token: str) -> str:
     return (
         f"Email verified successfully. Welcome to Gravit, {user.full_name or user.username}! "
         "You can now log in."
+    )
+
+
+# ── Accept Invite ────────────────────────────────────────────────────────────────
+
+async def accept_invite(db: AsyncSession, *, token: str, new_password: str) -> TokenResponse:
+    """Accept an invite (Flow B's org admin or Flow C's invited teammate).
+
+    Sets the real password, marks the account verified, and logs the user
+    straight in — avoids a redundant separate login step right after accepting.
+
+    Raises:
+        BadRequestError: Token is invalid/expired, the user no longer exists, or
+            the invite was already accepted.
+    """
+    from app.utils.email import decode_invite_token
+
+    user_id = decode_invite_token(token)
+    if not user_id:
+        raise BadRequestError(
+            "This invite link is invalid or has expired. Please ask for a new invite."
+        )
+
+    user = await UserRepository.get_by_id(db, user_id)
+    if not user:
+        raise BadRequestError("Account not found.")
+
+    if user.is_verified:
+        raise BadRequestError("This invite has already been accepted. Please log in instead.")
+
+    validate_password_strength(new_password)
+
+    hashed_pw = get_password_hash(new_password)
+    await UserRepository.activate_with_password(db, user_id, hashed_password=hashed_pw)
+
+    token_data = {
+        "sub": str(user.id),
+        "org": user.organization_id,
+        "username": user.username,
+    }
+    access_token = create_access_token(data=token_data)
+    refresh_token, jti, expires_at = create_refresh_token(data=token_data)
+    await RefreshTokenRepository.create(db, jti=jti, user_id=user.id, expires_at=expires_at)
+
+    await db.commit()
+
+    logger.info(f"User '{user.username}' (id={user_id}) accepted their invite.")
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
     )

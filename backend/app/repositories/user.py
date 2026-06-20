@@ -100,3 +100,65 @@ class UserRepository:
             user.is_verified = True
             await db.flush()
         return user
+
+    @staticmethod
+    async def activate_with_password(
+        db: AsyncSession,
+        user_id: int,
+        *,
+        hashed_password: str,
+    ) -> Optional[User]:
+        """Accept an invite: set the real password hash and mark the account verified.
+
+        Does NOT commit — the calling service owns the transaction boundary.
+        """
+        user = await UserRepository.get_by_id(db, user_id)
+        if user:
+            user.hashed_password = hashed_password
+            user.is_verified = True
+            await db.flush()
+        return user
+
+    @staticmethod
+    async def list_by_organization(
+        db: AsyncSession,
+        organization_id: int,
+        *,
+        page: int = 1,
+        page_size: int = 20,
+        include_inactive: bool = True,
+    ) -> tuple[list[User], int]:
+        """Return a page of users belonging to an organization, plus the total count.
+
+        User does NOT inherit TenantAwareMixin, so the automatic tenant filter in
+        app/core/database.py does not apply here — organization_id is filtered
+        explicitly below.
+        """
+        from sqlalchemy import func
+
+        conditions = [User.organization_id == organization_id]
+        if not include_inactive:
+            conditions.append(User.is_active.is_(True))
+
+        count_result = await db.execute(
+            select(func.count()).select_from(User).where(*conditions)
+        )
+        total = count_result.scalar_one()
+
+        result = await db.execute(
+            select(User)
+            .where(*conditions)
+            .order_by(User.id)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        return list(result.scalars().all()), total
+
+    @staticmethod
+    async def set_active(db: AsyncSession, user_id: int, *, active: bool) -> Optional[User]:
+        """Activate or deactivate a user. Mirrors OrganizationRepository.set_active."""
+        user = await UserRepository.get_by_id(db, user_id)
+        if user:
+            user.is_active = active
+            await db.flush()
+        return user

@@ -6,6 +6,7 @@ from app.api.v1.endpoints.onboarding import router as onboarding_router
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.admin import router as admin_router
 from app.api.v1.endpoints.plans import router as plans_router
+from app.api.v1.endpoints.users import router as users_router
 
 # Create main v1 router
 router = APIRouter()
@@ -25,3 +26,9 @@ router.include_router(admin_router)
 
 # Pricing plans             →  GET  /api/v1/plans
 router.include_router(plans_router)
+
+# Org Admin user management →  POST /api/v1/users/invite
+#                             GET  /api/v1/users
+#                             POST /api/v1/users/{public_id}/deactivate
+#                             POST /api/v1/users/{public_id}/reactivate
+router.include_router(users_router)

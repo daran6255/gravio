@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.core.rate_limiter import limiter, rate_limit_auth
 from app.models.user import User
 from app.schemas.auth import (
+    AcceptInviteRequest,
     LoginRequest,
     LogoutRequest,
     MessageResponse,
@@ -15,7 +16,7 @@ from app.schemas.auth import (
     TokenResponse,
     UserProfileResponse,
 )
-from app.services.auth import login, logout, refresh_tokens, verify_email
+from app.services.auth import accept_invite, login, logout, refresh_tokens, verify_email
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -105,6 +106,27 @@ async def verify_email_endpoint(
 ) -> MessageResponse:
     message = await verify_email(db, token=token)
     return MessageResponse(message=message)
+
+
+# ── Accept Invite ──────────────────────────────────────────────────────────────
+
+@router.post(
+    "/accept-invite",
+    response_model=TokenResponse,
+    summary="Accept an invite and set your password",
+    description=(
+        "Used by both a Super-Admin-provisioned org admin and an Org-Admin-invited "
+        "teammate. Supply the token from the invite email plus a new password; "
+        "on success the account is activated and you're logged in immediately."
+    ),
+)
+@rate_limit_auth()
+async def accept_invite_endpoint(
+    request: Request,
+    payload: AcceptInviteRequest,
+    db: AsyncSession = Depends(get_db),
+) -> TokenResponse:
+    return await accept_invite(db, token=payload.token, new_password=payload.new_password)
 
 
 # ── Current User Profile ───────────────────────────────────────────────────────

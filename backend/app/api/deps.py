@@ -110,6 +110,12 @@ async def get_current_user(
         
         org = user.organization
         if org:
+            if not org.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Your organization's account has been deactivated. Please contact support."
+                )
+
             now = datetime.now(timezone.utc)
             if org.subscription_status == "expired" or (
                 org.subscription_status == "trial" and org.trial_expires_at and org.trial_expires_at < now

@@ -50,6 +50,42 @@ def decode_verification_token(token: str) -> Optional[int]:
         return None
 
 
+# ── Invite Token ───────────────────────────────────────────────────────────────
+
+_INVITE_SECRET = settings.SECRET_KEY + "_invite"
+_INVITE_ALGORITHM = "HS256"
+_INVITE_EXPIRE_DAYS = 7
+
+
+def create_invite_token(user_id: int) -> str:
+    """Generate a time-limited JWT used for invite ("set your password") links.
+
+    Token expires in 7 days — invites plausibly sit unopened longer than a
+    just-signed-up user's verification link.
+    """
+    expire = datetime.now(timezone.utc) + timedelta(days=_INVITE_EXPIRE_DAYS)
+    payload = {
+        "sub": str(user_id),
+        "type": "invite",
+        "exp": expire,
+    }
+    return jwt.encode(payload, _INVITE_SECRET, algorithm=_INVITE_ALGORITHM)
+
+
+def decode_invite_token(token: str) -> Optional[int]:
+    """Decode an invite token and return the user_id, or None if invalid/expired."""
+    try:
+        payload = jwt.decode(token, _INVITE_SECRET, algorithms=[_INVITE_ALGORITHM])
+        if payload.get("type") != "invite":
+            return None
+        user_id_str = payload.get("sub")
+        if user_id_str is None:
+            return None
+        return int(user_id_str)
+    except (JWTError, ValueError):
+        return None
+
+
 # ── Sending ────────────────────────────────────────────────────────────────────
 
 async def send_verification_email(
@@ -82,6 +118,37 @@ async def send_verification_email(
     )
 
 
+async def send_invite_email(
+    to_email: str,
+    full_name: str,
+    org_name: str,
+    role: str,
+    user_id: int,
+) -> None:
+    """Send an invite ("set your password and join") email.
+
+    Used both when a Super Admin provisions a new organization's first admin and
+    when an Org Admin invites a teammate. Same dev/SMTP fallback as
+    send_verification_email.
+    """
+    token = create_invite_token(user_id)
+    base_url = settings.FRONTEND_URL or "http://localhost:5173"
+    invite_link = f"{base_url}/accept-invite?token={token}"
+
+    if not settings.SMTP_HOST:
+        logger.info(
+            f"[EMAIL - DEV] Invite email for '{full_name}' ({to_email}) — org '{org_name}', role '{role}'\n"
+            f"  Link: {invite_link}"
+        )
+        return
+
+    await _send_via_smtp(
+        to_email=to_email,
+        subject=f"You've been invited to join {org_name} on {settings.APP_NAME}",
+        html_body=_build_invite_html(full_name, org_name, role, invite_link),
+    )
+
+
 async def _send_via_smtp(to_email: str, subject: str, html_body: str) -> None:
     """Internal helper — send an HTML email using aiosmtplib."""
     try:
@@ -104,7 +171,7 @@ async def _send_via_smtp(to_email: str, subject: str, html_body: str) -> None:
             use_tls=False,
             start_tls=settings.SMTP_TLS,
         )
-        logger.info(f"Verification email sent to {to_email}")
+        logger.info(f"Email '{subject}' sent to {to_email}")
 
     except ImportError:
         logger.warning(
@@ -112,8 +179,8 @@ async def _send_via_smtp(to_email: str, subject: str, html_body: str) -> None:
             "Run: pip install aiosmtplib"
         )
     except Exception as exc:
-        # Email failure must never crash the onboarding flow
-        logger.error(f"Failed to send verification email to {to_email}: {exc}")
+        # Email failure must never crash the calling flow (onboarding, invites, etc.)
+        logger.error(f"Failed to send email '{subject}' to {to_email}: {exc}")
 
 
 def _build_verification_html(full_name: str, link: str) -> str:
@@ -124,5 +191,19 @@ def _build_verification_html(full_name: str, link: str) -> str:
         full_name=full_name,
         link=link,
         expire_hours=_VERIFY_EXPIRE_HOURS,
+        year=datetime.now().year,
+    )
+
+
+def _build_invite_html(full_name: str, org_name: str, role: str, link: str) -> str:
+    """Build the HTML body for the invite email from templates/email/invite.html."""
+    return render_template(
+        "email/invite.html",
+        app_name=settings.APP_NAME,
+        full_name=full_name,
+        org_name=org_name,
+        role=role,
+        link=link,
+        expire_days=_INVITE_EXPIRE_DAYS,
         year=datetime.now().year,
     )
