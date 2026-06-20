@@ -9,6 +9,7 @@ from app.core.security import decode_token, verify_token_type
 from app.core.config import settings
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
+from app.core.context import tenant_context, superuser_context
 
 
 security = HTTPBearer(auto_error=False)
@@ -95,6 +96,9 @@ async def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user"
         )
+    
+    tenant_context.set(user.organization_id)
+    superuser_context.set(user.is_superuser)
     
     return user
 

@@ -9,14 +9,14 @@ from typing import TYPE_CHECKING, Literal
 from sqlalchemy import String, Text, Integer, ForeignKey, Uuid, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import BaseModel
+from app.models.base import BaseModel, TenantAwareMixin
 
 if TYPE_CHECKING:
     from app.models.user import User
     from app.models.ai_task_log import AITaskLog
 
 
-class AIChatSession(BaseModel):
+class AIChatSession(BaseModel, TenantAwareMixin):
     """
     Groups individual messages into a conversation context.
     Allows users to revisit past chats and pick up where they left off.
@@ -64,7 +64,7 @@ class AIChatSession(BaseModel):
         return f"<AIChatSession(id={self.id}, title='{self.title}', user_id={self.user_id})>"
 
 
-class AIChatMessage(BaseModel):
+class AIChatMessage(BaseModel, TenantAwareMixin):
     """
     A single bubble in the chat conversation.
     Links assistant responses to Task Journals for full auditability.

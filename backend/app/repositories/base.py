@@ -4,6 +4,7 @@ from typing import TypeVar, Generic, Type, Optional, List, Any
 from sqlalchemy import select, update, delete, func, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.base import BaseModel
+from app.core.context import tenant_context, superuser_context
 
 
 ModelType = TypeVar("ModelType", bound=BaseModel)
@@ -15,10 +16,31 @@ class BaseRepository(Generic[ModelType]):
     def __init__(self, model: Type[ModelType], db: AsyncSession):
         self.model = model
         self.db = db
+
+    def _apply_tenant_filter(self, query: Any) -> Any:
+        """Apply organization filter if context is set and user is not superuser"""
+        if superuser_context.get():
+            return query
+            
+        tenant_id = tenant_context.get()
+        if tenant_id and hasattr(self.model, "organization_id"):
+            query = query.where(self.model.organization_id == tenant_id)
+        return query
+
+    def _inject_tenant_id(self, obj_in: dict[str, Any]) -> dict[str, Any]:
+        """Inject organization_id into creation dict if applicable"""
+        if superuser_context.get():
+            return obj_in
+            
+        tenant_id = tenant_context.get()
+        if tenant_id and hasattr(self.model, "organization_id") and "organization_id" not in obj_in:
+            obj_in["organization_id"] = tenant_id
+        return obj_in
     
     async def get(self, id: int, include_deleted: bool = False) -> Optional[ModelType]:
         """Get a single record by ID"""
         query = select(self.model).where(self.model.id == id)
+        query = self._apply_tenant_filter(query)
         
         if not include_deleted:
             query = query.where(self.model.is_deleted == False)
@@ -29,6 +51,7 @@ class BaseRepository(Generic[ModelType]):
     async def get_by_fields(self, include_deleted: bool = False, **fields) -> List[ModelType]:
         """Get records by multiple field filters"""
         query = select(self.model)
+        query = self._apply_tenant_filter(query)
         for field, value in fields.items():
             if hasattr(self.model, field):
                 query = query.where(getattr(self.model, field) == value)
@@ -47,6 +70,7 @@ class BaseRepository(Generic[ModelType]):
     ) -> List[ModelType]:
         """Get multiple records with pagination"""
         query = select(self.model)
+        query = self._apply_tenant_filter(query)
         
         if not include_deleted:
             query = query.where(self.model.is_deleted == False)
@@ -57,6 +81,7 @@ class BaseRepository(Generic[ModelType]):
     
     async def create(self, obj_in: dict[str, Any]) -> ModelType:
         """Create a new record"""
+        obj_in = self._inject_tenant_id(obj_in)
         db_obj = self.model(**obj_in)
         self.db.add(db_obj)
         await self.db.flush()
@@ -67,6 +92,8 @@ class BaseRepository(Generic[ModelType]):
         """Efficiently create multiple records in one roundtrip"""
         if not objects:
             return []
+        
+        objects = [self._inject_tenant_id(obj.copy()) for obj in objects]
         
         query = insert(self.model).values(objects).returning(self.model)
         result = await self.db.execute(query)
@@ -83,9 +110,9 @@ class BaseRepository(Generic[ModelType]):
             update(self.model)
             .where(self.model.id == id)
             .where(self.model.is_deleted == False)
-            .values(**obj_in)
-            .returning(self.model)
         )
+        query = self._apply_tenant_filter(query)
+        query = query.values(**obj_in).returning(self.model)
         
         result = await self.db.execute(query)
         await self.db.flush()
@@ -127,6 +154,7 @@ class BaseRepository(Generic[ModelType]):
         else:
             # Hard delete
             query = delete(self.model).where(self.model.id == id)
+            query = self._apply_tenant_filter(query)
             result = await self.db.execute(query)
             await self.db.flush()
             return result.rowcount > 0
@@ -140,8 +168,9 @@ class BaseRepository(Generic[ModelType]):
             update(self.model)
             .where(self.model.id.in_(ids))
             .where(self.model.is_deleted == False)
-            .values(is_deleted=True, deleted_at=datetime.utcnow())
         )
+        query = self._apply_tenant_filter(query)
+        query = query.values(is_deleted=True, deleted_at=datetime.utcnow())
         result = await self.db.execute(query)
         await self.db.flush()
         return result.rowcount
@@ -149,6 +178,7 @@ class BaseRepository(Generic[ModelType]):
     async def count(self, include_deleted: bool = False, filter_expr: Any = None) -> int:
         """Count total records"""
         query = select(func.count()).select_from(self.model)
+        query = self._apply_tenant_filter(query)
         
         if not include_deleted:
             query = query.where(self.model.is_deleted == False)
@@ -165,5 +195,6 @@ class BaseRepository(Generic[ModelType]):
             self.model.id == id,
             self.model.is_deleted == False
         )
+        query = self._apply_tenant_filter(query)
         result = await self.db.execute(query)
         return result.scalar_one_or_none() is not None

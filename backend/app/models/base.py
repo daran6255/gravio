@@ -2,8 +2,8 @@
 
 from datetime import datetime
 from typing import Any
-from sqlalchemy import DateTime, Integer, Boolean
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import DateTime, Integer, Boolean, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, declared_attr
 from sqlalchemy.sql import func
 
 
@@ -48,6 +48,19 @@ class SoftDeleteMixin:
         """Restore soft deleted record"""
         self.is_deleted = False
         self.deleted_at = None
+
+
+class TenantAwareMixin:
+    """Mixin for models that belong to an organization"""
+    
+    @declared_attr
+    def organization_id(cls) -> Mapped[int]:
+        return mapped_column(
+            Integer, 
+            ForeignKey("organizations.id"), 
+            nullable=False, 
+            index=True
+        )
 
 
 # Import Base from database to avoid circular import issues

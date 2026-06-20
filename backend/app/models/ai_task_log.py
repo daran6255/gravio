@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import String, Text, JSON, Integer, Float, ForeignKey, Enum, Uuid, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import BaseModel
+from app.models.base import BaseModel, TenantAwareMixin
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -38,7 +38,7 @@ class AITaskTrigger(str, enum.Enum):
     SYSTEM = "system"             # Internal system event
 
 
-class AITaskLog(BaseModel):
+class AITaskLog(BaseModel, TenantAwareMixin):
     """
     Persistent task journal for every AI engine run.
 

@@ -2,7 +2,6 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.ai.brain.exceptions import LLMProviderError
-from app.repositories.system_setting_repository import SystemSettingRepository
 from app.ai.providers.base import LLMProvider
 
 logger = logging.getLogger(__name__)
@@ -25,13 +24,7 @@ def get_provider_registry():
 PROVIDER_REGISTRY = get_provider_registry()
 
 async def get_llm_provider(db: AsyncSession, override: str | None = None) -> LLMProvider:
-    repo = SystemSettingRepository(db)
-    
-    provider_name = override
-    if not provider_name:
-        stored_provider = await repo.get_by_key("AI_PROVIDER")
-        provider_name = stored_provider.value if stored_provider and stored_provider.value else settings.AI_PROVIDER
-    
+    provider_name = override or settings.AI_PROVIDER
     provider_name = provider_name.lower().strip()
     registry = get_provider_registry()
 
@@ -43,22 +36,9 @@ async def get_llm_provider(db: AsyncSession, override: str | None = None) -> LLM
 
     provider_class = registry[provider_name]
     
-    # Fetch API key from DB if it exists
-    key_field = f"{provider_name.upper()}_API_KEY"
-    stored_key = await repo.get_by_key(key_field)
-    api_key = stored_key.value.strip() if stored_key and stored_key.value else None
-    
-    # Fetch model override
-    # 1. Try provider-specific override first (e.g. AI_MODEL_GROQ_OVERRIDE)
-    provider_override_key = f"AI_MODEL_{provider_name.upper()}_OVERRIDE"
-    stored_provider_model = await repo.get_by_key(provider_override_key)
-    
-    if stored_provider_model and stored_provider_model.value:
-        model_override = stored_provider_model.value
-    else:
-        # 2. Fallback to global override (legacy / for convenience)
-        stored_global_model = await repo.get_by_key("AI_MODEL_OVERRIDE")
-        model_override = stored_global_model.value if stored_global_model and stored_global_model.value else None
+    # Fetch API key and model configurations from env settings directly
+    api_key = getattr(settings, f"{provider_name.upper()}_API_KEY", None)
+    model_override = getattr(settings, f"AI_MODEL_{provider_name.upper()}", None)
     
     return provider_class(api_key=api_key, model=model_override)
 
@@ -70,7 +50,6 @@ def get_provider_info() -> list[dict]:
     registry = get_provider_registry()
     supported = list(registry.keys())
     
-    # Map of provider names to their settings (for health check)
     provider_key_map = {
         "gemini":    ("GEMINI_API_KEY", settings.GEMINI_API_KEY),
         "openai":    ("OPENAI_API_KEY", settings.OPENAI_API_KEY),

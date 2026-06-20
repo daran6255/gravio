@@ -1,6 +1,6 @@
 """
-AI Engine — Extraction Service
-==============================
+AI Engine — Extraction Service (Simplified & Decoupled)
+======================================================
 
 Handles structured data extraction from unstructured sources (JDs, Resumes).
 Uses the Jinja2 PromptLoader and the AI Provider system.
@@ -14,9 +14,6 @@ from app.ai.providers import get_llm_provider
 from app.ai.prompts.loader import loader
 from app.ai.brain.exceptions import LLMProviderError
 from app.core.constants import DISABILITY_TYPES, QUALIFICATIONS, COMMON_SKILLS
-from app.repositories.company_repository import CompanyRepository
-from app.repositories.contact_repository import ContactRepository
-from app.repositories.skill_repository import SkillRepository
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +43,6 @@ class JobRoleExtractionService:
                 source_text = (jd_text + "\n" + pdf_text) if jd_text else pdf_text
             except Exception as e:
                 logger.error(f"Failed to extract text from PDF: {str(e)}")
-                # Continue with jd_text if available
 
         if not source_text.strip():
             raise ValueError("No text provided for extraction.")
@@ -55,7 +51,6 @@ class JobRoleExtractionService:
         source_text = self._truncate_source_text(source_text)
 
         # 3. Render Prompt using Jinja2
-        # Note: 'skills_ref' is automatically injected by the loader
         system_prompt = loader.render("extraction/job_role_extraction.md", {
             "DISABILITY_TYPES": DISABILITY_TYPES,
             "QUALIFICATIONS": QUALIFICATIONS,
@@ -78,7 +73,7 @@ class JobRoleExtractionService:
             logger.error(f"Failed to parse extraction response: {str(e)}")
             raise ValueError("AI failed to return valid structured data. Please try again.")
 
-        # 5. Domain Lookups (Suggestions)
+        # 5. Domain Lookups (Suggestions) - stubbed to prevent DB errors
         suggestions = await self._generate_suggestions(extracted_data)
 
         return {
@@ -104,92 +99,24 @@ class JobRoleExtractionService:
 
     async def _post_process(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Final validation of extracted data.
-        The LLM does the 'thinking', the code just ensures DB compatibility.
+        Final validation of extracted data (stubbed).
         """
-        requirements = data.get("requirements", {})
-        if requirements:
-            # Sync skills with DB (create if missing)
-            data = await self._sync_skills(data)
-            
-            # Simple validation for qualifications/disabilities
-            # (If LLM hallucinated something outside our list, we keep it as-is 
-            # but usually the prompt handles this now).
-            pass
-            
-        return data
-
-    async def _sync_skills(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Ensures all extracted skills exist in the DB."""
-        requirements = data.get("requirements", {})
-        skills = requirements.get("skills", [])
-        if not skills:
-            return data
-
-        skill_repo = SkillRepository(self._db)
-        final_skills = []
-        for sname in skills:
-            if not sname or not isinstance(sname, str): continue
-            sname = sname.strip()
-            existing = await skill_repo.get_by_name(sname)
-            if existing:
-                final_skills.append(existing.name)
-            else:
-                try:
-                    new_skill = await skill_repo.create({"name": sname})
-                    await self._db.commit()
-                    final_skills.append(new_skill.name)
-                except Exception:
-                    await self._db.rollback()
-                    final_skills.append(sname)
-        
-        requirements["skills"] = list(set(final_skills))
         return data
 
     async def _generate_suggestions(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Finds matching company/contact IDs in the DB."""
+        """Finds matching company/contact IDs in the DB (stubbed)."""
         company_name = data.get("company_name")
         contact_name = data.get("contact_name")
-        contact_email = data.get("contact_email")
 
-        suggestions = {
+        return {
             "company_id": None,
             "company_name": company_name,
             "contact_id": None,
             "contact_name": contact_name,
         }
 
-        if company_name:
-            company_repo = CompanyRepository(self._db)
-            companies, _ = await company_repo.get_multi(search=company_name, limit=1)
-            if companies:
-                comp = companies[0]
-                suggestions["company_id"] = comp.id
-                suggestions["company_name"] = comp.name
-
-                if (contact_name or contact_email):
-                    contact_repo = ContactRepository(self._db)
-                    contacts = []
-                    if contact_email:
-                        existing = await contact_repo.get_by_email(contact_email)
-                        if existing: contacts = [existing]
-                    
-                    if not contacts and contact_name:
-                        contacts, _ = await contact_repo.get_multi(
-                            company_id=comp.id, search=contact_name, limit=1
-                        )
-                    
-                    if contacts:
-                        suggestions["contact_id"] = contacts[0].id
-                        suggestions["contact_name"] = f"{contacts[0].first_name} {contacts[0].last_name}"
-
-        return suggestions
-
     def _truncate_source_text(self, text: str, max_chars: int = 8000) -> str:
-        """
-        Truncates source text to stay within LLM provider limits (e.g. Groq TPM).
-        15,000 chars is roughly 4,000 tokens.
-        """
+        """Truncates source text to stay within LLM provider limits."""
         if len(text) <= max_chars:
             return text
         
@@ -213,27 +140,12 @@ class CandidateExtractionService:
         document_id: int = None
     ) -> Dict[str, Any]:
         """
-        Extracts structured candidate data from text, PDF bytes, or a document ID.
+        Extracts structured candidate data from text, PDF bytes.
         """
-        # 1. Prepare source text
-        source_text = resume_text or ""
-        
-        # If document_id is provided, fetch it from DB
         if document_id:
-            from app.repositories.candidate_document_repository import CandidateDocumentRepository
-            import os
-            
-            repo = CandidateDocumentRepository(self._db)
-            doc = await repo.get(document_id)
-            if not doc:
-                raise ValueError(f"Document {document_id} not found.")
-            
-            # Read file from filesystem
-            if os.path.exists(doc.file_path):
-                with open(doc.file_path, "rb") as f:
-                    pdf_file = f.read()
-            else:
-                logger.error(f"File not found at path: {doc.file_path}")
+            raise ValueError("Document lookup is disabled.")
+
+        source_text = resume_text or ""
 
         if pdf_file:
             import io
@@ -297,56 +209,9 @@ class CandidateExtractionService:
         return json.loads(content)
 
     async def _post_process(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Ensures all extracted skills exist in the DB."""
-        skills = data.get("skills", {})
-        tech_skills = skills.get("technical_skills", [])
-        soft_skills = skills.get("soft_skills", [])
-        
-        if tech_skills or soft_skills:
-            skill_repo = SkillRepository(self._db)
-            
-            # Sync Technical Skills
-            final_tech = []
-            for sname in tech_skills:
-                if not sname or not isinstance(sname, str): continue
-                existing = await skill_repo.get_by_name(sname.strip())
-                if existing:
-                    final_tech.append(existing.name)
-                else:
-                    try:
-                        new_skill = await skill_repo.create({"name": sname.strip()})
-                        await self._db.commit()
-                        final_tech.append(new_skill.name)
-                    except Exception:
-                        await self._db.rollback()
-                        final_tech.append(sname)
-            
-            # Sync Soft Skills
-            final_soft = []
-            for sname in soft_skills:
-                if not sname or not isinstance(sname, str): continue
-                existing = await skill_repo.get_by_name(sname.strip())
-                if existing:
-                    final_soft.append(existing.name)
-                else:
-                    try:
-                        new_skill = await skill_repo.create({"name": sname.strip()})
-                        await self._db.commit()
-                        final_soft.append(new_skill.name)
-                    except Exception:
-                        await self._db.rollback()
-                        final_soft.append(sname)
-
-            data["skills"]["technical_skills"] = list(set(final_tech))
-            data["skills"]["soft_skills"] = list(set(final_soft))
-            
         return data
 
     def _truncate_source_text(self, text: str, max_chars: int = 8000) -> str:
-        """
-        Truncates source text to stay within LLM provider limits (e.g. Groq TPM).
-        15,000 chars is roughly 4,000 tokens.
-        """
         if len(text) <= max_chars:
             return text
         
@@ -365,31 +230,6 @@ class SkillRecommendationService:
 
     async def get_recommendations(self, candidate_skills: list[str]) -> list[str]:
         """
-        Suggests high-demand skills the candidate might be missing.
+        Suggests high-demand skills the candidate might be missing (stubbed).
         """
-        from app.repositories.job_role_repository import JobRoleRepository
-        from app.models.job_role import JobRoleStatus
-        from collections import Counter
-
-        # 1. Fetch active job roles to see what's in demand
-        jr_repo = JobRoleRepository(self._db)
-        active_roles = await jr_repo.get_multi_with_filters(status=JobRoleStatus.ACTIVE, limit=50)
-        
-        # 2. Aggregate skills from these roles
-        demand_skills = []
-        for role in active_roles:
-            reqs = role.requirements or {}
-            skills = reqs.get("skills", [])
-            demand_skills.extend([s.lower().strip() for s in skills if isinstance(s, str)])
-        
-        if not demand_skills:
-            return []
-
-        # 3. Get most frequent skills
-        common_demand = [s for s, count in Counter(demand_skills).most_common(20)]
-        
-        # 4. Filter out skills the candidate already has
-        candidate_skills_lower = [s.lower().strip() for s in candidate_skills]
-        recommendations = [s.title() for s in common_demand if s not in candidate_skills_lower]
-        
-        return recommendations[:10]  # Return top 10 suggestions
+        return []

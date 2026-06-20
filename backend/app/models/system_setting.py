@@ -2,10 +2,10 @@
 
 from sqlalchemy import String, Text, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
-from app.models.base import BaseModel
+from app.models.base import BaseModel, TenantAwareMixin
 
 
-class SystemSetting(BaseModel):
+class SystemSetting(BaseModel, TenantAwareMixin):
     """
     Model for storing system-wide settings.
     Used for AI configuration, email settings, etc.
