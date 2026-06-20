@@ -9,11 +9,23 @@ import {
 	Box,
 	Collapse,
 	Tooltip,
-	alpha
+	alpha,
+	Avatar,
+	Menu,
+	MenuItem,
+	Divider,
+	Typography
 } from '@mui/material';
 import {
 	ExpandLess,
 	ExpandMore,
+	Dns as InfrastructureIcon,
+	Security as SecurityIcon,
+	Settings as SettingsIcon,
+	Memory as ComputeIcon,
+	Storage as StorageIcon,
+	Person as ProfileIcon,
+	ExitToApp as LogoutIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
@@ -21,10 +33,11 @@ import { useTheme, useMediaQuery } from '@mui/material';
 import { toggleSidebar } from '../../store/slices/uiSlice';
 import { topNavigation, bottomNavigation } from '../../config/navigation';
 import type { NavigationItem } from '../../config/navigation';
+import { useColorMode } from '../../theme/ThemeContext';
+import { logoutUser } from '../../store/slices/authSlice';
 
 const DRAWER_WIDTH = 260;
 const COLLAPSED_WIDTH = 64; // Standardized slightly wider for icon centering
-const NAVBAR_HEIGHT = 48; // Matches 'dense' Toolbar height
 
 /**
  * Enterprise Sidebar - Modern Console Navigation
@@ -40,9 +53,45 @@ const Sidebar: React.FC = () => {
 	const user = useAppSelector((state) => state.auth.user);
 	const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
+	// Menu Anchor for bottom user profile
+	const [profileAnchorEl, setProfileAnchorEl] = useState<null | HTMLElement>(null);
+	const { mode } = useColorMode();
+
+	const isDarkSidebar = mode === 'light'; // Light Mode -> Dark Sidebar; Dark Mode -> Light Sidebar
+
+	const sidebarBg = isDarkSidebar ? '#0B0D12' : '#ffffff';
+	const sidebarText = isDarkSidebar ? '#F4F5F7' : '#1e293b';
+	const sidebarTextMuted = isDarkSidebar ? '#94A3B8' : '#64748b';
+	const sidebarDivider = isDarkSidebar ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)';
+	const sidebarHoverBg = isDarkSidebar ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)';
+	const drawerExpanded = isMobile ? open : true; // Always expanded on desktop
+
+	const handleProfileOpen = (event: React.MouseEvent<HTMLElement>) => {
+		setProfileAnchorEl(event.currentTarget);
+	};
+
+	const handleProfileClose = () => {
+		setProfileAnchorEl(null);
+	};
+
+	const handleLogout = () => {
+		dispatch(logoutUser());
+		handleProfileClose();
+		navigate('/login');
+	};
+
+	const userInitials = user
+		? (user.full_name || user.username)
+			.split(' ')
+			.map((n: string) => n[0])
+			.join('')
+			.toUpperCase()
+			.slice(0, 2)
+		: 'U';
+
 	// Auto-expand the group of the active path on mount or navigation
 	React.useEffect(() => {
-		if (open) {
+		if (drawerExpanded) {
 			const findAndExpandActiveGroup = (items: NavigationItem[]) => {
 				for (const item of items) {
 					if (item.children?.some(child => isActive(child.path))) {
@@ -57,7 +106,7 @@ const Sidebar: React.FC = () => {
 			findAndExpandActiveGroup(topNavigation);
 			findAndExpandActiveGroup(bottomNavigation);
 		}
-	}, [location.pathname, open]);
+	}, [location.pathname, drawerExpanded]);
 
 	const isActive = (path?: string) => {
 		if (!path) return false;
@@ -125,12 +174,12 @@ const Sidebar: React.FC = () => {
 				selected={active}
 				sx={{
 					minHeight: 44,
-					px: open ? 2 : 0,
+					px: drawerExpanded ? 2 : 0,
 					py: 0,
-					mx: open ? 1 : 0.5, // Floating block effect
+					mx: drawerExpanded ? 1 : 0.5, // Floating block effect
 					width: 'auto',
-					borderRadius: 1, // Enterprise 8px (approx)
-					justifyContent: open ? 'initial' : 'center',
+					borderRadius: 1.5, // Enterprise rounded corner
+					justifyContent: drawerExpanded ? 'initial' : 'center',
 					transition: theme.transitions.create(['background-color', 'color', 'margin']),
 					
 					'&.Mui-selected': {
@@ -139,15 +188,21 @@ const Sidebar: React.FC = () => {
 							bgcolor: 'primary.dark',
 						},
 						'& .MuiListItemText-primary': {
-							color: 'common.white',
+							color: '#ffffff',
 							fontWeight: 800,
 						},
 						'& .MuiListItemIcon-root': {
-							color: 'common.white',
+							color: '#ffffff',
 						},
 					},
 					'&:hover': {
-						bgcolor: alpha(theme.palette.action.hover, 0.12),
+						bgcolor: sidebarHoverBg,
+						'& .MuiListItemText-primary': {
+							color: isDarkSidebar ? '#ffffff' : '#0B0D12',
+						},
+						'& .MuiListItemIcon-root': {
+							color: isDarkSidebar ? '#ffffff' : '#0B0D12',
+						},
 					},
 				}}
 			>
@@ -155,9 +210,9 @@ const Sidebar: React.FC = () => {
 					<ListItemIcon
 						sx={{
 							minWidth: 0,
-							mr: open ? 1.5 : 0,
+							mr: drawerExpanded ? 1.5 : 0,
 							justifyContent: 'center',
-							color: active ? 'common.white' : alpha(theme.palette.common.white, 0.5),
+							color: active ? '#ffffff' : sidebarTextMuted,
 							transition: theme.transitions.create(['color', 'margin']),
 						}}
 					>
@@ -167,12 +222,12 @@ const Sidebar: React.FC = () => {
 				<ListItemText
 					primary={item.label}
 					sx={{
-						opacity: open ? 1 : 0,
-						display: open ? 'block' : 'none',
+						opacity: drawerExpanded ? 1 : 0,
+						display: drawerExpanded ? 'block' : 'none',
 						m: 0,
 						'& .MuiListItemText-primary': {
 							...theme.typography[active ? 'sidebarActive' : 'sidebarItem'],
-							color: active ? 'common.white' : alpha(theme.palette.common.white, 0.7),
+							color: active ? '#ffffff' : sidebarTextMuted,
 							whiteSpace: 'nowrap',
 							overflow: 'hidden',
 							textOverflow: 'ellipsis',
@@ -184,7 +239,7 @@ const Sidebar: React.FC = () => {
 
 		return (
 			<ListItem disablePadding sx={{ display: 'block', mb: 0.5 }}>
-				{open ? content : (
+				{drawerExpanded ? content : (
 					<Tooltip title={item.label} placement="right" arrow>
 						<Box>{content}</Box>
 					</Tooltip>
@@ -203,7 +258,7 @@ const Sidebar: React.FC = () => {
 		const content = (
 			<ListItemButton
 				onClick={() => {
-					if (!open) {
+					if (!drawerExpanded) {
 						dispatch(toggleSidebar());
 					} else {
 						group.label && toggleGroup(group.label);
@@ -211,17 +266,17 @@ const Sidebar: React.FC = () => {
 				}}
 				sx={{
 					minHeight: 44,
-					px: open ? 2 : 0,
+					px: drawerExpanded ? 2 : 0,
 					py: 0,
-					mx: open ? 1 : 0.5,
+					mx: drawerExpanded ? 1 : 0.5,
 					width: 'auto',
-					borderRadius: 1,
-					justifyContent: open ? 'initial' : 'center',
-					// Group active background (very subtle if highlighted)
+					borderRadius: 1.5,
+					justifyContent: drawerExpanded ? 'initial' : 'center',
+					// Group active background
 					bgcolor: activeChild && !isExpanded ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
 					
 					'&:hover': {
-						bgcolor: alpha(theme.palette.common.white, 0.08),
+						bgcolor: sidebarHoverBg,
 					},
 				}}
 			>
@@ -229,9 +284,9 @@ const Sidebar: React.FC = () => {
 					<ListItemIcon
 						sx={{
 							minWidth: 0,
-							mr: open ? 1.5 : 0,
+							mr: drawerExpanded ? 1.5 : 0,
 							justifyContent: 'center',
-							color: activeChild ? 'common.white' : alpha(theme.palette.common.white, 0.5),
+							color: activeChild ? 'primary.main' : sidebarTextMuted,
 						}}
 					>
 						<Icon sx={{ fontSize: '1.25rem' }} />
@@ -239,7 +294,7 @@ const Sidebar: React.FC = () => {
 				)}
 				<Box
 					sx={{
-						display: open ? 'flex' : 'none',
+						display: drawerExpanded ? 'flex' : 'none',
 						alignItems: 'center',
 						justifyContent: 'space-between',
 						flexGrow: 1,
@@ -252,13 +307,13 @@ const Sidebar: React.FC = () => {
 							m: 0,
 							'& .MuiListItemText-primary': {
 								...theme.typography[activeChild ? 'sidebarActive' : 'sidebarItem'],
-								color: activeChild ? 'common.white' : alpha(theme.palette.common.white, 0.7),
+								color: activeChild ? (isDarkSidebar ? '#ffffff' : 'primary.main') : sidebarTextMuted,
 							}
 						}}
 					/>
 					{isExpanded ?
-						<ExpandLess sx={{ fontSize: 16, opacity: 0.8, color: activeChild ? 'primary.main' : 'common.white' }} /> :
-						<ExpandMore sx={{ fontSize: 16, opacity: 0.8, color: activeChild ? 'primary.main' : 'common.white' }} />
+						<ExpandLess sx={{ fontSize: 16, opacity: 0.8, color: activeChild ? 'primary.main' : sidebarTextMuted }} /> :
+						<ExpandMore sx={{ fontSize: 16, opacity: 0.8, color: activeChild ? 'primary.main' : sidebarTextMuted }} />
 					}
 				</Box>
 			</ListItemButton>
@@ -267,13 +322,13 @@ const Sidebar: React.FC = () => {
 		return (
 			<>
 				<ListItem disablePadding sx={{ display: 'block' }}>
-					{open ? content : (
+					{drawerExpanded ? content : (
 						<Tooltip title={group.label} placement="right" arrow>
 							<Box>{content}</Box>
 						</Tooltip>
 					)}
 				</ListItem>
-				<Collapse in={isExpanded && open} timeout="auto" unmountOnExit>
+				<Collapse in={isExpanded && drawerExpanded} timeout="auto" unmountOnExit>
 					<List component="div" disablePadding>
 						{group.children?.map((child, index) => (
 							<NavItem key={index} item={child} />
@@ -284,15 +339,63 @@ const Sidebar: React.FC = () => {
 		);
 	};
 
+	const renderMockItem = (label: string, Icon: React.ComponentType<any>) => {
+		return (
+			<ListItem disablePadding sx={{ display: 'block', mb: 0.5 }} key={label}>
+				<Tooltip title={drawerExpanded ? '' : label} placement="right" arrow>
+					<ListItemButton
+						disabled
+						sx={{
+							minHeight: 44,
+							px: drawerExpanded ? 2 : 0,
+							py: 0,
+							mx: drawerExpanded ? 1 : 0.5,
+							width: 'auto',
+							borderRadius: 1.5,
+							justifyContent: drawerExpanded ? 'initial' : 'center',
+							opacity: 0.8,
+							cursor: 'default',
+							'&.Mui-disabled': {
+								opacity: 0.8,
+								color: sidebarTextMuted,
+							},
+							'&:hover': {
+								bgcolor: sidebarHoverBg,
+								'& .MuiListItemText-primary': { color: isDarkSidebar ? '#ffffff' : '#0B0D12' },
+								'& .MuiListItemIcon-root': { color: isDarkSidebar ? '#ffffff' : '#0B0D12' },
+							}
+						}}
+					>
+						<ListItemIcon sx={{ minWidth: 0, mr: drawerExpanded ? 1.5 : 0, justifyContent: 'center', color: sidebarTextMuted }}>
+							<Icon sx={{ fontSize: '1.25rem' }} />
+						</ListItemIcon>
+						<ListItemText
+							primary={label}
+							sx={{
+								opacity: drawerExpanded ? 1 : 0,
+								display: drawerExpanded ? 'block' : 'none',
+								m: 0,
+								'& .MuiListItemText-primary': {
+									...theme.typography.sidebarItem,
+									color: sidebarTextMuted,
+								}
+							}}
+						/>
+					</ListItemButton>
+				</Tooltip>
+			</ListItem>
+		);
+	};
+
 	return (
 		<Drawer
 			variant={isMobile ? 'temporary' : 'permanent'}
 			anchor="left"
-			open={open}
+			open={isMobile ? open : true}
 			onClose={() => dispatch(toggleSidebar())}
 			ModalProps={{ keepMounted: true }}
 			sx={{
-				width: open ? DRAWER_WIDTH : (isMobile ? 0 : COLLAPSED_WIDTH),
+				width: drawerExpanded ? DRAWER_WIDTH : (isMobile ? 0 : COLLAPSED_WIDTH),
 				flexShrink: 0,
 				whiteSpace: 'nowrap',
 				transition: theme.transitions.create('width', {
@@ -300,22 +403,46 @@ const Sidebar: React.FC = () => {
 					duration: theme.transitions.duration.standard,
 				}),
 				'& .MuiDrawer-paper': {
-					width: open ? DRAWER_WIDTH : (isMobile ? 0 : COLLAPSED_WIDTH),
+					width: drawerExpanded ? DRAWER_WIDTH : (isMobile ? 0 : COLLAPSED_WIDTH),
 					overflowX: 'hidden',
 					transition: theme.transitions.create('width', {
 						easing: theme.transitions.easing.sharp,
 						duration: theme.transitions.duration.standard,
 					}),
 					boxSizing: 'border-box',
-					top: NAVBAR_HEIGHT,
-					height: `calc(100% - ${NAVBAR_HEIGHT}px)`,
-					backgroundColor: 'secondary.main',
-					borderRight: `1px solid ${theme.palette.divider}`,
+					top: 0, // Starts at the very top of page
+					height: '100vh',
+					backgroundColor: sidebarBg,
+					borderRight: `1px solid ${sidebarDivider}`,
 					boxShadow: 'none',
 				},
 			}}
 		>
-			<Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', color: 'secondary.contrastText' }}>
+			<Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', color: sidebarText, bgcolor: sidebarBg }}>
+				{/* Brand Logo Header */}
+				<Box
+					sx={{
+						height: 64,
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'flex-start',
+						px: 3, // Premium padding
+						borderBottom: `1px solid ${sidebarDivider}`,
+					}}
+				>
+					<Box
+						component="img"
+						src={isDarkSidebar ? '/assets/img/logo/gravit-dark.svg' : '/assets/img/logo/gravit-light.svg'}
+						alt="Gravit logo"
+						sx={{
+							height: 42, // Enlarged logo
+							cursor: 'pointer'
+						}}
+						onClick={() => navigate('/')}
+					/>
+				</Box>
+
+				{/* Navigation Links List */}
 				<Box
 					sx={{
 						flexGrow: 1,
@@ -326,13 +453,14 @@ const Sidebar: React.FC = () => {
 						'&::-webkit-scrollbar': { width: 4 },
 						'&::-webkit-scrollbar-track': { background: 'transparent' },
 						'&::-webkit-scrollbar-thumb': {
-							background: alpha(theme.palette.common.white, 0.1),
+							background: sidebarDivider,
 							borderRadius: 10,
-							'&:hover': { background: alpha(theme.palette.common.white, 0.2) }
+							'&:hover': { background: sidebarHoverBg }
 						},
 					}}
 				>
 					<List disablePadding>
+						{/* Real Navigation Items */}
 						{topNavigation.map((item, index) => (
 							item.children ? (
 								<NavGroup key={index} group={item} />
@@ -340,25 +468,139 @@ const Sidebar: React.FC = () => {
 								<NavItem key={index} item={item} />
 							)
 						))}
+
+						{/* Mock Navigation Items (to perfectly match mockup aesthetics) */}
+						{renderMockItem('Infrastructure', InfrastructureIcon)}
+						{renderMockItem('Security', SecurityIcon)}
+						{renderMockItem('Settings', SettingsIcon)}
+
+						{/* Resources Mock Section */}
+						{drawerExpanded ? (
+							<Typography
+								variant="caption"
+								sx={{
+									display: 'block',
+									px: 2.5,
+									pt: 2.5,
+									pb: 1,
+									fontWeight: 700,
+									letterSpacing: '0.05em',
+									color: sidebarTextMuted,
+									textTransform: 'uppercase'
+								}}
+							>
+								Resources
+							</Typography>
+						) : (
+							<Box sx={{ borderBottom: `1px solid ${sidebarDivider}`, my: 2, mx: 2 }} />
+						)}
+
+						{renderMockItem('Compute', ComputeIcon)}
+						{renderMockItem('Storage', StorageIcon)}
 					</List>
 				</Box>
 
-				<Box sx={{
-					flexShrink: 0,
-					py: 0.5,
-					borderTop: `1px solid ${theme.palette.divider}`,
-					bgcolor: 'secondary.main'
-				}}>
-					<List disablePadding>
-						{bottomNavigation.map((item, index) => (
-							item.children ? (
-								<NavGroup key={index} group={item} />
-							) : (
-								<NavItem key={index} item={item} />
-							)
-						))}
-					</List>
-				</Box>
+				{/* User Profile Block */}
+				{user && (
+					<Box sx={{
+						flexShrink: 0,
+						borderTop: `1px solid ${sidebarDivider}`,
+						bgcolor: 'transparent',
+						p: 1
+					}}>
+						<Box
+							onClick={handleProfileOpen}
+							sx={{
+								display: 'flex',
+								alignItems: 'center',
+								gap: drawerExpanded ? 1.5 : 0,
+								justifyContent: drawerExpanded ? 'flex-start' : 'center',
+								p: 1,
+								borderRadius: 1.5,
+								cursor: 'pointer',
+								transition: theme.transitions.create(['background-color', 'padding']),
+								'&:hover': {
+									bgcolor: sidebarHoverBg
+								}
+							}}
+						>
+							<Avatar
+								sx={{
+									width: 36,
+									height: 36,
+									bgcolor: 'primary.main',
+									color: '#ffffff',
+									fontSize: '0.875rem',
+									fontWeight: 700
+								}}
+							>
+								{userInitials}
+							</Avatar>
+							{drawerExpanded && (
+								<Box sx={{ minWidth: 0, overflow: 'hidden' }}>
+									<Typography variant="body2" sx={{ fontWeight: 600, color: sidebarText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+										{user.full_name || user.username}
+									</Typography>
+									<Typography variant="caption" sx={{ color: sidebarTextMuted, display: 'block', textTransform: 'capitalize' }}>
+										{user.role} Role
+									</Typography>
+								</Box>
+							)}
+						</Box>
+
+						{/* Profile Dropdown Menu */}
+						<Menu
+							id="sidebar-profile-menu"
+							anchorEl={profileAnchorEl}
+							anchorOrigin={{
+								vertical: 'top',
+								horizontal: 'right',
+							}}
+							transformOrigin={{
+								vertical: 'bottom',
+								horizontal: 'left',
+							}}
+							open={Boolean(profileAnchorEl)}
+							onClose={handleProfileClose}
+							PaperProps={{
+								elevation: 4,
+								sx: {
+									width: 240,
+									mb: 1,
+									ml: 1,
+									borderRadius: 1.5,
+									overflow: 'hidden',
+									bgcolor: theme.palette.background.paper,
+									border: `1px solid ${theme.palette.divider}`,
+									'& .MuiList-root': { py: 0 }
+								}
+							}}
+						>
+							<Box sx={{ p: 2, bgcolor: isDarkSidebar ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.01)' }}>
+								<Typography variant="subtitle2" sx={{ fontWeight: 700, color: theme.palette.text.primary, lineHeight: 1.2 }}>
+									{user.full_name || user.username}
+								</Typography>
+								<Typography variant="caption" sx={{ color: theme.palette.text.secondary, mt: 0.5, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+									{user.email}
+								</Typography>
+							</Box>
+							<Divider sx={{ my: 0 }} />
+							<MenuItem onClick={handleProfileClose} sx={{ py: 1, px: 2 }}>
+								<ListItemIcon sx={{ minWidth: 32 }}>
+									<ProfileIcon fontSize="small" />
+								</ListItemIcon>
+								<ListItemText primary="Account Settings" primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }} />
+							</MenuItem>
+							<Divider sx={{ my: 0 }} />
+							<MenuItem onClick={handleLogout} sx={{ py: 1, px: 2, color: theme.palette.error.main }}>
+								<ListItemIcon sx={{ minWidth: 32, color: theme.palette.error.main }}>
+									<LogoutIcon fontSize="small" />
+								</ListItemIcon>
+								<ListItemText primary="Sign Out" primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} />
+							</MenuItem>
+						</Menu>
+					</Box>
+				)}
 			</Box>
 		</Drawer>
 	);

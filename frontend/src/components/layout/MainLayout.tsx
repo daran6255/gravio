@@ -23,10 +23,10 @@ const MainLayout: React.FC = () => {
 						easing: theme.transitions.easing.sharp,
 						duration: theme.transitions.duration.standard,
 					}),
-					mt: '48px',
+					mt: '64px',
 					display: 'flex',
 					flexDirection: 'column',
-					minHeight: 'calc(100vh - 48px)',
+					minHeight: 'calc(100vh - 64px)',
 					overflowX: 'hidden'
 				}}
 			>

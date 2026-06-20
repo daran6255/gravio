@@ -12,7 +12,8 @@ import {
 	alpha,
 	useTheme,
 	styled,
-	CircularProgress
+	CircularProgress,
+	useMediaQuery
 } from '@mui/material';
 import {
 	Search as SearchIcon
@@ -24,19 +25,19 @@ import userService from '../../services/userService';
 
 const SearchContainer = styled('div')(({ theme }) => ({
 	position: 'relative',
-	borderRadius: theme.shape.borderRadius,
-	backgroundColor: alpha(theme.palette.common.white, 0.08),
-	border: `1px solid ${alpha(theme.palette.common.white, 0.1)}`,
+	borderRadius: 18, // Rounded pill shape as in mockup
+	backgroundColor: theme.palette.mode === 'light' ? '#f3f4f6' : '#1e293b',
+	border: `1px solid ${theme.palette.mode === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)'}`,
 	'&:hover': {
-		backgroundColor: alpha(theme.palette.common.white, 0.12),
-		borderColor: alpha(theme.palette.common.white, 0.2),
+		backgroundColor: theme.palette.mode === 'light' ? '#e5e7eb' : '#334155',
+		borderColor: theme.palette.mode === 'light' ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)',
 	},
 	'&:focus-within': {
-		backgroundColor: theme.palette.common.white,
-		borderColor: theme.palette.accent.main,
-		boxShadow: `0 0 0 2px ${alpha(theme.palette.accent.main, 0.2)}`,
+		backgroundColor: theme.palette.mode === 'light' ? '#ffffff' : '#0B0D12',
+		borderColor: theme.palette.primary.main,
+		boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
 		'& .MuiInputBase-input': {
-			color: theme.palette.secondary.main,
+			color: theme.palette.text.primary,
 			'&::placeholder': {
 				color: theme.palette.text.secondary,
 			},
@@ -51,7 +52,8 @@ const SearchContainer = styled('div')(({ theme }) => ({
 	marginRight: theme.spacing(2),
 	marginLeft: 0,
 	width: '100%',
-	maxWidth: '600px',
+	minWidth: 0, // Ensure search box can shrink inside flex layouts
+	maxWidth: '400px',
 	transition: 'all 0.2s ease-in-out',
 	[theme.breakpoints.up('sm')]: {
 		marginLeft: theme.spacing(3),
@@ -68,12 +70,13 @@ const SearchIconWrapper = styled('div')(({ theme }) => ({
 	display: 'flex',
 	alignItems: 'center',
 	justifyContent: 'center',
-	color: theme.palette.common.white,
+	color: theme.palette.mode === 'light' ? '#64748b' : '#94A3B8',
 }));
 
 const StyledInputBase = styled(InputBase)(({ theme }) => ({
-	color: theme.palette.common.white,
+	color: theme.palette.text.primary,
 	width: '100%',
+	minWidth: 0, // Enable shrinking inside parent
 	'& .MuiInputBase-input': {
 		padding: theme.spacing(1, 1, 1, 0),
 		paddingLeft: `calc(1em + ${theme.spacing(4)})`,
@@ -82,7 +85,7 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 		fontSize: theme.typography.body2.fontSize,
 		fontWeight: 500,
 		'&::placeholder': {
-			color: alpha(theme.palette.common.white, 0.5),
+			color: theme.palette.mode === 'light' ? '#64748b' : '#94A3B8',
 			opacity: 1,
 			fontWeight: 400,
 		},
@@ -95,10 +98,10 @@ const ShortcutHint = styled('div')(({ theme }) => ({
 	top: '50%',
 	transform: 'translateY(-50%)',
 	padding: '2px 6px',
-	borderRadius: 1,
-	backgroundColor: alpha(theme.palette.common.white, 0.1),
-	border: `1px solid ${alpha(theme.palette.common.white, 0.2)}`,
-	color: alpha(theme.palette.common.white, 0.6),
+	borderRadius: 4,
+	backgroundColor: theme.palette.mode === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)',
+	border: `1px solid ${theme.palette.mode === 'light' ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
+	color: theme.palette.mode === 'light' ? '#64748b' : '#94A3B8',
 	fontSize: '0.7rem',
 	fontWeight: 700,
 	pointerEvents: 'none',
@@ -113,6 +116,7 @@ const ShortcutHint = styled('div')(({ theme }) => ({
 const GlobalSearch: React.FC = () => {
 	const theme = useTheme();
 	const navigate = useNavigate();
+	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 	const actions = useSearchActions();
 	const [query, setQuery] = useState('');
 	const [isOpen, setIsOpen] = useState(false);
@@ -246,7 +250,7 @@ const GlobalSearch: React.FC = () => {
 					<SearchIcon fontSize="small" />
 				</SearchIconWrapper>
 				<StyledInputBase
-					placeholder="Search services, features, candidates"
+					placeholder={isMobile ? "Search..." : "Search services, features, candidates"}
 					inputRef={inputRef}
 					value={query}
 					onChange={(e) => {
@@ -259,7 +263,7 @@ const GlobalSearch: React.FC = () => {
 					}}
 					onKeyDown={handleKeyDown}
 					endAdornment={loading ? (
-						<CircularProgress size={16} sx={{ color: alpha(theme.palette.common.white, 0.7), mr: 2 }} />
+						<CircularProgress size={16} sx={{ color: theme.palette.mode === 'light' ? '#64748b' : '#94A3B8', mr: 2 }} />
 					) : null}
 					inputProps={{
 						'aria-label': 'Search for services, features, candidates or users',
@@ -333,7 +337,7 @@ const GlobalSearch: React.FC = () => {
 														<ListItemText
 															primary={action.title}
 															secondary={cat === 'Candidate' || cat === 'User' ? action.id.split('-')[1] : action.category}
-															primaryTypographyProps={{ fontSize: '0.8125rem', fontWeight: 500, color: theme.palette.secondary.main }}
+															primaryTypographyProps={{ fontSize: '0.8125rem', fontWeight: 500, color: theme.palette.text.primary }}
 															secondaryTypographyProps={{ fontSize: '0.7rem', color: theme.palette.text.secondary }}
 														/>
 													</ListItemButton>
