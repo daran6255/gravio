@@ -1,53 +1,57 @@
 import React from 'react';
-import UserDialog from '../UserDialog';
+import InviteUserDialog from '../InviteUserDialog';
 import { ConfirmationDialog } from '../../common/dialogbox';
-import type { User } from '../../../models/user';
+import type { TeamMember } from '../../../models/user';
 
 interface UserManagementModalsProps {
-	openDialog: boolean;
-	dialogMode: 'add' | 'edit' | 'view';
-	selectedUser: User | null;
-	onCloseDialog: () => void;
-	onSuccessDialog: (message: string) => void;
-	
-	deleteDialogOpen: boolean;
-	onCancelDelete: () => void;
-	onConfirmDelete: () => void;
-	userToDelete: User | null;
+	inviteDialogOpen: boolean;
+	onCloseInviteDialog: () => void;
+	onSuccessInvite: (message: string) => void;
+
+	statusDialogOpen: boolean;
+	statusAction: 'deactivate' | 'reactivate';
+	targetUser: TeamMember | null;
+	statusLoading: boolean;
+	onCancelStatusChange: () => void;
+	onConfirmStatusChange: () => void;
 }
 
 const UserManagementModals: React.FC<UserManagementModalsProps> = ({
-	openDialog,
-	dialogMode,
-	selectedUser,
-	onCloseDialog,
-	onSuccessDialog,
-	deleteDialogOpen,
-	onCancelDelete,
-	onConfirmDelete,
-	userToDelete
+	inviteDialogOpen,
+	onCloseInviteDialog,
+	onSuccessInvite,
+	statusDialogOpen,
+	statusAction,
+	targetUser,
+	statusLoading,
+	onCancelStatusChange,
+	onConfirmStatusChange,
 }) => {
+	const isDeactivate = statusAction === 'deactivate';
+
 	return (
 		<>
-			<UserDialog
-				open={openDialog}
-				mode={dialogMode}
-				user={selectedUser}
-				onClose={onCloseDialog}
-				onSuccess={onSuccessDialog}
+			<InviteUserDialog
+				open={inviteDialogOpen}
+				onClose={onCloseInviteDialog}
+				onSuccess={onSuccessInvite}
 			/>
 
 			<ConfirmationDialog
-				open={deleteDialogOpen}
-				onClose={onCancelDelete}
-				onConfirm={onConfirmDelete}
-				title="Delete User"
-				subtitle="Irreversible Governance Action"
-				message={`Are you sure you want to delete user ${userToDelete?.username}? This action is permanent and cannot be undone.`}
-				confirmLabel="Delete User"
+				open={statusDialogOpen}
+				onClose={onCancelStatusChange}
+				onConfirm={onConfirmStatusChange}
+				title={isDeactivate ? 'Deactivate Teammate' : 'Reactivate Teammate'}
+				subtitle={isDeactivate ? 'They will lose access immediately' : 'Restore their access'}
+				message={
+					isDeactivate
+						? `Deactivate ${targetUser?.full_name || targetUser?.username}? They won't be able to log in until reactivated.`
+						: `Reactivate ${targetUser?.full_name || targetUser?.username}? They'll be able to log in again.`
+				}
+				confirmLabel={isDeactivate ? 'Deactivate' : 'Reactivate'}
 				cancelLabel="Cancel"
-				severity="error"
-				loading={false}
+				severity={isDeactivate ? 'warning' : 'success'}
+				loading={statusLoading}
 			/>
 		</>
 	);

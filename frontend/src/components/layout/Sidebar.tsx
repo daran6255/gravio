@@ -148,6 +148,7 @@ const Sidebar: React.FC = () => {
 	};
 
 	const hasPermission = (item: NavigationItem): boolean => {
+		if (item.requiresSuperuser) return !!user?.is_superuser;
 		if (user?.role === 'admin') return true;
 		const hasDirectPermission = !item.roles || (user?.role && item.roles.includes(user.role));
 

@@ -1,40 +1,41 @@
-import type { Organization } from './auth';
+export type UserRole =
+	| 'admin'
+	| 'manager'
+	| 'sourcing'
+	| 'placement'
+	| 'trainer'
+	| 'counselor'
+	| 'project_coordinator'
+	| 'developer'
+	| 'marketing';
 
-export interface User {
-	id: number;
-	public_id: string; // Added for DSR and other modules
+export const USER_ROLES: UserRole[] = [
+	'admin',
+	'manager',
+	'sourcing',
+	'placement',
+	'trainer',
+	'counselor',
+	'project_coordinator',
+	'developer',
+	'marketing',
+];
+
+/** A row in the Org Admin's Team list — matches backend's UserListItem exactly. */
+export interface TeamMember {
+	public_id: string;
 	username: string;
 	email: string;
-	full_name: string;
-	is_active: boolean;
-	is_verified: boolean;
-	is_superuser?: boolean;
-	role: 'admin' | 'manager' | 'sourcing' | 'placement' | 'trainer' | 'counselor' | 'project_coordinator' | 'developer' | 'marketing';
-	mobile?: string;
-	created_at?: string;
-	updated_at?: string;
-	organization_id?: number | null;
-	organization?: Organization | null;
-}
-
-export interface UserCreate {
-	email: string;
-	username: string;
-	full_name: string;
-	password: string;
-	is_active: boolean;
-	is_verified: boolean;
-	role: string;
-	mobile?: string;
-}
-
-export interface UserUpdate {
-	email?: string;
-	username?: string;
 	full_name?: string;
-	password?: string;
-	is_active?: boolean;
-	is_verified?: boolean;
-	role?: string;
-	mobile?: string;
+	role: UserRole;
+	is_active: boolean;
+	is_verified: boolean;
+}
+
+/** Invite a teammate — matches backend's InviteUserRequest exactly. No password is ever collected. */
+export interface InviteUserRequest {
+	username: string;
+	email: string;
+	full_name: string;
+	role: UserRole;
 }

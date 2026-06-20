@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
 	TableRow,
 	TableCell,
@@ -7,129 +7,64 @@ import {
 	useMediaQuery,
 	useTheme
 } from '@mui/material';
-
-import { WhatsApp as WhatsAppIcon } from '@mui/icons-material';
-import { alpha } from '@mui/material/styles';
+import { Block, CheckCircleOutline } from '@mui/icons-material';
 
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchUsers as fetchUsersThunk, fetchRoles } from '../../../store/slices/userSlice';
-import type { User } from '../../../models/user';
+import { fetchTeamUsers } from '../../../store/slices/userSlice';
+import type { TeamMember } from '../../../models/user';
 
-// Import modular table components
-import { DataTable, DataTableActions } from '../../common/table';
+import { DataTable, DataTableActions, type TableMenuAction } from '../../common/table';
 import { useUserTableConfig, getRoleColor } from './UserTableConfig';
-import FilterDrawer, { type FilterField } from '../../common/drawer/FilterDrawer';
-import useDateTime from '../../../hooks/useDateTime';
 
 interface UserTableProps {
+	refreshKey: number;
 	onAddUser?: () => void;
-	onEditUser?: (user: User) => void;
-	onViewUser?: (user: User) => void;
-	onDeleteUser?: (user: User) => void;
+	onDeactivateUser: (user: TeamMember) => void;
+	onReactivateUser: (user: TeamMember) => void;
 }
 
-const UserTable: React.FC<UserTableProps> = ({ onAddUser, onEditUser, onViewUser, onDeleteUser }) => {
+const UserTable: React.FC<UserTableProps> = ({ refreshKey, onAddUser, onDeactivateUser, onReactivateUser }) => {
 	const theme = useTheme();
 	const dispatch = useAppDispatch();
-	const { formatDate } = useDateTime();
 	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 	const isMedium = useMediaQuery(theme.breakpoints.down('md'));
 
-	// Redux state
 	const { user: currentUser } = useAppSelector((state) => state.auth);
-	const { users, loading, totalCount, roles } = useAppSelector((state) => state.users);
+	const { users, loading, total } = useAppSelector((state) => state.users);
 
-	// Local UI state
-	const [searchTerm, setSearchTerm] = useState('');
+	// MUI's DataTable is 0-indexed; the backend's `page` is 1-indexed.
 	const [page, setPage] = useState(0);
-	const [rowsPerPage, setRowsPerPage] = useState(5);
+	const [rowsPerPage, setRowsPerPage] = useState(20);
 
-	// Filtering state
-	const [isFilterOpen, setIsFilterOpen] = useState(false);
-	const [activeFilters, setActiveFilters] = useState<Record<string, any>>({ role: '' });
-	const [tempFilters, setTempFilters] = useState<Record<string, any>>({ role: '' });
+	const { columns } = useUserTableConfig({ isMobile, isMedium });
 
-	// Fetch roles on mount
-	useEffect(() => {
-		dispatch(fetchRoles());
-	}, [dispatch]);
-
-	// Table Configuration Hook
-	const { columns, rowActions } = useUserTableConfig({
-		isMobile,
-		isMedium,
-		currentUser,
-		onViewUser,
-		onEditUser,
-		onDeleteUser
-	});
-
-	// Fetch users logic via Redux Thunk
-	const fetchUsersData = useCallback(() => {
-		dispatch(fetchUsersThunk({
-			skip: page * rowsPerPage,
-			limit: rowsPerPage,
-			search: searchTerm,
-			role: activeFilters.role || undefined
-		}));
-	}, [dispatch, page, rowsPerPage, searchTerm, activeFilters.role]);
+	const fetchData = useCallback(() => {
+		dispatch(fetchTeamUsers({ page: page + 1, pageSize: rowsPerPage }));
+	}, [dispatch, page, rowsPerPage]);
 
 	useEffect(() => {
-		const timer = setTimeout(() => {
-			fetchUsersData();
-		}, 500);
-		return () => clearTimeout(timer);
-	}, [fetchUsersData]);
+		fetchData();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [fetchData, refreshKey]);
 
-	// Synchronize temp filters when drawer opens
-	useEffect(() => {
-		if (isFilterOpen) {
-			setTempFilters(activeFilters);
-		}
-	}, [isFilterOpen, activeFilters]);
+	const getRowActions = (user: TeamMember): TableMenuAction<TeamMember>[] =>
+		user.is_active
+			? [{
+				label: 'Deactivate',
+				icon: <Block fontSize="small" />,
+				onClick: () => onDeactivateUser(user),
+				color: 'error.main',
+				hidden: user.public_id === currentUser?.public_id,
+			}]
+			: [{
+				label: 'Reactivate',
+				icon: <CheckCircleOutline fontSize="small" />,
+				onClick: () => onReactivateUser(user),
+				color: 'success.main',
+			}];
 
-	// Filter Field definitions
-	const filterFields = useMemo((): FilterField[] => [
-		{
-			key: 'role',
-			label: 'System Role',
-			type: 'single-select',
-			options: roles.map(r => ({
-				value: r,
-				label: r.charAt(0).toUpperCase() + r.slice(1).replace('_', ' ')
-			}))
-		}
-	], [roles]);
-
-	// Filter Handlers
-	const handleFilterChange = useCallback((key: string, value: any) => {
-		setTempFilters(prev => ({ ...prev, [key]: value }));
-	}, []);
-
-	const handleApplyFilters = () => {
-		setActiveFilters(tempFilters);
-		setPage(0);
-		setIsFilterOpen(false);
-	};
-
-	const handleClearFilters = () => {
-		const cleared = { role: '' };
-		setTempFilters(cleared);
-		setActiveFilters(cleared);
-		setPage(0);
-		setIsFilterOpen(false);
-	};
-
-	const activeFilterCount = Object.values(activeFilters).filter(v => v !== '' && v !== null).length;
-
-	const renderRow = (user: User) => (
-		<TableRow
-			key={user.id}
-			sx={{
-				'&:hover': { bgcolor: '#f5f8fa' },
-				'&:last-child td': { borderBottom: 0 }
-			}}
-		>
+	const renderRow = (user: TeamMember) => (
+		<TableRow key={user.public_id} sx={{ '&:last-child td': { borderBottom: 0 } }}>
 			<TableCell>
 				<Typography variant="body2" sx={{ fontWeight: 500 }}>
 					{user.full_name || '-'}
@@ -139,37 +74,6 @@ const UserTable: React.FC<UserTableProps> = ({ onAddUser, onEditUser, onViewUser
 				<Typography variant="body2" color="text.secondary">
 					{user.email}
 				</Typography>
-			</TableCell>
-			<TableCell>
-				{user.mobile ? (() => {
-					const cleanPhone = user.mobile.replace(/\D/g, '');
-					const displayPhone = cleanPhone.length === 12 && cleanPhone.startsWith('91')
-						? `+91 - ${cleanPhone.slice(2)}`
-						: cleanPhone.length === 10
-							? `+91 - ${cleanPhone}`
-							: user.mobile;
-
-					return (
-						<Chip
-							icon={<WhatsAppIcon sx={{ fontSize: '1.1rem !important', color: '#075E54 !important' }} />}
-							label={displayPhone}
-							size="small"
-							variant="outlined"
-							onClick={() => window.open(`https://wa.me/${cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`}`, '_blank')}
-							sx={{
-								borderColor: '#075E54',
-								color: '#075E54',
-								fontWeight: 600,
-								borderRadius: '4px',
-								'&:hover': {
-									bgcolor: alpha('#25D366', 0.1),
-									borderColor: '#128C7E'
-								},
-								'& .MuiChip-label': { px: 1 }
-							}}
-						/>
-					);
-				})() : '-'}
 			</TableCell>
 			{!isMedium && (
 				<TableCell>
@@ -184,78 +88,64 @@ const UserTable: React.FC<UserTableProps> = ({ onAddUser, onEditUser, onViewUser
 						label={user.role.toUpperCase()}
 						color={getRoleColor(user.role)}
 						size="small"
-						variant={'outlined'}
+						variant="outlined"
 						sx={{ fontWeight: 600, borderRadius: 0, fontSize: '0.75rem' }}
 					/>
 				</TableCell>
 			)}
+			<TableCell>
+				<Chip
+					label={user.is_active ? 'Active' : 'Inactive'}
+					size="small"
+					variant="outlined"
+					sx={{
+						fontWeight: 700,
+						borderRadius: '2px',
+						fontSize: '0.7rem',
+						minWidth: 70,
+						height: 24,
+						textTransform: 'none',
+						bgcolor: user.is_active ? '#f3f9ff' : '#f8f9fa',
+						color: user.is_active ? '#0073bb' : '#5c7080',
+						borderColor: user.is_active ? '#0073bb' : '#d5dbdb',
+						'& .MuiChip-label': { px: 1.5 }
+					}}
+				/>
+			</TableCell>
 			{!isMobile && (
 				<TableCell>
 					<Chip
-						label={user.is_active ? 'Active' : 'Inactive'}
+						label={user.is_verified ? 'Accepted' : 'Pending'}
 						size="small"
 						variant="outlined"
-						sx={{
-							fontWeight: 700,
-							borderRadius: '2px',
-							fontSize: '0.7rem',
-							minWidth: 70,
-							height: 24,
-							textTransform: 'none',
-							bgcolor: user.is_active ? '#f3f9ff' : '#f8f9fa',
-							color: user.is_active ? '#0073bb' : '#5c7080',
-							borderColor: user.is_active ? '#0073bb' : '#d5dbdb',
-							'& .MuiChip-label': { px: 1.5 }
-						}}
+						color={user.is_verified ? 'success' : 'default'}
+						sx={{ fontWeight: 600, fontSize: '0.7rem' }}
 					/>
 				</TableCell>
 			)}
-			{!isMedium && (
-				<TableCell>
-					<Typography variant="body2" color="text.secondary">
-						{user.created_at ? formatDate(user.created_at) : '-'}
-					</Typography>
-				</TableCell>
-			)}
 			<TableCell align="right">
-				<DataTableActions item={user} actions={rowActions} />
+				<DataTableActions item={user} actions={getRowActions(user)} />
 			</TableCell>
 		</TableRow>
 	);
 
 	return (
-		<>
-			<DataTable<User>
-				columns={columns}
-				data={users}
-				loading={loading}
-				totalCount={totalCount}
-				page={page}
-				rowsPerPage={rowsPerPage}
-				onPageChange={(_e, p) => setPage(p)}
-				onRowsPerPageChange={setRowsPerPage}
-				searchTerm={searchTerm}
-				onSearchChange={(val) => { setSearchTerm(val); setPage(0); }}
-				searchPlaceholder="Search users..."
-				onRefresh={fetchUsersData}
-				onFilterOpen={() => setIsFilterOpen(true)}
-				activeFilterCount={activeFilterCount}
-				onCreateClick={onAddUser}
-				createButtonText="Add User"
-				renderRow={renderRow}
-				emptyMessage="No users found"
-			/>
-
-			<FilterDrawer
-				open={isFilterOpen}
-				onClose={() => setIsFilterOpen(false)}
-				fields={filterFields}
-				activeFilters={tempFilters}
-				onFilterChange={handleFilterChange}
-				onApplyFilters={handleApplyFilters}
-				onClearFilters={handleClearFilters}
-			/>
-		</>
+		<DataTable<TeamMember>
+			columns={columns}
+			data={users}
+			loading={loading}
+			totalCount={total}
+			page={page}
+			rowsPerPage={rowsPerPage}
+			onPageChange={(_e, p) => setPage(p)}
+			onRowsPerPageChange={(rows) => { setRowsPerPage(rows); setPage(0); }}
+			searchTerm=""
+			onRefresh={fetchData}
+			onCreateClick={onAddUser}
+			createButtonText="Invite Teammate"
+			renderRow={renderRow}
+			emptyMessage="No teammates yet — invite your first one."
+		/>
 	);
 };
 

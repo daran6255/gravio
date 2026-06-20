@@ -1,100 +1,70 @@
 import React, { useState } from 'react';
 import { Box, Container, Button } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { deleteUser } from '../../store/slices/userSlice';
+import { useAppDispatch } from '../../store/hooks';
+import { deactivateTeamUser, reactivateTeamUser } from '../../store/slices/userSlice';
 import useToast from '../../hooks/useToast';
-import type { User } from '../../models/user';
+import type { TeamMember } from '../../models/user';
 
-// Common Components
 import PageHeader from '../../components/common/page-header';
-
-// Restructured User Components
 import {
-	UserManagementStats,
 	UserManagementTable,
-	UserManagementModals
+	UserManagementModals,
 } from '../../components/users';
 
 /**
- * User Management Module
- * Comprehensive dashboard for managing system users, roles, and statistics.
- * Uses the standardized PageHeader common component.
+ * Team Management — invite teammates into your organization, see who's accepted
+ * their invite, and deactivate/reactivate access. (Route stays /users for now.)
  */
 const UserManagement: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const toast = useToast();
-	const { user: currentUser } = useAppSelector((state) => state.auth);
 
-	// --- State Management ---
-	const [openDialog, setOpenDialog] = useState(false);
-	const [dialogMode, setDialogMode] = useState<'add' | 'edit' | 'view'>('add');
-	const [selectedUser, setSelectedUser] = useState<User | null>(null);
-
-	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-	const [userToDelete, setUserToDelete] = useState<User | null>(null);
-
+	const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+	const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+	const [statusAction, setStatusAction] = useState<'deactivate' | 'reactivate'>('deactivate');
+	const [targetUser, setTargetUser] = useState<TeamMember | null>(null);
+	const [statusLoading, setStatusLoading] = useState(false);
 	const [refreshKey, setRefreshKey] = useState(0);
 
-	// --- Handlers: Dialogs & Actions ---
-	const handleAddUser = () => {
-		setDialogMode('add');
-		setSelectedUser(null);
-		setOpenDialog(true);
+	const refreshData = () => setRefreshKey((prev) => prev + 1);
+
+	const handleAddUser = () => setInviteDialogOpen(true);
+
+	const handleDeactivateUser = (user: TeamMember) => {
+		setTargetUser(user);
+		setStatusAction('deactivate');
+		setStatusDialogOpen(true);
 	};
 
-	const handleEditUser = (user: User) => {
-		setDialogMode('edit');
-		setSelectedUser(user);
-		setOpenDialog(true);
+	const handleReactivateUser = (user: TeamMember) => {
+		setTargetUser(user);
+		setStatusAction('reactivate');
+		setStatusDialogOpen(true);
 	};
 
-	const handleViewUser = (user: User) => {
-		setDialogMode('view');
-		setSelectedUser(user);
-		setOpenDialog(true);
-	};
-
-	const handleCloseDialog = () => {
-		setOpenDialog(false);
-		setSelectedUser(null);
-	};
-
-	const handleDeleteClick = (user: User) => {
-		if (currentUser?.role !== 'admin') {
-			toast.error('Only administrators can delete users');
-			return;
-		}
-		setUserToDelete(user);
-		setDeleteDialogOpen(true);
-	};
-
-	const handleConfirmDelete = async () => {
-		if (!userToDelete) return;
-
+	const handleConfirmStatusChange = async () => {
+		if (!targetUser) return;
+		setStatusLoading(true);
 		try {
-			await dispatch(deleteUser(userToDelete.id.toString())).unwrap();
-			toast.success('User deleted successfully');
+			if (statusAction === 'deactivate') {
+				await dispatch(deactivateTeamUser(targetUser.public_id)).unwrap();
+				toast.success(`${targetUser.full_name || targetUser.username} has been deactivated.`);
+			} else {
+				await dispatch(reactivateTeamUser(targetUser.public_id)).unwrap();
+				toast.success(`${targetUser.full_name || targetUser.username} has been reactivated.`);
+			}
 			refreshData();
 		} catch (error: any) {
-			console.error('Failed to delete user:', error);
-			toast.error(error || 'Failed to delete user');
+			toast.error(error || `Failed to ${statusAction} user`);
 		} finally {
-			setDeleteDialogOpen(false);
-			setUserToDelete(null);
+			setStatusLoading(false);
+			setStatusDialogOpen(false);
+			setTargetUser(null);
 		}
 	};
 
-	const handleCancelDelete = () => {
-		setDeleteDialogOpen(false);
-		setUserToDelete(null);
-	};
-
-	// --- Utilities ---
-	const refreshData = () => setRefreshKey(prev => prev + 1);
-
-	// Header Action
-	const headerAction = currentUser?.role === 'admin' ? (
+	const headerAction = (
 		<Button
 			variant="contained"
 			startIcon={<AddIcon />}
@@ -109,44 +79,41 @@ const UserManagement: React.FC = () => {
 				'&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }
 			}}
 		>
-			Add User
+			Invite Teammate
 		</Button>
-	) : undefined;
+	);
 
 	return (
 		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
 			<Container maxWidth="xl" sx={{ py: { xs: 2, sm: 4 } }}>
 
 				<PageHeader
-					title="User Management"
-					subtitle="Manage system users, roles, and permissions"
+					title="Team"
+					subtitle="Invite teammates and manage who has access to your organization"
 					action={headerAction}
 				/>
-
-				<UserManagementStats refreshKey={refreshKey} />
 
 				<UserManagementTable
 					refreshKey={refreshKey}
 					onAddUser={handleAddUser}
-					onEditUser={handleEditUser}
-					onViewUser={handleViewUser}
-					onDeleteUser={handleDeleteClick}
+					onDeactivateUser={handleDeactivateUser}
+					onReactivateUser={handleReactivateUser}
 				/>
 
 				<UserManagementModals
-					openDialog={openDialog}
-					dialogMode={dialogMode}
-					selectedUser={selectedUser}
-					onCloseDialog={handleCloseDialog}
-					onSuccessDialog={(message) => {
+					inviteDialogOpen={inviteDialogOpen}
+					onCloseInviteDialog={() => setInviteDialogOpen(false)}
+					onSuccessInvite={(message) => {
 						refreshData();
 						toast.success(message);
-						handleCloseDialog();
+						setInviteDialogOpen(false);
 					}}
-					deleteDialogOpen={deleteDialogOpen}
-					onCancelDelete={handleCancelDelete}
-					onConfirmDelete={handleConfirmDelete}
-					userToDelete={userToDelete}
+					statusDialogOpen={statusDialogOpen}
+					statusAction={statusAction}
+					targetUser={targetUser}
+					statusLoading={statusLoading}
+					onCancelStatusChange={() => { setStatusDialogOpen(false); setTargetUser(null); }}
+					onConfirmStatusChange={handleConfirmStatusChange}
 				/>
 
 			</Container>

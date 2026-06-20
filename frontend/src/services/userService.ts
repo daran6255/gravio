@@ -1,58 +1,35 @@
 // frontend\src\services\userService.ts
+// Org Admin "Team" management — invite/list/deactivate/reactivate users in the caller's own org.
 import api from './api';
-import type { User, UserCreate, UserUpdate } from '../models/user';
+import type { TeamMember, InviteUserRequest } from '../models/user';
+import type { PaginatedResponse } from '../models/common';
 
 const userService = {
-    // Get all users with pagination, optional role and search filter
-    getAll: async (skip = 0, limit = 100, role?: string, search?: string): Promise<{ items: User[], total: number }> => {
-        const response = await api.get<{ items: User[], total: number }>('/users/', {
-            params: { skip, limit, role, search }
-        });
-        return response.data;
-    },
+	// Invite a teammate into the current user's organization (POST /users/invite)
+	inviteUser: async (payload: InviteUserRequest): Promise<TeamMember> => {
+		const response = await api.post<TeamMember>('/users/invite', payload);
+		return response.data;
+	},
 
-    // Get user by ID
-    getById: async (id: string): Promise<User> => {
-        const response = await api.get<User>(`/users/${id}`);
-        return response.data;
-    },
+	// List users in the current user's organization, paginated (GET /users)
+	list: async (page = 1, pageSize = 20): Promise<PaginatedResponse<TeamMember>> => {
+		const response = await api.get<PaginatedResponse<TeamMember>>('/users', {
+			params: { page, page_size: pageSize },
+		});
+		return response.data;
+	},
 
-    // Create new user
-    create: async (userData: UserCreate): Promise<User> => {
-        const response = await api.post<User>('/users/', userData);
-        return response.data;
-    },
+	// Deactivate a user in the current user's organization
+	deactivate: async (publicId: string): Promise<TeamMember> => {
+		const response = await api.post<TeamMember>(`/users/${publicId}/deactivate`);
+		return response.data;
+	},
 
-    // Update user
-    update: async (id: string, userData: UserUpdate): Promise<User> => {
-        const response = await api.put<User>(`/users/${id}`, userData);
-        return response.data;
-    },
-
-    // Delete user
-    delete: async (id: string): Promise<void> => {
-        await api.delete(`/users/${id}`);
-    },
-
-    // Get current user profile
-    getProfile: async (): Promise<User> => {
-        const response = await api.get<User>('/users/me/');
-        return response.data;
-    },
-
-    // Search users
-    search: async (query: string, skip = 0, limit = 50): Promise<User[]> => {
-        const response = await api.get<User[]>('/users/search/', {
-            params: { q: query, skip, limit }
-        });
-        return response.data;
-    },
-
-    // Get available roles
-    getRoles: async (): Promise<string[]> => {
-        const response = await api.get<string[]>('/users/roles');
-        return response.data;
-    }
+	// Reactivate a previously deactivated user
+	reactivate: async (publicId: string): Promise<TeamMember> => {
+		const response = await api.post<TeamMember>(`/users/${publicId}/reactivate`);
+		return response.data;
+	},
 };
 
 export default userService;

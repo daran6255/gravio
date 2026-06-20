@@ -64,14 +64,30 @@ export const validateSession = createAsyncThunk(
  */
 export const loginUser = createAsyncThunk(
 	'auth/login',
-	async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
+	async ({ identifier, password }: { identifier: string; password: string }, { rejectWithValue }) => {
 		try {
-			const response = await authService.login(email, password);
+			const response = await authService.login(identifier, password);
 			// Fetch user details immediately after login
 			const user = await authService.getCurrentUser();
 			return { ...response, user };
 		} catch (error: any) {
 			return rejectWithValue(error.response?.data?.detail || 'Login failed');
+		}
+	}
+);
+
+/**
+ * Accept an invite by setting a password — ends in the same logged-in state as loginUser
+ */
+export const acceptInvite = createAsyncThunk(
+	'auth/acceptInvite',
+	async ({ token, newPassword }: { token: string; newPassword: string }, { rejectWithValue }) => {
+		try {
+			const response = await authService.acceptInvite(token, newPassword);
+			const user = await authService.getCurrentUser();
+			return { ...response, user };
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || 'Failed to accept invite');
 		}
 	}
 );
@@ -176,6 +192,22 @@ const authSlice = createSlice({
 			// Fetch Current User
 			.addCase(fetchCurrentUser.fulfilled, (state, action: PayloadAction<User>) => {
 				state.user = action.payload;
+			})
+			// Accept Invite (ends in the same logged-in state as login)
+			.addCase(acceptInvite.pending, (state) => {
+				state.loading = true;
+				state.error = null;
+			})
+			.addCase(acceptInvite.fulfilled, (state, action: PayloadAction<LoginResponse & { user: User }>) => {
+				state.loading = false;
+				state.isAuthenticated = true;
+				state.token = action.payload.access_token;
+				state.user = action.payload.user;
+				state.isInitialized = true;
+			})
+			.addCase(acceptInvite.rejected, (state, action: PayloadAction<any>) => {
+				state.loading = false;
+				state.error = action.payload;
 			})
 			// Refresh Token
 			.addCase(refreshAccessToken.pending, (state) => {

@@ -3,6 +3,7 @@ import uiReducer from './slices/uiSlice';
 import authReducer from './slices/authSlice';
 import userReducer from './slices/userSlice';
 import healthReducer from './slices/healthSlice';
+import orgAdminReducer from './slices/orgAdminSlice';
 
 export const store = configureStore({
 	reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
 		ui: uiReducer,
 		users: userReducer,
 		health: healthReducer,
+		orgAdmin: orgAdminReducer,
 	},
 	middleware: (getDefaultMiddleware) =>
 		getDefaultMiddleware({

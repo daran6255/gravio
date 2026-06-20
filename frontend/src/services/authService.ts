@@ -17,8 +17,8 @@ const authService = {
 	/**
 	 * Login user and store tokens
 	 */
-	login: async (email: string, password: string): Promise<LoginResponse> => {
-		const response = await api.post<LoginResponse>('/auth/login', { email, password });
+	login: async (identifier: string, password: string): Promise<LoginResponse> => {
+		const response = await api.post<LoginResponse>('/auth/login', { identifier, password });
 
 		if (response.data.access_token && response.data.refresh_token) {
 			localStorage.setItem(ACCESS_TOKEN_KEY, response.data.access_token);
@@ -51,6 +51,24 @@ const authService = {
 		const response = await api.get('/auth/verify-email', {
 			params: { token }
 		});
+		return response.data;
+	},
+
+	/**
+	 * Accept an invite (Super-Admin-provisioned org admin or Org-Admin-invited teammate)
+	 * by setting a password. Returns a token pair — the caller is logged in immediately.
+	 */
+	acceptInvite: async (token: string, newPassword: string): Promise<LoginResponse> => {
+		const response = await api.post<LoginResponse>('/auth/accept-invite', {
+			token,
+			new_password: newPassword,
+		});
+
+		if (response.data.access_token && response.data.refresh_token) {
+			localStorage.setItem(ACCESS_TOKEN_KEY, response.data.access_token);
+			localStorage.setItem(REFRESH_TOKEN_KEY, response.data.refresh_token);
+		}
+
 		return response.data;
 	},
 

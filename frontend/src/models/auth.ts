@@ -2,6 +2,7 @@ export interface Organization {
 	public_id: string;
 	name: string;
 	location?: string;
+	is_active?: boolean;
 	subscription_status: string;
 	trial_started_at?: string;
 	trial_expires_at?: string;

@@ -1,31 +1,28 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import UserTable from '../table/UserTable';
-import type { User } from '../../../models/user';
+import type { TeamMember } from '../../../models/user';
 
 interface UserManagementTableProps {
 	refreshKey: number;
 	onAddUser: () => void;
-	onEditUser: (user: User) => void;
-	onViewUser: (user: User) => void;
-	onDeleteUser: (user: User) => void;
+	onDeactivateUser: (user: TeamMember) => void;
+	onReactivateUser: (user: TeamMember) => void;
 }
 
 const UserManagementTable: React.FC<UserManagementTableProps> = ({
 	refreshKey,
 	onAddUser,
-	onEditUser,
-	onViewUser,
-	onDeleteUser
+	onDeactivateUser,
+	onReactivateUser,
 }) => {
 	return (
 		<Box>
 			<UserTable
-				key={`table-${refreshKey}`}
+				refreshKey={refreshKey}
 				onAddUser={onAddUser}
-				onEditUser={onEditUser}
-				onViewUser={onViewUser}
-				onDeleteUser={onDeleteUser}
+				onDeactivateUser={onDeactivateUser}
+				onReactivateUser={onReactivateUser}
 			/>
 		</Box>
 	);

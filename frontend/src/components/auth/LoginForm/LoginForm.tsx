@@ -24,11 +24,11 @@ import {
 interface LoginFormProps {
 	loading: boolean;
 	error: string | null;
-	onLogin: (email: string, password: string) => void;
+	onLogin: (identifier: string, password: string) => void;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
-	const [email, setEmail] = useState('');
+	const [identifier, setIdentifier] = useState('');
 	const [password, setPassword] = useState('');
 	const [showPassword, setShowPassword] = useState(false);
 	const [rememberDevice, setRememberDevice] = useState(false);
@@ -39,7 +39,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-		onLogin(email, password);
+		onLogin(identifier, password);
 	};
 
 	return (
@@ -117,7 +117,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 			)}
 
 			<Box component="form" onSubmit={handleSubmit} noValidate>
-				{/* Email Address */}
+				{/* Email or Username */}
 				<Box sx={{ mb: 2.5 }}>
 					<Typography
 						sx={{
@@ -130,19 +130,19 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 							display: 'block'
 						}}
 					>
-						Email Address
+						Email or Username
 					</Typography>
 					<TextField
 						required
 						fullWidth
-						id="email"
-						name="email"
-						placeholder="name@company.com"
-						autoComplete="email"
+						id="identifier"
+						name="identifier"
+						placeholder="name@company.com or username"
+						autoComplete="username"
 						autoFocus
 						size="small"
-						value={email}
-						onChange={(e) => setEmail(e.target.value)}
+						value={identifier}
+						onChange={(e) => setIdentifier(e.target.value)}
 						inputProps={{
 							'aria-required': 'true'
 						}}

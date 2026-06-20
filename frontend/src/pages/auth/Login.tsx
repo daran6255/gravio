@@ -37,9 +37,9 @@ const Login: React.FC = () => {
 		}
 	}, [error, toast, dispatch]);
 
-	const handleLogin = async (email: string, password: string) => {
+	const handleLogin = async (identifier: string, password: string) => {
 		try {
-			await dispatch(loginUser({ email, password })).unwrap();
+			await dispatch(loginUser({ identifier, password })).unwrap();
 			toast.success('Login successful');
 		} catch (err) {
 			console.error('Login failed', err);

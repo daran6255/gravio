@@ -19,9 +19,8 @@ import {
 	Search as SearchIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useSearchActions, UserIcon } from '../../hooks/useSearchActions';
+import { useSearchActions } from '../../hooks/useSearchActions';
 import type { SearchAction } from '../../hooks/useSearchActions';
-import userService from '../../services/userService';
 
 const SearchContainer = styled('div')(({ theme }) => ({
 	position: 'relative',
@@ -125,7 +124,7 @@ const GlobalSearch: React.FC = () => {
 	const resultsRef = useRef<HTMLDivElement>(null);
 
 	const [dynamicResults, setDynamicResults] = useState<SearchAction[]>([]);
-	const [loading, setLoading] = useState(false);
+	const loading = false;
 
 	const navigationResults = query.trim() === ''
 		? []
@@ -163,42 +162,11 @@ const GlobalSearch: React.FC = () => {
 		inputRef.current?.blur();
 	};
 
-	// Async search effect
+	// Dynamic (cross-entity) search results — currently always empty.
+	// There is no backend endpoint for searching users/orgs yet; this is reserved
+	// for when one exists, rather than faking results against a non-existent API.
 	useEffect(() => {
-		const fetchDynamicResults = async () => {
-			if (query.trim().length < 2) {
-				setDynamicResults([]);
-				return;
-			}
-
-			setLoading(true);
-			try {
-				const userData = await userService.search(query, 0, 5);
-
-				const userActions: SearchAction[] = userData.map(u => ({
-					id: `user-${u.id}`,
-					title: u.full_name || u.username,
-					path: `/users`,
-					category: 'User',
-					icon: UserIcon
-				}));
-
-				setDynamicResults(userActions);
-			} catch (error) {
-				console.error('Global search error:', error);
-				setDynamicResults([]);
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		const timer = setTimeout(() => {
-			if (isOpen) {
-				fetchDynamicResults();
-			}
-		}, 300);
-
-		return () => clearTimeout(timer);
+		setDynamicResults([]);
 	}, [query, isOpen]);
 
 	// Focus shortcut Alt+S

@@ -72,5 +72,6 @@ class UserProfileResponse(BaseModel):
     role: str
     is_active: bool
     is_verified: bool
+    is_superuser: bool
     organization_id: Optional[int]
     organization: Optional[OrgPublic] = None

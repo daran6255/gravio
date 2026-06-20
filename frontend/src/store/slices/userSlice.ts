@@ -1,103 +1,71 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import userService from '../../services/userService';
-import type { User, UserCreate, UserUpdate } from '../../models/user';
+import type { TeamMember, InviteUserRequest } from '../../models/user';
+import type { PaginatedResponse } from '../../models/common';
 
 interface UserState {
-	users: User[];
-	assignmentUsers: User[];
-	roles: string[];
-	totalCount: number;
+	users: TeamMember[];
+	total: number;
+	page: number;
+	pageSize: number;
 	loading: boolean;
 	error: string | null;
 }
 
 const initialState: UserState = {
 	users: [],
-	assignmentUsers: [],
-	roles: [],
-	totalCount: 0,
+	total: 0,
+	page: 1,
+	pageSize: 20,
 	loading: false,
 	error: null,
 };
 
-export const fetchUsers = createAsyncThunk(
-	'users/fetchAll',
-	async (params: { skip?: number; limit?: number; search?: string; role?: string } | undefined, { rejectWithValue }) => {
+export const fetchTeamUsers = createAsyncThunk(
+	'users/fetchTeam',
+	async (params: { page?: number; pageSize?: number } | undefined, { rejectWithValue }) => {
 		try {
-			const { skip = 0, limit = 100, search, role } = params || {};
-			const response = await userService.getAll(skip, limit, role, search);
-			return response;
+			const { page = 1, pageSize = 20 } = params || {};
+			return await userService.list(page, pageSize);
 		} catch (error: any) {
-			return rejectWithValue(error.message || 'Failed to fetch users');
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to fetch team');
 		}
 	}
 );
 
-export const fetchRoles = createAsyncThunk(
-	'users/fetchRoles',
-	async (_, { rejectWithValue }) => {
+export const inviteTeamUser = createAsyncThunk(
+	'users/invite',
+	async (payload: InviteUserRequest, { rejectWithValue }) => {
 		try {
-			return await userService.getRoles();
+			return await userService.inviteUser(payload);
 		} catch (error: any) {
-			return rejectWithValue(error.message || 'Failed to fetch roles');
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to invite user');
 		}
 	}
 );
 
-export const fetchAssignmentUsers = createAsyncThunk(
-	'users/fetchAssignmentUsers',
-	async (_, { rejectWithValue }) => {
+export const deactivateTeamUser = createAsyncThunk(
+	'users/deactivate',
+	async (publicId: string, { rejectWithValue }) => {
 		try {
-			const [sourcingResp, managerResp] = await Promise.all([
-				userService.getAll(0, 100, 'sourcing'),
-				userService.getAll(0, 100, 'manager')
-			]);
-			
-			// Merge and sort by name
-			const mergedUsers = [...sourcingResp.items, ...managerResp.items].sort((a, b) => 
-				a.full_name.localeCompare(b.full_name)
-			);
-			
-			return mergedUsers;
+			return await userService.deactivate(publicId);
 		} catch (error: any) {
-			return rejectWithValue(error.message || 'Failed to fetch assignment users');
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to deactivate user');
 		}
 	}
 );
 
-export const createUser = createAsyncThunk(
-	'users/create',
-	async (userData: UserCreate, { rejectWithValue }) => {
+export const reactivateTeamUser = createAsyncThunk(
+	'users/reactivate',
+	async (publicId: string, { rejectWithValue }) => {
 		try {
-			return await userService.create(userData);
+			return await userService.reactivate(publicId);
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to create user');
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to reactivate user');
 		}
 	}
 );
 
-export const updateUser = createAsyncThunk(
-	'users/update',
-	async ({ id, userData }: { id: string; userData: UserUpdate }, { rejectWithValue }) => {
-		try {
-			return await userService.update(id, userData);
-		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to update user');
-		}
-	}
-);
-
-export const deleteUser = createAsyncThunk(
-	'users/delete',
-	async (id: string, { rejectWithValue }) => {
-		try {
-			await userService.delete(id);
-			return id;
-		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to delete user');
-		}
-	}
-);
 const userSlice = createSlice({
 	name: 'users',
 	initialState,
@@ -108,70 +76,46 @@ const userSlice = createSlice({
 	},
 	extraReducers: (builder) => {
 		builder
-			.addCase(fetchUsers.pending, (state) => {
+			.addCase(fetchTeamUsers.pending, (state) => {
 				state.loading = true;
 				state.error = null;
 			})
-			.addCase(fetchUsers.fulfilled, (state, action: PayloadAction<{ items: User[]; total: number }>) => {
+			.addCase(fetchTeamUsers.fulfilled, (state, action: PayloadAction<PaginatedResponse<TeamMember>>) => {
 				state.loading = false;
 				state.users = action.payload.items;
-				state.totalCount = action.payload.total;
+				state.total = action.payload.total;
+				state.page = action.payload.page;
+				state.pageSize = action.payload.page_size;
 			})
-			.addCase(fetchUsers.rejected, (state, action: PayloadAction<any>) => {
+			.addCase(fetchTeamUsers.rejected, (state, action: PayloadAction<any>) => {
 				state.loading = false;
 				state.error = action.payload;
 			})
-			.addCase(fetchRoles.fulfilled, (state, action: PayloadAction<string[]>) => {
-				state.roles = action.payload;
-			})
-			.addCase(createUser.pending, (state) => {
+			.addCase(inviteTeamUser.pending, (state) => {
 				state.loading = true;
 				state.error = null;
 			})
-			.addCase(createUser.fulfilled, (state, action: PayloadAction<User>) => {
+			.addCase(inviteTeamUser.fulfilled, (state, action: PayloadAction<TeamMember>) => {
 				state.loading = false;
 				state.users.unshift(action.payload);
-				state.totalCount += 1;
+				state.total += 1;
 			})
-			.addCase(createUser.rejected, (state, action: PayloadAction<any>) => {
+			.addCase(inviteTeamUser.rejected, (state, action: PayloadAction<any>) => {
 				state.loading = false;
 				state.error = action.payload;
 			})
-			.addCase(updateUser.pending, (state) => {
-				state.loading = true;
-				state.error = null;
+			.addCase(deactivateTeamUser.fulfilled, (state, action: PayloadAction<TeamMember>) => {
+				const idx = state.users.findIndex((u) => u.public_id === action.payload.public_id);
+				if (idx !== -1) state.users[idx] = action.payload;
 			})
-			.addCase(updateUser.fulfilled, (state, action: PayloadAction<User>) => {
-				state.loading = false;
-				state.users = state.users.map(u => u.id === action.payload.id ? action.payload : u);
-			})
-			.addCase(updateUser.rejected, (state, action: PayloadAction<any>) => {
-				state.loading = false;
+			.addCase(deactivateTeamUser.rejected, (state, action: PayloadAction<any>) => {
 				state.error = action.payload;
 			})
-			.addCase(fetchAssignmentUsers.pending, (state) => {
-				state.loading = true;
-				state.error = null;
+			.addCase(reactivateTeamUser.fulfilled, (state, action: PayloadAction<TeamMember>) => {
+				const idx = state.users.findIndex((u) => u.public_id === action.payload.public_id);
+				if (idx !== -1) state.users[idx] = action.payload;
 			})
-			.addCase(fetchAssignmentUsers.fulfilled, (state, action: PayloadAction<User[]>) => {
-				state.loading = false;
-				state.assignmentUsers = action.payload;
-			})
-			.addCase(fetchAssignmentUsers.rejected, (state, action: PayloadAction<any>) => {
-				state.loading = false;
-				state.error = action.payload;
-			})
-			.addCase(deleteUser.pending, (state) => {
-				state.loading = true;
-				state.error = null;
-			})
-			.addCase(deleteUser.fulfilled, (state, action: PayloadAction<string>) => {
-				state.loading = false;
-				state.users = state.users.filter(u => u.id.toString() !== action.payload);
-				state.totalCount -= 1;
-			})
-			.addCase(deleteUser.rejected, (state, action: PayloadAction<any>) => {
-				state.loading = false;
+			.addCase(reactivateTeamUser.rejected, (state, action: PayloadAction<any>) => {
 				state.error = action.payload;
 			});
 	},
