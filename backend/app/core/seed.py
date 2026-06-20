@@ -1,4 +1,4 @@
-"""Database seeding script to initialize the primary superuser and organization"""
+"""Database seeding script to initialize the primary superuser, organization, and pricing plans"""
 
 import asyncio
 import uuid
@@ -6,12 +6,64 @@ from sqlalchemy.future import select
 from app.core.database import AsyncSessionLocal, engine
 from app.models.user import User, UserRole
 from app.models.organization import Organization
+from app.models.plan import Plan, PlanTier, Module
 from app.core.security import get_password_hash
 
+# Tier -> modules unlocked + monthly AI action quota.
+# See backend/documentation/PRICING_PLAN_BUSINESS_LOGIC.md for the business rationale.
+PLAN_DEFINITIONS = {
+    PlanTier.BASIC: {
+        "name": "Basic",
+        "enabled_modules": [
+            Module.PROJECT_MANAGEMENT.value,
+            Module.TIMESHEET_MANAGEMENT.value,
+            Module.CRM_MANAGEMENT.value,
+            Module.REPORTS_MANAGEMENT.value,
+        ],
+        "ai_monthly_limit": 100,
+    },
+    PlanTier.PRO: {
+        "name": "Pro",
+        "enabled_modules": [
+            Module.PROJECT_MANAGEMENT.value,
+            Module.TIMESHEET_MANAGEMENT.value,
+            Module.CRM_MANAGEMENT.value,
+            Module.REPORTS_MANAGEMENT.value,
+            Module.CANDIDATE_MANAGEMENT.value,
+            Module.PLACEMENT_MANAGEMENT.value,
+        ],
+        "ai_monthly_limit": 1000,
+    },
+    PlanTier.ENTERPRISE: {
+        "name": "Enterprise",
+        "enabled_modules": [m.value for m in Module],
+        "ai_monthly_limit": 10000,
+    },
+}
+
+
+async def seed_plans(session) -> None:
+    """Ensure the Basic/Pro/Enterprise pricing plans exist and match PLAN_DEFINITIONS."""
+    for tier, definition in PLAN_DEFINITIONS.items():
+        result = await session.execute(select(Plan).where(Plan.tier == tier))
+        plan = result.scalars().first()
+        if not plan:
+            plan = Plan(tier=tier, **definition)
+            session.add(plan)
+            print(f"Created plan: {definition['name']}")
+        else:
+            plan.name = definition["name"]
+            plan.enabled_modules = definition["enabled_modules"]
+            plan.ai_monthly_limit = definition["ai_monthly_limit"]
+            print(f"Updated plan: {definition['name']}")
+
+
 async def seed_db() -> None:
-    """Seed the database with the primary super admin and organization"""
+    """Seed the database with the primary super admin, organization, and pricing plans"""
     print("Connecting to database...")
     async with AsyncSessionLocal() as session:
+        await seed_plans(session)
+
         # 1. Ensure the organization "Taydens" exists
         result_org = await session.execute(
             select(Organization).where(Organization.name == "Taydens")
