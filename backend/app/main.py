@@ -9,10 +9,9 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
-from app.core.logging import setup_logging
+from app.core.logging import setup_logging, LoggingMiddleware
 from app.core.database import init_db, close_db, get_db
 from app.core.rate_limiter import limiter
-from app.middleware.logging import LoggingMiddleware
 from app.middleware.error_handler import ErrorHandlerMiddleware
 from app.api.v1.router import router as v1_router
 from loguru import logger
