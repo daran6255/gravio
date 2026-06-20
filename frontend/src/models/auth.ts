@@ -1,3 +1,14 @@
+export interface Organization {
+	public_id: string;
+	name: string;
+	location?: string;
+	subscription_status: string;
+	trial_started_at?: string;
+	trial_expires_at?: string;
+	plan_id?: number | null;
+	plan?: any;
+}
+
 export interface User {
 	id: number;
 	public_id: string;
@@ -10,6 +21,8 @@ export interface User {
 	role: string;
 	created_at: string;
 	updated_at: string;
+	organization_id?: number | null;
+	organization?: Organization | null;
 }
 
 export interface Token {

@@ -42,6 +42,8 @@ class MessageResponse(BaseModel):
     message: str
 
 
+from app.schemas.onboarding import OrgPublic
+
 class UserProfileResponse(BaseModel):
     """Authenticated user's profile (returned by /auth/me)"""
     model_config = ConfigDict(from_attributes=True)
@@ -54,3 +56,4 @@ class UserProfileResponse(BaseModel):
     is_active: bool
     is_verified: bool
     organization_id: Optional[int]
+    organization: Optional[OrgPublic] = None

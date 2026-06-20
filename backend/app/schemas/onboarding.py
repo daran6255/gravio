@@ -43,6 +43,9 @@ class OnboardRequest(BaseModel):
 
 # ── Response Schemas ───────────────────────────────────────────────────────────
 
+from datetime import datetime
+from app.schemas.plan import PlanResponse
+
 class OrgPublic(BaseModel):
     """Safe public-facing organization representation (no internal PK)"""
     model_config = ConfigDict(from_attributes=True)
@@ -50,6 +53,11 @@ class OrgPublic(BaseModel):
     public_id: uuid.UUID
     name: str
     location: Optional[str]
+    subscription_status: str
+    trial_started_at: Optional[datetime] = None
+    trial_expires_at: Optional[datetime] = None
+    plan_id: Optional[int] = None
+    plan: Optional[PlanResponse] = None
 
 
 class UserPublic(BaseModel):

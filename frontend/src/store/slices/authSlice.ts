@@ -107,6 +107,21 @@ export const logoutUser = createAsyncThunk(
 	}
 );
 
+/**
+ * Extend organization trial period (Super Admin only)
+ */
+export const extendOrganizationTrial = createAsyncThunk(
+	'auth/extendTrial',
+	async ({ orgPublicId, extendDays }: { orgPublicId: string; extendDays: number }, { rejectWithValue }) => {
+		try {
+			const updatedOrg = await authService.extendTrial(orgPublicId, extendDays);
+			return updatedOrg;
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || 'Failed to extend trial');
+		}
+	}
+);
+
 const authSlice = createSlice({
 	name: 'auth',
 	initialState,
@@ -181,6 +196,25 @@ const authSlice = createSlice({
 				state.token = null;
 				state.isAuthenticated = false;
 				state.isInitialized = true;
+			})
+			// Extend Trial
+			.addCase(extendOrganizationTrial.pending, (state) => {
+				state.loading = true;
+				state.error = null;
+			})
+			.addCase(extendOrganizationTrial.fulfilled, (state, action: PayloadAction<any>) => {
+				state.loading = false;
+				if (state.user && state.user.organization && state.user.organization.public_id === action.payload.public_id) {
+					state.user.organization = {
+						...state.user.organization,
+						subscription_status: action.payload.subscription_status,
+						trial_expires_at: action.payload.trial_expires_at,
+					};
+				}
+			})
+			.addCase(extendOrganizationTrial.rejected, (state, action: PayloadAction<any>) => {
+				state.loading = false;
+				state.error = action.payload;
 			});
 	},
 });

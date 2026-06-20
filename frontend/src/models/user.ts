@@ -1,4 +1,5 @@
-// frontend\src\models\user.ts
+import type { Organization } from './auth';
+
 export interface User {
 	id: number;
 	public_id: string; // Added for DSR and other modules
@@ -12,6 +13,8 @@ export interface User {
 	mobile?: string;
 	created_at?: string;
 	updated_at?: string;
+	organization_id?: number | null;
+	organization?: Organization | null;
 }
 
 export interface UserCreate {

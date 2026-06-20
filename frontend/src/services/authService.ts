@@ -140,7 +140,17 @@ const authService = {
 	 * Get current user info
 	 */
 	getCurrentUser: async (): Promise<User> => {
-		const response = await api.get<User>('/users/me');
+		const response = await api.get<User>('/auth/me');
+		return response.data;
+	},
+
+	/**
+	 * Extend organization trial period (Super Admin only)
+	 */
+	extendTrial: async (orgPublicId: string, extendDays: number): Promise<any> => {
+		const response = await api.post(`/admin/organizations/${orgPublicId}/extend-trial`, {
+			extend_days: extendDays
+		});
 		return response.data;
 	}
 };
