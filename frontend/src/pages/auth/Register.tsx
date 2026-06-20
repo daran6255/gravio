@@ -30,6 +30,8 @@ import {
 } from '@mui/icons-material';
 import useToast from '../../hooks/useToast';
 import authService from '../../services/authService';
+import AuthNavbar from '../../components/layout/AuthNavbar';
+import AuthFooter from '../../components/layout/AuthFooter';
 
 const steps = ['Organization Info', 'Admin Profile'];
 
@@ -116,85 +118,7 @@ const Register: React.FC = () => {
 			}}
 		>
 			{/* Top Navigation Bar */}
-			<Box
-				component="header"
-				sx={{
-					display: 'flex',
-					alignItems: 'center',
-					justifyContent: 'space-between',
-					py: 2,
-					px: { xs: 3, md: 6 },
-					borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-					bgcolor: '#08090d',
-					zIndex: 10,
-				}}
-			>
-				<Box
-					component="img"
-					src="/assets/img/logo/gravit-dark.svg"
-					alt="Gravit Logo"
-					sx={{ height: 48, cursor: 'pointer' }}
-					onClick={() => navigate('/')}
-				/>
-				
-				{/* Desktop Center Navigation Links */}
-				<Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 4 }}>
-					{['Solutions', 'Documentation', 'Support'].map((link) => (
-						<Link
-							key={link}
-							href="#"
-							underline="none"
-							sx={{
-								color: '#94A3B8',
-								fontSize: '0.875rem',
-								fontWeight: 500,
-								'&:hover': { color: '#F4F5F7' },
-								transition: 'color 0.2s',
-							}}
-						>
-							{link}
-						</Link>
-					))}
-				</Box>
-
-				{/* Right Authentication Buttons */}
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-					<Button
-						variant="text"
-						onClick={() => navigate('/login')}
-						sx={{
-							color: '#F4F5F7',
-							fontSize: '0.875rem',
-							fontWeight: 600,
-							textTransform: 'none',
-							'&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.03)' },
-						}}
-					>
-						Sign In
-					</Button>
-					<Button
-						variant="contained"
-						onClick={() => navigate('/register')}
-						sx={{
-							backgroundColor: '#8B7CF6',
-							color: '#ffffff',
-							fontSize: '0.875rem',
-							fontWeight: 600,
-							px: 2.5,
-							py: 1,
-							borderRadius: 1.5,
-							textTransform: 'none',
-							boxShadow: '0 4px 12px rgba(139, 124, 246, 0.25)',
-							'&:hover': {
-								backgroundColor: '#7a6ae6',
-								boxShadow: '0 6px 16px rgba(139, 124, 246, 0.35)',
-							},
-						}}
-					>
-						Get Started
-					</Button>
-				</Box>
-			</Box>
+			<AuthNavbar />
 
 			{/* Main Content Area */}
 			<Box
@@ -205,9 +129,11 @@ const Register: React.FC = () => {
 					alignItems: 'center',
 					justifyContent: 'center',
 					position: 'relative',
-					py: { xs: 4, md: 6 },
+					pt: { xs: '84px', md: '96px' },
+					pb: { xs: '130px', md: '76px' },
 					px: 2,
 					zIndex: 5,
+					overflowY: 'auto',
 				}}
 			>
 				<Fade in={true} timeout={800}>
@@ -215,7 +141,7 @@ const Register: React.FC = () => {
 						<Paper
 							elevation={0}
 							sx={{
-								p: { xs: 4, sm: 5 },
+								p: { xs: 2.5, sm: 3 },
 								display: 'flex',
 								flexDirection: 'column',
 								borderRadius: 2,
@@ -258,18 +184,18 @@ const Register: React.FC = () => {
 							) : (
 								<Box>
 									{/* Top Centered Brand Icon Box */}
-									<Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+									<Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
 										<Box
 											sx={{
 												backgroundColor: '#1c1e2b',
-												p: 1.5,
-												borderRadius: 2,
+												p: 1.25,
+												borderRadius: 1.5,
 												display: 'flex',
 												border: '1px solid rgba(139, 124, 246, 0.2)',
 												boxShadow: '0 4px 12px rgba(139, 124, 246, 0.1)',
 											}}
 										>
-											<svg width="40" height="40" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+											<svg width="24" height="24" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
 												<defs>
 													<linearGradient id="lum-reg-icon" x1="0" y1="0" x2="1" y2="1">
 														<stop offset="0" stop-color="#8B7CF6"/>
@@ -285,11 +211,11 @@ const Register: React.FC = () => {
 									</Box>
 
 									{/* Heading and Subheading */}
-									<Box sx={{ mb: 4, textAlign: 'center' }}>
-										<Typography component="h1" variant="h5" sx={{ fontWeight: 700, color: '#F4F5F7', mb: 1 }}>
+									<Box sx={{ mb: 2, textAlign: 'center' }}>
+										<Typography component="h1" variant="h6" sx={{ fontWeight: 700, color: '#F4F5F7', mb: 0.5 }}>
 											Create your account
 										</Typography>
-										<Typography variant="body2" sx={{ color: '#94A3B8', fontWeight: 500 }}>
+										<Typography variant="body2" sx={{ color: '#94A3B8', fontWeight: 500, fontSize: '0.825rem' }}>
 											Start managing your infrastructure with Gravit
 										</Typography>
 									</Box>
@@ -298,11 +224,11 @@ const Register: React.FC = () => {
 										activeStep={activeStep}
 										alternativeLabel
 										sx={{
-											mb: 4,
-											'& .MuiStepLabel-label': { color: '#94A3B8', fontWeight: 500, fontSize: '0.8rem' },
+											mb: 2,
+											'& .MuiStepLabel-label': { color: '#94A3B8', fontWeight: 500, fontSize: '0.75rem' },
 											'& .MuiStepLabel-label.Mui-active': { color: '#F4F5F7', fontWeight: 700 },
 											'& .MuiStepLabel-label.Mui-completed': { color: '#8B7CF6' },
-											'& .MuiStepIcon-root': { color: 'rgba(255, 255, 255, 0.1)' },
+											'& .MuiStepIcon-root': { color: 'rgba(255, 255, 255, 0.1)', transform: 'scale(0.85)' },
 											'& .MuiStepIcon-root.Mui-active': { color: '#8B7CF6' },
 											'& .MuiStepIcon-root.Mui-completed': { color: '#8B7CF6' },
 										}}
@@ -321,34 +247,34 @@ const Register: React.FC = () => {
 												sx={{
 													border: '1px solid rgba(78, 168, 255, 0.15)',
 													borderRadius: 2,
-													p: 2,
+													p: 1.25,
 													bgcolor: 'rgba(78, 168, 255, 0.03)',
-													mb: 4,
+													mb: 2,
 													display: 'flex',
 													alignItems: 'flex-start',
-													gap: 2,
+													gap: 1.5,
 												}}
 											>
-												<InfoIcon sx={{ color: '#4EA8FF', mt: 0.25, fontSize: 20 }} />
+												<InfoIcon sx={{ color: '#4EA8FF', mt: 0.25, fontSize: 18 }} />
 												<Box>
-													<Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#F4F5F7', mb: 0.5 }}>
+													<Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#F4F5F7', mb: 0.25, fontSize: '0.8rem' }}>
 														Scale Smarter
 													</Typography>
-													<Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', lineHeight: 1.4 }}>
-														Join over 5,000 organizations leveraging Gravit to manage multi-tenant infrastructures, reduce operational complexity by 40%, and streamline resource allocations.
+													<Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', lineHeight: 1.35, fontSize: '0.725rem' }}>
+														Join over 5,000 organizations leveraging Gravit to manage multi-tenant infrastructures, reduce complexity, and streamline resources.
 													</Typography>
 												</Box>
 											</Box>
 
-											<Box sx={{ mb: 2.5 }}>
+											<Box sx={{ mb: 1.25 }}>
 												<Typography
 													sx={{
-														fontSize: '0.7rem',
+														fontSize: '0.675rem',
 														fontWeight: 700,
 														color: '#94A3B8',
 														textTransform: 'uppercase',
 														letterSpacing: '0.05em',
-														mb: 1,
+														mb: 0.75,
 														display: 'block'
 													}}
 												>
@@ -387,15 +313,15 @@ const Register: React.FC = () => {
 												/>
 											</Box>
 
-											<Box sx={{ mb: 4 }}>
+											<Box sx={{ mb: 2 }}>
 												<Typography
 													sx={{
-														fontSize: '0.7rem',
+														fontSize: '0.675rem',
 														fontWeight: 700,
 														color: '#94A3B8',
 														textTransform: 'uppercase',
 														letterSpacing: '0.05em',
-														mb: 1,
+														mb: 0.75,
 														display: 'block'
 													}}
 												>
@@ -438,7 +364,7 @@ const Register: React.FC = () => {
 												fullWidth
 												onClick={handleNext}
 												sx={{
-													py: 1.25,
+													py: 1.15,
 													backgroundColor: '#8B7CF6',
 													color: '#ffffff',
 													'&:hover': {
@@ -455,15 +381,15 @@ const Register: React.FC = () => {
 										</Box>
 									) : (
 										<Box component="form" onSubmit={handleSubmit}>
-											<Box sx={{ mb: 2 }}>
+											<Box sx={{ mb: 1.25 }}>
 												<Typography
 													sx={{
-														fontSize: '0.7rem',
+														fontSize: '0.675rem',
 														fontWeight: 700,
 														color: '#94A3B8',
 														textTransform: 'uppercase',
 														letterSpacing: '0.05em',
-														mb: 1,
+														mb: 0.75,
 														display: 'block'
 													}}
 												>
@@ -502,15 +428,15 @@ const Register: React.FC = () => {
 												/>
 											</Box>
 
-											<Box sx={{ mb: 2 }}>
+											<Box sx={{ mb: 1.25 }}>
 												<Typography
 													sx={{
-														fontSize: '0.7rem',
+														fontSize: '0.675rem',
 														fontWeight: 700,
 														color: '#94A3B8',
 														textTransform: 'uppercase',
 														letterSpacing: '0.05em',
-														mb: 1,
+														mb: 0.75,
 														display: 'block'
 													}}
 												>
@@ -533,7 +459,7 @@ const Register: React.FC = () => {
 														)
 													}}
 													FormHelperTextProps={{
-														sx: { color: '#64748b', fontSize: '0.7rem', mt: 0.5 }
+														sx: { color: '#64748b', fontSize: '0.65rem', mt: 0.25 }
 													}}
 													sx={{
 														'& .MuiOutlinedInput-root': {
@@ -553,15 +479,15 @@ const Register: React.FC = () => {
 												/>
 											</Box>
 
-											<Box sx={{ mb: 2 }}>
+											<Box sx={{ mb: 1.25 }}>
 												<Typography
 													sx={{
-														fontSize: '0.7rem',
+														fontSize: '0.675rem',
 														fontWeight: 700,
 														color: '#94A3B8',
 														textTransform: 'uppercase',
 														letterSpacing: '0.05em',
-														mb: 1,
+														mb: 0.75,
 														display: 'block'
 													}}
 												>
@@ -601,15 +527,15 @@ const Register: React.FC = () => {
 												/>
 											</Box>
 
-											<Box sx={{ mb: 4 }}>
+											<Box sx={{ mb: 2 }}>
 												<Typography
 													sx={{
-														fontSize: '0.7rem',
+														fontSize: '0.675rem',
 														fontWeight: 700,
 														color: '#94A3B8',
 														textTransform: 'uppercase',
 														letterSpacing: '0.05em',
-														mb: 1,
+														mb: 0.75,
 														display: 'block'
 													}}
 												>
@@ -626,7 +552,7 @@ const Register: React.FC = () => {
 													onChange={(e) => setAdminPassword(e.target.value)}
 													helperText="Min. 8 characters with an uppercase letter, number, and special character."
 													FormHelperTextProps={{
-														sx: { color: '#64748b', fontSize: '0.7rem', mt: 0.5 }
+														sx: { color: '#64748b', fontSize: '0.65rem', mt: 0.25 }
 													}}
 													InputProps={{
 														startAdornment: (
@@ -672,7 +598,7 @@ const Register: React.FC = () => {
 													fullWidth
 													onClick={handleBack}
 													sx={{
-														py: 1.25,
+														py: 1.15,
 														borderColor: 'rgba(255, 255, 255, 0.12)',
 														color: '#94A3B8',
 														textTransform: 'none',
@@ -693,7 +619,7 @@ const Register: React.FC = () => {
 													fullWidth
 													disabled={loading}
 													sx={{
-														py: 1.25,
+														py: 1.15,
 														backgroundColor: '#8B7CF6',
 														color: '#ffffff',
 														'&:hover': {
@@ -716,7 +642,7 @@ const Register: React.FC = () => {
 									)}
 
 									{/* Terms Disclaimer */}
-									<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 3.5, textAlign: 'center', opacity: 0.6, fontSize: '0.75rem', lineHeight: 1.4 }}>
+									<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, textAlign: 'center', opacity: 0.6, fontSize: '0.725rem', lineHeight: 1.35 }}>
 										By clicking "Register" or "Next", you agree to our{' '}
 										<Link component={RouterLink} to="/terms" sx={{ color: '#8B7CF6', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
 											Terms of Service
@@ -729,8 +655,8 @@ const Register: React.FC = () => {
 
 									{/* Redirect Link */}
 									{!success && (
-										<Box sx={{ mt: 3.5, textAlign: 'center' }}>
-											<Typography variant="body2" sx={{ color: '#94A3B8' }}>
+										<Box sx={{ mt: 2, textAlign: 'center' }}>
+											<Typography variant="body2" sx={{ color: '#94A3B8', fontSize: '0.825rem' }}>
 												Already have an account?{' '}
 												<Link
 													component={RouterLink}
@@ -757,11 +683,12 @@ const Register: React.FC = () => {
 				<Box
 					sx={{
 						position: { xs: 'static', md: 'absolute' },
-						bottom: 24,
+						bottom: { xs: 24, md: 92 },
 						right: 24,
 						maxWidth: 320,
 						width: '100%',
 						mt: { xs: 4, md: 0 },
+						zIndex: 10,
 					}}
 				>
 					<Paper
@@ -801,52 +728,7 @@ const Register: React.FC = () => {
 			</Box>
 
 			{/* Footer */}
-			<Box
-				component="footer"
-				sx={{
-					display: 'flex',
-					flexDirection: { xs: 'column', md: 'row' },
-					alignItems: 'center',
-					justifyContent: 'space-between',
-					py: 3,
-					px: { xs: 3, md: 6 },
-					borderTop: '1px solid rgba(255, 255, 255, 0.05)',
-					bgcolor: '#08090d',
-					gap: 2,
-					zIndex: 10,
-				}}
-			>
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-					<Box
-						component="img"
-						src="/assets/img/logo/gravit-dark.svg"
-						alt="Gravit Logo"
-						sx={{ height: 28 }}
-					/>
-					<Typography variant="caption" sx={{ color: '#94A3B8', opacity: 0.8 }}>
-						© {new Date().getFullYear()} Gravit Inc. All rights reserved.
-					</Typography>
-				</Box>
-				
-				<Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', justifyContent: 'center' }}>
-					{['Terms of Service', 'Privacy Policy', 'Cookie Settings', 'Security'].map((item) => (
-						<Link
-							key={item}
-							href={item === 'Terms of Service' ? '/terms' : item === 'Privacy Policy' ? '/privacy-policy' : '#'}
-							underline="none"
-							sx={{
-								color: '#94A3B8',
-								fontSize: '0.75rem',
-								fontWeight: 500,
-								'&:hover': { color: '#F4F5F7' },
-								transition: 'color 0.2s',
-							}}
-						>
-							{item}
-						</Link>
-					))}
-				</Box>
-			</Box>
+			<AuthFooter />
 		</Box>
 	);
 };

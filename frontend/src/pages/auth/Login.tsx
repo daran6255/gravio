@@ -3,8 +3,6 @@ import {
 	Box,
 	Typography,
 	Fade,
-	Button,
-	Link,
 	Paper,
 } from '@mui/material';
 import { HelpOutline as HelpOutlineIcon } from '@mui/icons-material';
@@ -13,6 +11,8 @@ import useToast from '../../hooks/useToast';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { loginUser, clearError } from '../../store/slices/authSlice';
 import LoginForm from '../../components/auth/LoginForm';
+import AuthNavbar from '../../components/layout/AuthNavbar';
+import AuthFooter from '../../components/layout/AuthFooter';
 
 const Login: React.FC = () => {
 	const dispatch = useAppDispatch();
@@ -60,85 +60,7 @@ const Login: React.FC = () => {
 			}}
 		>
 			{/* Top Navigation Bar */}
-			<Box
-				component="header"
-				sx={{
-					display: 'flex',
-					alignItems: 'center',
-					justifyContent: 'space-between',
-					py: 2,
-					px: { xs: 3, md: 6 },
-					borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-					bgcolor: '#08090d',
-					zIndex: 10,
-				}}
-			>
-				<Box
-					component="img"
-					src="/assets/img/logo/gravit-dark.svg"
-					alt="Gravit Logo"
-					sx={{ height: 48, cursor: 'pointer' }}
-					onClick={() => navigate('/')}
-				/>
-				
-				{/* Desktop Center Navigation Links */}
-				<Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 4 }}>
-					{['Solutions', 'Documentation', 'Support'].map((link) => (
-						<Link
-							key={link}
-							href="#"
-							underline="none"
-							sx={{
-								color: '#94A3B8',
-								fontSize: '0.875rem',
-								fontWeight: 500,
-								'&:hover': { color: '#F4F5F7' },
-								transition: 'color 0.2s',
-							}}
-						>
-							{link}
-						</Link>
-					))}
-				</Box>
-
-				{/* Right Authentication Buttons */}
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-					<Button
-						variant="text"
-						onClick={() => navigate('/login')}
-						sx={{
-							color: '#F4F5F7',
-							fontSize: '0.875rem',
-							fontWeight: 600,
-							textTransform: 'none',
-							'&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.03)' },
-						}}
-					>
-						Sign In
-					</Button>
-					<Button
-						variant="contained"
-						onClick={() => navigate('/register')}
-						sx={{
-							backgroundColor: '#8B7CF6',
-							color: '#ffffff',
-							fontSize: '0.875rem',
-							fontWeight: 600,
-							px: 2.5,
-							py: 1,
-							borderRadius: 1.5,
-							textTransform: 'none',
-							boxShadow: '0 4px 12px rgba(139, 124, 246, 0.25)',
-							'&:hover': {
-								backgroundColor: '#7a6ae6',
-								boxShadow: '0 6px 16px rgba(139, 124, 246, 0.35)',
-							},
-						}}
-					>
-						Get Started
-					</Button>
-				</Box>
-			</Box>
+			<AuthNavbar />
 
 			{/* Main Content Area */}
 			<Box
@@ -149,9 +71,11 @@ const Login: React.FC = () => {
 					alignItems: 'center',
 					justifyContent: 'center',
 					position: 'relative',
-					py: { xs: 4, md: 6 },
+					pt: { xs: '100px', md: '120px' },
+					pb: { xs: '140px', md: '100px' },
 					px: 2,
 					zIndex: 5,
+					overflowY: 'auto',
 				}}
 			>
 				<Fade in={true} timeout={1000}>
@@ -168,11 +92,12 @@ const Login: React.FC = () => {
 				<Box
 					sx={{
 						position: { xs: 'static', md: 'absolute' },
-						bottom: 24,
+						bottom: { xs: 24, md: 92 },
 						right: 24,
 						maxWidth: 320,
 						width: '100%',
 						mt: { xs: 4, md: 0 },
+						zIndex: 10,
 					}}
 				>
 					<Paper
@@ -212,52 +137,7 @@ const Login: React.FC = () => {
 			</Box>
 
 			{/* Footer */}
-			<Box
-				component="footer"
-				sx={{
-					display: 'flex',
-					flexDirection: { xs: 'column', md: 'row' },
-					alignItems: 'center',
-					justifyContent: 'space-between',
-					py: 3,
-					px: { xs: 3, md: 6 },
-					borderTop: '1px solid rgba(255, 255, 255, 0.05)',
-					bgcolor: '#08090d',
-					gap: 2,
-					zIndex: 10,
-				}}
-			>
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-					<Box
-						component="img"
-						src="/assets/img/logo/gravit-dark.svg"
-						alt="Gravit Logo"
-						sx={{ height: 28 }}
-					/>
-					<Typography variant="caption" sx={{ color: '#94A3B8', opacity: 0.8 }}>
-						© {new Date().getFullYear()} Gravit Inc. All rights reserved.
-					</Typography>
-				</Box>
-				
-				<Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', justifyContent: 'center' }}>
-					{['Terms of Service', 'Privacy Policy', 'Cookie Settings', 'Security'].map((item) => (
-						<Link
-							key={item}
-							href={item === 'Terms of Service' ? '/terms' : item === 'Privacy Policy' ? '/privacy-policy' : '#'}
-							underline="none"
-							sx={{
-								color: '#94A3B8',
-								fontSize: '0.75rem',
-								fontWeight: 500,
-								'&:hover': { color: '#F4F5F7' },
-								transition: 'color 0.2s',
-							}}
-						>
-							{item}
-						</Link>
-					))}
-				</Box>
-			</Box>
+			<AuthFooter />
 		</Box>
 	);
 };
