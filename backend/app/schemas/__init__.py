@@ -16,6 +16,10 @@ from app.schemas.auth import (
     MessageResponse,
     UserProfileResponse,
 )
+from app.schemas.admin import (
+    TrialExtensionRequest,
+    TrialExtensionResponse,
+)
 
 __all__ = [
     # Onboarding
@@ -32,5 +36,8 @@ __all__ = [
     "TokenResponse",
     "MessageResponse",
     "UserProfileResponse",
+    # Admin
+    "TrialExtensionRequest",
+    "TrialExtensionResponse",
 ]
 

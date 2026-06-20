@@ -50,6 +50,25 @@ async def login(
             "Please check your inbox for the verification link."
         )
 
+    # Enforce trial expiry check (exempting superusers)
+    if not user.is_superuser and user.organization_id is not None:
+        from app.repositories.organization import OrganizationRepository
+        from datetime import datetime, timezone
+        
+        org = await OrganizationRepository.get_by_id(db, user.organization_id)
+        if org:
+            now = datetime.now(timezone.utc)
+            if org.subscription_status == "expired" or (
+                org.subscription_status == "trial" and org.trial_expires_at and org.trial_expires_at < now
+            ):
+                if org.subscription_status == "trial":
+                    org.subscription_status = "expired"
+                    await db.flush()
+                raise ForbiddenError(
+                    "Your organization's 30-day free trial has expired. "
+                    "Please upgrade to a paid subscription to restore access."
+                )
+
     token_data = {
         "sub": str(user.id),
         "org": user.organization_id,

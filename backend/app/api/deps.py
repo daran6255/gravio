@@ -95,6 +95,25 @@ async def get_current_user(
             detail="Inactive user"
         )
     
+    # Check trial expiry for non-superusers
+    if not user.is_superuser and user.organization_id is not None:
+        from app.models.organization import Organization
+        from datetime import datetime, timezone
+        
+        org = await db.get(Organization, user.organization_id)
+        if org:
+            now = datetime.now(timezone.utc)
+            if org.subscription_status == "expired" or (
+                org.subscription_status == "trial" and org.trial_expires_at and org.trial_expires_at < now
+            ):
+                if org.subscription_status == "trial":
+                    org.subscription_status = "expired"
+                    await db.flush()
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Your organization's 30-day free trial has expired. Please upgrade to a paid subscription to restore access."
+                )
+    
     tenant_context.set(user.organization_id)
     superuser_context.set(user.is_superuser)
     

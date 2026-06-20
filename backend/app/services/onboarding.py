@@ -6,6 +6,7 @@ from loguru import logger
 
 from app.repositories.organization import OrganizationRepository
 from app.repositories.user import UserRepository
+from app.repositories.trial_registry import TrialRegistryRepository
 from app.models.user import UserRole
 from app.core.security import get_password_hash
 from app.middleware.exceptions import ConflictError
@@ -28,22 +29,28 @@ async def onboard_organization(
 
     Flow:
     1. Validate password strength
-    2. Check uniqueness of org name, email, and username
+    2. Check uniqueness of org name, email, and username, and trial registry
     3. Insert Organization (flush only, no commit yet)
     4. Hash password
     5. Insert User linked to the org (flush only)
-    6. Commit the full transaction
-    7. Dispatch verification email in the background (non-blocking)
+    6. Record email in the trial email registry (flush only)
+    7. Commit the full transaction
+    8. Dispatch verification email in the background (non-blocking)
 
     Raises:
         BadRequestError:  Password does not meet strength requirements.
-        ConflictError:    Org name / email / username already exists.
+        ConflictError:    Org name / email / username already exists, or email already used a trial.
     """
 
     # ── 1. Password strength ──────────────────────────────────────────────────
     validate_password_strength(payload.admin_user.password)
 
     # ── 2. Uniqueness checks ──────────────────────────────────────────────────
+    if await TrialRegistryRepository.exists_by_email(db, payload.admin_user.email):
+        raise ConflictError(
+            f"The email address '{payload.admin_user.email}' has already consumed its free trial and cannot be registered again."
+        )
+
     if await OrganizationRepository.get_by_name(db, payload.organization.name):
         raise ConflictError(
             f"An organization named '{payload.organization.name}' already exists."
@@ -81,6 +88,13 @@ async def onboard_organization(
         role=UserRole.ADMIN,
         is_superuser=False,
         others=payload.admin_user.metadata or {},
+    )
+
+    # ── 5.5 Record trial registration ─────────────────────────────────────────
+    await TrialRegistryRepository.create(
+        db,
+        email=payload.admin_user.email,
+        organization_name=payload.organization.name,
     )
 
     # ── 6. Commit transaction ─────────────────────────────────────────────────

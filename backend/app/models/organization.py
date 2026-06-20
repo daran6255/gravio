@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import uuid
 from typing import TYPE_CHECKING
-from sqlalchemy import String, Boolean, Uuid, JSON
+from datetime import datetime
+from sqlalchemy import String, Boolean, Uuid, JSON, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import BaseModel
 
@@ -42,6 +43,22 @@ class Organization(BaseModel):
     
     others: Mapped[dict | None] = mapped_column(
         JSON,
+        nullable=True,
+    )
+    
+    subscription_status: Mapped[str] = mapped_column(
+        String(50),
+        default="trial",
+        nullable=False,
+    )
+    
+    trial_started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    
+    trial_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
         nullable=True,
     )
     
