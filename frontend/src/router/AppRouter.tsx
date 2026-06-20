@@ -8,7 +8,6 @@ import MainLayout from '../components/layout/MainLayout';
 import SuccessPage from '../pages/common/SuccessPage';
 import NotFoundPage from '../pages/common/NotFoundPage';
 import MaintenancePage from '../pages/common/MaintenancePage';
-import Settings from '../pages/settings/Settings';
 
 const AppRouter: React.FC = () => {
 	return (
@@ -27,7 +26,6 @@ const AppRouter: React.FC = () => {
 					<Route path="/" element={<Navigate to="/dashboard" replace />} />
 					<Route path="dashboard" element={<Dashboard />} />
 					<Route path="users" element={<UserManagement />} />
-					<Route path="settings" element={<Settings />} />
 				</Route>
 			</Route>
 

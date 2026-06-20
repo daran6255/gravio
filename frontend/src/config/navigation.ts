@@ -1,8 +1,6 @@
 import {
 	Home as HomeIcon,
 	ManageAccounts as UserIcon,
-	Settings as SettingsIcon,
-	SmartToy as AIIcon,
 } from '@mui/icons-material';
 import type { SvgIconComponent } from '@mui/icons-material';
 
@@ -29,15 +27,4 @@ export const topNavigation: NavigationItem[] = [
 	},
 ];
 
-export const bottomNavigation: NavigationItem[] = [
-	{
-		label: 'Settings',
-		path: '/settings',
-		icon: SettingsIcon,
-		roles: ['admin'],
-	},
-];
-
-export const settingsTabs = [
-	{ label: 'AI Engine', icon: AIIcon },
-];
+export const bottomNavigation: NavigationItem[] = [];
