@@ -1,9 +1,12 @@
 """Auth service — login, token refresh, email verification, and logout"""
 
+from typing import Optional
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
 from app.repositories.user import UserRepository
+from app.repositories.refresh_token import RefreshTokenRepository
 from app.core.security import (
     verify_password,
     create_access_token,
@@ -76,7 +79,9 @@ async def login(
     }
 
     access_token = create_access_token(data=token_data)
-    refresh_token = create_refresh_token(data=token_data)
+    refresh_token, jti, expires_at = create_refresh_token(data=token_data)
+
+    await RefreshTokenRepository.create(db, jti=jti, user_id=user.id, expires_at=expires_at)
 
     logger.info(f"User '{user.username}' (org={user.organization_id}) logged in.")
 
@@ -89,16 +94,48 @@ async def login(
 
 # ── Token Refresh ──────────────────────────────────────────────────────────────
 
-async def refresh_tokens(*, refresh_token: str) -> TokenResponse:
+async def refresh_tokens(db: AsyncSession, *, refresh_token: str) -> TokenResponse:
     """Issue a new access + refresh token pair from a valid refresh token.
 
+    Refresh tokens are one-time-use: each call here revokes the presented token
+    and mints a brand new one (rotation). If a token is presented that was
+    already rotated/revoked, that's a signal it was copied/stolen — every
+    refresh token for that user is revoked immediately, forcing a fresh login.
+
     Raises:
-        UnauthorizedError: Token is invalid, expired, or wrong type.
+        UnauthorizedError: Token is invalid, expired, wrong type, unknown to the
+            server, or already used (reuse detected — all sessions are revoked).
     """
     payload = decode_token(refresh_token)
 
     if not payload or not verify_token_type(payload, "refresh"):
         raise UnauthorizedError("Invalid or expired refresh token.")
+
+    jti = payload.get("jti")
+    user_id = payload.get("sub")
+    if not jti or not user_id:
+        raise UnauthorizedError("Invalid or expired refresh token.")
+
+    stored = await RefreshTokenRepository.get_by_jti(db, jti)
+    if stored is None:
+        # Signature is valid but we never issued this jti (e.g. tampered token).
+        raise UnauthorizedError("Invalid or expired refresh token.")
+
+    if stored.revoked_at is not None:
+        await RefreshTokenRepository.revoke_all_for_user(db, int(user_id))
+        # Commit now: the exception raised below propagates through get_db's
+        # generator dependency, which rolls back the session on any exception.
+        # Without committing here, this revocation would be undone by that
+        # rollback and the reuse-detection sweep would silently do nothing.
+        await db.commit()
+        logger.warning(
+            f"Refresh token reuse detected for user_id={user_id} (jti={jti[:8]}...). "
+            "All sessions for this user have been revoked."
+        )
+        raise UnauthorizedError(
+            "This refresh token has already been used. For your security, all "
+            "sessions have been logged out — please log in again."
+        )
 
     token_data = {
         "sub": payload["sub"],
@@ -107,13 +144,37 @@ async def refresh_tokens(*, refresh_token: str) -> TokenResponse:
     }
 
     new_access = create_access_token(data=token_data)
-    new_refresh = create_refresh_token(data=token_data)
+    new_refresh, new_jti, new_expires_at = create_refresh_token(data=token_data)
+
+    # Rotate: retire the presented token and record what replaced it, then track the new one.
+    await RefreshTokenRepository.revoke(db, jti, replaced_by=new_jti)
+    await RefreshTokenRepository.create(db, jti=new_jti, user_id=int(user_id), expires_at=new_expires_at)
 
     return TokenResponse(
         access_token=new_access,
         refresh_token=new_refresh,
         token_type="bearer",
     )
+
+
+# ── Logout ─────────────────────────────────────────────────────────────────────
+
+async def logout(db: AsyncSession, *, refresh_token: Optional[str]) -> None:
+    """Revoke the given refresh token so it can't be used again.
+
+    Access tokens are not individually revocable (stateless by design) and will
+    simply expire on their own within ACCESS_TOKEN_EXPIRE_MINUTES. If no
+    refresh_token is supplied, this is a no-op — the client should still discard
+    both tokens locally.
+    """
+    if not refresh_token:
+        return
+
+    payload = decode_token(refresh_token)
+    if payload and verify_token_type(payload, "refresh"):
+        jti = payload.get("jti")
+        if jti:
+            await RefreshTokenRepository.revoke(db, jti)
 
 
 # ── Email Verification ─────────────────────────────────────────────────────────

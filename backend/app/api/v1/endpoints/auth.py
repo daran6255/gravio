@@ -9,12 +9,13 @@ from app.core.rate_limiter import limiter, rate_limit_auth
 from app.models.user import User
 from app.schemas.auth import (
     LoginRequest,
+    LogoutRequest,
     MessageResponse,
     RefreshRequest,
     TokenResponse,
     UserProfileResponse,
 )
-from app.services.auth import login, refresh_tokens, verify_email
+from app.services.auth import login, logout, refresh_tokens, verify_email
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -48,15 +49,19 @@ async def login_endpoint(
     summary="Refresh access token",
     description=(
         "Exchange a valid refresh token for a new access + refresh token pair. "
-        "Use this when the access token has expired."
+        "Use this when the access token has expired. "
+        "Refresh tokens are single-use: the old one is revoked the moment a new "
+        "pair is issued. Re-submitting an already-used refresh token revokes "
+        "every active session for the account as a theft precaution."
     ),
 )
 @limiter.limit("20/minute")
 async def refresh_endpoint(
     request: Request,
     payload: RefreshRequest,
+    db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
-    return await refresh_tokens(refresh_token=payload.refresh_token)
+    return await refresh_tokens(db, refresh_token=payload.refresh_token)
 
 
 # ── Logout ─────────────────────────────────────────────────────────────────────
@@ -66,13 +71,18 @@ async def refresh_endpoint(
     response_model=MessageResponse,
     summary="Log out",
     description=(
-        "Stateless logout — the client should discard both tokens. "
-        "The server logs the event. Requires a valid access token."
+        "Revokes the supplied refresh token server-side so it cannot be used again, "
+        "even if it leaks later. The client should also discard both tokens locally. "
+        "Requires a valid access token; the access token itself simply expires on "
+        "its own (it is never individually revocable)."
     ),
 )
 async def logout_endpoint(
+    payload: LogoutRequest,
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> MessageResponse:
+    await logout(db, refresh_token=payload.refresh_token)
     return MessageResponse(
         message=f"User '{current_user.username}' has been logged out successfully."
     )

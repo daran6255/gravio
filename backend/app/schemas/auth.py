@@ -18,6 +18,15 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
+class LogoutRequest(BaseModel):
+    """Logout — supply the refresh token so the server can revoke it.
+
+    Optional for backward compatibility, but without it the refresh token
+    stays valid until it naturally expires.
+    """
+    refresh_token: Optional[str] = None
+
+
 # ── Response Schemas ───────────────────────────────────────────────────────────
 
 class TokenResponse(BaseModel):

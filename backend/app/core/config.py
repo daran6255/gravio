@@ -53,6 +53,25 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     FIRST_SUPERUSER: str = "dharanidaran.a@taydens.com"
     FIRST_SUPERUSER_PASSWORD: str = "Testpass@123"
+
+    @validator("SECRET_KEY")
+    def warn_if_secret_key_is_weak(cls, v: str) -> str:
+        """Warn (don't block startup) if SECRET_KEY is short enough to be brute-forced.
+
+        JWTs signed with HS256 are only as strong as this key — a short or
+        guessable key lets an attacker forge tokens offline without ever
+        touching the server. 32 chars is a practical floor; generate a real one with:
+            python -c "import secrets; print(secrets.token_urlsafe(64))"
+        """
+        if len(v) < 32:
+            import warnings
+            warnings.warn(
+                f"SECRET_KEY is only {len(v)} characters — use at least 32 (ideally "
+                "64+) random characters to resist brute-force/forgery attempts. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(64))\"",
+                stacklevel=2,
+            )
+        return v
     
     # CORS
     BACKEND_CORS_ORIGINS: Union[str, List[str]] = "http://localhost:5173"
