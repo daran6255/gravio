@@ -1,0 +1,15 @@
+{% extends "email/base_email.html" %}
+{% block content %}
+    <h2 style="color: #4F46E5;">Welcome to {{ app_name }}, {{ full_name }}!</h2>
+    <p>Your organization account has been created. To activate it, please verify your email address by clicking the button below.</p>
+    <p style="text-align: center; margin: 32px 0;">
+        <a href="{{ link }}"
+           style="background-color: #4F46E5; color: #fff; padding: 14px 28px;
+                  border-radius: 6px; text-decoration: none; font-weight: bold;">
+            Verify Email Address
+        </a>
+    </p>
+    <p style="color: #888; font-size: 13px;">
+        This link expires in {{ expire_hours }} hours. If you did not sign up for {{ app_name }}, you can safely ignore this email.
+    </p>
+{% endblock %}

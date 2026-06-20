@@ -12,6 +12,7 @@ from jose import JWTError, jwt
 from loguru import logger
 
 from app.core.config import settings
+from app.templates import render_template
 
 
 # ── Verification Token ─────────────────────────────────────────────────────────
@@ -116,27 +117,12 @@ async def _send_via_smtp(to_email: str, subject: str, html_body: str) -> None:
 
 
 def _build_verification_html(full_name: str, link: str) -> str:
-    """Build the HTML body for the verification email."""
-    return f"""
-    <!DOCTYPE html>
-    <html>
-    <body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: auto;">
-        <h2 style="color: #4F46E5;">Welcome to {settings.APP_NAME}, {full_name}!</h2>
-        <p>Your organization account has been created. To activate it, please verify your email address by clicking the button below.</p>
-        <p style="text-align: center; margin: 32px 0;">
-            <a href="{link}"
-               style="background-color: #4F46E5; color: #fff; padding: 14px 28px;
-                      border-radius: 6px; text-decoration: none; font-weight: bold;">
-                Verify Email Address
-            </a>
-        </p>
-        <p style="color: #888; font-size: 13px;">
-            This link expires in 24 hours. If you did not sign up for {settings.APP_NAME}, you can safely ignore this email.
-        </p>
-        <hr style="border: none; border-top: 1px solid #eee; margin-top: 32px;">
-        <p style="color: #bbb; font-size: 12px; text-align: center;">
-            &copy; {datetime.now().year} {settings.APP_NAME}
-        </p>
-    </body>
-    </html>
-    """
+    """Build the HTML body for the verification email from templates/email/verification.html."""
+    return render_template(
+        "email/verification.html",
+        app_name=settings.APP_NAME,
+        full_name=full_name,
+        link=link,
+        expire_hours=_VERIFY_EXPIRE_HOURS,
+        year=datetime.now().year,
+    )
