@@ -107,80 +107,18 @@ app.include_router(
 @app.get("/health", tags=["Health"])
 async def health_check(db: AsyncSession = Depends(get_db)):
     """
-    Health check endpoint with detailed system metrics
-    
-    Returns application health status including:
-    - Database connectivity
-    - API response time
-    - Memory usage
-    - Cache status
+    Health check endpoint verifying database connectivity
     """
-    import psutil
-    import time
     from sqlalchemy import text
-    
-    start_time = time.time()
-    metrics = []
-    overall_status = "healthy"
-    
-    # Check Database
     try:
-        db_start = time.time()
         await db.execute(text("SELECT 1"))
-        db_time = (time.time() - db_start) * 1000  # Convert to ms
-        
-        metrics.append({
-            "name": "Database",
-            "status": "operational",
-            "responseTime": round(db_time, 2),
-            "uptime": 99.95
-        })
+        return {"status": "healthy"}
     except Exception as e:
-        overall_status = "degraded"
-        metrics.append({
-            "name": "Database",
-            "status": "down",
-            "responseTime": 0,
-            "uptime": 0
-        })
-    
-    # Cache Layer (simulated - add Redis check if you have it)
-    metrics.append({
-        "name": "Cache Layer",
-        "status": "operational",
-        "responseTime": 3,
-        "uptime": 99.8
-    })
-    
-    # Memory Usage
-    memory = psutil.virtual_memory()
-    memory_percent = memory.percent
-    
-    metrics.append({
-        "name": "Memory Usage",
-        "status": "operational" if memory_percent < 90 else "degraded",
-        "uptime": round(memory_percent, 2)
-    })
-    
-    # API Server (self)
-    api_time = (time.time() - start_time) * 1000
-    metrics.append({
-        "name": "API Server",
-        "status": "operational",
-        "responseTime": round(api_time, 2),
-        "uptime": 99.9
-    })
-    
-    return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content={
-            "status": overall_status,
-            "version": settings.APP_VERSION,
-            "environment": settings.ENVIRONMENT,
-            "timestamp": time.time(),
-            "metrics": metrics
-        }
-    )
+        logger.error(f"Health check failed: {e}")
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "unhealthy", "detail": "Database connection failed"}
+        )
 
 
 @app.get("/", tags=["Root"])
