@@ -1,16 +1,27 @@
 """Pydantic schemas for authentication (login, tokens, profile)"""
 
 import uuid
-from typing import Optional
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Optional, Any
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 # ── Request Schemas ────────────────────────────────────────────────────────────
 
 class LoginRequest(BaseModel):
     """Login with email or username + password"""
-    identifier: str = Field(..., description="Email address or username")
+    identifier: Optional[str] = Field(None, description="Email address or username")
+    email: Optional[str] = Field(None, description="Alternative field for email address")
     password: str = Field(..., min_length=1)
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_identifier(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if "email" in data and not data.get("identifier"):
+                data["identifier"] = data["email"]
+            if not data.get("identifier"):
+                raise ValueError("Either identifier or email is required")
+        return data
 
 
 class RefreshRequest(BaseModel):

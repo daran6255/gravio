@@ -81,7 +81,16 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    user = await db.get(User, int(user_id))
+    from sqlalchemy.orm import selectinload
+    from sqlalchemy.future import select
+    from app.models.organization import Organization
+
+    result = await db.execute(
+        select(User)
+        .where(User.id == int(user_id))
+        .options(selectinload(User.organization).selectinload(Organization.plan))
+    )
+    user = result.scalars().first()
     
     if user is None:
         raise HTTPException(
@@ -97,10 +106,9 @@ async def get_current_user(
     
     # Check trial expiry for non-superusers
     if not user.is_superuser and user.organization_id is not None:
-        from app.models.organization import Organization
         from datetime import datetime, timezone
         
-        org = await db.get(Organization, user.organization_id)
+        org = user.organization
         if org:
             now = datetime.now(timezone.utc)
             if org.subscription_status == "expired" or (
