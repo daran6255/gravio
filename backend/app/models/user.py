@@ -2,7 +2,7 @@ from __future__ import annotations
 import enum
 import uuid
 from typing import TYPE_CHECKING
-from sqlalchemy import String, Boolean, Enum, ForeignKey, Integer, Uuid
+from sqlalchemy import String, Boolean, Enum, ForeignKey, Integer, Uuid, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import BaseModel
 
@@ -35,6 +35,7 @@ class User(BaseModel):
     full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     role: Mapped[UserRole] = mapped_column(
         Enum(UserRole, values_callable=lambda x: [e.value for e in x]),
@@ -48,8 +49,12 @@ class User(BaseModel):
         nullable=True,
         index=True,
     )
+    others: Mapped[dict | None] = mapped_column(
+        JSON,
+        nullable=True,
+    )
+    
     organization: Mapped[Organization] = relationship("Organization", back_populates="users")
     
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email}, username={self.username})>"
-

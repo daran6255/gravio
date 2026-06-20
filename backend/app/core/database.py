@@ -64,3 +64,32 @@ async def init_db() -> None:
 async def close_db() -> None:
     """Close database connections"""
     await engine.dispose()
+
+
+# --- Multi-Tenancy Auto Filtering ---
+from sqlalchemy import event
+from sqlalchemy.orm import Session, with_loader_criteria
+from app.core.context import tenant_context, superuser_context
+from app.models.base import TenantAwareMixin
+
+@event.listens_for(Session, "do_orm_execute")
+def _add_tenant_filter(execute_state):
+    """
+    SQLAlchemy 2.0 event hook to automatically apply tenant filters.
+    If tenant_context is set and superuser_context is False, it adds
+    loader criteria to filter all models inheriting from TenantAwareMixin by organization_id.
+    """
+    if execute_state.is_select:
+        org_id = tenant_context.get()
+        is_superuser = superuser_context.get()
+        
+        # Apply filter only if organization is set and user is not superuser
+        if org_id is not None and not is_superuser:
+            execute_state.statement = execute_state.statement.options(
+                with_loader_criteria(
+                    TenantAwareMixin,
+                    lambda cls: cls.organization_id == org_id,
+                    include_aliases=True
+                )
+            )
+
