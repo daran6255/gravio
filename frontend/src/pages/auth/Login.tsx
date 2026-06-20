@@ -109,11 +109,11 @@ const Login: React.FC = () => {
 									position: 'relative'
 								}}
 							>
-								WinVinaya
+								Gravit
 							</Box>
 						</Typography>
 						<Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontWeight: 500 }}>
-							Foundation Management Portal
+							Enterprise Tenant Platform
 						</Typography>
 					</Box>
 				</Fade>
@@ -131,7 +131,7 @@ const Login: React.FC = () => {
 				<Fade in={true} timeout={1600}>
 					<Box sx={{ mt: 4, textAlign: 'center' }}>
 						<Typography variant="caption" color="text.secondary" sx={{ opacity: 0.7 }}>
-							© {new Date().getFullYear()} WinVinaya InfoSystems Pvt Ltd. All rights reserved.
+							© {new Date().getFullYear()} Gravit. All rights reserved.
 						</Typography>
 					</Box>
 				</Fade>

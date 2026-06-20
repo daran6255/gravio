@@ -35,7 +35,7 @@ const WelcomeHeader: React.FC = () => {
                     </Typography>
                 </Box>
                 <Typography variant="body1" sx={{ color: '#545b64', fontWeight: 500 }}>
-                    Welcome back to the WinVinaya MIS. Here's what's happening today, {formattedDate}.
+                    Welcome back to Gravit. Here's what's happening today, {formattedDate}.
                 </Typography>
             </Box>
         </Box>

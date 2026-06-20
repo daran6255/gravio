@@ -183,7 +183,7 @@ const AIChatWidget: React.FC = () => {
               ARIA
             </Typography>
             <Typography variant="caption" sx={{ opacity: 0.8 }}>
-              WinVinaya AI Coworker
+              Gravit AI Coworker
             </Typography>
           </Box>
           <Stack direction="row" spacing={0.5}>

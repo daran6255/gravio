@@ -80,7 +80,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 			</Box>
 
 			<Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-				Enter your credentials to access your WinVinaya account.
+				Enter your credentials to access your Gravit account.
 			</Typography>
 
 			{/* Accessible error announcement */}

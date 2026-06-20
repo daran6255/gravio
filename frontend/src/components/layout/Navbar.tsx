@@ -53,7 +53,7 @@ const Navbar: React.FC = () => {
 					<MenuIcon aria-hidden="true" />
 				</IconButton>
 				<Typography variant="navLogo" noWrap component="div" sx={{ display: { xs: 'none', md: 'block' }, mr: 2 }}>
-					WinVinaya MIS
+					Gravit
 				</Typography>
 
 				<GlobalSearch />

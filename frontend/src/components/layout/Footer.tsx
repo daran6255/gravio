@@ -29,7 +29,7 @@ const Footer: React.FC = () => {
 			>
 				<span>Copyright © {new Date().getFullYear()}</span>
 				<Link
-					href="https://winvinaya.com/"
+					href="https://gravit.com/"
 					target="_blank"
 					rel="noopener noreferrer"
 					sx={{
@@ -42,7 +42,7 @@ const Footer: React.FC = () => {
 						}
 					}}
 				>
-					WinVinaya InfoSystems
+					Gravit
 				</Link>
 				<span>. All rights reserved.</span>
 			</Typography>
