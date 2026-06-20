@@ -29,10 +29,28 @@ const authService = {
 	},
 
 	/**
-	 * Register a new user
+	 * Register a new user (deprecated / legacy)
 	 */
 	register: async (userData: any): Promise<RegisterResponse> => {
 		const response = await api.post<RegisterResponse>('/auth/register', userData);
+		return response.data;
+	},
+
+	/**
+	 * Self-onboard a new organization and admin user
+	 */
+	onboard: async (onboardData: any): Promise<any> => {
+		const response = await api.post('/onboard', onboardData);
+		return response.data;
+	},
+
+	/**
+	 * Verify user email address using the token from the email link
+	 */
+	verifyEmail: async (token: string): Promise<any> => {
+		const response = await api.get('/auth/verify-email', {
+			params: { token }
+		});
 		return response.data;
 	},
 
