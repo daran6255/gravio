@@ -1,12 +1,16 @@
 import React from 'react';
 import { Box, CssBaseline } from '@mui/material';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 import Breadcrumbs from '../common/breadcrumb/Breadcrumbs';
+import { useAppSelector } from '../../store/hooks';
 
 const MainLayout: React.FC = () => {
+	const location = useLocation();
+	const currentUser = useAppSelector((state) => state.auth.user);
+	const isOrgPage = !!currentUser?.is_superuser && location.pathname.includes('/users');
 
 	return (
 		<Box sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -30,7 +34,7 @@ const MainLayout: React.FC = () => {
 					overflowX: 'hidden'
 				}}
 			>
-				<Breadcrumbs />
+				{!isOrgPage && <Breadcrumbs />}
 				<Box sx={{ flexGrow: 1 }}>
 					<Outlet />
 				</Box>
