@@ -312,3 +312,42 @@ async def bulk_delete_org_users(
     logger.info(f"User '{current_user.username}' bulk deleted {deleted_count} users.")
     return deleted_count
 
+
+async def send_user_password_reset(
+    db: AsyncSession,
+    *,
+    current_user: User,
+    target_public_id: uuid.UUID,
+) -> User:
+    """Send a password reset email to a user in the administrator's tenant.
+
+    Raises:
+        NotFoundError: User not found or belongs to a different organization.
+        BadRequestError: User is deactivated.
+    """
+    from app.middleware.exceptions import NotFoundError, BadRequestError
+    from app.repositories.user import UserRepository
+
+    target = await UserRepository.get_by_public_id(db, target_public_id)
+    if not target:
+        raise NotFoundError("User not found.")
+    if not current_user.is_superuser and target.organization_id != current_user.organization_id:
+        raise NotFoundError("User not found.")
+
+    if not target.is_active:
+        raise BadRequestError("Cannot send password reset to a deactivated user.")
+
+    import asyncio
+    from app.utils.email import send_password_reset_email
+
+    asyncio.create_task(
+        send_password_reset_email(
+            to_email=target.email,
+            full_name=target.full_name or target.username,
+            user_id=target.id,
+        )
+    )
+
+    return target
+
+

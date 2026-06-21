@@ -274,3 +274,41 @@ async def accept_invite(db: AsyncSession, *, token: str, new_password: str) -> T
         refresh_token=refresh_token,
         token_type="bearer",
     )
+
+
+async def reset_password_with_token(
+    db: AsyncSession,
+    *,
+    token: str,
+    new_password: str,
+) -> None:
+    """Consume a password reset token and update the user's password.
+
+    Revokes all active sessions for security.
+    """
+    from app.utils.email import decode_reset_token
+
+    user_id = decode_reset_token(token)
+    if not user_id:
+        raise BadRequestError(
+            "This password reset link is invalid or has expired. Please request a new link."
+        )
+
+    user = await UserRepository.get_by_id(db, user_id)
+    if not user:
+        raise BadRequestError("Account not found.")
+
+    if not user.is_active:
+        raise BadRequestError("This account is inactive. Please contact support.")
+
+    validate_password_strength(new_password)
+
+    hashed_pw = get_password_hash(new_password)
+    user.hashed_password = hashed_pw
+    user.is_verified = True
+
+    # Revoke all active tokens/sessions to force re-login
+    await RefreshTokenRepository.revoke_all_for_user(db, user.id)
+    await db.commit()
+    logger.info(f"User '{user.username}' (id={user_id}) reset password successfully.")
+

@@ -5,7 +5,7 @@ import {
 	Avatar, Skeleton, Typography, IconButton, useTheme, Tabs, Tab,
 	Menu, MenuItem, ListItemIcon
 } from '@mui/material';
-import { Search, MailOutline, Block, CheckCircleOutline, DeleteOutline, EditOutlined, MoreVert } from '@mui/icons-material';
+import { Search, MailOutline, Block, CheckCircleOutline, DeleteOutline, EditOutlined, MoreVert, LockOutlined } from '@mui/icons-material';
 import type { Organization } from '../../../models/auth';
 import type { TeamMember } from '../../../models/user';
 import StatusBadge from '../../common/badge/StatusBadge';
@@ -19,7 +19,7 @@ interface OrgDetailDrawerProps {
 	selectedOrgUsersError: string | null;
 	userSearchTerm: string;
 	setUserSearchTerm: (term: string) => void;
-	onUserAction: (user: TeamMember, type: 'deactivate' | 'reactivate' | 'delete' | 'resendInvite' | 'edit') => void;
+	onUserAction: (user: TeamMember, type: 'deactivate' | 'reactivate' | 'delete' | 'resendInvite' | 'edit' | 'sendPasswordReset') => void;
 	renderRemainingPeriod: (org: Organization) => React.ReactNode;
 }
 
@@ -381,6 +381,15 @@ export const OrgDetailDrawer: React.FC<OrgDetailDrawerProps> = ({
 											<MailOutline fontSize="small" />
 										</ListItemIcon>
 										<ListItemText primary="Resend Invite" />
+									</MenuItem>
+								)}
+
+								{menuUser.is_verified && menuUser.is_active && (
+									<MenuItem onClick={() => { onUserAction(menuUser, 'sendPasswordReset'); handleMenuClose(); }}>
+										<ListItemIcon sx={{ minWidth: 'auto', color: 'primary.main' }}>
+											<LockOutlined fontSize="small" />
+										</ListItemIcon>
+										<ListItemText primary="Send Password Reset" />
 									</MenuItem>
 								)}
 

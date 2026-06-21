@@ -9,7 +9,7 @@ from app.api.deps import require_roles
 from app.models.user import User, UserRole
 from app.schemas.common import PaginatedResponse
 from app.schemas.user_management import InviteUserRequest, UserListItem, UpdateUserRequest, BulkDeleteUsersRequest
-from app.services.user_management import invite_user, list_org_users, set_user_active, delete_org_user, resend_user_invite, update_org_user, bulk_delete_org_users
+from app.services.user_management import invite_user, list_org_users, set_user_active, delete_org_user, resend_user_invite, update_org_user, bulk_delete_org_users, send_user_password_reset
 
 router = APIRouter(prefix="/users", tags=["User Management"])
 
@@ -125,6 +125,20 @@ async def resend_invite_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> UserListItem:
     user = await resend_user_invite(db, current_user=current_user, target_public_id=public_id)
+    return UserListItem.model_validate(user)
+
+
+@router.post(
+    "/{public_id}/reset-password",
+    response_model=UserListItem,
+    summary="Trigger password reset email for a user (Admin/Super-Admin)",
+)
+async def reset_password_invite_endpoint(
+    public_id: uuid.UUID,
+    current_user: User = Depends(require_org_admin),
+    db: AsyncSession = Depends(get_db),
+) -> UserListItem:
+    user = await send_user_password_reset(db, current_user=current_user, target_public_id=public_id)
     return UserListItem.model_validate(user)
 
 

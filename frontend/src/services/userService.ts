@@ -49,6 +49,12 @@ const userService = {
 		return response.data;
 	},
 
+	// Trigger password reset email to a verified/active user
+	triggerPasswordReset: async (publicId: string): Promise<TeamMember> => {
+		const response = await api.post<TeamMember>(`/users/${publicId}/reset-password`);
+		return response.data;
+	},
+
 	// Bulk delete users
 	bulkDeleteUsers: async (publicIds: string[]): Promise<{ message: string; deleted_count: number }> => {
 		const response = await api.post<{ message: string; deleted_count: number }>('/users/bulk-delete', {

@@ -15,8 +15,9 @@ from app.schemas.auth import (
     RefreshRequest,
     TokenResponse,
     UserProfileResponse,
+    ResetPasswordRequest,
 )
-from app.services.auth import accept_invite, login, logout, refresh_tokens, verify_email
+from app.services.auth import accept_invite, login, logout, refresh_tokens, verify_email, reset_password_with_token
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -127,6 +128,27 @@ async def accept_invite_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
     return await accept_invite(db, token=payload.token, new_password=payload.new_password)
+
+
+# ── Reset Password ─────────────────────────────────────────────────────────────
+
+@router.post(
+    "/reset-password",
+    response_model=MessageResponse,
+    summary="Reset password using a token",
+    description="Update account password using a valid password reset token.",
+)
+@rate_limit_auth()
+async def reset_password_endpoint(
+    request: Request,
+    payload: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+) -> MessageResponse:
+    await reset_password_with_token(db, token=payload.token, new_password=payload.new_password)
+    return MessageResponse(
+        success=True,
+        message="Password reset successfully. You can now log in with your new password."
+    )
 
 
 # ── Current User Profile ───────────────────────────────────────────────────────

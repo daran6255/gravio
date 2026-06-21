@@ -73,6 +73,17 @@ const authService = {
 	},
 
 	/**
+	 * Reset password using the reset token from the email link
+	 */
+	resetPassword: async (token: string, newPassword: string): Promise<any> => {
+		const response = await api.post('/auth/reset-password', {
+			token,
+			new_password: newPassword,
+		});
+		return response.data;
+	},
+
+	/**
 	 * Refresh access token using refresh token
 	 */
 	refreshToken: async (): Promise<LoginResponse | null> => {

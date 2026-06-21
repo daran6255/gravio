@@ -9,7 +9,8 @@ import {
 	deactivateOrgUser,
 	reactivateOrgUser,
 	deleteOrgUser,
-	resendOrgUserInvite
+	resendOrgUserInvite,
+	triggerUserPasswordReset
 } from '../../../store/slices/orgAdminSlice';
 import useToast from '../../../hooks/useToast';
 import type { Organization } from '../../../models/auth';
@@ -146,9 +147,9 @@ export const useOrgConsole = () => {
 		}
 	};
 
-	const handleUserAction = (user: TeamMember, type: 'deactivate' | 'reactivate' | 'delete' | 'resendInvite' | 'edit') => {
+	const handleUserAction = (user: TeamMember, type: 'deactivate' | 'reactivate' | 'delete' | 'resendInvite' | 'edit' | 'sendPasswordReset') => {
 		setTargetUser(user);
-		if (type === 'resendInvite') {
+		if (type === 'resendInvite' || type === 'sendPasswordReset') {
 			handleConfirmUserAction(user, type);
 		} else if (type === 'edit') {
 			setEditOrgUserOpen(true);
@@ -177,6 +178,9 @@ export const useOrgConsole = () => {
 			} else if (type === 'resendInvite') {
 				await dispatch(resendOrgUserInvite(u.public_id)).unwrap();
 				toast.success(`Invite resent to ${u.email}.`);
+			} else if (type === 'sendPasswordReset') {
+				await dispatch(triggerUserPasswordReset(u.public_id)).unwrap();
+				toast.success(`Password reset email sent to ${u.email}.`);
 			}
 
 			dispatch(fetchAdminStats());

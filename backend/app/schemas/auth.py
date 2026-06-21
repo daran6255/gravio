@@ -44,6 +44,12 @@ class AcceptInviteRequest(BaseModel):
     new_password: str = Field(..., min_length=8, description="Min 8 chars with uppercase, digit, and special char")
 
 
+class ResetPasswordRequest(BaseModel):
+    """Reset password using a token from email"""
+    token: str = Field(..., description="Reset token from the email link")
+    new_password: str = Field(..., min_length=8, description="Min 8 chars with uppercase, digit, and special char")
+
+
 # ── Response Schemas ───────────────────────────────────────────────────────────
 
 class TokenResponse(BaseModel):

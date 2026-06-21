@@ -85,6 +85,38 @@ def decode_invite_token(token: str) -> Optional[int]:
         return None
 
 
+# ── Password Reset Token ───────────────────────────────────────────────────────
+
+_RESET_SECRET = settings.SECRET_KEY + "_reset"
+_RESET_ALGORITHM = "HS256"
+_RESET_EXPIRE_HOURS = 2
+
+
+def create_reset_token(user_id: int) -> str:
+    """Generate a time-limited JWT used for password reset links."""
+    expire = datetime.now(timezone.utc) + timedelta(hours=_RESET_EXPIRE_HOURS)
+    payload = {
+        "sub": str(user_id),
+        "type": "password_reset",
+        "exp": expire,
+    }
+    return jwt.encode(payload, _RESET_SECRET, algorithm=_RESET_ALGORITHM)
+
+
+def decode_reset_token(token: str) -> Optional[int]:
+    """Decode a password reset token and return the user_id, or None if invalid/expired."""
+    try:
+        payload = jwt.decode(token, _RESET_SECRET, algorithms=[_RESET_ALGORITHM])
+        if payload.get("type") != "password_reset":
+            return None
+        user_id_str = payload.get("sub")
+        if user_id_str is None:
+            return None
+        return int(user_id_str)
+    except (JWTError, ValueError):
+        return None
+
+
 # ── Sending ────────────────────────────────────────────────────────────────────
 
 async def send_verification_email(
@@ -148,6 +180,33 @@ async def send_invite_email(
     )
 
 
+async def send_password_reset_email(
+    to_email: str,
+    full_name: str,
+    user_id: int,
+) -> None:
+    """Send a password reset link to a user.
+
+    Same dev/SMTP fallback as verification emails.
+    """
+    token = create_reset_token(user_id)
+    base_url = settings.FRONTEND_URL or "http://localhost:5173"
+    reset_link = f"{base_url}/reset-password?token={token}"
+
+    if not settings.SMTP_HOST:
+        logger.info(
+            f"[EMAIL - DEV] Password reset email for '{full_name}' ({to_email})\n"
+            f"  Link: {reset_link}"
+        )
+        return
+
+    await _send_via_smtp(
+        to_email=to_email,
+        subject=f"Reset your {settings.APP_NAME} password",
+        html_body=_build_reset_html(full_name, reset_link),
+    )
+
+
 async def _send_via_smtp(to_email: str, subject: str, html_body: str) -> None:
     """Internal helper — send an HTML email using aiosmtplib."""
     try:
@@ -204,5 +263,17 @@ def _build_invite_html(full_name: str, org_name: str, role: str, link: str) -> s
         role=role,
         link=link,
         expire_days=settings.INVITE_TOKEN_EXPIRE_DAYS,
+        year=datetime.now().year,
+    )
+
+
+def _build_reset_html(full_name: str, link: str) -> str:
+    """Build the HTML body for the password reset email from templates/email/reset_password.html."""
+    return render_template(
+        "email/reset_password.html",
+        app_name=settings.APP_NAME,
+        full_name=full_name,
+        link=link,
+        expire_hours=_RESET_EXPIRE_HOURS,
         year=datetime.now().year,
     )

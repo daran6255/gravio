@@ -147,6 +147,17 @@ export const resendOrgUserInvite = createAsyncThunk(
 	}
 );
 
+export const triggerUserPasswordReset = createAsyncThunk(
+	'orgAdmin/triggerUserPasswordReset',
+	async (publicId: string, { rejectWithValue }) => {
+		try {
+			return await userService.triggerPasswordReset(publicId);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to trigger password reset');
+		}
+	}
+);
+
 const orgAdminSlice = createSlice({
 	name: 'orgAdmin',
 	initialState,
@@ -236,6 +247,12 @@ const orgAdminSlice = createSlice({
 				}
 			})
 			.addCase(updateTeamUser.fulfilled, (state, action: PayloadAction<TeamMember>) => {
+				const idx = state.selectedOrgUsers.findIndex((u) => u.public_id === action.payload.public_id);
+				if (idx !== -1) {
+					state.selectedOrgUsers[idx] = action.payload;
+				}
+			})
+			.addCase(triggerUserPasswordReset.fulfilled, (state, action: PayloadAction<TeamMember>) => {
 				const idx = state.selectedOrgUsers.findIndex((u) => u.public_id === action.payload.public_id);
 				if (idx !== -1) {
 					state.selectedOrgUsers[idx] = action.payload;

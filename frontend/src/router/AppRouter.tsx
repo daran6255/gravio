@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Login, { Register, VerifyEmail, AcceptInvite } from '../pages/auth';
+import Login, { Register, VerifyEmail, AcceptInvite, ResetPassword } from '../pages/auth';
 import Dashboard from '../pages/dashboard';
 import OrgManagement from '../pages/org/OrgManagement';
 import { OrgConsole } from '../components/orgs';
@@ -18,6 +18,7 @@ const AppRouter: React.FC = () => {
 			<Route path="/register" element={<Register />} />
 			<Route path="/verify-email" element={<VerifyEmail />} />
 			<Route path="/accept-invite" element={<AcceptInvite />} />
+			<Route path="/reset-password" element={<ResetPassword />} />
 
 			{/* Public Support Pages */}
 			<Route path="/success" element={<SuccessPage />} />
