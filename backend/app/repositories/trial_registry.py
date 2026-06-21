@@ -37,3 +37,19 @@ class TrialRegistryRepository:
         db.add(record)
         await db.flush()  # populate record.id
         return record
+
+    @staticmethod
+    async def delete_by_emails(db: AsyncSession, emails: list[str]) -> None:
+        """Delete trial registry entries for a list of emails (normalized to lowercase).
+        
+        Does NOT commit — the calling service owns the transaction boundary.
+        """
+        from sqlalchemy import delete
+        normalized_emails = [email.strip().lower() for email in emails if email.strip()]
+        if not normalized_emails:
+            return
+        await db.execute(
+            delete(TrialEmailRegistry).where(TrialEmailRegistry.email.in_(normalized_emails))
+        )
+        await db.flush()
+

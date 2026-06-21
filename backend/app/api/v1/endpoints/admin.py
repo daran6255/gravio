@@ -217,4 +217,4 @@ async def delete_organization_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> OrgPublic:
     org = await delete_organization(db, public_id=public_id)
-    return OrgPublic.model_validate(org)
+    return org

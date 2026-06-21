@@ -158,6 +158,7 @@ async def test_delete_organization_as_superuser(auth_superuser_client: AsyncClie
     from app.models.ai_usage import AIUsageCounter
     from app.models.refresh_token import RefreshToken
     from app.models.user import User
+    from app.models.trial_registry import TrialEmailRegistry
     from sqlalchemy import select
     
     # Get user inside org1
@@ -172,6 +173,12 @@ async def test_delete_organization_as_superuser(auth_superuser_client: AsyncClie
             expires_at=datetime.now(timezone.utc) + timedelta(days=7)
         )
         db_session.add(rt)
+        
+        trial_reg = TrialEmailRegistry(
+            email=u.email,
+            organization_name=org1.name
+        )
+        db_session.add(trial_reg)
         
     ai_counter = AIUsageCounter(
         organization_id=org1.id, 
@@ -198,6 +205,12 @@ async def test_delete_organization_as_superuser(auth_superuser_client: AsyncClie
     # AIUsageCounter should be deleted
     ai_check_q = await db_session.execute(select(AIUsageCounter).where(AIUsageCounter.organization_id == org1.id))
     assert len(ai_check_q.scalars().all()) == 0
+
+    # TrialEmailRegistry entries should be deleted
+    for u in users:
+        trial_check_q = await db_session.execute(select(TrialEmailRegistry).where(TrialEmailRegistry.email == u.email))
+        assert len(trial_check_q.scalars().all()) == 0
+
 
 
 @pytest.mark.anyio

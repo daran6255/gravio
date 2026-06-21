@@ -105,7 +105,20 @@ async def onboard_organization(
 
     # ── 6. Commit transaction ─────────────────────────────────────────────────
     await db.commit()
-    await db.refresh(org)
+    
+    from sqlalchemy.future import select
+    from sqlalchemy.orm import selectinload
+    from app.models.organization import Organization
+    
+    # Reload organization with plan & users relationship loaded to avoid lazy loading errors
+    stmt = (
+        select(Organization)
+        .options(selectinload(Organization.plan), selectinload(Organization.users))
+        .where(Organization.id == org.id)
+    )
+    res = await db.execute(stmt)
+    org = res.scalar_one()
+    
     await db.refresh(user)
 
     logger.info(

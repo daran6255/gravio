@@ -3,6 +3,7 @@
 import asyncio
 import secrets
 import uuid
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
@@ -183,7 +184,7 @@ async def delete_organization(
     db: AsyncSession,
     *,
     public_id: uuid.UUID,
-) -> Organization:
+) -> Any:
     """Permanently delete an organization and all its related records.
 
     This deletes:
@@ -193,21 +194,36 @@ async def delete_organization(
       4. The organization itself
     """
     from sqlalchemy import select, delete
+    from sqlalchemy.orm import selectinload
+    from app.models.organization import Organization
     from app.models.refresh_token import RefreshToken
     from app.models.ai_usage import AIUsageCounter
     from app.models.user import User
-    from app.repositories.organization import OrganizationRepository
     from app.middleware.exceptions import NotFoundError
+    from app.schemas.onboarding import OrgPublic
 
-    org = await OrganizationRepository.get_by_public_id(db, public_id)
+    # Fetch org with eager relationships loaded to make a safe Pydantic snapshot
+    stmt = (
+        select(Organization)
+        .options(selectinload(Organization.plan), selectinload(Organization.users))
+        .where(Organization.public_id == public_id)
+    )
+    result = await db.execute(stmt)
+    org = result.scalars().first()
+
     if not org:
         raise NotFoundError(f"Organization with ID '{public_id}' not found.")
 
-    # 1. Fetch user IDs belonging to this organization
+    # Create OrgPublic snapshot before deletion
+    org_snapshot = OrgPublic.model_validate(org)
+
+    # 1. Fetch user IDs and emails belonging to this organization
     result = await db.execute(
-        select(User.id).where(User.organization_id == org.id)
+        select(User.id, User.email).where(User.organization_id == org.id)
     )
-    user_ids = [row[0] for row in result.all()]
+    rows = result.all()
+    user_ids = [row[0] for row in rows]
+    user_emails = [row[1] for row in rows if row[1]]
 
     # 2. Delete refresh tokens for those users
     if user_ids:
@@ -225,10 +241,15 @@ async def delete_organization(
         delete(User).where(User.organization_id == org.id)
     )
 
-    # 5. Delete the organization
+    # 5. Delete trial registry entries for these users (if they registered as trials)
+    if user_emails:
+        await TrialRegistryRepository.delete_by_emails(db, user_emails)
+
+    # 6. Delete the organization
     await db.delete(org)
     await db.commit()
 
-    logger.info(f"Super Admin permanently deleted organization '{org.name}' (id={org.id}) and all associated records.")
-    return org
+
+    logger.info(f"Super Admin permanently deleted organization '{org_snapshot.name}' (id={org.id}) and all associated records.")
+    return org_snapshot
 
