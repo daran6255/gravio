@@ -12,6 +12,14 @@ from app.core.security import get_password_hash
 # Tier -> modules unlocked + monthly AI action quota.
 # See backend/documentation/PRICING_PLAN_BUSINESS_LOGIC.md for the business rationale.
 PLAN_DEFINITIONS = {
+    PlanTier.FREE: {
+        "name": "Free",
+        "enabled_modules": [
+            Module.PROJECT_MANAGEMENT.value,
+        ],
+        "ai_monthly_limit": 10,
+        "user_limit": 10,
+    },
     PlanTier.BASIC: {
         "name": "Basic",
         "enabled_modules": [
@@ -21,6 +29,7 @@ PLAN_DEFINITIONS = {
             Module.REPORTS_MANAGEMENT.value,
         ],
         "ai_monthly_limit": 100,
+        "user_limit": 20,
     },
     PlanTier.PRO: {
         "name": "Pro",
@@ -33,17 +42,19 @@ PLAN_DEFINITIONS = {
             Module.PLACEMENT_MANAGEMENT.value,
         ],
         "ai_monthly_limit": 1000,
+        "user_limit": 50,
     },
     PlanTier.ENTERPRISE: {
         "name": "Enterprise",
         "enabled_modules": [m.value for m in Module],
         "ai_monthly_limit": 10000,
+        "user_limit": None,
     },
 }
 
 
 async def seed_plans(session) -> None:
-    """Ensure the Basic/Pro/Enterprise pricing plans exist and match PLAN_DEFINITIONS."""
+    """Ensure the Free/Basic/Pro/Enterprise pricing plans exist and match PLAN_DEFINITIONS."""
     for tier, definition in PLAN_DEFINITIONS.items():
         result = await session.execute(select(Plan).where(Plan.tier == tier))
         plan = result.scalars().first()
@@ -55,6 +66,7 @@ async def seed_plans(session) -> None:
             plan.name = definition["name"]
             plan.enabled_modules = definition["enabled_modules"]
             plan.ai_monthly_limit = definition["ai_monthly_limit"]
+            plan.user_limit = definition["user_limit"]
             print(f"Updated plan: {definition['name']}")
 
 

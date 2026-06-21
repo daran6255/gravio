@@ -8,6 +8,9 @@ export interface Organization {
 	trial_expires_at?: string;
 	plan_id?: number | null;
 	plan?: any;
+	user_count?: number;
+	user_limit?: number | null;
+	plan_name?: string;
 }
 
 export interface User {

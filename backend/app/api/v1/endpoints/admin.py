@@ -62,8 +62,29 @@ async def list_organizations_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[OrganizationListItem]:
     items, total = await list_organizations(db, page=page, page_size=page_size, search=search)
+    
+    response_items = []
+    for o in items:
+        user_count = len(o.users) if o.users else 0
+        plan_name = o.plan.name if o.plan else "Free"
+        user_limit = o.plan.user_limit if o.plan else 10
+        response_items.append(
+            OrganizationListItem(
+                public_id=o.public_id,
+                name=o.name,
+                location=o.location,
+                is_active=o.is_active,
+                subscription_status=o.subscription_status,
+                trial_expires_at=o.trial_expires_at,
+                plan_id=o.plan_id,
+                user_count=user_count,
+                user_limit=user_limit,
+                plan_name=plan_name,
+            )
+        )
+
     return PaginatedResponse[OrganizationListItem](
-        items=[OrganizationListItem.model_validate(o) for o in items],
+        items=response_items,
         total=total,
         page=page,
         page_size=page_size,

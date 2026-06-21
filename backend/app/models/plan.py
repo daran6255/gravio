@@ -9,6 +9,7 @@ from app.models.base import BaseModel
 
 
 class PlanTier(str, enum.Enum):
+    FREE = "free"
     BASIC = "basic"
     PRO = "pro"
     ENTERPRISE = "enterprise"
@@ -42,6 +43,9 @@ class Plan(BaseModel):
     enabled_modules: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
 
     ai_monthly_limit: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # Maximum number of users allowed in this organization tier (None for unlimited)
+    user_limit: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     def __repr__(self) -> str:
         return f"<Plan(id={self.id}, tier={self.tier})>"

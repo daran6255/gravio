@@ -9,6 +9,7 @@ import MainLayout from '../components/layout/MainLayout';
 import SuccessPage from '../pages/common/SuccessPage';
 import NotFoundPage from '../pages/common/NotFoundPage';
 import MaintenancePage from '../pages/common/MaintenancePage';
+import BillingSettings from '../pages/settings/BillingSettings';
 
 const AppRouter: React.FC = () => {
 	return (
@@ -29,10 +30,12 @@ const AppRouter: React.FC = () => {
 					<Route path="dashboard" element={<Dashboard />} />
 					<Route path="users" element={<UserManagement />} />
 					<Route path="admin/organizations" element={<OrganizationsConsole />} />
+					<Route path="billing" element={<BillingSettings />} />
 					
 					{/* Prefixed Tenant Routes */}
 					<Route path="org/:orgId/dashboard" element={<Dashboard />} />
 					<Route path="org/:orgId/users" element={<UserManagement />} />
+					<Route path="org/:orgId/billing" element={<BillingSettings />} />
 				</Route>
 			</Route>
 

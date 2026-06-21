@@ -9,6 +9,8 @@ from loguru import logger
 from app.models.user import User
 from app.repositories.user import UserRepository
 from app.repositories.organization import OrganizationRepository
+from app.repositories.plan import PlanRepository
+from app.models.plan import PlanTier
 from app.core.security import get_password_hash
 from app.middleware.exceptions import ConflictError, NotFoundError, BadRequestError
 from app.schemas.user_management import InviteUserRequest, UpdateUserRequest, BulkDeleteUsersRequest
@@ -29,6 +31,24 @@ async def invite_user(
     Raises:
         ConflictError: Email or username already taken.
     """
+    # ── Enforce Plan User Limit ──────────────────────────────────────────────
+    org = await OrganizationRepository.get_by_id(db, current_user.organization_id)
+    user_limit = 10  # default fallback
+    if org:
+        if org.plan_id:
+            plan = await PlanRepository.get_by_id(db, org.plan_id)
+            if plan:
+                user_limit = plan.user_limit
+        else:
+            free_plan = await PlanRepository.get_by_tier(db, PlanTier.FREE)
+            if free_plan:
+                user_limit = free_plan.user_limit
+
+    if user_limit is not None:
+        current_users = await UserRepository.count_by_organization(db, current_user.organization_id)
+        if current_users >= user_limit:
+            raise BadRequestError(f"Seat limit of {user_limit} reached for your current plan. Please upgrade to invite more users.")
+
     if await UserRepository.get_by_email(db, payload.email):
         raise ConflictError(f"The email address '{payload.email}' is already registered.")
 

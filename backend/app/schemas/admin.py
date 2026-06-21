@@ -53,6 +53,9 @@ class OrganizationListItem(BaseModel):
     subscription_status: str
     trial_expires_at: Optional[datetime] = None
     plan_id: Optional[int] = None
+    user_count: int = 0
+    user_limit: Optional[int] = None
+    plan_name: str = "Free"
 
 
 class CreateOrganizationResponse(BaseModel):

@@ -166,3 +166,86 @@ async def test_bulk_delete_users(auth_admin_client: AsyncClient, sample_org_and_
     # Verify admin is NOT deleted
     result_admin = await db_session.execute(select(User).where(User.id == admin.id))
     assert result_admin.scalars().first() is not None
+
+
+@pytest.mark.anyio
+async def test_invite_user_seat_limit(auth_admin_client: AsyncClient, sample_org_and_users, db_session: AsyncSession):
+    org, admin, _, _ = sample_org_and_users
+    
+    # Create a test plan with user limit of 2 and assign it to the org
+    from app.models.plan import Plan, PlanTier
+    plan = Plan(
+        tier=PlanTier.FREE,
+        name="Free Test",
+        enabled_modules=[],
+        ai_monthly_limit=10,
+        user_limit=2
+    )
+    db_session.add(plan)
+    await db_session.flush()
+    
+    org.plan_id = plan.id
+    await db_session.commit()
+    
+    # Attempting to invite another user when the limit is exceeded should raise 400 Bad Request
+    response = await auth_admin_client.post(
+        "/api/v1/users/invite",
+        json={
+            "email": "newuser@test.com",
+            "username": "newuser_test",
+            "full_name": "New User Test",
+            "role": "developer"
+        }
+    )
+    assert response.status_code == 400
+    assert "Seat limit of 2 reached" in response.json()["error"]["message"]
+
+
+@pytest.mark.anyio
+async def test_change_plan_seat_limit(auth_admin_client: AsyncClient, sample_org_and_users, db_session: AsyncSession):
+    org, admin, dev, marketing = sample_org_and_users
+    # Org currently has 3 users (admin, dev, marketing).
+    
+    # Create a plan with a limit of 2 users
+    from app.models.plan import Plan, PlanTier
+    plan = Plan(
+        tier=PlanTier.FREE,
+        name="Free Test Limit",
+        enabled_modules=[],
+        ai_monthly_limit=10,
+        user_limit=2
+    )
+    db_session.add(plan)
+    await db_session.flush()
+    await db_session.commit()
+    
+    # Try to downgrade/change the organization plan to the Free Test Limit plan.
+    # It should fail with 400 Bad Request because the organization has 3 users (exceeds limit 2).
+    response = await auth_admin_client.put(
+        "/api/v1/users/organization/plan",
+        params={"plan_tier": "free"}
+    )
+    assert response.status_code == 400
+    assert "exceeds the new limit of 2 seats" in response.json()["error"]["message"]
+
+    # Now assign an Enterprise plan (limit = None)
+    ent_plan = Plan(
+        tier=PlanTier.ENTERPRISE,
+        name="Enterprise Test Limit",
+        enabled_modules=[],
+        ai_monthly_limit=10000,
+        user_limit=None
+    )
+    db_session.add(ent_plan)
+    await db_session.flush()
+    await db_session.commit()
+
+    # Changing to Enterprise should succeed since user_limit is None (unlimited)
+    response_ok = await auth_admin_client.put(
+        "/api/v1/users/organization/plan",
+        params={"plan_tier": "enterprise"}
+    )
+    assert response_ok.status_code == 200
+    data = response_ok.json()
+    assert data["success"] is True
+    assert data["plan_name"] == "Enterprise Test Limit"

@@ -172,3 +172,12 @@ class UserRepository:
         await db.delete(user)
         await db.flush()
 
+    @staticmethod
+    async def count_by_organization(db: AsyncSession, organization_id: int) -> int:
+        """Return the count of users in an organization."""
+        from sqlalchemy import func
+        result = await db.execute(
+            select(func.count(User.id)).where(User.organization_id == organization_id)
+        )
+        return result.scalar_one()
+

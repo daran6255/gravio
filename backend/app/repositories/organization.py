@@ -120,6 +120,7 @@ class OrganizationRepository:
             search: Optional case-insensitive substring match on organization name.
         """
         from sqlalchemy import func
+        from sqlalchemy.orm import selectinload
 
         conditions = []
         if search:
@@ -132,6 +133,7 @@ class OrganizationRepository:
 
         result = await db.execute(
             select(Organization)
+            .options(selectinload(Organization.plan), selectinload(Organization.users))
             .where(*conditions)
             .order_by(Organization.id)
             .offset((page - 1) * page_size)

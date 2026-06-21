@@ -1,5 +1,6 @@
 """Plan Pydantic schemas"""
 
+from typing import Optional
 from pydantic import BaseModel
 from app.models.plan import PlanTier
 
@@ -11,6 +12,7 @@ class PlanResponse(BaseModel):
     name: str
     enabled_modules: list[str]
     ai_monthly_limit: int
+    user_limit: Optional[int] = None
 
     class Config:
         from_attributes = True

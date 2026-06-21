@@ -56,6 +56,14 @@ const userService = {
 		});
 		return response.data;
 	},
+
+	// Update organization plan tier
+	updatePlan: async (planTier: string): Promise<any> => {
+		const response = await api.put<any>('/users/organization/plan', null, {
+			params: { plan_tier: planTier }
+		});
+		return response.data;
+	},
 };
 
 export default userService;

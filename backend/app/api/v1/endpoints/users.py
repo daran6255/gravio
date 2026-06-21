@@ -145,3 +145,51 @@ async def bulk_delete_users_endpoint(
     )
     return {"message": f"Successfully deleted {deleted_count} users.", "deleted_count": deleted_count}
 
+
+@router.put(
+    "/organization/plan",
+    summary="Update organization subscription plan (Org Admin)",
+)
+async def update_organization_plan_endpoint(
+    plan_tier: str,
+    current_user: User = Depends(require_org_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.plan import PlanTier
+    from app.repositories.plan import PlanRepository
+    from app.repositories.organization import OrganizationRepository
+    from app.repositories.user import UserRepository
+    from app.middleware.exceptions import BadRequestError, NotFoundError
+
+    try:
+        tier_enum = PlanTier(plan_tier)
+    except ValueError:
+        raise BadRequestError(f"Invalid plan tier '{plan_tier}'. Available tiers: {[e.value for e in PlanTier]}")
+
+    plan = await PlanRepository.get_by_tier(db, tier_enum)
+    if not plan:
+        raise NotFoundError(f"Plan tier '{plan_tier}' not found.")
+
+    org = await OrganizationRepository.get_by_id(db, current_user.organization_id)
+    if not org:
+        raise NotFoundError("Organization not found.")
+
+    # Validation: enforce seat limits on downgrade
+    if plan.user_limit is not None:
+        current_users = await UserRepository.count_by_organization(db, current_user.organization_id)
+        if current_users > plan.user_limit:
+            raise BadRequestError(f"Cannot change plan to '{plan.name}'. Your organization currently has {current_users} users, which exceeds the new limit of {plan.user_limit} seats.")
+
+    org.plan_id = plan.id
+    org.subscription_status = "active"  # mark subscription status active when they choose a plan
+    await db.commit()
+    await db.refresh(org)
+
+    return {
+        "success": True,
+        "message": f"Organization plan updated to {plan.name}.",
+        "plan_id": org.plan_id,
+        "plan_name": plan.name,
+        "subscription_status": org.subscription_status
+    }
+

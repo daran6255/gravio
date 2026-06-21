@@ -74,6 +74,12 @@ async def onboard_organization(
         others=payload.organization.metadata or {},
     )
 
+    from app.repositories.plan import PlanRepository
+    from app.models.plan import PlanTier
+    free_plan = await PlanRepository.get_by_tier(db, PlanTier.FREE)
+    if free_plan:
+        org.plan_id = free_plan.id
+
     # ── 4. Hash password ──────────────────────────────────────────────────────
     hashed_pw = get_password_hash(payload.admin_user.password)
 

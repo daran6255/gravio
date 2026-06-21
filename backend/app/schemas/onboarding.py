@@ -2,7 +2,7 @@
 
 import uuid
 from typing import Any, Optional
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 
 # ── Request Schemas ────────────────────────────────────────────────────────────
@@ -58,6 +58,19 @@ class OrgPublic(BaseModel):
     trial_expires_at: Optional[datetime] = None
     plan_id: Optional[int] = None
     plan: Optional[PlanResponse] = None
+    user_count: int = 0
+    user_limit: Optional[int] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def populate_custom_fields(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            setattr(data, "user_count", len(data.users) if hasattr(data, "users") and data.users else 0)
+            if hasattr(data, "plan") and data.plan:
+                setattr(data, "user_limit", data.plan.user_limit)
+            else:
+                setattr(data, "user_limit", 10)
+        return data
 
 
 class UserPublic(BaseModel):

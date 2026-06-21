@@ -2,6 +2,7 @@ import {
 	Home as HomeIcon,
 	ManageAccounts as UserIcon,
 	CorporateFare as OrgIcon,
+	CreditCard as BillingIcon,
 } from '@mui/icons-material';
 import type { SvgIconComponent } from '@mui/icons-material';
 
@@ -27,6 +28,12 @@ export const topNavigation: NavigationItem[] = [
 		label: 'Team',
 		path: '/users',
 		icon: UserIcon,
+		roles: ['admin'],
+	},
+	{
+		label: 'Billing',
+		path: '/billing',
+		icon: BillingIcon,
 		roles: ['admin'],
 	},
 	{

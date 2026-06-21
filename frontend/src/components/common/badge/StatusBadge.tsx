@@ -37,9 +37,10 @@ const getStatusTone = (status: string, type: BadgeType): StatusTone => {
 	}
 
 	// Company & generic
-	if (['active', 'client', 'customer', 'partner'].includes(s)) return 'success';
-	if (['prospect'].includes(s)) return 'info';
-	if (['inactive'].includes(s)) return 'error';
+	if (['active', 'client', 'customer', 'partner', 'pro', 'enterprise'].includes(s)) return 'success';
+	if (['prospect', 'basic'].includes(s)) return 'info';
+	if (['inactive', 'expired'].includes(s)) return 'error';
+	if (['free', 'trial'].includes(s)) return 'warning';
 
 	return 'default';
 };
