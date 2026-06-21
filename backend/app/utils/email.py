@@ -54,16 +54,15 @@ def decode_verification_token(token: str) -> Optional[int]:
 
 _INVITE_SECRET = settings.SECRET_KEY + "_invite"
 _INVITE_ALGORITHM = "HS256"
-_INVITE_EXPIRE_DAYS = 7
 
 
 def create_invite_token(user_id: int) -> str:
     """Generate a time-limited JWT used for invite ("set your password") links.
 
-    Token expires in 7 days — invites plausibly sit unopened longer than a
-    just-signed-up user's verification link.
+    Token expires in settings.INVITE_TOKEN_EXPIRE_DAYS days — invites plausibly sit
+    unopened longer than a just-signed-up user's verification link.
     """
-    expire = datetime.now(timezone.utc) + timedelta(days=_INVITE_EXPIRE_DAYS)
+    expire = datetime.now(timezone.utc) + timedelta(days=settings.INVITE_TOKEN_EXPIRE_DAYS)
     payload = {
         "sub": str(user_id),
         "type": "invite",
@@ -204,6 +203,6 @@ def _build_invite_html(full_name: str, org_name: str, role: str, link: str) -> s
         org_name=org_name,
         role=role,
         link=link,
-        expire_days=_INVITE_EXPIRE_DAYS,
+        expire_days=settings.INVITE_TOKEN_EXPIRE_DAYS,
         year=datetime.now().year,
     )
