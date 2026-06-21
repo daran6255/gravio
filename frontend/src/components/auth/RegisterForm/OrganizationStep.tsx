@@ -20,6 +20,8 @@ import {
 interface OrganizationStepProps {
 	orgName: string;
 	setOrgName: (val: string) => void;
+	orgNameStatus: 'idle' | 'validating' | 'available' | 'error';
+	orgNameMessage: string;
 	orgLocation: string;
 	setOrgLocation: (val: string) => void;
 	companySize: string;
@@ -31,11 +33,14 @@ interface OrganizationStepProps {
 	locationInputValue: string;
 	setLocationInputValue: (val: string) => void;
 	onNext: () => void;
+	nextDisabled: boolean;
 }
 
 const OrganizationStep: React.FC<OrganizationStepProps> = ({
 	orgName,
 	setOrgName,
+	orgNameStatus,
+	orgNameMessage,
 	orgLocation,
 	setOrgLocation,
 	companySize,
@@ -47,6 +52,7 @@ const OrganizationStep: React.FC<OrganizationStepProps> = ({
 	locationInputValue,
 	setLocationInputValue,
 	onNext,
+	nextDisabled,
 }) => {
 	return (
 		<Box component="div">
@@ -96,24 +102,38 @@ const OrganizationStep: React.FC<OrganizationStepProps> = ({
 					size="small"
 					value={orgName}
 					onChange={(e) => setOrgName(e.target.value)}
+					error={orgNameStatus === 'error'}
+					helperText={orgNameMessage}
+					FormHelperTextProps={{
+						sx: {
+							color: orgNameStatus === 'available' ? '#10b981' : orgNameStatus === 'error' ? '#ef4444' : '#64748b',
+							fontSize: '0.725rem',
+							mt: 0.5
+						}
+					}}
 					InputProps={{
 						startAdornment: (
 							<InputAdornment position="start">
 								<BusinessIcon sx={{ color: '#64748b', fontSize: 18, mr: 0.5 }} />
 							</InputAdornment>
-						)
+						),
+						endAdornment: orgNameStatus === 'validating' ? (
+							<InputAdornment position="end">
+								<CircularProgress size={16} color="inherit" sx={{ color: '#64748b' }} />
+							</InputAdornment>
+						) : null
 					}}
 					sx={{
 						'& .MuiOutlinedInput-root': {
 							bgcolor: '#191c28',
 							borderRadius: 1.5,
 							color: '#F4F5F7',
-							border: '1px solid rgba(255, 255, 255, 0.08)',
+							border: orgNameStatus === 'available' ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.08)',
 							'& fieldset': { border: 'none' },
-							'&:hover': { border: '1px solid rgba(255, 255, 255, 0.15)' },
+							'&:hover': { border: orgNameStatus === 'available' ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.15)' },
 							'&.Mui-focused': {
-								border: '1px solid #8B7CF6',
-								boxShadow: '0 0 0 3px rgba(139, 124, 246, 0.15)'
+								border: orgNameStatus === 'available' ? '1px solid #10b981' : orgNameStatus === 'error' ? '1px solid #ef4444' : '1px solid #8B7CF6',
+								boxShadow: orgNameStatus === 'available' ? '0 0 0 3px rgba(16, 185, 129, 0.15)' : orgNameStatus === 'error' ? '0 0 0 3px rgba(239, 68, 68, 0.15)' : '0 0 0 3px rgba(139, 124, 246, 0.15)'
 							}
 						},
 						'& input::placeholder': { color: '#64748b', opacity: 1 }
@@ -365,6 +385,7 @@ const OrganizationStep: React.FC<OrganizationStepProps> = ({
 				variant="contained"
 				fullWidth
 				onClick={onNext}
+				disabled={nextDisabled}
 				sx={{
 					py: 1.15,
 					backgroundColor: '#8B7CF6',

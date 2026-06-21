@@ -7,6 +7,7 @@ import {
 	InputAdornment,
 	IconButton,
 	CircularProgress,
+	Chip,
 } from '@mui/material';
 import {
 	Visibility,
@@ -17,25 +18,39 @@ import {
 	LockOutlined as LockIcon,
 } from '@mui/icons-material';
 
+interface PasswordStrengthInfo {
+	score: number;
+	label: 'Too Weak' | 'Weak' | 'Medium' | 'Strong';
+	color: string;
+	requirements: {
+		length: boolean;
+		uppercase: boolean;
+		number: boolean;
+		special: boolean;
+	};
+}
+
 interface AdminStepProps {
 	adminName: string;
 	setAdminName: (val: string) => void;
 	adminUsername: string;
 	setAdminUsername: (val: string) => void;
+	usernameStatus: 'idle' | 'validating' | 'available' | 'error';
+	usernameMessage: string;
+	usernameSuggestions: string[];
 	adminEmail: string;
 	setAdminEmail: (val: string) => void;
+	emailStatus: 'idle' | 'validating' | 'available' | 'error';
+	emailMessage: string;
 	adminPassword: string;
 	setAdminPassword: (val: string) => void;
 	showPassword: boolean;
 	setShowPassword: (val: boolean) => void;
-	usernameSuggestion: string;
-	setUsernameSuggestion: (val: string) => void;
-	isUsernameValid: boolean;
-	isEmailValid: boolean;
-	isPasswordValid: boolean;
+	passwordStrength: PasswordStrengthInfo;
 	loading: boolean;
 	onBack: () => void;
 	onSubmit: (e: React.FormEvent) => void;
+	registerDisabled: boolean;
 }
 
 const AdminStep: React.FC<AdminStepProps> = ({
@@ -43,23 +58,43 @@ const AdminStep: React.FC<AdminStepProps> = ({
 	setAdminName,
 	adminUsername,
 	setAdminUsername,
+	usernameStatus,
+	usernameMessage,
+	usernameSuggestions,
 	adminEmail,
 	setAdminEmail,
+	emailStatus,
+	emailMessage,
 	adminPassword,
 	setAdminPassword,
 	showPassword,
 	setShowPassword,
-	usernameSuggestion,
-	setUsernameSuggestion,
-	isUsernameValid,
-	isEmailValid,
-	isPasswordValid,
+	passwordStrength,
 	loading,
 	onBack,
 	onSubmit,
+	registerDisabled,
 }) => {
+	const reqs = [
+		{ key: 'length', label: 'Min. 8 characters' },
+		{ key: 'uppercase', label: '1 uppercase letter' },
+		{ key: 'number', label: '1 number' },
+		{ key: 'special', label: '1 special character' }
+	] as const;
+
+	const usernameReqs = [
+		{ key: 'length', label: '3-30 characters' },
+		{ key: 'pattern', label: 'Lowercase letters, numbers, underscores only' }
+	] as const;
+
+	const usernameRequirements = {
+		length: adminUsername.length >= 3 && adminUsername.length <= 30,
+		pattern: adminUsername.length > 0 && /^[a-z0-9_]+$/.test(adminUsername)
+	};
+
 	return (
 		<Box component="form" onSubmit={onSubmit}>
+			{/* Full Name */}
 			<Box sx={{ mb: 1.25 }}>
 				<Typography
 					sx={{
@@ -109,6 +144,7 @@ const AdminStep: React.FC<AdminStepProps> = ({
 				/>
 			</Box>
 
+			{/* Username */}
 			<Box sx={{ mb: 1.25 }}>
 				<Typography
 					sx={{
@@ -132,76 +168,109 @@ const AdminStep: React.FC<AdminStepProps> = ({
 					value={adminUsername}
 					onChange={(e) => {
 						setAdminUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''));
-						setUsernameSuggestion('');
 					}}
-					error={adminUsername.length > 0 && !isUsernameValid}
-					helperText={adminUsername.length > 0 && !isUsernameValid ? "Username must be at least 3 characters" : "Lowercase letters, numbers, and underscores only."}
+					error={usernameStatus === 'error'}
+					helperText={usernameMessage}
+					FormHelperTextProps={{
+						sx: {
+							color: usernameStatus === 'available' ? '#10b981' : usernameStatus === 'error' ? '#ef4444' : '#64748b',
+							fontSize: '0.675rem',
+							mt: 0.5
+						}
+					}}
 					InputProps={{
 						startAdornment: (
 							<InputAdornment position="start">
 								<BadgeIcon sx={{ color: '#64748b', fontSize: 18, mr: 0.5 }} />
 							</InputAdornment>
-						)
-					}}
-					FormHelperTextProps={{
-						sx: { color: '#64748b', fontSize: '0.65rem', mt: 0.25 }
+						),
+						endAdornment: usernameStatus === 'validating' ? (
+							<InputAdornment position="end">
+								<CircularProgress size={16} color="inherit" sx={{ color: '#64748b' }} />
+							</InputAdornment>
+						) : null
 					}}
 					sx={{
 						'& .MuiOutlinedInput-root': {
 							bgcolor: '#191c28',
 							borderRadius: 1.5,
 							color: '#F4F5F7',
-							border: '1px solid rgba(255, 255, 255, 0.08)',
+							border: usernameStatus === 'available' ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.08)',
 							'& fieldset': { border: 'none' },
-							'&:hover': { border: '1px solid rgba(255, 255, 255, 0.15)' },
+							'&:hover': { border: usernameStatus === 'available' ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.15)' },
 							'&.Mui-focused': {
-								border: '1px solid #8B7CF6',
-								boxShadow: '0 0 0 3px rgba(139, 124, 246, 0.15)'
+								border: usernameStatus === 'available' ? '1px solid #10b981' : usernameStatus === 'error' ? '1px solid #ef4444' : '1px solid #8B7CF6',
+								boxShadow: usernameStatus === 'available' ? '0 0 0 3px rgba(16, 185, 129, 0.15)' : usernameStatus === 'error' ? '0 0 0 3px rgba(239, 68, 68, 0.15)' : '0 0 0 3px rgba(139, 124, 246, 0.15)'
 							}
 						},
 						'& input::placeholder': { color: '#64748b', opacity: 1 }
 					}}
 				/>
-				{usernameSuggestion && (
-					<Box 
-						sx={{ 
-							mt: 1, 
-							p: 1, 
-							bgcolor: 'rgba(139, 124, 246, 0.05)', 
-							borderRadius: 1.5, 
-							border: '1px dashed rgba(139, 124, 246, 0.3)', 
-							display: 'flex', 
-							alignItems: 'center', 
-							justifyContent: 'space-between' 
-						}}
-					>
-						<Typography variant="caption" sx={{ color: '#94A3B8' }}>
-							Username is taken. Try: <strong style={{ color: '#8B7CF6' }}>{usernameSuggestion}</strong>
+				{adminUsername.length > 0 && (
+					<Box sx={{
+						display: 'grid',
+						gridTemplateColumns: '1fr 1fr',
+						gap: 0.75,
+						mt: 1.5,
+						mb: 1.5,
+						p: 1.25,
+						bgcolor: 'rgba(255,255,255,0.01)',
+						borderRadius: 1.5,
+						border: '1px solid rgba(255,255,255,0.03)'
+					}}>
+						{usernameReqs.map((r) => {
+							const met = usernameRequirements[r.key];
+							return (
+								<Box key={r.key} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+									<Box sx={{
+										width: 6,
+										height: 6,
+										borderRadius: '50%',
+										bgcolor: met ? '#10b981' : '#ef4444',
+										boxShadow: met ? '0 0 8px #10b981' : 'none',
+										transition: 'all 0.3s'
+									}} />
+									<Typography variant="caption" sx={{ color: met ? '#F4F5F7' : '#64748b', fontSize: '0.675rem', transition: 'color 0.3s' }}>
+										{r.label}
+									</Typography>
+								</Box>
+							);
+						})}
+					</Box>
+				)}
+				{usernameSuggestions.length > 0 && (
+					<Box sx={{ mt: 1.5, p: 1.25, bgcolor: 'rgba(255, 255, 255, 0.02)', borderRadius: 1.5, border: '1px dashed rgba(255, 255, 255, 0.05)' }}>
+						<Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mb: 1, fontSize: '0.7rem', fontWeight: 600 }}>
+							{usernameStatus === 'available' 
+								? "Username is available! You can also use one of these suggestions:" 
+								: "Taken. Try one of these suggestions:"}
 						</Typography>
-						<Button 
-							size="small" 
-							variant="text" 
-							onClick={() => {
-								setAdminUsername(usernameSuggestion);
-								setUsernameSuggestion('');
-							}}
-							sx={{ 
-								color: '#8B7CF6', 
-								textTransform: 'none', 
-								fontWeight: 700,
-								fontSize: '0.7rem',
-								p: 0,
-								minWidth: 0,
-								ml: 1,
-								'&:hover': { textDecoration: 'underline', background: 'transparent' }
-							}}
-						>
-							Use Suggestion
-						</Button>
+						<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+							{usernameSuggestions.map((sug) => (
+								<Chip
+									key={sug}
+									label={sug}
+									size="small"
+									onClick={() => setAdminUsername(sug)}
+									sx={{
+										bgcolor: 'rgba(139, 124, 246, 0.1)',
+										color: '#8B7CF6',
+										border: '1px solid rgba(139, 124, 246, 0.2)',
+										fontWeight: 700,
+										fontSize: '0.725rem',
+										cursor: 'pointer',
+										'&:hover': {
+											bgcolor: 'rgba(139, 124, 246, 0.2)',
+										}
+									}}
+								/>
+							))}
+						</Box>
 					</Box>
 				)}
 			</Box>
 
+			{/* Email */}
 			<Box sx={{ mb: 1.25 }}>
 				<Typography
 					sx={{
@@ -225,26 +294,38 @@ const AdminStep: React.FC<AdminStepProps> = ({
 					size="small"
 					value={adminEmail}
 					onChange={(e) => setAdminEmail(e.target.value)}
-					error={adminEmail.length > 0 && !isEmailValid}
-					helperText={adminEmail.length > 0 && !isEmailValid ? "Please enter a valid email address" : ""}
+					error={emailStatus === 'error'}
+					helperText={emailMessage}
+					FormHelperTextProps={{
+						sx: {
+							color: emailStatus === 'available' ? '#10b981' : emailStatus === 'error' ? '#ef4444' : '#64748b',
+							fontSize: '0.675rem',
+							mt: 0.5
+						}
+					}}
 					InputProps={{
 						startAdornment: (
 							<InputAdornment position="start">
 								<MailIcon sx={{ color: '#64748b', fontSize: 18, mr: 0.5 }} />
 							</InputAdornment>
-						)
+						),
+						endAdornment: emailStatus === 'validating' ? (
+							<InputAdornment position="end">
+								<CircularProgress size={16} color="inherit" sx={{ color: '#64748b' }} />
+							</InputAdornment>
+						) : null
 					}}
 					sx={{
 						'& .MuiOutlinedInput-root': {
 							bgcolor: '#191c28',
 							borderRadius: 1.5,
 							color: '#F4F5F7',
-							border: '1px solid rgba(255, 255, 255, 0.08)',
+							border: emailStatus === 'available' ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.08)',
 							'& fieldset': { border: 'none' },
-							'&:hover': { border: '1px solid rgba(255, 255, 255, 0.15)' },
+							'&:hover': { border: emailStatus === 'available' ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.15)' },
 							'&.Mui-focused': {
-								border: '1px solid #8B7CF6',
-								boxShadow: '0 0 0 3px rgba(139, 124, 246, 0.15)'
+								border: emailStatus === 'available' ? '1px solid #10b981' : emailStatus === 'error' ? '1px solid #ef4444' : '1px solid #8B7CF6',
+								boxShadow: emailStatus === 'available' ? '0 0 0 3px rgba(16, 185, 129, 0.15)' : emailStatus === 'error' ? '0 0 0 3px rgba(239, 68, 68, 0.15)' : '0 0 0 3px rgba(139, 124, 246, 0.15)'
 							}
 						},
 						'& input::placeholder': { color: '#64748b', opacity: 1 }
@@ -252,6 +333,7 @@ const AdminStep: React.FC<AdminStepProps> = ({
 				/>
 			</Box>
 
+			{/* Password */}
 			<Box sx={{ mb: 2 }}>
 				<Typography
 					sx={{
@@ -275,11 +357,7 @@ const AdminStep: React.FC<AdminStepProps> = ({
 					size="small"
 					value={adminPassword}
 					onChange={(e) => setAdminPassword(e.target.value)}
-					error={adminPassword.length > 0 && !isPasswordValid}
-					helperText={adminPassword.length > 0 && !isPasswordValid ? "Min 8 characters, 1 uppercase, 1 number, 1 special character" : "Min. 8 characters with an uppercase letter, number, and special character."}
-					FormHelperTextProps={{
-						sx: { color: '#64748b', fontSize: '0.65rem', mt: 0.25 }
-					}}
+					error={adminPassword.length > 0 && passwordStrength.score < 4}
 					InputProps={{
 						startAdornment: (
 							<InputAdornment position="start">
@@ -305,17 +383,69 @@ const AdminStep: React.FC<AdminStepProps> = ({
 							bgcolor: '#191c28',
 							borderRadius: 1.5,
 							color: '#F4F5F7',
-							border: '1px solid rgba(255, 255, 255, 0.08)',
+							border: adminPassword.length > 0 && passwordStrength.score === 4 ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.08)',
 							'& fieldset': { border: 'none' },
-							'&:hover': { border: '1px solid rgba(255, 255, 255, 0.15)' },
+							'&:hover': { border: adminPassword.length > 0 && passwordStrength.score === 4 ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.15)' },
 							'&.Mui-focused': {
-								border: '1px solid #8B7CF6',
-								boxShadow: '0 0 0 3px rgba(139, 124, 246, 0.15)'
+								border: adminPassword.length > 0 && passwordStrength.score === 4 ? '1px solid #10b981' : '1px solid #8B7CF6',
+								boxShadow: adminPassword.length > 0 && passwordStrength.score === 4 ? '0 0 0 3px rgba(16, 185, 129, 0.15)' : '0 0 0 3px rgba(139, 124, 246, 0.15)'
 							}
 						},
 						'& input::placeholder': { color: '#64748b', opacity: 1 }
 					}}
 				/>
+
+				{/* Password Strength Indicator */}
+				{adminPassword.length > 0 && (
+					<Box sx={{ mt: 1.5 }}>
+						<Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, alignItems: 'center' }}>
+							<Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.7rem' }}>
+								Password Strength:
+							</Typography>
+							<Typography variant="caption" sx={{ color: passwordStrength.color, fontWeight: 700, fontSize: '0.7rem' }}>
+								{passwordStrength.label}
+							</Typography>
+						</Box>
+						<Box sx={{ height: 4, width: '100%', bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 1, overflow: 'hidden', mb: 1.25 }}>
+							<Box sx={{
+								height: '100%',
+								width: `${(passwordStrength.score / 4) * 100}%`,
+								bgcolor: passwordStrength.color,
+								transition: 'width 0.3s ease, background-color 0.3s ease'
+							}} />
+						</Box>
+
+						{/* Requirements Checklist */}
+						<Box sx={{
+							display: 'grid',
+							gridTemplateColumns: '1fr 1fr',
+							gap: 0.75,
+							p: 1.25,
+							bgcolor: 'rgba(255,255,255,0.01)',
+							borderRadius: 1.5,
+							border: '1px solid rgba(255,255,255,0.03)'
+						}}>
+							{reqs.map((r) => {
+								const met = passwordStrength.requirements[r.key];
+								return (
+									<Box key={r.key} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+										<Box sx={{
+											width: 6,
+											height: 6,
+											borderRadius: '50%',
+											bgcolor: met ? '#10b981' : '#ef4444',
+											boxShadow: met ? '0 0 8px #10b981' : 'none',
+											transition: 'all 0.3s'
+										}} />
+										<Typography variant="caption" sx={{ color: met ? '#F4F5F7' : '#64748b', fontSize: '0.675rem', transition: 'color 0.3s' }}>
+											{r.label}
+										</Typography>
+									</Box>
+								);
+							})}
+						</Box>
+					</Box>
+				)}
 			</Box>
 
 			<Box sx={{ display: 'flex', gap: 2 }}>
@@ -343,7 +473,7 @@ const AdminStep: React.FC<AdminStepProps> = ({
 					type="submit"
 					variant="contained"
 					fullWidth
-					disabled={loading}
+					disabled={loading || registerDisabled}
 					sx={{
 						py: 1.15,
 						backgroundColor: '#8B7CF6',

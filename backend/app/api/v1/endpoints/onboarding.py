@@ -30,3 +30,25 @@ async def register_organization(
 ) -> OnboardResponse:
     """Self-onboard a new tenant organization with an admin user account."""
     return await onboard_organization(db, payload)
+
+
+@router.get("/check-org", summary="Verify organization name availability")
+async def check_org(name: str, db: AsyncSession = Depends(get_db)):
+    """Check if organization name is available, including fuzzy matching."""
+    from app.services.onboarding_checks import check_org_name_availability
+    return await check_org_name_availability(db, name)
+
+
+@router.get("/check-username", summary="Verify username availability")
+async def check_username_endpoint(username: str, db: AsyncSession = Depends(get_db)):
+    """Check if username is available and matches regex constraints."""
+    from app.services.onboarding_checks import check_username_availability
+    return await check_username_availability(db, username)
+
+
+@router.get("/check-email", summary="Verify email availability")
+async def check_email_endpoint(email: str, db: AsyncSession = Depends(get_db)):
+    """Check if email is available and not already used."""
+    from app.services.onboarding_checks import check_email_availability
+    return await check_email_availability(db, email)
+
