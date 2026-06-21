@@ -127,3 +127,25 @@ async def test_get_organization_users_denied_for_non_superuser(auth_org_admin_cl
     org1, _, _, _, _ = sample_admin_data
     response = await auth_org_admin_client.get(f"/api/v1/admin/organizations/{org1.public_id}/users")
     assert response.status_code == 403
+
+@pytest.mark.anyio
+async def test_list_organizations_pagination(auth_superuser_client: AsyncClient, sample_admin_data):
+    # Retrieve page 1 with page_size = 1
+    response = await auth_superuser_client.get("/api/v1/admin/organizations?page=1&page_size=1")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 2
+    assert len(data["items"]) == 1
+    assert data["page"] == 1
+    assert data["page_size"] == 1
+
+    # Retrieve page 2 with page_size = 1
+    response2 = await auth_superuser_client.get("/api/v1/admin/organizations?page=2&page_size=1")
+    assert response2.status_code == 200
+    data2 = response2.json()
+    assert data2["total"] == 2
+    assert len(data2["items"]) == 1
+    assert data2["page"] == 2
+
+    # Assert they are different items
+    assert data["items"][0]["public_id"] != data2["items"][0]["public_id"]
