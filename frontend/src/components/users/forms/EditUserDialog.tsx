@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Dialog } from '@mui/material';
-import { Box, TextField, MenuItem } from '@mui/material';
-import { EnterpriseForm, type FormStep } from '../common/form';
-import { useAppDispatch } from '../../store/hooks';
-import { updateTeamUser } from '../../store/slices/userSlice';
-import { USER_ROLES, type UserRole, type TeamMember } from '../../models/user';
+import { Dialog, Box, TextField, MenuItem } from '@mui/material';
+import { EnterpriseForm, type FormStep } from '../../common/form';
+import { useAppDispatch } from '../../../store/hooks';
+import { updateTeamUser } from '../../../store/slices/userSlice';
+import { USER_ROLES, type UserRole, type TeamMember } from '../../../models/user';
 
 interface EditUserDialogProps {
 	open: boolean;
@@ -13,7 +12,7 @@ interface EditUserDialogProps {
 	onSuccess: (message: string) => void;
 }
 
-const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, user, onClose, onSuccess }) => {
+export const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, user, onClose, onSuccess }) => {
 	const dispatch = useAppDispatch();
 	const [formData, setFormData] = useState({ username: '', email: '', full_name: '', role: 'developer' as UserRole });
 	const [loading, setLoading] = useState(false);

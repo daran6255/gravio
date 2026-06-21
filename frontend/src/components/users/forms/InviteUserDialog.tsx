@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Dialog } from '@mui/material';
-import { Box, TextField, MenuItem, Typography } from '@mui/material';
-import { EnterpriseForm, type FormStep } from '../common/form';
-import { useAppDispatch } from '../../store/hooks';
-import { inviteTeamUser } from '../../store/slices/userSlice';
-import { USER_ROLES, type UserRole } from '../../models/user';
+import { Dialog, Box, TextField, MenuItem, Typography } from '@mui/material';
+import { EnterpriseForm, type FormStep } from '../../common/form';
+import { useAppDispatch } from '../../../store/hooks';
+import { inviteTeamUser } from '../../../store/slices/userSlice';
+import { USER_ROLES, type UserRole } from '../../../models/user';
 
 interface InviteUserDialogProps {
 	open: boolean;
@@ -18,7 +17,7 @@ const initialForm = { username: '', email: '', full_name: '', role: 'developer' 
  * Single-step invite form — no password is ever collected here. The invitee sets
  * their own password via the emailed "Accept Invite" link (POST /auth/accept-invite).
  */
-const InviteUserDialog: React.FC<InviteUserDialogProps> = ({ open, onClose, onSuccess }) => {
+export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({ open, onClose, onSuccess }) => {
 	const dispatch = useAppDispatch();
 	const [formData, setFormData] = useState(initialForm);
 	const [loading, setLoading] = useState(false);

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Dialog, Box, TextField, Typography, Divider } from '@mui/material';
-import { EnterpriseForm, type FormStep } from '../../components/common/form';
-import { useAppDispatch } from '../../store/hooks';
-import { createOrganization } from '../../store/slices/orgAdminSlice';
+import { EnterpriseForm, type FormStep } from '../../common/form';
+import { useAppDispatch } from '../../../store/hooks';
+import { createOrganization } from '../../../store/slices/orgAdminSlice';
 
 interface CreateOrganizationDialogProps {
 	open: boolean;
@@ -22,7 +22,7 @@ const initialForm = {
  * Provisions a new org + its first (invite-based) admin. No password is collected —
  * the admin sets one via the emailed Accept Invite link, same as Org Admin invites.
  */
-const CreateOrganizationDialog: React.FC<CreateOrganizationDialogProps> = ({ open, onClose, onSuccess }) => {
+export const CreateOrganizationDialog: React.FC<CreateOrganizationDialogProps> = ({ open, onClose, onSuccess }) => {
 	const dispatch = useAppDispatch();
 	const [formData, setFormData] = useState(initialForm);
 	const [loading, setLoading] = useState(false);

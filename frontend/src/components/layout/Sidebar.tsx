@@ -153,6 +153,9 @@ const Sidebar: React.FC = () => {
 		// Hide the regular non-superuser 'Team' link if user is superuser (they use 'Organizations' point to /users)
 		if (item.path === '/users' && !item.requiresSuperuser && user?.is_superuser) return false;
 
+		// Hide 'Billing' for superuser
+		if (item.path === '/billing' && user?.is_superuser) return false;
+
 		if (user?.role === 'admin') return true;
 		const hasDirectPermission = !item.roles || (user?.role && item.roles.includes(user.role));
 
@@ -475,33 +478,37 @@ const Sidebar: React.FC = () => {
 						))}
 
 						{/* Mock Navigation Items (to perfectly match mockup aesthetics) */}
-						{renderMockItem('Infrastructure', InfrastructureIcon)}
-						{renderMockItem('Security', SecurityIcon)}
-						{renderMockItem('Settings', SettingsIcon)}
+						{!user?.is_superuser && (
+							<>
+								{renderMockItem('Infrastructure', InfrastructureIcon)}
+								{renderMockItem('Security', SecurityIcon)}
+								{renderMockItem('Settings', SettingsIcon)}
 
-						{/* Resources Mock Section */}
-						{drawerExpanded ? (
-							<Typography
-								variant="caption"
-								sx={{
-									display: 'block',
-									px: 2.5,
-									pt: 2.5,
-									pb: 1,
-									fontWeight: 700,
-									letterSpacing: '0.05em',
-									color: sidebarTextMuted,
-									textTransform: 'uppercase'
-								}}
-							>
-								Resources
-							</Typography>
-						) : (
-							<Box sx={{ borderBottom: `1px solid ${sidebarDivider}`, my: 2, mx: 2 }} />
+								{/* Resources Mock Section */}
+								{drawerExpanded ? (
+									<Typography
+										variant="caption"
+										sx={{
+											display: 'block',
+											px: 2.5,
+											pt: 2.5,
+											pb: 1,
+											fontWeight: 700,
+											letterSpacing: '0.05em',
+											color: sidebarTextMuted,
+											textTransform: 'uppercase'
+										}}
+									>
+										Resources
+									</Typography>
+								) : (
+									<Box sx={{ borderBottom: `1px solid ${sidebarDivider}`, my: 2, mx: 2 }} />
+								)}
+
+								{renderMockItem('Compute', ComputeIcon)}
+								{renderMockItem('Storage', StorageIcon)}
+							</>
 						)}
-
-						{renderMockItem('Compute', ComputeIcon)}
-						{renderMockItem('Storage', StorageIcon)}
 					</List>
 				</Box>
 

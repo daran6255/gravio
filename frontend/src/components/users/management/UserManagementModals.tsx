@@ -1,6 +1,5 @@
 import React from 'react';
-import InviteUserDialog from '../InviteUserDialog';
-import EditUserDialog from '../EditUserDialog';
+import { InviteUserDialog, EditUserDialog } from '../forms';
 import { ConfirmationDialog } from '../../common/dialogbox';
 import type { TeamMember } from '../../../models/user';
 
