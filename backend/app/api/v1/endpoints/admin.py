@@ -20,7 +20,7 @@ from app.schemas.admin import (
 from app.schemas.common import PaginatedResponse
 from app.schemas.onboarding import OrgPublic, UserPublic
 from app.schemas.user_management import UserListItem
-from app.services.admin import create_organization, list_organizations, get_admin_stats
+from app.services.admin import create_organization, list_organizations, get_admin_stats, delete_organization
 from app.middleware.exceptions import NotFoundError
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -204,3 +204,17 @@ async def list_organization_users_endpoint(
         page=page,
         page_size=page_size,
     )
+
+
+@router.delete(
+    "/organizations/{public_id}",
+    response_model=OrgPublic,
+    summary="Permanently delete an organization and all its data (Super Admin only)",
+)
+async def delete_organization_endpoint(
+    public_id: uuid.UUID,
+    current_user: User = Depends(get_current_superuser),
+    db: AsyncSession = Depends(get_db),
+) -> OrgPublic:
+    org = await delete_organization(db, public_id=public_id)
+    return OrgPublic.model_validate(org)

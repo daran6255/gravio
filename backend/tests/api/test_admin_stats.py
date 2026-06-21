@@ -149,3 +149,60 @@ async def test_list_organizations_pagination(auth_superuser_client: AsyncClient,
 
     # Assert they are different items
     assert data["items"][0]["public_id"] != data2["items"][0]["public_id"]
+
+
+@pytest.mark.anyio
+async def test_delete_organization_as_superuser(auth_superuser_client: AsyncClient, db_session: AsyncSession, sample_admin_data):
+    org1, _, _, _, _ = sample_admin_data
+    
+    from app.models.ai_usage import AIUsageCounter
+    from app.models.refresh_token import RefreshToken
+    from app.models.user import User
+    from sqlalchemy import select
+    
+    # Get user inside org1
+    user_q = await db_session.execute(select(User).where(User.organization_id == org1.id))
+    users = user_q.scalars().all()
+    assert len(users) > 0
+    
+    for u in users:
+        rt = RefreshToken(
+            user_id=u.id, 
+            jti="testtoken_" + str(u.id), 
+            expires_at=datetime.now(timezone.utc) + timedelta(days=7)
+        )
+        db_session.add(rt)
+        
+    ai_counter = AIUsageCounter(
+        organization_id=org1.id, 
+        period_start=datetime.now(timezone.utc), 
+        count=30
+    )
+    db_session.add(ai_counter)
+    await db_session.commit()
+
+    # Call endpoint to delete organization
+    response = await auth_superuser_client.delete(f"/api/v1/admin/organizations/{org1.public_id}")
+    assert response.status_code == 200
+    
+    # Verify organization and related data are gone
+    db_session.expire_all()
+    
+    org_check = await db_session.get(Organization, org1.id)
+    assert org_check is None
+    
+    # Users should be deleted
+    user_check_q = await db_session.execute(select(User).where(User.organization_id == org1.id))
+    assert len(user_check_q.scalars().all()) == 0
+    
+    # AIUsageCounter should be deleted
+    ai_check_q = await db_session.execute(select(AIUsageCounter).where(AIUsageCounter.organization_id == org1.id))
+    assert len(ai_check_q.scalars().all()) == 0
+
+
+@pytest.mark.anyio
+async def test_delete_organization_denied_for_non_superuser(auth_org_admin_client: AsyncClient, sample_admin_data):
+    org1, _, _, _, _ = sample_admin_data
+    response = await auth_org_admin_client.delete(f"/api/v1/admin/organizations/{org1.public_id}")
+    assert response.status_code == 403
+

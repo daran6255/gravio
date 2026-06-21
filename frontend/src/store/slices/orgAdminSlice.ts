@@ -81,6 +81,17 @@ export const reactivateOrg = createAsyncThunk(
 	}
 );
 
+export const deleteOrg = createAsyncThunk(
+	'orgAdmin/delete',
+	async (publicId: string, { rejectWithValue }) => {
+		try {
+			return await orgAdminService.deleteOrganization(publicId);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to delete organization');
+		}
+	}
+);
+
 export const fetchAdminStats = createAsyncThunk(
 	'orgAdmin/fetchStats',
 	async (_, { rejectWithValue }) => {
@@ -208,6 +219,13 @@ const orgAdminSlice = createSlice({
 				if (idx !== -1) state.organizations[idx] = action.payload;
 			})
 			.addCase(reactivateOrg.rejected, (state, action: PayloadAction<any>) => {
+				state.error = action.payload;
+			})
+			.addCase(deleteOrg.fulfilled, (state, action: PayloadAction<Organization>) => {
+				state.organizations = state.organizations.filter((o) => o.public_id !== action.payload.public_id);
+				state.total = Math.max(0, state.total - 1);
+			})
+			.addCase(deleteOrg.rejected, (state, action: PayloadAction<any>) => {
 				state.error = action.payload;
 			})
 			.addCase(fetchAdminStats.fulfilled, (state, action: PayloadAction<AdminStats>) => {

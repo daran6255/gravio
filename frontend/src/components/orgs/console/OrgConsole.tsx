@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Container, Button, TableRow, TableCell, Typography, LinearProgress, useTheme, Grid } from '@mui/material';
-import { Add as AddIcon, Block, CheckCircleOutline, CalendarToday } from '@mui/icons-material';
+import { Add as AddIcon, Block, CheckCircleOutline, CalendarToday, DeleteOutline } from '@mui/icons-material';
 import type { Organization } from '../../../models/auth';
 import { useOrgConsole } from '../hooks/useOrgConsole';
 import { OrgStatsPanel } from './OrgStatsPanel';
@@ -35,7 +35,9 @@ export const OrgConsole: React.FC = () => {
 		userDialogOpen, setUserDialogOpen, userActionType, targetUser, userActionLoading,
 		fetchData, handleOpenExtendTrial, handleConfirmExtendTrial, handleDeactivate,
 		handleReactivate, handleConfirmStatusChange, handleUserAction, handleConfirmUserAction,
-		searchTerm, setSearchTerm, editOrgUserOpen, setEditOrgUserOpen
+		searchTerm, setSearchTerm, editOrgUserOpen, setEditOrgUserOpen,
+		deleteDialogOpen, setDeleteDialogOpen, deleteLoading, handleDeleteOrg, handleConfirmDeleteOrg,
+		isSuperuser
 	} = useOrgConsole();
 
 	const getRowActions = (org: Organization): TableMenuAction<Organization>[] => {
@@ -54,6 +56,12 @@ export const OrgConsole: React.FC = () => {
 			actions.push({
 				label: 'Reactivate', icon: <CheckCircleOutline fontSize="small" />,
 				onClick: () => handleReactivate(org), color: 'success.main',
+			});
+		}
+		if (isSuperuser) {
+			actions.push({
+				label: 'Delete', icon: <DeleteOutline fontSize="small" />,
+				onClick: () => handleDeleteOrg(org), color: 'error.main',
 			});
 		}
 		return actions;
@@ -300,6 +308,14 @@ export const OrgConsole: React.FC = () => {
 					subtitle={statusAction === 'deactivate' ? 'All members lose access immediately' : 'Restore access for all members'}
 					message={statusAction === 'deactivate' ? `Deactivate ${targetOrg?.name}? No one in this organization will be able to log in until it's reactivated.` : `Reactivate ${targetOrg?.name}? Its members will be able to log in again.`}
 					confirmLabel={statusAction === 'deactivate' ? 'Deactivate' : 'Reactivate'} cancelLabel="Cancel" severity={statusAction === 'deactivate' ? 'warning' : 'success'} loading={statusLoading}
+				/>
+
+				<ConfirmationDialog
+					open={deleteDialogOpen} onClose={() => { setDeleteDialogOpen(false); }} onConfirm={handleConfirmDeleteOrg}
+					title="Delete Organization"
+					subtitle="Permanently delete organization and all its data"
+					message={`Are you sure you want to permanently delete ${targetOrg?.name}? This action will delete all user accounts, usage records, and configuration associated with this organization. THIS ACTION IS IRREVERSIBLE.`}
+					confirmLabel="Delete" cancelLabel="Cancel" severity="error" loading={deleteLoading}
 				/>
 
 				<ConfirmationDialog

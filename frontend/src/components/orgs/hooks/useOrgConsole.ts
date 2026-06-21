@@ -10,7 +10,8 @@ import {
 	reactivateOrgUser,
 	deleteOrgUser,
 	resendOrgUserInvite,
-	triggerUserPasswordReset
+	triggerUserPasswordReset,
+	deleteOrg
 } from '../../../store/slices/orgAdminSlice';
 import useToast from '../../../hooks/useToast';
 import type { Organization } from '../../../models/auth';
@@ -31,6 +32,9 @@ export const useOrgConsole = () => {
 		selectedOrgUsersError
 	} = useAppSelector((state) => state.orgAdmin);
 
+	const currentUser = useAppSelector((state) => state.auth.user);
+	const isSuperuser = currentUser?.is_superuser || false;
+
 	const [page, setPage] = useState(0); // MUI 0-indexed; backend is 1-indexed
 	const [rowsPerPage, setRowsPerPage] = useState(5);
 	const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -39,6 +43,9 @@ export const useOrgConsole = () => {
 	const [statusAction, setStatusAction] = useState<'deactivate' | 'reactivate'>('deactivate');
 	const [targetOrg, setTargetOrg] = useState<Organization | null>(null);
 	const [statusLoading, setStatusLoading] = useState(false);
+
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+	const [deleteLoading, setDeleteLoading] = useState(false);
 
 	const [extendTrialOpen, setExtendTrialOpen] = useState(false);
 	const [extendDays, setExtendDays] = useState('30');
@@ -143,9 +150,34 @@ export const useOrgConsole = () => {
 		} finally {
 			setStatusLoading(false);
 			setStatusDialogOpen(false);
+		}
+	};
+
+	const handleDeleteOrg = (org: Organization) => {
+		setTargetOrg(org);
+		setDeleteDialogOpen(true);
+	};
+
+	const handleConfirmDeleteOrg = async () => {
+		if (!targetOrg) return;
+		setDeleteLoading(true);
+		try {
+			await dispatch(deleteOrg(targetOrg.public_id)).unwrap();
+			toast.success(`${targetOrg.name} has been deleted.`);
+			if (selectedOrg?.public_id === targetOrg.public_id) {
+				setSelectedOrg(null);
+			}
+			dispatch(fetchAdminStats());
+			fetchData();
+		} catch (error: any) {
+			toast.error(error || 'Failed to delete organization');
+		} finally {
+			setDeleteLoading(false);
+			setDeleteDialogOpen(false);
 			setTargetOrg(null);
 		}
 	};
+
 
 	const handleUserAction = (user: TeamMember, type: 'deactivate' | 'reactivate' | 'delete' | 'resendInvite' | 'edit' | 'sendPasswordReset') => {
 		setTargetUser(user);
@@ -248,6 +280,12 @@ export const useOrgConsole = () => {
 		handleUserAction,
 		handleConfirmUserAction,
 		editOrgUserOpen,
-		setEditOrgUserOpen
+		setEditOrgUserOpen,
+		deleteDialogOpen,
+		setDeleteDialogOpen,
+		deleteLoading,
+		handleDeleteOrg,
+		handleConfirmDeleteOrg,
+		isSuperuser
 	};
 };

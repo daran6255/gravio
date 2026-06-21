@@ -48,6 +48,11 @@ const orgAdminService = {
 		});
 		return response.data;
 	},
+
+	deleteOrganization: async (publicId: string): Promise<Organization> => {
+		const response = await api.delete<Organization>(`/admin/organizations/${publicId}`);
+		return response.data;
+	},
 };
 
 export default orgAdminService;

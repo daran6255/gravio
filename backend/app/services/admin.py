@@ -2,6 +2,7 @@
 
 import asyncio
 import secrets
+import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
@@ -176,3 +177,58 @@ async def get_admin_stats(db: AsyncSession) -> dict:
         "paid_organizations": paid_organizations,
         "paid_users": paid_users,
     }
+
+
+async def delete_organization(
+    db: AsyncSession,
+    *,
+    public_id: uuid.UUID,
+) -> Organization:
+    """Permanently delete an organization and all its related records.
+
+    This deletes:
+      1. Refresh tokens of all users in the organization
+      2. AI usage counters of the organization
+      3. All user accounts in the organization
+      4. The organization itself
+    """
+    from sqlalchemy import select, delete
+    from app.models.refresh_token import RefreshToken
+    from app.models.ai_usage import AIUsageCounter
+    from app.models.user import User
+    from app.repositories.organization import OrganizationRepository
+    from app.middleware.exceptions import NotFoundError
+
+    org = await OrganizationRepository.get_by_public_id(db, public_id)
+    if not org:
+        raise NotFoundError(f"Organization with ID '{public_id}' not found.")
+
+    # 1. Fetch user IDs belonging to this organization
+    result = await db.execute(
+        select(User.id).where(User.organization_id == org.id)
+    )
+    user_ids = [row[0] for row in result.all()]
+
+    # 2. Delete refresh tokens for those users
+    if user_ids:
+        await db.execute(
+            delete(RefreshToken).where(RefreshToken.user_id.in_(user_ids))
+        )
+
+    # 3. Delete AI usage counters for the organization
+    await db.execute(
+        delete(AIUsageCounter).where(AIUsageCounter.organization_id == org.id)
+    )
+
+    # 4. Delete all users belonging to this organization
+    await db.execute(
+        delete(User).where(User.organization_id == org.id)
+    )
+
+    # 5. Delete the organization
+    await db.delete(org)
+    await db.commit()
+
+    logger.info(f"Super Admin permanently deleted organization '{org.name}' (id={org.id}) and all associated records.")
+    return org
+
