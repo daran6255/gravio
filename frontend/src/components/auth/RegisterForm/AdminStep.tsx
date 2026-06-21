@@ -92,6 +92,12 @@ const AdminStep: React.FC<AdminStepProps> = ({
 		pattern: adminUsername.length > 0 && /^[a-z0-9_]+$/.test(adminUsername)
 	};
 
+	const allUsernameReqsMet = usernameRequirements.length && usernameRequirements.pattern;
+	const allPasswordReqsMet = passwordStrength.requirements.length &&
+		passwordStrength.requirements.uppercase &&
+		passwordStrength.requirements.number &&
+		passwordStrength.requirements.special;
+
 	return (
 		<Box component="form" onSubmit={onSubmit}>
 			{/* Full Name */}
@@ -139,7 +145,11 @@ const AdminStep: React.FC<AdminStepProps> = ({
 								boxShadow: '0 0 0 3px rgba(139, 124, 246, 0.15)'
 							}
 						},
-						'& input::placeholder': { color: '#64748b', opacity: 1 }
+						'& input::placeholder': { color: '#64748b', opacity: 1 },
+						'& input:-webkit-autofill': {
+							WebkitBoxShadow: '0 0 0 1000px #191c28 inset !important',
+							WebkitTextFillColor: '#F4F5F7 !important',
+						}
 					}}
 				/>
 			</Box>
@@ -203,44 +213,69 @@ const AdminStep: React.FC<AdminStepProps> = ({
 								boxShadow: usernameStatus === 'available' ? '0 0 0 3px rgba(16, 185, 129, 0.15)' : usernameStatus === 'error' ? '0 0 0 3px rgba(239, 68, 68, 0.15)' : '0 0 0 3px rgba(139, 124, 246, 0.15)'
 							}
 						},
-						'& input::placeholder': { color: '#64748b', opacity: 1 }
+						'& input::placeholder': { color: '#64748b', opacity: 1 },
+						'& input:-webkit-autofill': {
+							WebkitBoxShadow: '0 0 0 1000px #191c28 inset !important',
+							WebkitTextFillColor: '#F4F5F7 !important',
+						}
 					}}
 				/>
-				{adminUsername.length > 0 && (
+				{adminUsername.length > 0 && !allUsernameReqsMet && (
 					<Box sx={{
-						display: 'grid',
-						gridTemplateColumns: '1fr 1fr',
-						gap: 0.75,
+						display: 'flex',
+						flexDirection: 'column',
+						gap: 1,
 						mt: 1.5,
 						mb: 1.5,
 						p: 1.25,
-						bgcolor: 'rgba(255,255,255,0.01)',
-						borderRadius: 1.5,
-						border: '1px solid rgba(255,255,255,0.03)'
+						bgcolor: 'rgba(30, 41, 59, 0.4)',
+						borderRadius: 2,
+						border: '1px solid rgba(255, 255, 255, 0.05)',
+						backdropFilter: 'blur(10px)',
 					}}>
-						{usernameReqs.map((r) => {
-							const met = usernameRequirements[r.key];
-							return (
-								<Box key={r.key} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-									<Box sx={{
-										width: 6,
-										height: 6,
-										borderRadius: '50%',
-										bgcolor: met ? '#10b981' : '#ef4444',
-										boxShadow: met ? '0 0 8px #10b981' : 'none',
-										transition: 'all 0.3s'
-									}} />
-									<Typography variant="caption" sx={{ color: met ? '#F4F5F7' : '#64748b', fontSize: '0.675rem', transition: 'color 0.3s' }}>
-										{r.label}
-									</Typography>
-								</Box>
-							);
-						})}
+						<Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, mb: 0.25, fontSize: '0.7rem' }}>
+							Username Requirements:
+						</Typography>
+						<Box sx={{ display: 'grid', gridTemplateColumns: '1fr', gap: 0.75 }}>
+							{usernameReqs.map((r) => {
+								const met = usernameRequirements[r.key];
+								return (
+									<Box key={r.key} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+										<Box sx={{
+											width: 14,
+											height: 14,
+											borderRadius: '50%',
+											display: 'flex',
+											alignItems: 'center',
+											justifyContent: 'center',
+											bgcolor: met ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+											color: met ? '#10b981' : '#ef4444',
+											fontSize: '9px',
+											fontWeight: 'bold',
+											border: met ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
+											transition: 'all 0.3s'
+										}}>
+											{met ? "✓" : "×"}
+										</Box>
+										<Typography variant="caption" sx={{ color: met ? '#F4F5F7' : '#94A3B8', fontSize: '0.725rem', transition: 'color 0.3s' }}>
+											{r.label}
+										</Typography>
+									</Box>
+								);
+							})}
+						</Box>
 					</Box>
 				)}
 				{usernameSuggestions.length > 0 && (
-					<Box sx={{ mt: 1.5, p: 1.25, bgcolor: 'rgba(255, 255, 255, 0.02)', borderRadius: 1.5, border: '1px dashed rgba(255, 255, 255, 0.05)' }}>
-						<Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mb: 1, fontSize: '0.7rem', fontWeight: 600 }}>
+					<Box sx={{
+						mt: 1.5,
+						p: 1.25,
+						bgcolor: 'rgba(139, 124, 246, 0.02)',
+						borderRadius: 2,
+						border: '1px solid rgba(139, 124, 246, 0.15)',
+						boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+					}}>
+						<Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mb: 1.25, fontSize: '0.725rem', fontWeight: 600 }}>
 							{usernameStatus === 'available' 
 								? "Username is available! You can also use one of these suggestions:" 
 								: "Taken. Try one of these suggestions:"}
@@ -253,14 +288,21 @@ const AdminStep: React.FC<AdminStepProps> = ({
 									size="small"
 									onClick={() => setAdminUsername(sug)}
 									sx={{
-										bgcolor: 'rgba(139, 124, 246, 0.1)',
-										color: '#8B7CF6',
+										background: 'linear-gradient(135deg, rgba(139, 124, 246, 0.1) 0%, rgba(78, 168, 255, 0.1) 100%)',
+										color: '#a5b4fc',
 										border: '1px solid rgba(139, 124, 246, 0.2)',
-										fontWeight: 700,
+										fontWeight: 600,
 										fontSize: '0.725rem',
 										cursor: 'pointer',
+										transition: 'all 0.2s ease-in-out',
 										'&:hover': {
-											bgcolor: 'rgba(139, 124, 246, 0.2)',
+											background: 'linear-gradient(135deg, rgba(139, 124, 246, 0.2) 0%, rgba(78, 168, 255, 0.2) 100%)',
+											transform: 'translateY(-1px)',
+											boxShadow: '0 2px 8px rgba(139, 124, 246, 0.2)',
+											borderColor: '#8B7CF6',
+										},
+										'&:active': {
+											transform: 'translateY(0)',
 										}
 									}}
 								/>
@@ -328,7 +370,11 @@ const AdminStep: React.FC<AdminStepProps> = ({
 								boxShadow: emailStatus === 'available' ? '0 0 0 3px rgba(16, 185, 129, 0.15)' : emailStatus === 'error' ? '0 0 0 3px rgba(239, 68, 68, 0.15)' : '0 0 0 3px rgba(139, 124, 246, 0.15)'
 							}
 						},
-						'& input::placeholder': { color: '#64748b', opacity: 1 }
+						'& input::placeholder': { color: '#64748b', opacity: 1 },
+						'& input:-webkit-autofill': {
+							WebkitBoxShadow: '0 0 0 1000px #191c28 inset !important',
+							WebkitTextFillColor: '#F4F5F7 !important',
+						}
 					}}
 				/>
 			</Box>
@@ -391,7 +437,11 @@ const AdminStep: React.FC<AdminStepProps> = ({
 								boxShadow: adminPassword.length > 0 && passwordStrength.score === 4 ? '0 0 0 3px rgba(16, 185, 129, 0.15)' : '0 0 0 3px rgba(139, 124, 246, 0.15)'
 							}
 						},
-						'& input::placeholder': { color: '#64748b', opacity: 1 }
+						'& input::placeholder': { color: '#64748b', opacity: 1 },
+						'& input:-webkit-autofill': {
+							WebkitBoxShadow: '0 0 0 1000px #191c28 inset !important',
+							WebkitTextFillColor: '#F4F5F7 !important',
+						}
 					}}
 				/>
 
@@ -416,36 +466,48 @@ const AdminStep: React.FC<AdminStepProps> = ({
 						</Box>
 
 						{/* Requirements Checklist */}
-						<Box sx={{
-							display: 'grid',
-							gridTemplateColumns: '1fr 1fr',
-							gap: 0.75,
-							p: 1.25,
-							bgcolor: 'rgba(255,255,255,0.01)',
-							borderRadius: 1.5,
-							border: '1px solid rgba(255,255,255,0.03)'
-						}}>
-							{reqs.map((r) => {
-								const met = passwordStrength.requirements[r.key];
-								return (
-									<Box key={r.key} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-										<Box sx={{
-											width: 6,
-											height: 6,
-											borderRadius: '50%',
-											bgcolor: met ? '#10b981' : '#ef4444',
-											boxShadow: met ? '0 0 8px #10b981' : 'none',
-											transition: 'all 0.3s'
-										}} />
-										<Typography variant="caption" sx={{ color: met ? '#F4F5F7' : '#64748b', fontSize: '0.675rem', transition: 'color 0.3s' }}>
-											{r.label}
-										</Typography>
-									</Box>
-								);
-							})}
-						</Box>
+						{!allPasswordReqsMet && (
+							<Box sx={{
+								display: 'grid',
+								gridTemplateColumns: '1fr 1fr',
+								gap: 0.75,
+								p: 1.25,
+								bgcolor: 'rgba(30, 41, 59, 0.4)',
+								borderRadius: 2,
+								border: '1px solid rgba(255, 255, 255, 0.05)',
+								backdropFilter: 'blur(10px)',
+							}}>
+								{reqs.map((r) => {
+									const met = passwordStrength.requirements[r.key];
+									return (
+										<Box key={r.key} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+											<Box sx={{
+												width: 14,
+												height: 14,
+												borderRadius: '50%',
+												display: 'flex',
+												alignItems: 'center',
+												justifyContent: 'center',
+												bgcolor: met ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+												color: met ? '#10b981' : '#ef4444',
+												fontSize: '9px',
+												fontWeight: 'bold',
+												border: met ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
+												transition: 'all 0.3s'
+											}}>
+												{met ? "✓" : "×"}
+											</Box>
+											<Typography variant="caption" sx={{ color: met ? '#F4F5F7' : '#94A3B8', fontSize: '0.675rem', transition: 'color 0.3s' }}>
+												{r.label}
+											</Typography>
+										</Box>
+									);
+								})}
+							</Box>
+						)}
 					</Box>
 				)}
+
 			</Box>
 
 			<Box sx={{ display: 'flex', gap: 2 }}>

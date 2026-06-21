@@ -136,7 +136,11 @@ const OrganizationStep: React.FC<OrganizationStepProps> = ({
 								boxShadow: orgNameStatus === 'available' ? '0 0 0 3px rgba(16, 185, 129, 0.15)' : orgNameStatus === 'error' ? '0 0 0 3px rgba(239, 68, 68, 0.15)' : '0 0 0 3px rgba(139, 124, 246, 0.15)'
 							}
 						},
-						'& input::placeholder': { color: '#64748b', opacity: 1 }
+						'& input::placeholder': { color: '#64748b', opacity: 1 },
+						'& input:-webkit-autofill': {
+							WebkitBoxShadow: '0 0 0 1000px #191c28 inset !important',
+							WebkitTextFillColor: '#F4F5F7 !important',
+						}
 					}}
 				/>
 			</Box>
@@ -218,7 +222,11 @@ const OrganizationStep: React.FC<OrganizationStepProps> = ({
 										boxShadow: '0 0 0 3px rgba(139, 124, 246, 0.15)'
 									}
 								},
-								'& input::placeholder': { color: '#64748b', opacity: 1 }
+								'& input::placeholder': { color: '#64748b', opacity: 1 },
+								'& input:-webkit-autofill': {
+									WebkitBoxShadow: '0 0 0 1000px #191c28 inset !important',
+									WebkitTextFillColor: '#F4F5F7 !important',
+								}
 							}}
 						/>
 					)}
