@@ -53,14 +53,22 @@ export const useOrgConsole = () => {
 	const [targetUser, setTargetUser] = useState<TeamMember | null>(null);
 	const [userActionLoading, setUserActionLoading] = useState(false);
 
+	// Organization search state
+	const [searchTerm, setSearchTerm] = useState('');
+
 	const fetchData = useCallback(() => {
-		dispatch(fetchOrganizations({ page: page + 1, pageSize: rowsPerPage }));
+		dispatch(fetchOrganizations({ page: page + 1, pageSize: rowsPerPage, search: searchTerm || undefined }));
 		dispatch(fetchAdminStats());
-	}, [dispatch, page, rowsPerPage]);
+	}, [dispatch, page, rowsPerPage, searchTerm]);
 
 	useEffect(() => {
-		fetchData();
-	}, [fetchData]);
+		const delayDebounceFn = setTimeout(() => {
+			dispatch(fetchOrganizations({ page: page + 1, pageSize: rowsPerPage, search: searchTerm || undefined }));
+		}, 300);
+		dispatch(fetchAdminStats());
+
+		return () => clearTimeout(delayDebounceFn);
+	}, [dispatch, page, rowsPerPage, searchTerm]);
 
 	const handleOpenExtendTrial = (org: Organization) => {
 		setTargetOrg(org);
@@ -212,6 +220,11 @@ export const useOrgConsole = () => {
 		extendLoading,
 		selectedOrg,
 		handleSelectOrg,
+		searchTerm,
+		setSearchTerm: (term: string) => {
+			setSearchTerm(term);
+			setPage(0);
+		},
 		userSearchTerm,
 		setUserSearchTerm,
 		userDialogOpen,

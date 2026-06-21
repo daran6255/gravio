@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Container, Button, TableRow, TableCell, Typography, LinearProgress } from '@mui/material';
+import { Box, Container, Button, TableRow, TableCell, Typography, LinearProgress, useTheme } from '@mui/material';
 import { Add as AddIcon, Block, CheckCircleOutline, CalendarToday } from '@mui/icons-material';
 import type { Organization } from '../../../models/auth';
 import { useOrgConsole } from '../hooks/useOrgConsole';
@@ -22,6 +22,9 @@ const columns: ColumnDefinition<Organization>[] = [
 ];
 
 export const OrgConsole: React.FC = () => {
+	const theme = useTheme();
+	const isDark = theme.palette.mode === 'dark';
+
 	const {
 		organizations, loading, total, stats, selectedOrgUsers, selectedOrgUsersLoading,
 		selectedOrgUsersError, page, setPage, rowsPerPage, setRowsPerPage, createDialogOpen,
@@ -30,7 +33,8 @@ export const OrgConsole: React.FC = () => {
 		extendLoading, selectedOrg, handleSelectOrg, userSearchTerm, setUserSearchTerm,
 		userDialogOpen, setUserDialogOpen, userActionType, targetUser, userActionLoading,
 		fetchData, handleOpenExtendTrial, handleConfirmExtendTrial, handleDeactivate,
-		handleReactivate, handleConfirmStatusChange, handleUserAction, handleConfirmUserAction
+		handleReactivate, handleConfirmStatusChange, handleUserAction, handleConfirmUserAction,
+		searchTerm, setSearchTerm
 	} = useOrgConsole();
 
 	const getRowActions = (org: Organization): TableMenuAction<Organization>[] => {
@@ -60,30 +64,48 @@ export const OrgConsole: React.FC = () => {
 
 		if (userLimit === null || userLimit === undefined) {
 			return (
-				<Box sx={{ width: '100%', minWidth: 120 }}>
-					<Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>{userCount} / Unlimited</Typography>
-					<LinearProgress variant="determinate" value={0} sx={{ height: 6, borderRadius: 3, bgcolor: 'rgba(0,0,0,0.05)', mt: 0.5, '& .MuiLinearProgress-bar': { borderRadius: 3, bgcolor: '#6366F1' } }} />
+				<Box sx={{ width: '100%', minWidth: 140 }}>
+					<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>{userCount} / Unlimited</Typography>
+					<LinearProgress variant="determinate" value={0} sx={{ height: 8, borderRadius: 4, bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)', mt: 0.75 }} />
 				</Box>
 			);
 		}
 
 		const percentage = Math.min((userCount / userLimit) * 100, 100);
-		const color = percentage >= 85 ? '#F59E0B' : '#6366F1';
+		const color = percentage >= 85 ? '#F59E0B' : '#8B7CF6';
 
 		return (
-			<Box sx={{ width: '100%', minWidth: 120 }}>
+			<Box sx={{ width: '100%', minWidth: 140 }}>
 				<Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
-					<Typography variant="body2" sx={{ fontWeight: 600, color: percentage >= 85 ? 'warning.main' : 'text.primary' }}>{userCount} / {userLimit}</Typography>
-					<Typography variant="caption" color="text.secondary">{Math.round(percentage)}%</Typography>
+					<Typography variant="body2" sx={{ fontWeight: 700, color: percentage >= 85 ? 'warning.main' : 'text.primary' }}>{userCount} / {userLimit}</Typography>
+					<Typography variant="caption" sx={{ fontWeight: 600, color: percentage >= 85 ? 'warning.main' : 'text.secondary' }}>{Math.round(percentage)}%</Typography>
 				</Box>
-				<LinearProgress variant="determinate" value={percentage} sx={{ height: 6, borderRadius: 3, bgcolor: 'rgba(0,0,0,0.05)', '& .MuiLinearProgress-bar': { borderRadius: 3, backgroundColor: color } }} />
+				<LinearProgress 
+					variant="determinate" 
+					value={percentage} 
+					sx={{ 
+						height: 8, 
+						borderRadius: 4, 
+						bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)', 
+						'& .MuiLinearProgress-bar': { 
+							borderRadius: 4, 
+							backgroundColor: color,
+							boxShadow: percentage >= 85 ? '0 0 8px rgba(245, 158, 11, 0.4)' : '0 0 8px rgba(139, 124, 246, 0.4)'
+						} 
+					}} 
+				/>
 			</Box>
 		);
 	};
 
 	const renderRemainingPeriod = (org: Organization) => {
 		if (org.subscription_status !== 'trial' && org.subscription_status !== 'expired' && org.plan_id) {
-			return <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>Active</Typography>;
+			return (
+				<Box display="flex" alignItems="center" gap={1}>
+					<Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main', boxShadow: '0 0 8px rgba(16, 185, 129, 0.6)' }} />
+					<Typography variant="body2" sx={{ fontWeight: 700, color: 'success.main' }}>Active</Typography>
+				</Box>
+			);
 		}
 		if (!org.trial_expires_at) return <Typography variant="body2" color="text.secondary">N/A</Typography>;
 
@@ -93,14 +115,32 @@ export const OrgConsole: React.FC = () => {
 		const diffTime = expiry.getTime() - today.getTime();
 		const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-		if (diffDays < 0) return <Typography variant="body2" sx={{ fontWeight: 700, color: 'error.main' }}>Expired</Typography>;
-		if (diffDays === 0) return <Typography variant="body2" sx={{ fontWeight: 700, color: 'error.main' }}>Expires today</Typography>;
+		if (diffDays < 0) {
+			return (
+				<Box display="flex" alignItems="center" gap={1}>
+					<Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'error.main', boxShadow: '0 0 8px rgba(239, 68, 68, 0.6)' }} />
+					<Typography variant="body2" sx={{ fontWeight: 700, color: 'error.main' }}>Expired</Typography>
+				</Box>
+			);
+		}
+		if (diffDays === 0) {
+			return (
+				<Box display="flex" alignItems="center" gap={1}>
+					<Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'error.main', boxShadow: '0 0 8px rgba(239, 68, 68, 0.6)' }} />
+					<Typography variant="body2" sx={{ fontWeight: 700, color: 'error.main' }}>Expires today</Typography>
+				</Box>
+			);
+		}
 
 		const color = diffDays < 10 ? 'error.main' : (diffDays <= 30 ? 'warning.main' : 'success.main');
+		const glowColor = diffDays < 10 ? 'rgba(239, 68, 68, 0.4)' : (diffDays <= 30 ? 'rgba(245, 158, 11, 0.4)' : 'rgba(16, 185, 129, 0.4)');
 		return (
-			<Typography variant="body2" sx={{ fontWeight: diffDays < 10 ? 700 : 600, color }}>
-				{diffDays} day{diffDays === 1 ? '' : 's'} left
-			</Typography>
+			<Box display="flex" alignItems="center" gap={1}>
+				<Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: color, boxShadow: `0 0 8px ${glowColor}` }} />
+				<Typography variant="body2" sx={{ fontWeight: 600, color }}>
+					{diffDays} day{diffDays === 1 ? '' : 's'} left
+				</Typography>
+			</Box>
 		);
 	};
 
@@ -110,16 +150,32 @@ export const OrgConsole: React.FC = () => {
 
 		return (
 			<TableRow
-				key={org.public_id} hover onClick={() => handleSelectOrg(org)}
+				key={org.public_id} 
+				hover 
+				onClick={() => handleSelectOrg(org)}
 				sx={{
-					cursor: 'pointer', backgroundColor: isSelected ? 'rgba(99, 102, 241, 0.08)' : 'inherit',
-					'&:hover': { backgroundColor: isSelected ? 'rgba(99, 102, 241, 0.12) !important' : 'inherit' },
+					cursor: 'pointer', 
+					backgroundColor: isSelected ? (isDark ? 'rgba(139, 124, 246, 0.08)' : 'rgba(139, 124, 246, 0.04)') : 'inherit',
+					transition: 'all 0.2s ease',
+					borderLeft: isSelected ? `4px solid ${theme.palette.primary.main}` : '4px solid transparent',
+					'&:hover': { 
+						backgroundColor: isSelected 
+							? (isDark ? 'rgba(139, 124, 246, 0.12) !important' : 'rgba(139, 124, 246, 0.08) !important') 
+							: (isDark ? 'rgba(255,255,255,0.02) !important' : 'rgba(139, 124, 246, 0.02) !important'),
+						transform: 'translateY(-1px)',
+						boxShadow: '0 4px 12px rgba(0,0,0,0.015)'
+					},
+					'& td': {
+						py: 2,
+						px: 2.5,
+						borderBottom: `1px solid ${theme.palette.divider}`
+					},
 					'&:last-child td': { borderBottom: 0 }
 				}}
 			>
-				<TableCell>
-					<Typography variant="body2" sx={{ fontWeight: 600 }}>{org.name}</Typography>
-					<Typography variant="caption" color="text.secondary">{org.location || '-'}</Typography>
+				<TableCell sx={{ pl: isSelected ? 1.5 : 2 }}>
+					<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>{org.name}</Typography>
+					<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>{org.location || '-'}</Typography>
 				</TableCell>
 				<TableCell><StatusBadge label={planDisplayName} status={org.plan_name?.toLowerCase() || 'free'} /></TableCell>
 				<TableCell onClick={(e) => e.stopPropagation()}>{renderSeatUtilization(org)}</TableCell>
@@ -131,14 +187,61 @@ export const OrgConsole: React.FC = () => {
 	};
 
 	return (
-		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
-			<Container maxWidth="xl" sx={{ py: { xs: 2, sm: 4 } }}>
+		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
+			{/* Subtle Aurora Gradient Accents in the background */}
+			<Box
+				sx={{
+					position: 'absolute',
+					top: '5%',
+					right: '-5%',
+					width: '45vw',
+					height: '45vw',
+					borderRadius: '50%',
+					background: 'radial-gradient(circle, rgba(139, 124, 246, 0.08) 0%, rgba(78, 168, 255, 0.02) 60%, rgba(0,0,0,0) 100%)',
+					filter: 'blur(70px)',
+					zIndex: 0,
+					pointerEvents: 'none'
+				}}
+			/>
+			<Box
+				sx={{
+					position: 'absolute',
+					bottom: '10%',
+					left: '-10%',
+					width: '35vw',
+					height: '35vw',
+					borderRadius: '50%',
+					background: 'radial-gradient(circle, rgba(78, 168, 255, 0.06) 0%, rgba(16, 185, 129, 0.02) 60%, rgba(0,0,0,0) 100%)',
+					filter: 'blur(60px)',
+					zIndex: 0,
+					pointerEvents: 'none'
+				}}
+			/>
+
+			<Container maxWidth="xl" sx={{ py: { xs: 2, sm: 4 }, position: 'relative', zIndex: 1 }}>
 				<PageHeader
-					title="Organizations Console" subtitle="Manage global infrastructure entities and subscription tiers."
+					title="Organizations Console" 
+					subtitle="Manage global infrastructure entities and subscription tiers."
 					action={
 						<Button
-							variant="contained" startIcon={<AddIcon />} onClick={() => setCreateDialogOpen(true)}
-							sx={{ textTransform: 'none', fontWeight: 600, px: 3, py: 1, borderRadius: 3, boxShadow: 'none' }}
+							variant="contained" 
+							startIcon={<AddIcon />} 
+							onClick={() => setCreateDialogOpen(true)}
+							sx={{ 
+								textTransform: 'none', 
+								fontWeight: 700, 
+								px: 3.5, 
+								py: 1.25, 
+								borderRadius: '12px',
+								background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
+								boxShadow: '0 4px 14px 0 rgba(139, 124, 246, 0.4)',
+								transition: 'all 0.2s ease',
+								'&:hover': {
+									background: 'linear-gradient(135deg, #9C8FFF 0%, #7062E9 100%)',
+									boxShadow: '0 6px 20px 0 rgba(139, 124, 246, 0.6)',
+									transform: 'translateY(-1px)'
+								}
+							}}
 						>
 							Create Organization
 						</Button>
@@ -148,10 +251,22 @@ export const OrgConsole: React.FC = () => {
 				<OrgStatsPanel stats={stats} />
 
 				<DataTable<Organization>
-					columns={columns} data={organizations} loading={loading} totalCount={total} page={page} rowsPerPage={rowsPerPage}
-					onPageChange={(_e, p) => setPage(p)} onRowsPerPageChange={(rows) => { setRowsPerPage(rows); setPage(0); }}
-					searchTerm="" onRefresh={fetchData} onCreateClick={() => setCreateDialogOpen(true)}
-					createButtonText="Create Organization" renderRow={renderRow} emptyMessage="No organizations yet."
+					columns={columns} 
+					data={organizations} 
+					loading={loading} 
+					totalCount={total} 
+					page={page} 
+					rowsPerPage={rowsPerPage}
+					onPageChange={(_e, p) => setPage(p)} 
+					onRowsPerPageChange={(rows) => { setRowsPerPage(rows); setPage(0); }}
+					searchTerm={searchTerm} 
+					onSearchChange={setSearchTerm} 
+					searchPlaceholder="Search organizations by name or location..."
+					onRefresh={fetchData} 
+					onCreateClick={() => setCreateDialogOpen(true)}
+					createButtonText="Create Organization" 
+					renderRow={renderRow} 
+					emptyMessage="No organizations yet."
 				/>
 
 				<OrgDetailDrawer

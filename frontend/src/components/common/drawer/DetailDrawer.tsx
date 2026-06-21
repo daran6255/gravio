@@ -1,5 +1,5 @@
 import React from 'react';
-import { Drawer, Box, Typography, IconButton } from '@mui/material';
+import { Drawer, Box, Typography, IconButton, useTheme } from '@mui/material';
 import { Close } from '@mui/icons-material';
 
 interface DetailDrawerProps {
@@ -21,6 +21,9 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 	headerExtra,
 	children
 }) => {
+	const theme = useTheme();
+	const isDark = theme.palette.mode === 'dark';
+
 	return (
 		<Drawer
 			anchor="right"
@@ -30,19 +33,26 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 				'& .MuiDrawer-paper': {
 					width: { xs: '100%', sm: width },
 					boxSizing: 'border-box',
-					p: 3,
+					p: { xs: 2.5, sm: 3.5 },
 					borderLeft: '1px solid',
-					borderColor: 'divider',
-					boxShadow: '-8px 0px 32px rgba(0, 0, 0, 0.04)'
+					borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
+					background: isDark
+						? 'linear-gradient(180deg, rgba(20, 24, 34, 0.94) 0%, rgba(11, 13, 18, 0.98) 100%)'
+						: 'linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(248, 250, 252, 0.96) 100%)',
+					backdropFilter: 'blur(24px)',
+					boxShadow: isDark
+						? '-16px 0px 48px rgba(0, 0, 0, 0.65), inset 1px 0px 0px rgba(255,255,255,0.05)'
+						: '-16px 0px 48px rgba(139, 124, 246, 0.08), inset 1px 0px 0px rgba(255,255,255,0.4)',
+					transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
 				}
 			}}
 		>
 			<Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 				{/* Drawer Header */}
 				<Box display="flex" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
-					<Box>
+					<Box sx={{ pr: 2 }}>
 						{typeof title === 'string' ? (
-							<Typography variant="h6" sx={{ fontWeight: 700 }}>
+							<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em', color: 'text.primary' }}>
 								{title}
 							</Typography>
 						) : (
@@ -50,7 +60,7 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 						)}
 						{subtitle && (
 							typeof subtitle === 'string' ? (
-								<Typography variant="caption" color="text.secondary">
+								<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', mt: 0.5 }}>
 									{subtitle}
 								</Typography>
 							) : (
@@ -58,8 +68,15 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 							)
 						)}
 					</Box>
-					<IconButton onClick={onClose} size="small">
-						<Close />
+					<IconButton 
+						onClick={onClose} 
+						size="small"
+						sx={{ 
+							bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+							'&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }
+						}}
+					>
+						<Close sx={{ fontSize: 20 }} />
 					</IconButton>
 				</Box>
 
