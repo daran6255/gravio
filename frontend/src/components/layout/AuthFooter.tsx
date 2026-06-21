@@ -7,7 +7,6 @@ const AuthFooter: React.FC = () => {
 		<Box
 			component="footer"
 			sx={{
-				
 				position: 'fixed',
 				bottom: 0,
 				left: 0,
@@ -21,6 +20,7 @@ const AuthFooter: React.FC = () => {
 				borderTop: '1px solid rgba(255, 255, 255, 0.05)',
 				bgcolor: '#08090d',
 				gap: 2,
+				zIndex: 1000,
 			}}
 		>
 			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
