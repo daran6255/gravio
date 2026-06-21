@@ -39,3 +39,10 @@ export interface InviteUserRequest {
 	full_name: string;
 	role: UserRole;
 }
+
+export interface UpdateUserRequest {
+	username?: string;
+	email?: string;
+	full_name?: string;
+	role?: UserRole;
+}

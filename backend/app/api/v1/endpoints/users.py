@@ -8,8 +8,8 @@ from app.core.database import get_db
 from app.api.deps import require_roles
 from app.models.user import User, UserRole
 from app.schemas.common import PaginatedResponse
-from app.schemas.user_management import InviteUserRequest, UserListItem
-from app.services.user_management import invite_user, list_org_users, set_user_active, delete_org_user, resend_user_invite
+from app.schemas.user_management import InviteUserRequest, UserListItem, UpdateUserRequest, BulkDeleteUsersRequest
+from app.services.user_management import invite_user, list_org_users, set_user_active, delete_org_user, resend_user_invite, update_org_user, bulk_delete_org_users
 
 router = APIRouter(prefix="/users", tags=["User Management"])
 
@@ -88,7 +88,7 @@ async def reactivate_user_endpoint(
 @router.delete(
     "/{public_id}",
     response_model=UserListItem,
-    summary="Delete / cancel invite for an unverified user in your organization",
+    summary="Delete user / cancel invite",
 )
 async def delete_user_endpoint(
     public_id: uuid.UUID,
@@ -96,6 +96,21 @@ async def delete_user_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> UserListItem:
     user = await delete_org_user(db, current_user=current_user, target_public_id=public_id)
+    return UserListItem.model_validate(user)
+
+
+@router.put(
+    "/{public_id}",
+    response_model=UserListItem,
+    summary="Update user details",
+)
+async def update_user_endpoint(
+    public_id: uuid.UUID,
+    payload: UpdateUserRequest,
+    current_user: User = Depends(require_org_admin),
+    db: AsyncSession = Depends(get_db),
+) -> UserListItem:
+    user = await update_org_user(db, current_user=current_user, target_public_id=public_id, payload=payload)
     return UserListItem.model_validate(user)
 
 
@@ -111,4 +126,22 @@ async def resend_invite_endpoint(
 ) -> UserListItem:
     user = await resend_user_invite(db, current_user=current_user, target_public_id=public_id)
     return UserListItem.model_validate(user)
+
+
+@router.post(
+    "/bulk-delete",
+    status_code=status.HTTP_200_OK,
+    summary="Bulk delete users in your organization",
+)
+async def bulk_delete_users_endpoint(
+    payload: BulkDeleteUsersRequest,
+    current_user: User = Depends(require_org_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    deleted_count = await bulk_delete_org_users(
+        db,
+        current_user=current_user,
+        public_ids=payload.public_ids,
+    )
+    return {"message": f"Successfully deleted {deleted_count} users.", "deleted_count": deleted_count}
 

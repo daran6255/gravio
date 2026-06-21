@@ -5,9 +5,11 @@ import {
 	Chip,
 	Typography,
 	useMediaQuery,
-	useTheme
+	useTheme,
+	Button,
+	Checkbox
 } from '@mui/material';
-import { Block, CheckCircleOutline, Delete, MailOutline } from '@mui/icons-material';
+import { Block, CheckCircleOutline, Delete, MailOutline, Edit } from '@mui/icons-material';
 
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTeamUsers } from '../../../store/slices/userSlice';
@@ -19,19 +21,29 @@ import { useUserTableConfig, getRoleColor } from './UserTableConfig';
 interface UserTableProps {
 	refreshKey: number;
 	onAddUser?: () => void;
+	onEditUser: (user: TeamMember) => void;
 	onDeactivateUser: (user: TeamMember) => void;
 	onReactivateUser: (user: TeamMember) => void;
 	onResendInvite: (user: TeamMember) => void;
-	onCancelInvite: (user: TeamMember) => void;
+	onDeleteUser: (user: TeamMember) => void;
+	selectedIds: string[];
+	onSelectId: (id: string, checked: boolean) => void;
+	onSelectAll: (checked: boolean) => void;
+	onBulkDelete: () => void;
 }
 
 const UserTable: React.FC<UserTableProps> = ({
 	refreshKey,
 	onAddUser,
+	onEditUser,
 	onDeactivateUser,
 	onReactivateUser,
 	onResendInvite,
-	onCancelInvite,
+	onDeleteUser,
+	selectedIds,
+	onSelectId,
+	onSelectAll,
+	onBulkDelete,
 }) => {
 	const theme = useTheme();
 	const dispatch = useAppDispatch();
@@ -59,6 +71,14 @@ const UserTable: React.FC<UserTableProps> = ({
 	const getRowActions = (user: TeamMember): TableMenuAction<TeamMember>[] => {
 		const actions: TableMenuAction<TeamMember>[] = [];
 
+		// Edit details is available for all users
+		actions.push({
+			label: 'Edit Details',
+			icon: <Edit fontSize="small" />,
+			onClick: () => onEditUser(user),
+			color: 'primary.main',
+		});
+
 		if (!user.is_verified) {
 			actions.push({
 				label: 'Resend Invite',
@@ -69,7 +89,7 @@ const UserTable: React.FC<UserTableProps> = ({
 			actions.push({
 				label: 'Cancel Invite',
 				icon: <Delete fontSize="small" />,
-				onClick: () => onCancelInvite(user),
+				onClick: () => onDeleteUser(user),
 				color: 'error.main',
 			});
 		} else {
@@ -89,76 +109,123 @@ const UserTable: React.FC<UserTableProps> = ({
 					color: 'success.main',
 				});
 			}
+
+			// Delete option for verified users (except self)
+			actions.push({
+				label: 'Delete User',
+				icon: <Delete fontSize="small" />,
+				onClick: () => onDeleteUser(user),
+				color: 'error.main',
+				hidden: user.public_id === currentUser?.public_id,
+			});
 		}
 
 		return actions;
 	};
 
-	const renderRow = (user: TeamMember) => (
-		<TableRow key={user.public_id} sx={{ '&:last-child td': { borderBottom: 0 } }}>
-			<TableCell>
-				<Typography variant="body2" sx={{ fontWeight: 500 }}>
-					{user.full_name || '-'}
-				</Typography>
-			</TableCell>
-			<TableCell>
-				<Typography variant="body2" color="text.secondary">
-					{user.email}
-				</Typography>
-			</TableCell>
-			{!isMedium && (
+	const headerActions = selectedIds.length > 0 ? (
+		<Button
+			variant="contained"
+			color="error"
+			startIcon={<Delete />}
+			onClick={onBulkDelete}
+			size="small"
+			sx={{
+				textTransform: 'none',
+				fontWeight: 600,
+				borderRadius: 2,
+				boxShadow: 'none',
+				'&:hover': {
+					bgcolor: 'error.dark',
+					boxShadow: 'none'
+				}
+			}}
+		>
+			Delete Selected ({selectedIds.length})
+		</Button>
+	) : null;
+
+	const renderRow = (user: TeamMember) => {
+		const isSelected = selectedIds.includes(user.public_id);
+		const isSelf = user.public_id === currentUser?.public_id;
+		return (
+			<TableRow
+				key={user.public_id}
+				selected={isSelected}
+				sx={{ '&:last-child td': { borderBottom: 0 } }}
+			>
+				<TableCell padding="checkbox">
+					<Checkbox
+						checked={isSelected}
+						onChange={(e) => onSelectId(user.public_id, e.target.checked)}
+						disabled={isSelf}
+						size="small"
+					/>
+				</TableCell>
 				<TableCell>
-					<Typography variant="body2" color="text.secondary">
-						{user.username}
+					<Typography variant="body2" sx={{ fontWeight: 500 }}>
+						{user.full_name || '-'}
 					</Typography>
 				</TableCell>
-			)}
-			{!isMobile && (
+				<TableCell>
+					<Typography variant="body2" color="text.secondary">
+						{user.email}
+					</Typography>
+				</TableCell>
+				{!isMedium && (
+					<TableCell>
+						<Typography variant="body2" color="text.secondary">
+							{user.username}
+						</Typography>
+					</TableCell>
+				)}
+				{!isMobile && (
+					<TableCell>
+						<Chip
+							label={user.role.toUpperCase()}
+							color={getRoleColor(user.role)}
+							size="small"
+							variant="outlined"
+							sx={{ fontWeight: 600, borderRadius: 0, fontSize: '0.75rem' }}
+						/>
+					</TableCell>
+				)}
 				<TableCell>
 					<Chip
-						label={user.role.toUpperCase()}
-						color={getRoleColor(user.role)}
+						label={user.is_active ? 'Active' : 'Inactive'}
 						size="small"
 						variant="outlined"
-						sx={{ fontWeight: 600, borderRadius: 0, fontSize: '0.75rem' }}
+						sx={{
+							fontWeight: 700,
+							borderRadius: '2px',
+							fontSize: '0.7rem',
+							minWidth: 70,
+							height: 24,
+							textTransform: 'none',
+							bgcolor: user.is_active ? '#f3f9ff' : '#f8f9fa',
+							color: user.is_active ? '#0073bb' : '#5c7080',
+							borderColor: user.is_active ? '#0073bb' : '#d5dbdb',
+							'& .MuiChip-label': { px: 1.5 }
+						}}
 					/>
 				</TableCell>
-			)}
-			<TableCell>
-				<Chip
-					label={user.is_active ? 'Active' : 'Inactive'}
-					size="small"
-					variant="outlined"
-					sx={{
-						fontWeight: 700,
-						borderRadius: '2px',
-						fontSize: '0.7rem',
-						minWidth: 70,
-						height: 24,
-						textTransform: 'none',
-						bgcolor: user.is_active ? '#f3f9ff' : '#f8f9fa',
-						color: user.is_active ? '#0073bb' : '#5c7080',
-						borderColor: user.is_active ? '#0073bb' : '#d5dbdb',
-						'& .MuiChip-label': { px: 1.5 }
-					}}
-				/>
-			</TableCell>
-			{!isMobile && (
-				<TableCell>
-					<Chip
-						label={user.is_verified ? 'Accepted' : 'Pending'}
-						size="small"
-						variant="outlined"
-						color={user.is_verified ? 'success' : 'default'}
-						sx={{ fontWeight: 600, fontSize: '0.7rem' }}
-					/>
+				{!isMobile && (
+					<TableCell>
+						<Chip
+							label={user.is_verified ? 'Accepted' : 'Pending'}
+							size="small"
+							variant="outlined"
+							color={user.is_verified ? 'success' : 'default'}
+							sx={{ fontWeight: 600, fontSize: '0.7rem' }}
+						/>
+					</TableCell>
+				)}
+				<TableCell align="right">
+					<DataTableActions item={user} actions={getRowActions(user)} />
 				</TableCell>
-			)}
-			<TableCell align="right">
-				<DataTableActions item={user} actions={getRowActions(user)} />
-			</TableCell>
-		</TableRow>
-	);
+			</TableRow>
+		);
+	};
 
 	return (
 		<DataTable<TeamMember>
@@ -176,6 +243,9 @@ const UserTable: React.FC<UserTableProps> = ({
 			createButtonText="Invite Teammate"
 			renderRow={renderRow}
 			emptyMessage="No teammates yet — invite your first one."
+			numSelected={selectedIds.length}
+			onSelectAllClick={(e) => onSelectAll(e.target.checked)}
+			headerActions={headerActions}
 		/>
 	);
 };

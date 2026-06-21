@@ -1,13 +1,19 @@
 // frontend\src\services\userService.ts
 // Org Admin "Team" management — invite/list/deactivate/reactivate users in the caller's own org.
 import api from './api';
-import type { TeamMember, InviteUserRequest } from '../models/user';
+import type { TeamMember, InviteUserRequest, UpdateUserRequest } from '../models/user';
 import type { PaginatedResponse } from '../models/common';
 
 const userService = {
 	// Invite a teammate into the current user's organization (POST /users/invite)
 	inviteUser: async (payload: InviteUserRequest): Promise<TeamMember> => {
 		const response = await api.post<TeamMember>('/users/invite', payload);
+		return response.data;
+	},
+
+	// Update teammate details (PUT /users/{public_id})
+	updateUser: async (publicId: string, payload: UpdateUserRequest): Promise<TeamMember> => {
+		const response = await api.put<TeamMember>(`/users/${publicId}`, payload);
 		return response.data;
 	},
 
@@ -31,7 +37,7 @@ const userService = {
 		return response.data;
 	},
 
-	// Delete/cancel a pending user invite
+	// Delete a user (verified or unverified)
 	deleteUser: async (publicId: string): Promise<TeamMember> => {
 		const response = await api.delete<TeamMember>(`/users/${publicId}`);
 		return response.data;
@@ -40,6 +46,14 @@ const userService = {
 	// Resend an invite link to an unverified user
 	resendInvite: async (publicId: string): Promise<TeamMember> => {
 		const response = await api.post<TeamMember>(`/users/${publicId}/resend-invite`);
+		return response.data;
+	},
+
+	// Bulk delete users
+	bulkDeleteUsers: async (publicIds: string[]): Promise<{ message: string; deleted_count: number }> => {
+		const response = await api.post<{ message: string; deleted_count: number }>('/users/bulk-delete', {
+			public_ids: publicIds,
+		});
 		return response.data;
 	},
 };

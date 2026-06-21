@@ -31,3 +31,22 @@ class UserListItem(BaseModel):
     role: str
     is_active: bool
     is_verified: bool
+
+
+class UpdateUserRequest(BaseModel):
+    """Admin updates user details"""
+    username: Optional[str] = Field(
+        None,
+        min_length=3,
+        max_length=100,
+        pattern=r"^[a-z0-9_]+$",
+        description="Lowercase alphanumeric username (underscores allowed)",
+    )
+    email: Optional[EmailStr] = Field(None, description="Updated email address")
+    full_name: Optional[str] = Field(None, min_length=2, max_length=255)
+    role: Optional[UserRole] = Field(None, description="Role to assign")
+
+
+class BulkDeleteUsersRequest(BaseModel):
+    """Admin deletes multiple users"""
+    public_ids: list[uuid.UUID]

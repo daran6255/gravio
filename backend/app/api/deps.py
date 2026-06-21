@@ -184,7 +184,7 @@ def require_roles(allowed_roles: list):
         # Convert allowed_roles to list of strings for comparison
         allowed_role_values = [role.value if isinstance(role, UserRole) else role for role in allowed_roles]
         
-        if current_user.role.value not in allowed_role_values:
+        if not current_user.is_superuser and current_user.role.value not in allowed_role_values:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access denied. Required roles: {', '.join(allowed_role_values)}"

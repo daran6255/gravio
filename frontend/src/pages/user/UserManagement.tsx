@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Box, Container, Button } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
-import { useAppDispatch } from '../../store/hooks';
-import { deactivateTeamUser, reactivateTeamUser, deleteTeamUser, resendTeamUserInvite } from '../../store/slices/userSlice';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { deactivateTeamUser, reactivateTeamUser, deleteTeamUser, resendTeamUserInvite, bulkDeleteTeamUsers } from '../../store/slices/userSlice';
 import useToast from '../../hooks/useToast';
 import type { TeamMember } from '../../models/user';
 
@@ -14,24 +14,35 @@ import {
 
 /**
  * Team Management — invite teammates into your organization, see who's accepted
- * their invite, and deactivate/reactivate access. (Route stays /users for now.)
+ * their invite, edit user details, delete accounts, and deactivate/reactivate access.
  */
 const UserManagement: React.FC = () => {
 	const dispatch = useAppDispatch();
+	const { user: currentUser } = useAppSelector((state) => state.auth);
+	const { users } = useAppSelector((state) => state.users);
 	const toast = useToast();
 
 	const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+	const [editDialogOpen, setEditDialogOpen] = useState(false);
 	const [statusDialogOpen, setStatusDialogOpen] = useState(false);
 	const [statusAction, setStatusAction] = useState<'deactivate' | 'reactivate'>('deactivate');
 	const [targetUser, setTargetUser] = useState<TeamMember | null>(null);
 	const [statusLoading, setStatusLoading] = useState(false);
 	const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 	const [cancelLoading, setCancelLoading] = useState(false);
+	const [selectedIds, setSelectedIds] = useState<string[]>([]);
+	const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+	const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 	const [refreshKey, setRefreshKey] = useState(0);
 
 	const refreshData = () => setRefreshKey((prev) => prev + 1);
 
 	const handleAddUser = () => setInviteDialogOpen(true);
+
+	const handleEditUser = (user: TeamMember) => {
+		setTargetUser(user);
+		setEditDialogOpen(true);
+	};
 
 	const handleDeactivateUser = (user: TeamMember) => {
 		setTargetUser(user);
@@ -75,24 +86,65 @@ const UserManagement: React.FC = () => {
 		}
 	};
 
-	const handleCancelInvite = (user: TeamMember) => {
+	const handleDeleteUser = (user: TeamMember) => {
 		setTargetUser(user);
 		setCancelDialogOpen(true);
 	};
 
-	const handleConfirmCancelInvite = async () => {
+	const handleConfirmDeleteUser = async () => {
 		if (!targetUser) return;
 		setCancelLoading(true);
 		try {
 			await dispatch(deleteTeamUser(targetUser.public_id)).unwrap();
-			toast.success(`Invitation for ${targetUser.full_name || targetUser.username} has been cancelled.`);
+			const msg = targetUser.is_verified
+				? `User ${targetUser.full_name || targetUser.username} has been deleted.`
+				: `Invitation for ${targetUser.full_name || targetUser.username} has been cancelled.`;
+			toast.success(msg);
 			refreshData();
 		} catch (error: any) {
-			toast.error(error || 'Failed to cancel invite');
+			toast.error(error || 'Failed to delete user');
 		} finally {
 			setCancelLoading(false);
 			setCancelDialogOpen(false);
 			setTargetUser(null);
+		}
+	};
+
+	const handleSelectId = (id: string, checked: boolean) => {
+		if (checked) {
+			setSelectedIds((prev) => [...prev, id]);
+		} else {
+			setSelectedIds((prev) => prev.filter((item) => item !== id));
+		}
+	};
+
+	const handleSelectAll = (checked: boolean) => {
+		if (checked) {
+			const nonSelfIds = users
+				.filter((u) => u.public_id !== currentUser?.public_id)
+				.map((u) => u.public_id);
+			setSelectedIds(nonSelfIds);
+		} else {
+			setSelectedIds([]);
+		}
+	};
+
+	const handleBulkDelete = () => {
+		setBulkDeleteDialogOpen(true);
+	};
+
+	const handleConfirmBulkDelete = async () => {
+		setBulkDeleteLoading(true);
+		try {
+			await dispatch(bulkDeleteTeamUsers(selectedIds)).unwrap();
+			toast.success(`Successfully deleted ${selectedIds.length} user${selectedIds.length === 1 ? '' : 's'}.`);
+			setSelectedIds([]);
+			refreshData();
+		} catch (error: any) {
+			toast.error(error || 'Failed to delete selected users');
+		} finally {
+			setBulkDeleteLoading(false);
+			setBulkDeleteDialogOpen(false);
 		}
 	};
 
@@ -128,10 +180,15 @@ const UserManagement: React.FC = () => {
 				<UserManagementTable
 					refreshKey={refreshKey}
 					onAddUser={handleAddUser}
+					onEditUser={handleEditUser}
 					onDeactivateUser={handleDeactivateUser}
 					onReactivateUser={handleReactivateUser}
 					onResendInvite={handleResendInvite}
-					onCancelInvite={handleCancelInvite}
+					onDeleteUser={handleDeleteUser}
+					selectedIds={selectedIds}
+					onSelectId={handleSelectId}
+					onSelectAll={handleSelectAll}
+					onBulkDelete={handleBulkDelete}
 				/>
 
 				<UserManagementModals
@@ -142,6 +199,13 @@ const UserManagement: React.FC = () => {
 						toast.success(message);
 						setInviteDialogOpen(false);
 					}}
+					editDialogOpen={editDialogOpen}
+					onCloseEditDialog={() => { setEditDialogOpen(false); setTargetUser(null); }}
+					onSuccessEdit={(message) => {
+						refreshData();
+						toast.success(message);
+						setEditDialogOpen(false);
+					}}
 					statusDialogOpen={statusDialogOpen}
 					statusAction={statusAction}
 					targetUser={targetUser}
@@ -151,7 +215,12 @@ const UserManagement: React.FC = () => {
 					cancelDialogOpen={cancelDialogOpen}
 					cancelLoading={cancelLoading}
 					onCancelInviteClose={() => { setCancelDialogOpen(false); setTargetUser(null); }}
-					onConfirmCancelInvite={handleConfirmCancelInvite}
+					onConfirmCancelInvite={handleConfirmDeleteUser}
+					bulkDeleteDialogOpen={bulkDeleteDialogOpen}
+					bulkDeleteLoading={bulkDeleteLoading}
+					selectedCount={selectedIds.length}
+					onBulkDeleteClose={() => setBulkDeleteDialogOpen(false)}
+					onBulkDeleteConfirm={handleConfirmBulkDelete}
 				/>
 
 			</Container>

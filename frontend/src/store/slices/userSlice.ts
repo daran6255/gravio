@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import userService from '../../services/userService';
-import type { TeamMember, InviteUserRequest } from '../../models/user';
+import type { TeamMember, InviteUserRequest, UpdateUserRequest } from '../../models/user';
 import type { PaginatedResponse } from '../../models/common';
 
 interface UserState {
@@ -44,6 +44,17 @@ export const inviteTeamUser = createAsyncThunk(
 	}
 );
 
+export const updateTeamUser = createAsyncThunk(
+	'users/update',
+	async (data: { publicId: string; payload: UpdateUserRequest }, { rejectWithValue }) => {
+		try {
+			return await userService.updateUser(data.publicId, data.payload);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to update user');
+		}
+	}
+);
+
 export const deactivateTeamUser = createAsyncThunk(
 	'users/deactivate',
 	async (publicId: string, { rejectWithValue }) => {
@@ -73,6 +84,17 @@ export const deleteTeamUser = createAsyncThunk(
 			return await userService.deleteUser(publicId);
 		} catch (error: any) {
 			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to delete user invite');
+		}
+	}
+);
+
+export const bulkDeleteTeamUsers = createAsyncThunk(
+	'users/bulkDelete',
+	async (publicIds: string[], { rejectWithValue }) => {
+		try {
+			return await userService.bulkDeleteUsers(publicIds);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to bulk delete users');
 		}
 	}
 );
@@ -127,6 +149,10 @@ const userSlice = createSlice({
 				state.loading = false;
 				state.error = action.payload;
 			})
+			.addCase(updateTeamUser.fulfilled, (state, action: PayloadAction<TeamMember>) => {
+				const idx = state.users.findIndex((u) => u.public_id === action.payload.public_id);
+				if (idx !== -1) state.users[idx] = action.payload;
+			})
 			.addCase(deactivateTeamUser.fulfilled, (state, action: PayloadAction<TeamMember>) => {
 				const idx = state.users.findIndex((u) => u.public_id === action.payload.public_id);
 				if (idx !== -1) state.users[idx] = action.payload;
@@ -146,6 +172,14 @@ const userSlice = createSlice({
 				state.total = Math.max(0, state.total - 1);
 			})
 			.addCase(deleteTeamUser.rejected, (state, action: PayloadAction<any>) => {
+				state.error = action.payload;
+			})
+			.addCase(bulkDeleteTeamUsers.fulfilled, (state, action: PayloadAction<any, string, { arg: string[] }>) => {
+				const deletedIds = action.meta.arg;
+				state.users = state.users.filter((u) => !deletedIds.includes(u.public_id));
+				state.total = Math.max(0, state.total - deletedIds.length);
+			})
+			.addCase(bulkDeleteTeamUsers.rejected, (state, action: PayloadAction<any>) => {
 				state.error = action.payload;
 			})
 			.addCase(resendTeamUserInvite.fulfilled, (state, action: PayloadAction<TeamMember>) => {

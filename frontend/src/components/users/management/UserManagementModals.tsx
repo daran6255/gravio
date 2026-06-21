@@ -1,5 +1,6 @@
 import React from 'react';
 import InviteUserDialog from '../InviteUserDialog';
+import EditUserDialog from '../EditUserDialog';
 import { ConfirmationDialog } from '../../common/dialogbox';
 import type { TeamMember } from '../../../models/user';
 
@@ -7,6 +8,10 @@ interface UserManagementModalsProps {
 	inviteDialogOpen: boolean;
 	onCloseInviteDialog: () => void;
 	onSuccessInvite: (message: string) => void;
+
+	editDialogOpen: boolean;
+	onCloseEditDialog: () => void;
+	onSuccessEdit: (message: string) => void;
 
 	statusDialogOpen: boolean;
 	statusAction: 'deactivate' | 'reactivate';
@@ -19,12 +24,21 @@ interface UserManagementModalsProps {
 	cancelLoading: boolean;
 	onCancelInviteClose: () => void;
 	onConfirmCancelInvite: () => void;
+
+	bulkDeleteDialogOpen: boolean;
+	bulkDeleteLoading: boolean;
+	selectedCount: number;
+	onBulkDeleteClose: () => void;
+	onBulkDeleteConfirm: () => void;
 }
 
 const UserManagementModals: React.FC<UserManagementModalsProps> = ({
 	inviteDialogOpen,
 	onCloseInviteDialog,
 	onSuccessInvite,
+	editDialogOpen,
+	onCloseEditDialog,
+	onSuccessEdit,
 	statusDialogOpen,
 	statusAction,
 	targetUser,
@@ -35,6 +49,11 @@ const UserManagementModals: React.FC<UserManagementModalsProps> = ({
 	cancelLoading,
 	onCancelInviteClose,
 	onConfirmCancelInvite,
+	bulkDeleteDialogOpen,
+	bulkDeleteLoading,
+	selectedCount,
+	onBulkDeleteClose,
+	onBulkDeleteConfirm,
 }) => {
 	const isDeactivate = statusAction === 'deactivate';
 
@@ -44,6 +63,13 @@ const UserManagementModals: React.FC<UserManagementModalsProps> = ({
 				open={inviteDialogOpen}
 				onClose={onCloseInviteDialog}
 				onSuccess={onSuccessInvite}
+			/>
+
+			<EditUserDialog
+				open={editDialogOpen}
+				user={targetUser}
+				onClose={onCloseEditDialog}
+				onSuccess={onSuccessEdit}
 			/>
 
 			<ConfirmationDialog
@@ -67,13 +93,30 @@ const UserManagementModals: React.FC<UserManagementModalsProps> = ({
 				open={cancelDialogOpen}
 				onClose={onCancelInviteClose}
 				onConfirm={onConfirmCancelInvite}
-				title="Cancel Invite"
-				subtitle="Remove pending team member invite"
-				message={`Are you sure you want to cancel the invitation for ${targetUser?.full_name || targetUser?.username}? This will remove them from the system, and their invite link will no longer work.`}
-				confirmLabel="Cancel Invite"
-				cancelLabel="Keep Invite"
+				title={targetUser?.is_verified ? 'Delete User' : 'Cancel Invite'}
+				subtitle={targetUser?.is_verified ? 'Permanently delete user account' : 'Remove pending team member invite'}
+				message={
+					targetUser?.is_verified
+						? `Are you sure you want to delete the user account for ${targetUser?.full_name || targetUser?.username}? This action is permanent, will revoke all their active sessions, and cannot be undone.`
+						: `Are you sure you want to cancel the invitation for ${targetUser?.full_name || targetUser?.username}? This will remove them from the system, and their invite link will no longer work.`
+				}
+				confirmLabel={targetUser?.is_verified ? 'Delete User' : 'Cancel Invite'}
+				cancelLabel={targetUser?.is_verified ? 'Cancel' : 'Keep Invite'}
 				severity="error"
 				loading={cancelLoading}
+			/>
+
+			<ConfirmationDialog
+				open={bulkDeleteDialogOpen}
+				onClose={onBulkDeleteClose}
+				onConfirm={onBulkDeleteConfirm}
+				title="Delete Selected Users"
+				subtitle="Permanently delete user accounts"
+				message={`Are you sure you want to delete the ${selectedCount} selected user${selectedCount === 1 ? '' : 's'}? This action is permanent, will revoke all their active sessions, and cannot be undone.`}
+				confirmLabel={`Delete User${selectedCount === 1 ? '' : 's'}`}
+				cancelLabel="Cancel"
+				severity="error"
+				loading={bulkDeleteLoading}
 			/>
 		</>
 	);
