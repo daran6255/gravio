@@ -3,5 +3,4 @@ export * from './OrgStatsPanel';
 export * from './OrgDetailDrawer';
 export * from './ExtendTrialDialog';
 export * from './TenantDistribution';
-export * from './AdminQuickActions';
 

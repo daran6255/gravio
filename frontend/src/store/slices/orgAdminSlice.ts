@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import orgAdminService from '../../services/orgAdminService';
 import userService from '../../services/userService';
+import { updateTeamUser } from './userSlice';
 import type { Organization } from '../../models/auth';
 import type { CreateOrganizationRequest, CreateOrganizationResponse, AdminStats } from '../../models/admin';
 import type { PaginatedResponse } from '../../models/common';
@@ -229,6 +230,12 @@ const orgAdminSlice = createSlice({
 				state.selectedOrgUsers = state.selectedOrgUsers.filter((u) => u.public_id !== action.payload.public_id);
 			})
 			.addCase(resendOrgUserInvite.fulfilled, (state, action: PayloadAction<TeamMember>) => {
+				const idx = state.selectedOrgUsers.findIndex((u) => u.public_id === action.payload.public_id);
+				if (idx !== -1) {
+					state.selectedOrgUsers[idx] = action.payload;
+				}
+			})
+			.addCase(updateTeamUser.fulfilled, (state, action: PayloadAction<TeamMember>) => {
 				const idx = state.selectedOrgUsers.findIndex((u) => u.public_id === action.payload.public_id);
 				if (idx !== -1) {
 					state.selectedOrgUsers[idx] = action.payload;

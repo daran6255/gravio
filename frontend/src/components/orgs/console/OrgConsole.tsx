@@ -5,10 +5,9 @@ import type { Organization } from '../../../models/auth';
 import { useOrgConsole } from '../hooks/useOrgConsole';
 import { OrgStatsPanel } from './OrgStatsPanel';
 import { TenantDistribution } from './TenantDistribution';
-// import { AdminQuickActions } from './AdminQuickActions';
 import { OrgDetailDrawer } from './OrgDetailDrawer';
 import { ExtendTrialDialog } from './ExtendTrialDialog';
-import { CreateOrgDialog } from '../forms';
+import { CreateOrgDialog, EditOrgUserDialog } from '../forms';
 import PageHeader from '../../common/page-header';
 import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../common/table';
 import { ConfirmationDialog } from '../../common/dialogbox';
@@ -36,7 +35,7 @@ export const OrgConsole: React.FC = () => {
 		userDialogOpen, setUserDialogOpen, userActionType, targetUser, userActionLoading,
 		fetchData, handleOpenExtendTrial, handleConfirmExtendTrial, handleDeactivate,
 		handleReactivate, handleConfirmStatusChange, handleUserAction, handleConfirmUserAction,
-		searchTerm, setSearchTerm
+		searchTerm, setSearchTerm, editOrgUserOpen, setEditOrgUserOpen
 	} = useOrgConsole();
 
 	const getRowActions = (org: Organization): TableMenuAction<Organization>[] => {
@@ -256,7 +255,6 @@ export const OrgConsole: React.FC = () => {
 					{/* Left Sidebar Panel (1:3 ratio, i.e., 3 sizes out of 12) */}
 					<Grid size={{ xs: 12, md: 3 }} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 						<TenantDistribution stats={stats} />
-						{/* <AdminQuickActions onCreateClick={() => setCreateDialogOpen(true)} /> */}
 					</Grid>
 
 					{/* Right Console Table (1:3 ratio, i.e., 9 sizes out of 12) */}
@@ -311,6 +309,18 @@ export const OrgConsole: React.FC = () => {
 					message={userActionType === 'deactivate' ? `Deactivate ${targetUser?.full_name || targetUser?.username}? They will not be able to log in to the platform.` : (userActionType === 'reactivate' ? `Reactivate ${targetUser?.full_name || targetUser?.username}? They will regain access to their account.` : `Are you sure you want to permanently delete ${targetUser?.full_name || targetUser?.username}? This action is irreversible.`)}
 					confirmLabel={userActionType === 'deactivate' ? 'Deactivate' : (userActionType === 'reactivate' ? 'Reactivate' : 'Delete')}
 					cancelLabel="Cancel" severity={userActionType === 'deactivate' || userActionType === 'delete' ? 'warning' : 'success'} loading={userActionLoading}
+				/>
+
+				<EditOrgUserDialog
+					open={editOrgUserOpen}
+					user={targetUser}
+					onClose={() => setEditOrgUserOpen(false)}
+					onSuccess={() => {
+						fetchData();
+						if (selectedOrg) {
+							handleSelectOrg(selectedOrg);
+						}
+					}}
 				/>
 			</Container>
 		</Box>

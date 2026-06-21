@@ -2,9 +2,10 @@ import React from 'react';
 import {
 	Box, Divider, Card, CardContent, Grid,
 	TextField, InputAdornment, List, ListItem, ListItemAvatar, ListItemText,
-	Avatar, Tooltip, Skeleton, Typography, IconButton, useTheme
+	Avatar, Skeleton, Typography, IconButton, useTheme, Tabs, Tab,
+	Menu, MenuItem, ListItemIcon
 } from '@mui/material';
-import { Search, MailOutline, Block, CheckCircleOutline, DeleteOutline } from '@mui/icons-material';
+import { Search, MailOutline, Block, CheckCircleOutline, DeleteOutline, EditOutlined, MoreVert } from '@mui/icons-material';
 import type { Organization } from '../../../models/auth';
 import type { TeamMember } from '../../../models/user';
 import StatusBadge from '../../common/badge/StatusBadge';
@@ -18,7 +19,7 @@ interface OrgDetailDrawerProps {
 	selectedOrgUsersError: string | null;
 	userSearchTerm: string;
 	setUserSearchTerm: (term: string) => void;
-	onUserAction: (user: TeamMember, type: 'deactivate' | 'reactivate' | 'delete' | 'resendInvite') => void;
+	onUserAction: (user: TeamMember, type: 'deactivate' | 'reactivate' | 'delete' | 'resendInvite' | 'edit') => void;
 	renderRemainingPeriod: (org: Organization) => React.ReactNode;
 }
 
@@ -36,6 +37,26 @@ export const OrgDetailDrawer: React.FC<OrgDetailDrawerProps> = ({
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 
+	const [tabValue, setTabValue] = React.useState<number>(0);
+	const [menuAnchor, setMenuAnchor] = React.useState<null | HTMLElement>(null);
+	const [menuUser, setMenuUser] = React.useState<TeamMember | null>(null);
+
+	const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, user: TeamMember) => {
+		setMenuAnchor(event.currentTarget);
+		setMenuUser(user);
+	};
+
+	const handleMenuClose = () => {
+		setMenuAnchor(null);
+		setMenuUser(null);
+	};
+
+	React.useEffect(() => {
+		if (selectedOrg) {
+			setTabValue(0);
+		}
+	}, [selectedOrg]);
+
 	const filteredUsers = selectedOrgUsers.filter(user => {
 		const searchLower = userSearchTerm.toLowerCase();
 		return (
@@ -45,6 +66,26 @@ export const OrgDetailDrawer: React.FC<OrgDetailDrawerProps> = ({
 			user.role.toLowerCase().includes(searchLower)
 		);
 	});
+
+	const activeUsersCount = selectedOrgUsers.filter(u => u.is_active && u.is_verified).length;
+	const inactiveUsersCount = selectedOrgUsers.filter(u => !u.is_active).length;
+	const pendingUsersCount = selectedOrgUsers.filter(u => u.is_active && !u.is_verified).length;
+
+	const getTabFilteredUsers = () => {
+		switch (tabValue) {
+			case 1: // Active
+				return filteredUsers.filter(u => u.is_active && u.is_verified);
+			case 2: // Inactive
+				return filteredUsers.filter(u => !u.is_active);
+			case 3: // Pending Verification
+				return filteredUsers.filter(u => u.is_active && !u.is_verified);
+			case 0: // All
+			default:
+				return filteredUsers;
+		}
+	};
+
+	const tabFilteredUsers = getTabFilteredUsers();
 
 	const headerExtra = selectedOrg ? (
 		<Box display="flex" alignItems="center" gap={1.5} sx={{ mt: 1 }}>
@@ -126,6 +167,39 @@ export const OrgDetailDrawer: React.FC<OrgDetailDrawerProps> = ({
 						/>
 					</Box>
 
+					<Tabs
+						value={tabValue}
+						onChange={(_e, val) => setTabValue(val)}
+						variant="scrollable"
+						scrollButtons="auto"
+						sx={{
+							mb: 2.5,
+							borderBottom: `1px solid ${theme.palette.divider}`,
+							'& .MuiTabs-indicator': {
+								height: 3,
+								borderRadius: '3px 3px 0 0',
+								background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
+							},
+							'& .MuiTab-root': {
+								textTransform: 'none',
+								fontWeight: 700,
+								minWidth: 'auto',
+								px: 2,
+								py: 1,
+								fontSize: '0.8rem',
+								color: 'text.secondary',
+								'&.Mui-selected': {
+									color: 'primary.main',
+								}
+							}
+						}}
+					>
+						<Tab label={`All (${selectedOrgUsers.length})`} />
+						<Tab label={`Active (${activeUsersCount})`} />
+						<Tab label={`Inactive (${inactiveUsersCount})`} />
+						<Tab label={`Pending (${pendingUsersCount})`} />
+					</Tabs>
+
 					<Box sx={{ flexGrow: 1, overflowY: 'auto', pr: 0.5 }}>
 						{selectedOrgUsersLoading ? (
 							<List>
@@ -138,11 +212,27 @@ export const OrgDetailDrawer: React.FC<OrgDetailDrawerProps> = ({
 							</List>
 						) : selectedOrgUsersError ? (
 							<Box py={4} textAlign="center"><Typography variant="body2" color="error">{selectedOrgUsersError}</Typography></Box>
-						) : filteredUsers.length === 0 ? (
-							<Box py={4} textAlign="center"><Typography variant="body2" color="text.secondary">{userSearchTerm ? 'No matching users found.' : 'No users in this organization.'}</Typography></Box>
+						) : tabFilteredUsers.length === 0 ? (
+							<Box py={4} textAlign="center">
+								<Typography variant="body2" color="text.secondary">
+									{userSearchTerm 
+										? 'No matching users found.' 
+										: (tabValue === 1 
+											? 'No active users in this organization.' 
+											: (tabValue === 2 
+												? 'No inactive users in this organization.' 
+												: (tabValue === 3 
+													? 'No pending verification users in this organization.' 
+													: 'No users in this organization.'
+												)
+											)
+										)
+									}
+								</Typography>
+							</Box>
 						) : (
 							<List sx={{ p: 0 }}>
-								{filteredUsers.map((user) => (
+								{tabFilteredUsers.map((user) => (
 									<ListItem
 										key={user.public_id} 
 										sx={{ 
@@ -160,55 +250,16 @@ export const OrgDetailDrawer: React.FC<OrgDetailDrawerProps> = ({
 											} 
 										}}
 										secondaryAction={
-											<Box display="flex" gap={0.5}>
-												{!user.is_verified && user.is_active && (
-													<Tooltip title="Resend Invite">
-														<IconButton 
-															size="small" 
-															color="primary" 
-															onClick={() => onUserAction(user, 'resendInvite')}
-															sx={{ 
-																bgcolor: isDark ? 'rgba(139, 124, 246, 0.1)' : 'rgba(139, 124, 246, 0.05)',
-																'&:hover': { bgcolor: isDark ? 'rgba(139, 124, 246, 0.2)' : 'rgba(139, 124, 246, 0.1)' }
-															}}
-														>
-															<MailOutline fontSize="small" />
-														</IconButton>
-													</Tooltip>
-												)}
-												<Tooltip title={user.is_active ? 'Deactivate User' : 'Reactivate User'}>
-													<IconButton 
-														size="small" 
-														color={user.is_active ? 'error' : 'success'} 
-														onClick={() => onUserAction(user, user.is_active ? 'deactivate' : 'reactivate')}
-														sx={{ 
-															bgcolor: user.is_active 
-																? (isDark ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.05)')
-																: (isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)'),
-															'&:hover': { 
-																bgcolor: user.is_active 
-																	? (isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.1)')
-																	: (isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.1)')
-															}
-														}}
-													>
-														{user.is_active ? <Block fontSize="small" /> : <CheckCircleOutline fontSize="small" />}
-													</IconButton>
-												</Tooltip>
-												<Tooltip title="Delete User">
-													<IconButton 
-														size="small" 
-														color="error" 
-														onClick={() => onUserAction(user, 'delete')}
-														sx={{ 
-															bgcolor: isDark ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.05)',
-															'&:hover': { bgcolor: isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.1)' }
-														}}
-													>
-														<DeleteOutline fontSize="small" />
-													</IconButton>
-												</Tooltip>
-											</Box>
+											<IconButton 
+												size="small" 
+												onClick={(e) => handleMenuOpen(e, user)}
+												sx={{ 
+													color: 'text.secondary',
+													'&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' }
+												}}
+											>
+												<MoreVert fontSize="small" />
+											</IconButton>
 										}
 									>
 										<ListItemAvatar sx={{ minWidth: 52 }}>
@@ -275,6 +326,91 @@ export const OrgDetailDrawer: React.FC<OrgDetailDrawerProps> = ({
 							</List>
 						)}
 					</Box>
+
+					{/* Actions Context Menu */}
+					<Menu
+						anchorEl={menuAnchor}
+						open={Boolean(menuAnchor)}
+						onClose={handleMenuClose}
+						PaperProps={{
+							sx: {
+								borderRadius: '12px',
+								minWidth: 160,
+								border: `1px solid ${theme.palette.divider}`,
+								background: isDark ? 'rgba(20, 24, 34, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+								backdropFilter: 'blur(10px)',
+								boxShadow: isDark 
+									? '0 10px 30px rgba(0,0,0,0.4)' 
+									: '0 10px 30px rgba(139, 124, 246, 0.08)',
+								'& .MuiMenuItem-root': {
+									fontSize: '0.85rem',
+									fontWeight: 600,
+									py: 1,
+									px: 2,
+									display: 'flex',
+									alignItems: 'center',
+									gap: 1.5,
+									transition: 'all 0.15s ease',
+									'&:hover': {
+										bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(139, 124, 246, 0.04)',
+									}
+								}
+							}
+						}}
+						anchorOrigin={{
+							vertical: 'bottom',
+							horizontal: 'right',
+						}}
+						transformOrigin={{
+							vertical: 'top',
+							horizontal: 'right',
+						}}
+					>
+						{menuUser && (
+							<>
+								<MenuItem onClick={() => { onUserAction(menuUser, 'edit'); handleMenuClose(); }}>
+									<ListItemIcon sx={{ minWidth: 'auto', color: 'primary.main' }}>
+										<EditOutlined fontSize="small" />
+									</ListItemIcon>
+									<ListItemText primary="Edit User" />
+								</MenuItem>
+
+								{!menuUser.is_verified && menuUser.is_active && (
+									<MenuItem onClick={() => { onUserAction(menuUser, 'resendInvite'); handleMenuClose(); }}>
+										<ListItemIcon sx={{ minWidth: 'auto', color: 'primary.main' }}>
+											<MailOutline fontSize="small" />
+										</ListItemIcon>
+										<ListItemText primary="Resend Invite" />
+									</MenuItem>
+								)}
+
+								<MenuItem 
+									onClick={() => { 
+										onUserAction(menuUser, menuUser.is_active ? 'deactivate' : 'reactivate'); 
+										handleMenuClose(); 
+									}}
+									sx={{ color: menuUser.is_active ? 'warning.main' : 'success.main' }}
+								>
+									<ListItemIcon sx={{ minWidth: 'auto', color: menuUser.is_active ? 'warning.main' : 'success.main' }}>
+										{menuUser.is_active ? <Block fontSize="small" /> : <CheckCircleOutline fontSize="small" />}
+									</ListItemIcon>
+									<ListItemText primary={menuUser.is_active ? 'Deactivate' : 'Reactivate'} />
+								</MenuItem>
+
+								<Divider sx={{ my: 0.5, opacity: 0.5 }} />
+
+								<MenuItem 
+									onClick={() => { onUserAction(menuUser, 'delete'); handleMenuClose(); }}
+									sx={{ color: 'error.main' }}
+								>
+									<ListItemIcon sx={{ minWidth: 'auto', color: 'error.main' }}>
+										<DeleteOutline fontSize="small" />
+									</ListItemIcon>
+									<ListItemText primary="Delete User" />
+								</MenuItem>
+							</>
+						)}
+					</Menu>
 				</>
 			)}
 		</DetailDrawer>

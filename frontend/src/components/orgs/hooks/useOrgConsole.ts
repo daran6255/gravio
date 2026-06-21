@@ -52,6 +52,7 @@ export const useOrgConsole = () => {
 	const [userActionType, setUserActionType] = useState<'deactivate' | 'reactivate' | 'delete'>('deactivate');
 	const [targetUser, setTargetUser] = useState<TeamMember | null>(null);
 	const [userActionLoading, setUserActionLoading] = useState(false);
+	const [editOrgUserOpen, setEditOrgUserOpen] = useState(false);
 
 	// Organization search state
 	const [searchTerm, setSearchTerm] = useState('');
@@ -145,10 +146,12 @@ export const useOrgConsole = () => {
 		}
 	};
 
-	const handleUserAction = (user: TeamMember, type: 'deactivate' | 'reactivate' | 'delete' | 'resendInvite') => {
+	const handleUserAction = (user: TeamMember, type: 'deactivate' | 'reactivate' | 'delete' | 'resendInvite' | 'edit') => {
 		setTargetUser(user);
 		if (type === 'resendInvite') {
 			handleConfirmUserAction(user, type);
+		} else if (type === 'edit') {
+			setEditOrgUserOpen(true);
 		} else {
 			setUserActionType(type);
 			setUserDialogOpen(true);
@@ -239,6 +242,8 @@ export const useOrgConsole = () => {
 		handleReactivate,
 		handleConfirmStatusChange,
 		handleUserAction,
-		handleConfirmUserAction
+		handleConfirmUserAction,
+		editOrgUserOpen,
+		setEditOrgUserOpen
 	};
 };
