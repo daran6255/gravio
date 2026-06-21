@@ -1,13 +1,14 @@
 import React from 'react';
 import {
-	Box, Drawer, Typography, IconButton, Divider, Card, CardContent, Grid,
+	Box, Divider, Card, CardContent, Grid,
 	TextField, InputAdornment, List, ListItem, ListItemAvatar, ListItemText,
-	Avatar, Tooltip, Skeleton
+	Avatar, Tooltip, Skeleton, Typography, IconButton
 } from '@mui/material';
-import { Close, Search, MailOutline, Block, CheckCircleOutline, DeleteOutline } from '@mui/icons-material';
+import { Search, MailOutline, Block, CheckCircleOutline, DeleteOutline } from '@mui/icons-material';
 import type { Organization } from '../../../models/auth';
 import type { TeamMember } from '../../../models/user';
 import StatusBadge from '../../common/badge/StatusBadge';
+import DetailDrawer from '../../common/drawer/DetailDrawer';
 
 interface OrgDetailDrawerProps {
 	selectedOrg: Organization | null;
@@ -42,31 +43,23 @@ export const OrgDetailDrawer: React.FC<OrgDetailDrawerProps> = ({
 		);
 	});
 
+	const headerExtra = selectedOrg ? (
+		<Box display="flex" alignItems="center" gap={1.5}>
+			<StatusBadge label={(selectedOrg.plan_name || 'FREE').toUpperCase()} status={selectedOrg.plan_name?.toLowerCase() || 'free'} />
+			<StatusBadge label={selectedOrg.is_active !== false ? 'Active' : 'Inactive'} status={selectedOrg.is_active !== false ? 'active' : 'inactive'} />
+		</Box>
+	) : null;
+
 	return (
-		<Drawer
-			anchor="right" open={Boolean(selectedOrg)} onClose={onClose}
-			sx={{
-				'& .MuiDrawer-paper': {
-					width: { xs: '100%', sm: 460 }, boxSizing: 'border-box', p: 3,
-					borderLeft: '1px solid', borderColor: 'divider', boxShadow: '-8px 0px 32px rgba(0, 0, 0, 0.04)'
-				}
-			}}
+		<DetailDrawer
+			open={Boolean(selectedOrg)}
+			onClose={onClose}
+			title={selectedOrg?.name || ''}
+			subtitle={selectedOrg?.location || 'No location specified'}
+			headerExtra={headerExtra}
 		>
 			{selectedOrg && (
-				<Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-					<Box display="flex" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
-						<Box>
-							<Typography variant="h6" sx={{ fontWeight: 700 }}>{selectedOrg.name}</Typography>
-							<Typography variant="caption" color="text.secondary">{selectedOrg.location || 'No location specified'}</Typography>
-						</Box>
-						<IconButton onClick={onClose} size="small"><Close /></IconButton>
-					</Box>
-
-					<Box display="flex" alignItems="center" gap={1.5} sx={{ mb: 3 }}>
-						<StatusBadge label={(selectedOrg.plan_name || 'FREE').toUpperCase()} status={selectedOrg.plan_name?.toLowerCase() || 'free'} />
-						<StatusBadge label={selectedOrg.is_active !== false ? 'Active' : 'Inactive'} status={selectedOrg.is_active !== false ? 'active' : 'inactive'} />
-					</Box>
-
+				<>
 					<Divider sx={{ mb: 3 }} />
 
 					<Card variant="outlined" sx={{ mb: 3, borderRadius: 3, bgcolor: 'background.default', borderColor: 'divider' }}>
@@ -97,7 +90,7 @@ export const OrgDetailDrawer: React.FC<OrgDetailDrawerProps> = ({
 						/>
 					</Box>
 
-					<Box sx={{ flexGrow: 1, overflowY: 'auto', mx: -3, px: 3 }}>
+					<Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
 						{selectedOrgUsersLoading ? (
 							<List>
 								{[1, 2, 3].map((n) => (
@@ -156,9 +149,9 @@ export const OrgDetailDrawer: React.FC<OrgDetailDrawerProps> = ({
 							</List>
 						)}
 					</Box>
-				</Box>
+				</>
 			)}
-		</Drawer>
+		</DetailDrawer>
 	);
 };
 export default OrgDetailDrawer;
