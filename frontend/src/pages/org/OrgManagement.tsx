@@ -5,8 +5,7 @@ import PageHeader from '../../components/common/page-header';
 import {
 	OrgManagementTable,
 	OrgManagementModals,
-	useOrgManagement,
-	OrgConsole
+	useOrgManagement
 } from '../../components/orgs';
 
 /**
@@ -15,7 +14,6 @@ import {
  */
 const OrgManagement: React.FC = () => {
 	const {
-		currentUser,
 		refreshKey,
 		selectedIds,
 		inviteDialogOpen,
@@ -49,10 +47,6 @@ const OrgManagement: React.FC = () => {
 		handleSuccessInvite,
 		handleSuccessEdit,
 	} = useOrgManagement();
-
-	if (currentUser?.is_superuser) {
-		return <OrgConsole />;
-	}
 
 	const headerAction = (
 		<Button

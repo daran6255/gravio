@@ -28,10 +28,15 @@ const ProtectedRoute: React.FC = () => {
 		return <Navigate to="/login" replace />;
 	}
 
+	// Restrict Superadmin-only pages
+	if (location.pathname === '/organizations' && !user?.is_superuser) {
+		return <Navigate to="/dashboard" replace />;
+	}
+
 	// Redirect tenant users if they access a route without the /org/:orgId prefix
 	if (user?.organization?.public_id) {
 		const orgPrefix = `/org/${user.organization.public_id}`;
-		if (!location.pathname.startsWith('/org/')) {
+		if (!location.pathname.startsWith('/org/') && location.pathname !== '/organizations') {
 			const targetPath = location.pathname === '/' ? '/dashboard' : location.pathname;
 			return <Navigate to={`${orgPrefix}${targetPath}${location.search}`} replace />;
 		}

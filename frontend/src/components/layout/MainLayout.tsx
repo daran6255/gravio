@@ -5,12 +5,10 @@ import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 import Breadcrumbs from '../common/breadcrumb/Breadcrumbs';
-import { useAppSelector } from '../../store/hooks';
 
 const MainLayout: React.FC = () => {
 	const location = useLocation();
-	const currentUser = useAppSelector((state) => state.auth.user);
-	const isOrgPage = !!currentUser?.is_superuser && location.pathname.includes('/users');
+	const isOrgPage = location.pathname === '/organizations';
 
 	return (
 		<Box sx={{ display: 'flex', minHeight: '100vh' }}>

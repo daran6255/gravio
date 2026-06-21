@@ -111,7 +111,7 @@ const Sidebar: React.FC = () => {
 	const isActive = (path?: string) => {
 		if (!path) return false;
 		let checkPath = path;
-		if (user?.organization?.public_id && path.startsWith('/') && !path.startsWith('/org/')) {
+		if (user?.organization?.public_id && path.startsWith('/') && !path.startsWith('/org/') && path !== '/organizations') {
 			checkPath = `/org/${user.organization.public_id}${path}`;
 		}
 		if (checkPath.includes('?')) {
@@ -123,7 +123,7 @@ const Sidebar: React.FC = () => {
 
 	const handleNavigate = (path: string) => {
 		let finalPath = path;
-		if (user?.organization?.public_id && path.startsWith('/') && !path.startsWith('/org/')) {
+		if (user?.organization?.public_id && path.startsWith('/') && !path.startsWith('/org/') && path !== '/organizations') {
 			finalPath = `/org/${user.organization.public_id}${path}`;
 		}
 		navigate(finalPath);
