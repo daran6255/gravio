@@ -16,6 +16,14 @@ interface SpinnerProps {
 	size?: number;
 	/** Interval in ms between subtext transitions (default 2500) */
 	subtextInterval?: number;
+	/**
+	 * fullPage — renders the full-screen loading experience:
+	 * dark radial-gradient background, ambient aurora glows, and
+	 * the Gravit wordmark logo above the spinner.
+	 * Use this in AuthInitializer / ProtectedRoute so Phase-1 (index.html)
+	 * and Phase-2 (React) look identical with no jarring flash.
+	 */
+	fullPage?: boolean;
 }
 
 export const Spinner: React.FC<SpinnerProps> = ({
@@ -23,6 +31,7 @@ export const Spinner: React.FC<SpinnerProps> = ({
 	subtext,
 	size = 48,
 	subtextInterval = 2500,
+	fullPage = false,
 }) => {
 	// Build the cycling list: if a custom subtext is provided, use it as the
 	// first message and append the rest of the defaults.
@@ -33,14 +42,11 @@ export const Spinner: React.FC<SpinnerProps> = ({
 	);
 
 	const [currentIndex, setCurrentIndex] = useState(0);
-	const [visible, setVisible] = useState(true); // drives the CSS opacity fade
+	const [visible, setVisible] = useState(true);
 
 	useEffect(() => {
 		const cycle = setInterval(() => {
-			// Fade out
 			setVisible(false);
-
-			// After fade-out duration (400 ms), switch text and fade back in
 			setTimeout(() => {
 				setCurrentIndex((prev) => (prev + 1) % messages.current.length);
 				setVisible(true);
@@ -50,15 +56,19 @@ export const Spinner: React.FC<SpinnerProps> = ({
 		return () => clearInterval(cycle);
 	}, [subtextInterval]);
 
-	return (
+	/** Core spinner content — shared between inline and full-page modes */
+	const content = (
 		<Box
 			sx={{
+				position: 'relative',
 				display: 'flex',
 				flexDirection: 'column',
 				alignItems: 'center',
 				justifyContent: 'center',
+				zIndex: 10,
 			}}
 		>
+			{/* Dual-ring SVG spinner */}
 			<Box
 				component="img"
 				src="/assets/img/spinner/gravit-spinner-G2-dual-ring.svg"
@@ -66,11 +76,12 @@ export const Spinner: React.FC<SpinnerProps> = ({
 				sx={{
 					width: size,
 					height: size,
-					filter: 'drop-shadow(0 0 8px rgba(139, 124, 246, 0.3))',
-					marginBottom: text ? '24px' : 0,
+					filter: 'drop-shadow(0 0 10px rgba(139, 124, 246, 0.35))',
+					marginBottom: text || fullPage ? '24px' : 0,
 				}}
 			/>
 
+			{/* Primary label */}
 			{text && (
 				<Typography
 					variant="caption"
@@ -102,15 +113,74 @@ export const Spinner: React.FC<SpinnerProps> = ({
 					fontWeight: 500,
 					marginTop: text ? '8px' : 0,
 					letterSpacing: '0.05em',
-					minHeight: '16px',          // prevents layout jump during transition
+					minHeight: '16px',
 					textAlign: 'center',
-					maxWidth: '280px',
+					maxWidth: '300px',
 					opacity: visible ? 1 : 0,
 					transition: 'opacity 0.4s ease-in-out',
 				}}
 			>
 				{messages.current[currentIndex]}
 			</Typography>
+		</Box>
+	);
+
+	if (!fullPage) return content;
+
+	/** Full-page wrapper — mirrors the index.html root-loader exactly */
+	return (
+		<Box
+			sx={{
+				position: 'fixed',
+				top: 0,
+				left: 0,
+				width: '100vw',
+				height: '100vh',
+				display: 'flex',
+				flexDirection: 'column',
+				alignItems: 'center',
+				justifyContent: 'center',
+				background: 'radial-gradient(circle at 50% 50%, #0c0f1d 0%, #030407 100%)',
+				zIndex: 9999,
+				overflow: 'hidden',
+			}}
+		>
+			{/* Ambient aurora — top-left */}
+			<Box
+				sx={{
+					position: 'absolute',
+					top: '-20%',
+					left: '-20%',
+					width: '60vw',
+					height: '60vw',
+					borderRadius: '50%',
+					background: 'radial-gradient(circle, rgba(139, 124, 246, 0.08) 0%, rgba(0,0,0,0) 70%)',
+					filter: 'blur(80px)',
+					animation: 'drift 20s infinite alternate ease-in-out',
+					pointerEvents: 'none',
+					'@keyframes drift': {
+						'0%': { transform: 'translate(0, 0) scale(1)' },
+						'100%': { transform: 'translate(10%, 10%) scale(1.1)' },
+					},
+				}}
+			/>
+			{/* Ambient aurora — bottom-right */}
+			<Box
+				sx={{
+					position: 'absolute',
+					bottom: '-20%',
+					right: '-20%',
+					width: '50vw',
+					height: '50vw',
+					borderRadius: '50%',
+					background: 'radial-gradient(circle, rgba(78, 168, 255, 0.06) 0%, rgba(0,0,0,0) 70%)',
+					filter: 'blur(60px)',
+					animation: 'drift 15s infinite alternate-reverse ease-in-out',
+					pointerEvents: 'none',
+				}}
+			/>
+
+			{content}
 		</Box>
 	);
 };

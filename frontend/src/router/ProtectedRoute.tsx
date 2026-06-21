@@ -1,6 +1,5 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { Box } from '@mui/material';
 import { useAppSelector } from '../store/hooks';
 import { Spinner } from '../components/common/spinner';
 
@@ -11,28 +10,11 @@ const ProtectedRoute: React.FC = () => {
 	// Wait for auth initialization before making routing decisions
 	if (!isInitialized) {
 		return (
-			<Box
-				sx={{
-					position: 'fixed',
-					top: 0,
-					left: 0,
-					width: '100vw',
-					height: '100vh',
-					display: 'flex',
-					flexDirection: 'column',
-					alignItems: 'center',
-					justifyContent: 'center',
-					background: 'radial-gradient(circle at 50% 50%, #0c0f1d 0%, #030407 100%)',
-					zIndex: 9999,
-					overflow: 'hidden',
-				}}
-			>
-				<Spinner
-					size={96}
-					text="Initializing Gravit"
-					subtext="Establishing secure console connection..."
-				/>
-			</Box>
+			<Spinner
+				fullPage
+				size={96}
+				text="Initializing Gravit"
+			/>
 		);
 	}
 
