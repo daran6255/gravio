@@ -1,13 +1,17 @@
 import React from 'react';
-import { AppBar, Toolbar, IconButton, Box, Button, Divider, Badge } from '@mui/material';
+import { AppBar, Toolbar, IconButton, Box, Button, Divider, Badge, Tooltip } from '@mui/material';
 import {
 	Menu as MenuIcon,
 	LightMode as LightModeIcon,
 	DarkMode as DarkModeIcon,
 	Notifications as NotificationsIcon,
 	HeadsetMicOutlined as SupportIcon,
+	HourglassEmpty as HourglassIcon,
+	AutoAwesome as PremiumIcon,
+	Warning as WarningIcon,
 } from '@mui/icons-material';
-import { useAppDispatch } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { useNavigate } from 'react-router-dom';
 import { toggleSidebar } from '../../store/slices/uiSlice';
 import { useColorMode } from '../../theme/ThemeContext';
 import GlobalSearch from '../common/GlobalSearch';
@@ -16,7 +20,198 @@ const DRAWER_WIDTH = 260;
 
 const Navbar: React.FC = () => {
 	const dispatch = useAppDispatch();
+	const navigate = useNavigate();
 	const { mode, toggleColorMode } = useColorMode();
+	const user = useAppSelector((state) => state.auth.user);
+
+	// Calculate trial days left
+	const getTrialDaysLeft = (expiryDateStr?: string) => {
+		if (!expiryDateStr) return 0;
+		const expiry = new Date(expiryDateStr);
+		const today = new Date();
+		expiry.setHours(0, 0, 0, 0);
+		today.setHours(0, 0, 0, 0);
+		const diffTime = expiry.getTime() - today.getTime();
+		return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+	};
+
+	// Determine plan text, styles, and icons
+	const renderSubscriptionBadge = () => {
+		if (!user) return null;
+
+		const org = user.organization;
+
+		// If superuser and has no organization, show a premium System Admin badge
+		if (user.is_superuser && !org) {
+			return (
+				<Tooltip title="You are logged in as a System Super Administrator. Click to view settings." arrow>
+					<Button
+						onClick={() => navigate('/settings')}
+						sx={{
+							display: 'flex',
+							alignItems: 'center',
+							textTransform: 'none',
+							fontSize: '0.8125rem',
+							fontWeight: 700,
+							borderRadius: '20px',
+							px: { xs: 1, sm: 2 },
+							py: 0.5,
+							minWidth: 0,
+							mr: 1.5,
+							transition: 'all 0.2s ease-in-out',
+							background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
+							border: 'none',
+							color: '#ffffff',
+							boxShadow: '0 2px 10px rgba(139, 124, 246, 0.3)',
+							'&:hover': {
+								transform: 'translateY(-1px)',
+								boxShadow: '0 4px 14px rgba(139, 124, 246, 0.5)',
+								opacity: 0.95,
+							},
+						}}
+					>
+						<PremiumIcon sx={{ fontSize: '1rem', mr: { xs: 0, sm: 0.5 }, color: '#ffffff' }} />
+						<Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+							Super Admin
+						</Box>
+					</Button>
+				</Tooltip>
+			);
+		}
+
+		if (!org) return null;
+		const status = org.subscription_status || 'trial';
+		const daysLeft = getTrialDaysLeft(org.trial_expires_at);
+
+		let badgeText = '';
+		let tooltipText = '';
+		let icon = null;
+		let badgeStyles: React.CSSProperties = {};
+		let dotColor = '';
+
+		if (status === 'trial') {
+			if (daysLeft < 0) {
+				badgeText = 'Trial Expired';
+				tooltipText = 'Your free trial has expired. Click to upgrade and resume access.';
+				icon = <WarningIcon sx={{ fontSize: '1rem', mr: { xs: 0, sm: 0.5 }, color: '#EF4444' }} />;
+				badgeStyles = {
+					background: mode === 'light' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.15)',
+					border: '1px solid rgba(239, 68, 68, 0.3)',
+					color: '#EF4444',
+				};
+			} else if (daysLeft === 0) {
+				badgeText = 'Expires Today';
+				tooltipText = 'Your free trial expires today! Click here to upgrade.';
+				icon = <WarningIcon sx={{ fontSize: '1rem', mr: { xs: 0, sm: 0.5 }, color: '#F59E0B' }} />;
+				badgeStyles = {
+					background: mode === 'light' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.15)',
+					border: '1px solid rgba(245, 158, 11, 0.3)',
+					color: '#F59E0B',
+				};
+				dotColor = '#F59E0B';
+			} else {
+				badgeText = `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`;
+				tooltipText = `Free Trial: ${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining (Expires ${new Date(org.trial_expires_at!).toLocaleDateString()}). Click to upgrade.`;
+				icon = <HourglassIcon sx={{ fontSize: '1rem', mr: { xs: 0, sm: 0.5 }, color: '#F59E0B' }} />;
+				badgeStyles = {
+					background: mode === 'light' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.15)',
+					border: '1px solid rgba(245, 158, 11, 0.3)',
+					color: '#F59E0B',
+				};
+				dotColor = '#F59E0B';
+			}
+		} else if (status === 'active' || status === 'paid') {
+			const planName = org.plan_name || (org.plan?.name) || 'Pro';
+			badgeText = planName;
+			tooltipText = `Active ${planName} Plan. Click to view billing options.`;
+			icon = <PremiumIcon sx={{ fontSize: '1rem', mr: { xs: 0, sm: 0.5 }, color: '#8B7CF6' }} />;
+			badgeStyles = {
+				background: mode === 'light' ? 'rgba(139, 124, 246, 0.1)' : 'rgba(139, 124, 246, 0.15)',
+				border: '1px solid rgba(139, 124, 246, 0.3)',
+				color: mode === 'light' ? '#7C3AED' : '#A78BFA',
+			};
+		} else if (status === 'expired') {
+			badgeText = 'Expired';
+			tooltipText = 'Your subscription has expired. Click here to renew.';
+			icon = <WarningIcon sx={{ fontSize: '1rem', mr: { xs: 0, sm: 0.5 }, color: '#EF4444' }} />;
+			badgeStyles = {
+				background: mode === 'light' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.15)',
+				border: '1px solid rgba(239, 68, 68, 0.3)',
+				color: '#EF4444',
+			};
+		} else {
+			return null;
+		}
+
+		return (
+			<Tooltip title={tooltipText} arrow>
+				<Button
+					onClick={() => navigate('/billing')}
+					sx={{
+						display: 'flex',
+						alignItems: 'center',
+						textTransform: 'none',
+						fontSize: '0.8125rem',
+						fontWeight: 700,
+						borderRadius: '20px',
+						px: { xs: 1, sm: 2 },
+						py: 0.5,
+						minWidth: 0,
+						mr: 1.5,
+						transition: 'all 0.2s ease-in-out',
+						...badgeStyles,
+						'&:hover': {
+							transform: 'translateY(-1px)',
+							boxShadow: mode === 'light' 
+								? '0 4px 10px rgba(0,0,0,0.05)' 
+								: '0 4px 10px rgba(255,255,255,0.03)',
+							background: badgeStyles.background,
+							opacity: 0.9,
+						},
+					}}
+				>
+					{icon}
+					
+					<Box
+						component="span"
+						sx={{
+							display: { xs: 'none', sm: 'inline-flex' },
+							alignItems: 'center',
+							gap: 0.75
+						}}
+					>
+						{badgeText}
+						{dotColor && (
+							<Box
+								sx={{
+									width: 6,
+									height: 6,
+									borderRadius: '50%',
+									backgroundColor: dotColor,
+									boxShadow: `0 0 6px ${dotColor}`,
+									animation: 'pulseBadgeDot 2s infinite',
+									'@keyframes pulseBadgeDot': {
+										'0%': {
+											transform: 'scale(0.95)',
+											boxShadow: `0 0 0 0 rgba(245, 158, 11, 0.7)`,
+										},
+										'70%': {
+											transform: 'scale(1)',
+											boxShadow: `0 0 0 5px rgba(245, 158, 11, 0)`,
+										},
+										'100%': {
+											transform: 'scale(0.95)',
+											boxShadow: `0 0 0 0 rgba(245, 158, 11, 0)`,
+										},
+									},
+								}}
+							/>
+						)}
+					</Box>
+				</Button>
+			</Tooltip>
+		);
+	};
 
 	return (
 		<AppBar
@@ -66,6 +261,9 @@ const Navbar: React.FC = () => {
 
 				{/* Right Side: Theme Toggle, Notifications, Help, Divider, Action Button */}
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+					{/* Subscription Plan / Trial Badge */}
+					{renderSubscriptionBadge()}
+
 					{/* Theme Mode Toggle */}
 					<IconButton
 						onClick={toggleColorMode}
