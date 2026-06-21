@@ -1,7 +1,8 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { Box, CircularProgress } from '@mui/material';
+import { Box } from '@mui/material';
 import { useAppSelector } from '../store/hooks';
+import { Spinner } from '../components/common/spinner';
 
 const ProtectedRoute: React.FC = () => {
 	const { isAuthenticated, isInitialized, user } = useAppSelector((state) => state.auth);
@@ -12,13 +13,25 @@ const ProtectedRoute: React.FC = () => {
 		return (
 			<Box
 				sx={{
+					position: 'fixed',
+					top: 0,
+					left: 0,
+					width: '100vw',
+					height: '100vh',
 					display: 'flex',
+					flexDirection: 'column',
 					alignItems: 'center',
 					justifyContent: 'center',
-					minHeight: '100vh',
+					background: 'radial-gradient(circle at 50% 50%, #0c0f1d 0%, #030407 100%)',
+					zIndex: 9999,
+					overflow: 'hidden',
 				}}
 			>
-				<CircularProgress />
+				<Spinner
+					size={96}
+					text="Initializing Gravit"
+					subtext="Establishing secure console connection..."
+				/>
 			</Box>
 		);
 	}
