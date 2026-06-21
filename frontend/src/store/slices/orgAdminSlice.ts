@@ -1,8 +1,10 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import orgAdminService from '../../services/orgAdminService';
+import userService from '../../services/userService';
 import type { Organization } from '../../models/auth';
-import type { CreateOrganizationRequest, CreateOrganizationResponse } from '../../models/admin';
+import type { CreateOrganizationRequest, CreateOrganizationResponse, AdminStats } from '../../models/admin';
 import type { PaginatedResponse } from '../../models/common';
+import type { TeamMember } from '../../models/user';
 
 // Deliberately separate from authSlice: authSlice's extendOrganizationTrial assumes the
 // acting user belongs to the org being modified, which is never true for a Super Admin
@@ -14,6 +16,10 @@ interface OrgAdminState {
 	pageSize: number;
 	loading: boolean;
 	error: string | null;
+	stats: AdminStats | null;
+	selectedOrgUsers: TeamMember[];
+	selectedOrgUsersLoading: boolean;
+	selectedOrgUsersError: string | null;
 }
 
 const initialState: OrgAdminState = {
@@ -23,6 +29,10 @@ const initialState: OrgAdminState = {
 	pageSize: 20,
 	loading: false,
 	error: null,
+	stats: null,
+	selectedOrgUsers: [],
+	selectedOrgUsersLoading: false,
+	selectedOrgUsersError: null,
 };
 
 export const fetchOrganizations = createAsyncThunk(
@@ -66,6 +76,72 @@ export const reactivateOrg = createAsyncThunk(
 			return await orgAdminService.reactivateOrganization(publicId);
 		} catch (error: any) {
 			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to reactivate organization');
+		}
+	}
+);
+
+export const fetchAdminStats = createAsyncThunk(
+	'orgAdmin/fetchStats',
+	async (_, { rejectWithValue }) => {
+		try {
+			return await orgAdminService.getAdminStats();
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to fetch platform stats');
+		}
+	}
+);
+
+export const fetchOrgUsers = createAsyncThunk(
+	'orgAdmin/fetchOrgUsers',
+	async (publicId: string, { rejectWithValue }) => {
+		try {
+			return await orgAdminService.getOrganizationUsers(publicId);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to fetch organization users');
+		}
+	}
+);
+
+export const deactivateOrgUser = createAsyncThunk(
+	'orgAdmin/deactivateUser',
+	async (publicId: string, { rejectWithValue }) => {
+		try {
+			return await userService.deactivate(publicId);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to deactivate user');
+		}
+	}
+);
+
+export const reactivateOrgUser = createAsyncThunk(
+	'orgAdmin/reactivateUser',
+	async (publicId: string, { rejectWithValue }) => {
+		try {
+			return await userService.reactivate(publicId);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to reactivate user');
+		}
+	}
+);
+
+export const deleteOrgUser = createAsyncThunk(
+	'orgAdmin/deleteUser',
+	async (publicId: string, { rejectWithValue }) => {
+		try {
+			return await userService.deleteUser(publicId);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to delete user');
+		}
+	}
+);
+
+export const resendOrgUserInvite = createAsyncThunk(
+	'orgAdmin/resendUserInvite',
+	async (publicId: string, { rejectWithValue }) => {
+		try {
+			return await userService.resendInvite(publicId);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to resend invite');
 		}
 	}
 );
@@ -121,6 +197,42 @@ const orgAdminSlice = createSlice({
 			})
 			.addCase(reactivateOrg.rejected, (state, action: PayloadAction<any>) => {
 				state.error = action.payload;
+			})
+			.addCase(fetchAdminStats.fulfilled, (state, action: PayloadAction<AdminStats>) => {
+				state.stats = action.payload;
+			})
+			.addCase(fetchOrgUsers.pending, (state) => {
+				state.selectedOrgUsersLoading = true;
+				state.selectedOrgUsersError = null;
+			})
+			.addCase(fetchOrgUsers.fulfilled, (state, action: PayloadAction<PaginatedResponse<TeamMember>>) => {
+				state.selectedOrgUsersLoading = false;
+				state.selectedOrgUsers = action.payload.items;
+			})
+			.addCase(fetchOrgUsers.rejected, (state, action: PayloadAction<any>) => {
+				state.selectedOrgUsersLoading = false;
+				state.selectedOrgUsersError = action.payload;
+			})
+			.addCase(deactivateOrgUser.fulfilled, (state, action: PayloadAction<TeamMember>) => {
+				const idx = state.selectedOrgUsers.findIndex((u) => u.public_id === action.payload.public_id);
+				if (idx !== -1) {
+					state.selectedOrgUsers[idx] = action.payload;
+				}
+			})
+			.addCase(reactivateOrgUser.fulfilled, (state, action: PayloadAction<TeamMember>) => {
+				const idx = state.selectedOrgUsers.findIndex((u) => u.public_id === action.payload.public_id);
+				if (idx !== -1) {
+					state.selectedOrgUsers[idx] = action.payload;
+				}
+			})
+			.addCase(deleteOrgUser.fulfilled, (state, action: PayloadAction<TeamMember>) => {
+				state.selectedOrgUsers = state.selectedOrgUsers.filter((u) => u.public_id !== action.payload.public_id);
+			})
+			.addCase(resendOrgUserInvite.fulfilled, (state, action: PayloadAction<TeamMember>) => {
+				const idx = state.selectedOrgUsers.findIndex((u) => u.public_id === action.payload.public_id);
+				if (idx !== -1) {
+					state.selectedOrgUsers[idx] = action.payload;
+				}
 			});
 	},
 });

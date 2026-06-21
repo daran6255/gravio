@@ -11,6 +11,7 @@ import {
 	UserManagementTable,
 	UserManagementModals,
 } from '../../components/users';
+import OrganizationsConsole from '../admin/OrganizationsConsole';
 
 /**
  * Team Management — invite teammates into your organization, see who's accepted
@@ -19,6 +20,11 @@ import {
 const UserManagement: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const { user: currentUser } = useAppSelector((state) => state.auth);
+
+	if (currentUser?.is_superuser) {
+		return <OrganizationsConsole />;
+	}
+
 	const { users } = useAppSelector((state) => state.users);
 	const toast = useToast();
 

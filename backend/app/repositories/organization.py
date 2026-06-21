@@ -84,12 +84,16 @@ class OrganizationRepository:
             from datetime import datetime, timezone, timedelta
             now = datetime.now(timezone.utc)
             
+            trial_expires = org.trial_expires_at
+            if trial_expires and trial_expires.tzinfo is None:
+                trial_expires = trial_expires.replace(tzinfo=timezone.utc)
+
             # If expired or invalid dates, extend from current time.
             # Otherwise, extend from existing expiration date.
-            if org.subscription_status == "expired" or not org.trial_expires_at or org.trial_expires_at < now:
+            if org.subscription_status == "expired" or not trial_expires or trial_expires < now:
                 base_time = now
             else:
-                base_time = org.trial_expires_at
+                base_time = trial_expires
                 
             org.trial_expires_at = base_time + timedelta(days=extend_days)
             org.subscription_status = "trial"

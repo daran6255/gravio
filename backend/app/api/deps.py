@@ -119,9 +119,13 @@ async def get_current_user(
                     detail="Your organization's account has been deactivated. Please contact support."
                 )
 
+            trial_expires = org.trial_expires_at
+            if trial_expires and trial_expires.tzinfo is None:
+                trial_expires = trial_expires.replace(tzinfo=timezone.utc)
+
             now = datetime.now(timezone.utc)
             if org.subscription_status == "expired" or (
-                org.subscription_status == "trial" and org.trial_expires_at and org.trial_expires_at < now
+                org.subscription_status == "trial" and trial_expires and trial_expires < now
             ):
                 if org.subscription_status == "trial":
                     org.subscription_status = "expired"

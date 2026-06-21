@@ -38,7 +38,7 @@ export const topNavigation: NavigationItem[] = [
 	},
 	{
 		label: 'Organizations',
-		path: '/admin/organizations',
+		path: '/users',
 		icon: OrgIcon,
 		requiresSuperuser: true,
 	},

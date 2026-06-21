@@ -20,3 +20,10 @@ export interface CreateOrganizationResponse {
 	organization: Organization;
 	admin_user: User;
 }
+
+export interface AdminStats {
+	total_organizations: number;
+	active_trials: number;
+	total_users: number;
+	avg_users_per_org: number;
+}

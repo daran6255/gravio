@@ -99,3 +99,43 @@ async def list_organizations(
 ) -> tuple[list[Organization], int]:
     """List organizations for the Super Admin console, paginated and optionally searched."""
     return await OrganizationRepository.list_all(db, page=page, page_size=page_size, search=search)
+
+
+async def get_admin_stats(db: AsyncSession) -> dict:
+    """Calculate platform-wide statistics for the Super Admin dashboard."""
+    from sqlalchemy import func, select
+    from datetime import datetime, timezone
+
+    # 1. Total Organizations
+    total_orgs_query = select(func.count(Organization.id))
+    total_orgs_res = await db.execute(total_orgs_query)
+    total_organizations = total_orgs_res.scalar_one()
+
+    # 2. Active Trials
+    now = datetime.now(timezone.utc)
+    active_trials_query = select(func.count(Organization.id)).where(
+        Organization.subscription_status == "trial",
+        Organization.trial_expires_at > now
+    )
+    active_trials_res = await db.execute(active_trials_query)
+    active_trials = active_trials_res.scalar_one()
+
+    # 3. Total Users across all organizations
+    total_users_query = select(func.count(User.id)).where(
+        User.organization_id.isnot(None)
+    )
+    total_users_res = await db.execute(total_users_query)
+    total_users = total_users_res.scalar_one()
+
+    # 4. Average Seat Density
+    if total_organizations > 0:
+        avg_users_per_org = round(total_users / total_organizations, 1)
+    else:
+        avg_users_per_org = 0.0
+
+    return {
+        "total_organizations": total_organizations,
+        "active_trials": active_trials,
+        "total_users": total_users,
+        "avg_users_per_org": avg_users_per_org,
+    }

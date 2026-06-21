@@ -3,7 +3,6 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Login, { Register, VerifyEmail, AcceptInvite } from '../pages/auth';
 import Dashboard from '../pages/dashboard';
 import UserManagement from '../pages/user/UserManagement';
-import OrganizationsConsole from '../pages/admin/OrganizationsConsole';
 import ProtectedRoute from './ProtectedRoute';
 import MainLayout from '../components/layout/MainLayout';
 import SuccessPage from '../pages/common/SuccessPage';
@@ -29,7 +28,6 @@ const AppRouter: React.FC = () => {
 					<Route path="/" element={<Navigate to="/dashboard" replace />} />
 					<Route path="dashboard" element={<Dashboard />} />
 					<Route path="users" element={<UserManagement />} />
-					<Route path="admin/organizations" element={<OrganizationsConsole />} />
 					<Route path="billing" element={<BillingSettings />} />
 					
 					{/* Prefixed Tenant Routes */}

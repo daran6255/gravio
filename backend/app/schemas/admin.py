@@ -64,3 +64,11 @@ class CreateOrganizationResponse(BaseModel):
     message: str
     organization: OrgPublic
     admin_user: UserPublic
+
+
+class AdminStatsResponse(BaseModel):
+    """Platform metrics for Super Admin dashboard"""
+    total_organizations: int
+    active_trials: int
+    total_users: int
+    avg_users_per_org: float

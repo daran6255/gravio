@@ -8,16 +8,19 @@ from app.core.database import get_db
 from app.api.deps import get_current_superuser
 from app.models.user import User
 from app.repositories.organization import OrganizationRepository
+from app.repositories.user import UserRepository
 from app.schemas.admin import (
     CreateOrganizationRequest,
     CreateOrganizationResponse,
     OrganizationListItem,
     TrialExtensionRequest,
     TrialExtensionResponse,
+    AdminStatsResponse,
 )
 from app.schemas.common import PaginatedResponse
 from app.schemas.onboarding import OrgPublic, UserPublic
-from app.services.admin import create_organization, list_organizations
+from app.schemas.user_management import UserListItem
+from app.services.admin import create_organization, list_organizations, get_admin_stats
 from app.middleware.exceptions import NotFoundError
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -160,3 +163,44 @@ async def extend_organization_trial(
     await db.refresh(updated_org)
 
     return TrialExtensionResponse.model_validate(updated_org)
+
+
+@router.get(
+    "/stats",
+    response_model=AdminStatsResponse,
+    summary="Get platform metrics (Super Admin)",
+)
+async def get_platform_stats(
+    current_user: User = Depends(get_current_superuser),
+    db: AsyncSession = Depends(get_db),
+) -> AdminStatsResponse:
+    stats = await get_admin_stats(db)
+    return AdminStatsResponse(**stats)
+
+
+@router.get(
+    "/organizations/{public_id}/users",
+    response_model=PaginatedResponse[UserListItem],
+    summary="List users of a specific organization (Super Admin)",
+)
+async def list_organization_users_endpoint(
+    public_id: uuid.UUID,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(100, ge=1, le=100),
+    current_user: User = Depends(get_current_superuser),
+    db: AsyncSession = Depends(get_db),
+) -> PaginatedResponse[UserListItem]:
+    org = await OrganizationRepository.get_by_public_id(db, public_id)
+    if not org:
+        raise NotFoundError(f"Organization with ID '{public_id}' not found.")
+
+    items, total = await UserRepository.list_by_organization(
+        db, org.id, page=page, page_size=page_size
+    )
+
+    return PaginatedResponse[UserListItem](
+        items=[UserListItem.model_validate(u) for u in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
