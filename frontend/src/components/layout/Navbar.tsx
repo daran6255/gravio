@@ -5,8 +5,7 @@ import {
 	LightMode as LightModeIcon,
 	DarkMode as DarkModeIcon,
 	Notifications as NotificationsIcon,
-	HelpOutline as HelpOutlineIcon,
-	Add as PlusIcon
+	HeadsetMicOutlined as SupportIcon,
 } from '@mui/icons-material';
 import { useAppDispatch } from '../../store/hooks';
 import { toggleSidebar } from '../../store/slices/uiSlice';
@@ -89,18 +88,6 @@ const Navbar: React.FC = () => {
 						</Badge>
 					</IconButton>
 
-					{/* Help Icon */}
-					<IconButton
-						color="inherit"
-						sx={{
-							color: mode === 'light' ? '#64748b' : '#94A3B8',
-							display: { xs: 'none', sm: 'inline-flex' } // Hide on mobile
-						}}
-						aria-label="help documentation"
-					>
-						<HelpOutlineIcon />
-					</IconButton>
-
 					{/* Vertical Line Divider */}
 					<Divider
 						orientation="vertical"
@@ -109,32 +96,37 @@ const Navbar: React.FC = () => {
 							mx: { xs: 1, sm: 2 },
 							my: 1.5,
 							borderColor: mode === 'light' ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)',
-							display: { xs: 'none', sm: 'block' } // Hide on mobile
+							display: { xs: 'none', sm: 'block' }
 						}}
 					/>
 
-					{/* Primary Action Button */}
+					{/* Help & Support Button */}
 					<Button
 						variant="contained"
+						aria-label="Help and support"
 						sx={{
-							borderRadius: 2,
-							fontWeight: 600,
+							borderRadius: '10px',
+							fontWeight: 700,
 							textTransform: 'none',
-							bgcolor: '#8B7CF6',
-							color: '#ffffff',
-							px: { xs: 1.5, sm: 2 },
-							py: 0.75,
+							fontSize: '0.8125rem',
+							px: { xs: 1.5, sm: 2.5 },
+							py: 0.85,
 							minWidth: 0,
-							boxShadow: 'none',
+							color: '#ffffff',
+							background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
+							boxShadow: '0 4px 14px 0 rgba(139, 124, 246, 0.4)',
+							border: 'none',
+							transition: 'all 0.2s ease',
 							'&:hover': {
-								bgcolor: '#6052d9',
-								boxShadow: 'none'
+								background: 'linear-gradient(135deg, #9C8FFF 0%, #7062E9 100%)',
+								boxShadow: '0 6px 20px 0 rgba(139, 124, 246, 0.6)',
+								transform: 'translateY(-1px)',
 							}
 						}}
 					>
-						<PlusIcon sx={{ mr: { xs: 0, sm: 1 }, fontSize: '1.15rem' }} />
+						<SupportIcon sx={{ mr: { xs: 0, sm: 0.75 }, fontSize: '1.1rem' }} />
 						<Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-							{mode === 'light' ? 'Create New' : 'Deploy'}
+							Help & Support
 						</Box>
 					</Button>
 				</Box>
