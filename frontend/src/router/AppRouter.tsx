@@ -2,7 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login, { Register, VerifyEmail, AcceptInvite } from '../pages/auth';
 import Dashboard from '../pages/dashboard';
-import UserManagement from '../pages/user/UserManagement';
+import OrgManagement from '../pages/org/OrgManagement';
 import ProtectedRoute from './ProtectedRoute';
 import MainLayout from '../components/layout/MainLayout';
 import SuccessPage from '../pages/common/SuccessPage';
@@ -27,12 +27,12 @@ const AppRouter: React.FC = () => {
 				<Route element={<MainLayout />}>
 					<Route path="/" element={<Navigate to="/dashboard" replace />} />
 					<Route path="dashboard" element={<Dashboard />} />
-					<Route path="users" element={<UserManagement />} />
+					<Route path="users" element={<OrgManagement />} />
 					<Route path="billing" element={<BillingSettings />} />
 					
 					{/* Prefixed Tenant Routes */}
 					<Route path="org/:orgId/dashboard" element={<Dashboard />} />
-					<Route path="org/:orgId/users" element={<UserManagement />} />
+					<Route path="org/:orgId/users" element={<OrgManagement />} />
 					<Route path="org/:orgId/billing" element={<BillingSettings />} />
 				</Route>
 			</Route>

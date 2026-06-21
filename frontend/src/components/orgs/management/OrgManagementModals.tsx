@@ -1,9 +1,9 @@
 import React from 'react';
-import { InviteUserDialog, EditUserDialog } from '../forms';
+import { InviteOrgUserDialog, EditOrgUserDialog } from '../forms';
 import { ConfirmationDialog } from '../../common/dialogbox';
 import type { TeamMember } from '../../../models/user';
 
-interface UserManagementModalsProps {
+interface OrgManagementModalsProps {
 	inviteDialogOpen: boolean;
 	onCloseInviteDialog: () => void;
 	onSuccessInvite: (message: string) => void;
@@ -31,7 +31,7 @@ interface UserManagementModalsProps {
 	onBulkDeleteConfirm: () => void;
 }
 
-const UserManagementModals: React.FC<UserManagementModalsProps> = ({
+export const OrgManagementModals: React.FC<OrgManagementModalsProps> = ({
 	inviteDialogOpen,
 	onCloseInviteDialog,
 	onSuccessInvite,
@@ -58,13 +58,13 @@ const UserManagementModals: React.FC<UserManagementModalsProps> = ({
 
 	return (
 		<>
-			<InviteUserDialog
+			<InviteOrgUserDialog
 				open={inviteDialogOpen}
 				onClose={onCloseInviteDialog}
 				onSuccess={onSuccessInvite}
 			/>
 
-			<EditUserDialog
+			<EditOrgUserDialog
 				open={editDialogOpen}
 				user={targetUser}
 				onClose={onCloseEditDialog}
@@ -121,4 +121,4 @@ const UserManagementModals: React.FC<UserManagementModalsProps> = ({
 	);
 };
 
-export default UserManagementModals;
+export default OrgManagementModals;

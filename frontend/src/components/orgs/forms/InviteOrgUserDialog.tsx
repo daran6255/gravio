@@ -5,7 +5,7 @@ import { useAppDispatch } from '../../../store/hooks';
 import { inviteTeamUser } from '../../../store/slices/userSlice';
 import { USER_ROLES, type UserRole } from '../../../models/user';
 
-interface InviteUserDialogProps {
+interface InviteOrgUserDialogProps {
 	open: boolean;
 	onClose: () => void;
 	onSuccess: (message: string) => void;
@@ -13,11 +13,7 @@ interface InviteUserDialogProps {
 
 const initialForm = { username: '', email: '', full_name: '', role: 'developer' as UserRole };
 
-/**
- * Single-step invite form — no password is ever collected here. The invitee sets
- * their own password via the emailed "Accept Invite" link (POST /auth/accept-invite).
- */
-export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({ open, onClose, onSuccess }) => {
+export const InviteOrgUserDialog: React.FC<InviteOrgUserDialogProps> = ({ open, onClose, onSuccess }) => {
 	const dispatch = useAppDispatch();
 	const [formData, setFormData] = useState(initialForm);
 	const [loading, setLoading] = useState(false);
@@ -68,39 +64,20 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({ open, onClos
 						We'll email an invite link. They'll set their own password to activate the account.
 					</Typography>
 					<TextField
-						required
-						fullWidth
-						label="Full Name"
-						value={formData.full_name}
-						onChange={(e) => handleChange('full_name', e.target.value)}
-						disabled={loading}
+						required fullWidth label="Full Name" value={formData.full_name}
+						onChange={(e) => handleChange('full_name', e.target.value)} disabled={loading}
 					/>
 					<TextField
-						required
-						fullWidth
-						label="Username"
-						helperText="Lowercase letters, numbers, and underscores only."
-						value={formData.username}
-						onChange={(e) => handleChange('username', e.target.value.toLowerCase())}
-						disabled={loading}
+						required fullWidth label="Username" helperText="Lowercase letters, numbers, and underscores only."
+						value={formData.username} onChange={(e) => handleChange('username', e.target.value.toLowerCase())} disabled={loading}
 					/>
 					<TextField
-						required
-						fullWidth
-						type="email"
-						label="Email Address"
-						value={formData.email}
-						onChange={(e) => handleChange('email', e.target.value)}
-						disabled={loading}
+						required fullWidth type="email" label="Email Address" value={formData.email}
+						onChange={(e) => handleChange('email', e.target.value)} disabled={loading}
 					/>
 					<TextField
-						required
-						select
-						fullWidth
-						label="Role"
-						value={formData.role}
-						onChange={(e) => handleChange('role', e.target.value)}
-						disabled={loading}
+						required select fullWidth label="Role" value={formData.role}
+						onChange={(e) => handleChange('role', e.target.value)} disabled={loading}
 					>
 						{USER_ROLES.filter((r) => r !== 'admin').map((role) => (
 							<MenuItem key={role} value={role}>
@@ -115,25 +92,16 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({ open, onClos
 
 	return (
 		<Dialog
-			open={open}
-			onClose={onClose}
-			maxWidth="sm"
-			fullWidth
+			open={open} onClose={onClose} maxWidth="sm" fullWidth
 			PaperProps={{ sx: { borderRadius: 0, boxShadow: 'none', bgcolor: 'transparent' } }}
 		>
 			<EnterpriseForm
-				title="Invite Teammate"
-				subtitle="Add a new member to your organization"
-				mode="create"
-				steps={steps}
-				onSave={handleSubmit}
-				onCancel={onClose}
-				isSubmitting={loading}
-				saveButtonText="Send Invite"
-				error={error}
+				title="Invite Teammate" subtitle="Add a new member to your organization" mode="create"
+				steps={steps} onSave={handleSubmit} onCancel={onClose} isSubmitting={loading}
+				saveButtonText="Send Invite" error={error}
 			/>
 		</Dialog>
 	);
 };
 
-export default InviteUserDialog;
+export default InviteOrgUserDialog;

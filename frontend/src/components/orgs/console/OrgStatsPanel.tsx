@@ -49,28 +49,16 @@ export const OrgStatsPanel: React.FC<OrgStatsPanelProps> = ({ stats }) => {
 				<Grid size={{ xs: 12, sm: 6, md: 3 }} key={idx}>
 					<Card
 						sx={{
-							background: card.bg,
-							border: card.border,
-							boxShadow: '0 4px 20px 0 rgba(0,0,0,0.01)',
-							borderRadius: 4,
+							background: card.bg, border: card.border, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.01)', borderRadius: 4,
 							transition: 'transform 0.2s, box-shadow 0.2s',
-							'&:hover': {
-								transform: 'translateY(-2px)',
-								boxShadow: '0 12px 30px 0 rgba(0,0,0,0.04)',
-							}
+							'&:hover': { transform: 'translateY(-2px)', boxShadow: '0 12px 30px 0 rgba(0,0,0,0.04)' }
 						}}
 					>
 						<CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, '&:last-child': { pb: 3 } }}>
 							<Box>
-								<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 1.1 }}>
-									{card.title}
-								</Typography>
-								<Typography variant="h4" sx={{ fontWeight: 700, mt: 1, mb: 0.5 }}>
-									{card.value}
-								</Typography>
-								<Typography variant="caption" color="text.secondary">
-									{card.subtitle}
-								</Typography>
+								<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 1.1 }}>{card.title}</Typography>
+								<Typography variant="h4" sx={{ fontWeight: 700, mt: 1, mb: 0.5 }}>{card.value}</Typography>
+								<Typography variant="caption" color="text.secondary">{card.subtitle}</Typography>
 							</Box>
 							<Box sx={{ p: 1.5, borderRadius: 3, bgcolor: 'background.paper', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
 								{card.icon}
@@ -82,3 +70,4 @@ export const OrgStatsPanel: React.FC<OrgStatsPanelProps> = ({ stats }) => {
 		</Grid>
 	);
 };
+export default OrgStatsPanel;

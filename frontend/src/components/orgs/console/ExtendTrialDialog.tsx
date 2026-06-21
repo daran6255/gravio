@@ -29,22 +29,12 @@ export const ExtendTrialDialog: React.FC<ExtendTrialDialogProps> = ({
 					Extend the trial or free period for <strong>{targetOrg?.name}</strong>. This resets the status to active/trial.
 				</Typography>
 				<TextField
-					autoFocus
-					margin="dense"
-					id="days"
-					label="Number of Days"
-					type="number"
-					fullWidth
-					variant="outlined"
-					value={extendDays}
-					onChange={(e) => setExtendDays(e.target.value)}
-					inputProps={{ min: 1 }}
+					autoFocus margin="dense" id="days" label="Number of Days" type="number" fullWidth variant="outlined"
+					value={extendDays} onChange={(e) => setExtendDays(e.target.value)} inputProps={{ min: 1 }}
 				/>
 			</DialogContent>
 			<DialogActions sx={{ px: 3, pb: 3 }}>
-				<Button onClick={onClose} color="inherit">
-					Cancel
-				</Button>
+				<Button onClick={onClose} color="inherit">Cancel</Button>
 				<Button onClick={onConfirm} variant="contained" disabled={extendLoading}>
 					{extendLoading ? 'Extending...' : 'Extend'}
 				</Button>

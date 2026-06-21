@@ -4,7 +4,7 @@ import { EnterpriseForm, type FormStep } from '../../common/form';
 import { useAppDispatch } from '../../../store/hooks';
 import { createOrganization } from '../../../store/slices/orgAdminSlice';
 
-interface CreateOrganizationDialogProps {
+interface CreateOrgDialogProps {
 	open: boolean;
 	onClose: () => void;
 	onSuccess: (message: string) => void;
@@ -22,7 +22,7 @@ const initialForm = {
  * Provisions a new org + its first (invite-based) admin. No password is collected —
  * the admin sets one via the emailed Accept Invite link, same as Org Admin invites.
  */
-export const CreateOrganizationDialog: React.FC<CreateOrganizationDialogProps> = ({ open, onClose, onSuccess }) => {
+export const CreateOrgDialog: React.FC<CreateOrgDialogProps> = ({ open, onClose, onSuccess }) => {
 	const dispatch = useAppDispatch();
 	const [formData, setFormData] = useState(initialForm);
 	const [loading, setLoading] = useState(false);
@@ -84,20 +84,12 @@ export const CreateOrganizationDialog: React.FC<CreateOrganizationDialogProps> =
 			content: (
 				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 					<TextField
-						required
-						fullWidth
-						label="Organization Name"
-						value={formData.orgName}
-						onChange={(e) => handleChange('orgName', e.target.value)}
-						disabled={loading}
+						required fullWidth label="Organization Name" value={formData.orgName}
+						onChange={(e) => handleChange('orgName', e.target.value)} disabled={loading}
 					/>
 					<TextField
-						fullWidth
-						label="Location"
-						placeholder="e.g. Austin, TX"
-						value={formData.orgLocation}
-						onChange={(e) => handleChange('orgLocation', e.target.value)}
-						disabled={loading}
+						fullWidth label="Location" placeholder="e.g. Austin, TX" value={formData.orgLocation}
+						onChange={(e) => handleChange('orgLocation', e.target.value)} disabled={loading}
 					/>
 
 					<Divider sx={{ my: 1 }} />
@@ -106,30 +98,16 @@ export const CreateOrganizationDialog: React.FC<CreateOrganizationDialogProps> =
 					</Typography>
 
 					<TextField
-						required
-						fullWidth
-						label="Admin Full Name"
-						value={formData.adminFullName}
-						onChange={(e) => handleChange('adminFullName', e.target.value)}
-						disabled={loading}
+						required fullWidth label="Admin Full Name" value={formData.adminFullName}
+						onChange={(e) => handleChange('adminFullName', e.target.value)} disabled={loading}
 					/>
 					<TextField
-						required
-						fullWidth
-						label="Admin Username"
-						helperText="Lowercase letters, numbers, and underscores only."
-						value={formData.adminUsername}
-						onChange={(e) => handleChange('adminUsername', e.target.value.toLowerCase())}
-						disabled={loading}
+						required fullWidth label="Admin Username" helperText="Lowercase letters, numbers, and underscores only."
+						value={formData.adminUsername} onChange={(e) => handleChange('adminUsername', e.target.value.toLowerCase())} disabled={loading}
 					/>
 					<TextField
-						required
-						fullWidth
-						type="email"
-						label="Admin Email"
-						value={formData.adminEmail}
-						onChange={(e) => handleChange('adminEmail', e.target.value)}
-						disabled={loading}
+						required fullWidth type="email" label="Admin Email" value={formData.adminEmail}
+						onChange={(e) => handleChange('adminEmail', e.target.value)} disabled={loading}
 					/>
 				</Box>
 			),
@@ -138,25 +116,16 @@ export const CreateOrganizationDialog: React.FC<CreateOrganizationDialogProps> =
 
 	return (
 		<Dialog
-			open={open}
-			onClose={onClose}
-			maxWidth="sm"
-			fullWidth
+			open={open} onClose={onClose} maxWidth="sm" fullWidth
 			PaperProps={{ sx: { borderRadius: 0, boxShadow: 'none', bgcolor: 'transparent' } }}
 		>
 			<EnterpriseForm
-				title="New Organization"
-				subtitle="Provision a tenant organization and its first admin"
-				mode="create"
-				steps={steps}
-				onSave={handleSubmit}
-				onCancel={onClose}
-				isSubmitting={loading}
-				saveButtonText="Create Organization"
-				error={error}
+				title="New Organization" subtitle="Provision a tenant organization and its first admin" mode="create"
+				steps={steps} onSave={handleSubmit} onCancel={onClose} isSubmitting={loading}
+				saveButtonText="Create Organization" error={error}
 			/>
 		</Dialog>
 	);
 };
 
-export default CreateOrganizationDialog;
+export default CreateOrgDialog;

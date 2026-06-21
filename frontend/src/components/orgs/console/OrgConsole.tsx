@@ -2,11 +2,11 @@ import React from 'react';
 import { Box, Container, Button, TableRow, TableCell, Typography, LinearProgress } from '@mui/material';
 import { Add as AddIcon, Block, CheckCircleOutline, CalendarToday } from '@mui/icons-material';
 import type { Organization } from '../../../models/auth';
-import { useOrganizationsConsole } from '../hooks/useOrganizationsConsole';
+import { useOrgConsole } from '../hooks/useOrgConsole';
 import { OrgStatsPanel } from './OrgStatsPanel';
 import { OrgDetailDrawer } from './OrgDetailDrawer';
 import { ExtendTrialDialog } from './ExtendTrialDialog';
-import { CreateOrganizationDialog } from '../forms';
+import { CreateOrgDialog } from '../forms';
 import PageHeader from '../../common/page-header';
 import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../common/table';
 import { ConfirmationDialog } from '../../common/dialogbox';
@@ -21,7 +21,7 @@ const columns: ColumnDefinition<Organization>[] = [
 	{ id: 'actions', label: 'Actions', sortable: false, align: 'right' },
 ];
 
-export const OrganizationsConsole: React.FC = () => {
+export const OrgConsole: React.FC = () => {
 	const {
 		organizations, loading, total, stats, selectedOrgUsers, selectedOrgUsersLoading,
 		selectedOrgUsersError, page, setPage, rowsPerPage, setRowsPerPage, createDialogOpen,
@@ -31,15 +31,13 @@ export const OrganizationsConsole: React.FC = () => {
 		userDialogOpen, setUserDialogOpen, userActionType, targetUser, userActionLoading,
 		fetchData, handleOpenExtendTrial, handleConfirmExtendTrial, handleDeactivate,
 		handleReactivate, handleConfirmStatusChange, handleUserAction, handleConfirmUserAction
-	} = useOrganizationsConsole();
+	} = useOrgConsole();
 
 	const getRowActions = (org: Organization): TableMenuAction<Organization>[] => {
 		const actions: TableMenuAction<Organization>[] = [
 			{
-				label: 'Extend Trial',
-				icon: <CalendarToday fontSize="small" />,
-				onClick: () => handleOpenExtendTrial(org),
-				color: 'primary.main',
+				label: 'Extend Trial', icon: <CalendarToday fontSize="small" />,
+				onClick: () => handleOpenExtendTrial(org), color: 'primary.main',
 			}
 		];
 		if (org.is_active !== false) {
@@ -163,7 +161,7 @@ export const OrganizationsConsole: React.FC = () => {
 					renderRemainingPeriod={renderRemainingPeriod}
 				/>
 
-				<CreateOrganizationDialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} onSuccess={fetchData} />
+				<CreateOrgDialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} onSuccess={fetchData} />
 
 				<ExtendTrialDialog
 					open={extendTrialOpen} onClose={() => { setExtendTrialOpen(false); }} onConfirm={handleConfirmExtendTrial}
@@ -191,4 +189,4 @@ export const OrganizationsConsole: React.FC = () => {
 	);
 };
 
-export default OrganizationsConsole;
+export default OrgConsole;

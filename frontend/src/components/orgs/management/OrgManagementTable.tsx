@@ -1,9 +1,9 @@
 import React from 'react';
 import { Box } from '@mui/material';
-import UserTable from '../table/UserTable';
+import OrgUserTable from '../table/OrgUserTable';
 import type { TeamMember } from '../../../models/user';
 
-interface UserManagementTableProps {
+interface OrgManagementTableProps {
 	refreshKey: number;
 	onAddUser: () => void;
 	onEditUser: (user: TeamMember) => void;
@@ -17,7 +17,7 @@ interface UserManagementTableProps {
 	onBulkDelete: () => void;
 }
 
-const UserManagementTable: React.FC<UserManagementTableProps> = ({
+export const OrgManagementTable: React.FC<OrgManagementTableProps> = ({
 	refreshKey,
 	onAddUser,
 	onEditUser,
@@ -32,7 +32,7 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
 }) => {
 	return (
 		<Box>
-			<UserTable
+			<OrgUserTable
 				refreshKey={refreshKey}
 				onAddUser={onAddUser}
 				onEditUser={onEditUser}
@@ -49,4 +49,4 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
 	);
 };
 
-export default UserManagementTable;
+export default OrgManagementTable;

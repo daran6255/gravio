@@ -5,14 +5,14 @@ import { useAppDispatch } from '../../../store/hooks';
 import { updateTeamUser } from '../../../store/slices/userSlice';
 import { USER_ROLES, type UserRole, type TeamMember } from '../../../models/user';
 
-interface EditUserDialogProps {
+interface EditOrgUserDialogProps {
 	open: boolean;
 	user: TeamMember | null;
 	onClose: () => void;
 	onSuccess: (message: string) => void;
 }
 
-export const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, user, onClose, onSuccess }) => {
+export const EditOrgUserDialog: React.FC<EditOrgUserDialogProps> = ({ open, user, onClose, onSuccess }) => {
 	const dispatch = useAppDispatch();
 	const [formData, setFormData] = useState({ username: '', email: '', full_name: '', role: 'developer' as UserRole });
 	const [loading, setLoading] = useState(false);
@@ -66,39 +66,20 @@ export const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, user, onCl
 			content: (
 				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 					<TextField
-						required
-						fullWidth
-						label="Full Name"
-						value={formData.full_name}
-						onChange={(e) => handleChange('full_name', e.target.value)}
-						disabled={loading}
+						required fullWidth label="Full Name" value={formData.full_name}
+						onChange={(e) => handleChange('full_name', e.target.value)} disabled={loading}
 					/>
 					<TextField
-						required
-						fullWidth
-						label="Username"
-						helperText="Lowercase letters, numbers, and underscores only."
-						value={formData.username}
-						onChange={(e) => handleChange('username', e.target.value.toLowerCase())}
-						disabled={loading}
+						required fullWidth label="Username" helperText="Lowercase letters, numbers, and underscores only."
+						value={formData.username} onChange={(e) => handleChange('username', e.target.value.toLowerCase())} disabled={loading}
 					/>
 					<TextField
-						required
-						fullWidth
-						type="email"
-						label="Email Address"
-						value={formData.email}
-						onChange={(e) => handleChange('email', e.target.value)}
-						disabled={loading}
+						required fullWidth type="email" label="Email Address" value={formData.email}
+						onChange={(e) => handleChange('email', e.target.value)} disabled={loading}
 					/>
 					<TextField
-						required
-						select
-						fullWidth
-						label="Role"
-						value={formData.role}
-						onChange={(e) => handleChange('role', e.target.value)}
-						disabled={loading}
+						required select fullWidth label="Role" value={formData.role}
+						onChange={(e) => handleChange('role', e.target.value)} disabled={loading}
 					>
 						{USER_ROLES.map((role) => (
 							<MenuItem key={role} value={role}>
@@ -113,25 +94,16 @@ export const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, user, onCl
 
 	return (
 		<Dialog
-			open={open}
-			onClose={onClose}
-			maxWidth="sm"
-			fullWidth
+			open={open} onClose={onClose} maxWidth="sm" fullWidth
 			PaperProps={{ sx: { borderRadius: 0, boxShadow: 'none', bgcolor: 'transparent' } }}
 		>
 			<EnterpriseForm
-				title="Edit Teammate"
-				subtitle="Update member details in your organization"
-				mode="edit"
-				steps={steps}
-				onSave={handleSubmit}
-				onCancel={onClose}
-				isSubmitting={loading}
-				saveButtonText="Save Changes"
-				error={error}
+				title="Edit Teammate" subtitle="Update member details in your organization" mode="edit"
+				steps={steps} onSave={handleSubmit} onCancel={onClose} isSubmitting={loading}
+				saveButtonText="Save Changes" error={error}
 			/>
 		</Dialog>
 	);
 };
 
-export default EditUserDialog;
+export default EditOrgUserDialog;

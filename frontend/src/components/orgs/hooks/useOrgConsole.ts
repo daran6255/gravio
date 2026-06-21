@@ -16,7 +16,7 @@ import type { Organization } from '../../../models/auth';
 import type { TeamMember } from '../../../models/user';
 import authService from '../../../services/authService';
 
-export const useOrganizationsConsole = () => {
+export const useOrgConsole = () => {
 	const dispatch = useAppDispatch();
 	const toast = useToast();
 

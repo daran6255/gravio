@@ -4,7 +4,7 @@ import { deactivateTeamUser, reactivateTeamUser, deleteTeamUser, resendTeamUserI
 import useToast from '../../../hooks/useToast';
 import type { TeamMember } from '../../../models/user';
 
-export const useUserManagement = () => {
+export const useOrgManagement = () => {
 	const dispatch = useAppDispatch();
 	const { user: currentUser } = useAppSelector((state) => state.auth);
 	const { users } = useAppSelector((state) => state.users);

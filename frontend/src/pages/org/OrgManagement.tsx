@@ -3,17 +3,17 @@ import { Box, Container, Button } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import PageHeader from '../../components/common/page-header';
 import {
-	UserManagementTable,
-	UserManagementModals,
-	useUserManagement,
-	OrganizationsConsole
-} from '../../components/users';
+	OrgManagementTable,
+	OrgManagementModals,
+	useOrgManagement,
+	OrgConsole
+} from '../../components/orgs';
 
 /**
- * Team Management — invite teammates into your organization, see who's accepted
+ * Org Management — invite teammates into your organization, see who's accepted
  * their invite, edit user details, delete accounts, and deactivate/reactivate access.
  */
-const UserManagement: React.FC = () => {
+const OrgManagement: React.FC = () => {
 	const {
 		currentUser,
 		refreshKey,
@@ -48,10 +48,10 @@ const UserManagement: React.FC = () => {
 		handleConfirmBulkDelete,
 		handleSuccessInvite,
 		handleSuccessEdit,
-	} = useUserManagement();
+	} = useOrgManagement();
 
 	if (currentUser?.is_superuser) {
-		return <OrganizationsConsole />;
+		return <OrgConsole />;
 	}
 
 	const headerAction = (
@@ -83,7 +83,7 @@ const UserManagement: React.FC = () => {
 					action={headerAction}
 				/>
 
-				<UserManagementTable
+				<OrgManagementTable
 					refreshKey={refreshKey}
 					onAddUser={handleAddUser}
 					onEditUser={handleEditUser}
@@ -97,7 +97,7 @@ const UserManagement: React.FC = () => {
 					onBulkDelete={handleBulkDelete}
 				/>
 
-				<UserManagementModals
+				<OrgManagementModals
 					inviteDialogOpen={inviteDialogOpen}
 					onCloseInviteDialog={() => setInviteDialogOpen(false)}
 					onSuccessInvite={handleSuccessInvite}
@@ -126,4 +126,4 @@ const UserManagement: React.FC = () => {
 	);
 };
 
-export default UserManagement;
+export default OrgManagement;

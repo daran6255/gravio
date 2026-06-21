@@ -2,9 +2,6 @@ import { useMemo } from 'react';
 import type { ColumnDefinition } from '../../common/table';
 import type { TeamMember } from '../../../models/user';
 
-/**
- * Returns the theme color for a specific user role.
- */
 export const getRoleColor = (role: string): 'error' | 'warning' | 'info' | 'success' | 'secondary' | 'primary' => {
 	switch (role.toLowerCase()) {
 		case 'admin': return 'error';
@@ -17,19 +14,12 @@ export const getRoleColor = (role: string): 'error' | 'warning' | 'info' | 'succ
 	}
 };
 
-interface UserTableConfigProps {
+interface OrgUserTableConfigProps {
 	isMobile: boolean;
 	isMedium: boolean;
 }
 
-/**
- * Hook to manage Team table column configuration.
- *
- * Row actions are NOT defined here — DataTableActions takes one shared `actions`
- * array per table, not per row, so the Deactivate/Reactivate toggle (which depends
- * on each row's own is_active) is built per-row directly in UserTable.tsx instead.
- */
-export const useUserTableConfig = ({ isMobile, isMedium }: UserTableConfigProps) => {
+export const useOrgUserTableConfig = ({ isMobile, isMedium }: OrgUserTableConfigProps) => {
 	const columns = useMemo((): ColumnDefinition<TeamMember>[] => [
 		{ id: 'full_name', label: 'Name', sortable: false },
 		{ id: 'email', label: 'Email', sortable: false },
