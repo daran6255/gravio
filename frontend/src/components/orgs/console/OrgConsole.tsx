@@ -1,9 +1,11 @@
 import React from 'react';
-import { Box, Container, Button, TableRow, TableCell, Typography, LinearProgress, useTheme } from '@mui/material';
+import { Box, Container, Button, TableRow, TableCell, Typography, LinearProgress, useTheme, Grid } from '@mui/material';
 import { Add as AddIcon, Block, CheckCircleOutline, CalendarToday } from '@mui/icons-material';
 import type { Organization } from '../../../models/auth';
 import { useOrgConsole } from '../hooks/useOrgConsole';
 import { OrgStatsPanel } from './OrgStatsPanel';
+import { TenantDistribution } from './TenantDistribution';
+// import { AdminQuickActions } from './AdminQuickActions';
 import { OrgDetailDrawer } from './OrgDetailDrawer';
 import { ExtendTrialDialog } from './ExtendTrialDialog';
 import { CreateOrgDialog } from '../forms';
@@ -250,24 +252,35 @@ export const OrgConsole: React.FC = () => {
 
 				<OrgStatsPanel stats={stats} />
 
-				<DataTable<Organization>
-					columns={columns} 
-					data={organizations} 
-					loading={loading} 
-					totalCount={total} 
-					page={page} 
-					rowsPerPage={rowsPerPage}
-					onPageChange={(_e, p) => setPage(p)} 
-					onRowsPerPageChange={(rows) => { setRowsPerPage(rows); setPage(0); }}
-					searchTerm={searchTerm} 
-					onSearchChange={setSearchTerm} 
-					searchPlaceholder="Search organizations by name or location..."
-					onRefresh={fetchData} 
-					onCreateClick={() => setCreateDialogOpen(true)}
-					createButtonText="Create Organization" 
-					renderRow={renderRow} 
-					emptyMessage="No organizations yet."
-				/>
+				<Grid container spacing={3}>
+					{/* Left Sidebar Panel (1:3 ratio, i.e., 3 sizes out of 12) */}
+					<Grid size={{ xs: 12, md: 3 }} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+						<TenantDistribution stats={stats} />
+						{/* <AdminQuickActions onCreateClick={() => setCreateDialogOpen(true)} /> */}
+					</Grid>
+
+					{/* Right Console Table (1:3 ratio, i.e., 9 sizes out of 12) */}
+					<Grid size={{ xs: 12, md: 9 }}>
+						<DataTable<Organization>
+							columns={columns} 
+							data={organizations} 
+							loading={loading} 
+							totalCount={total} 
+							page={page} 
+							rowsPerPage={rowsPerPage}
+							onPageChange={(_e, p) => setPage(p)} 
+							onRowsPerPageChange={(rows) => { setRowsPerPage(rows); setPage(0); }}
+							searchTerm={searchTerm} 
+							onSearchChange={setSearchTerm} 
+							searchPlaceholder="Search organizations by name or location..."
+							onRefresh={fetchData} 
+							onCreateClick={() => setCreateDialogOpen(true)}
+							createButtonText="Create Organization" 
+							renderRow={renderRow} 
+							emptyMessage="No organizations yet."
+						/>
+					</Grid>
+				</Grid>
 
 				<OrgDetailDrawer
 					selectedOrg={selectedOrg} onClose={() => handleSelectOrg(null)} selectedOrgUsers={selectedOrgUsers}

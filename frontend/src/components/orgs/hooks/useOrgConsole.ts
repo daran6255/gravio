@@ -31,7 +31,7 @@ export const useOrgConsole = () => {
 	} = useAppSelector((state) => state.orgAdmin);
 
 	const [page, setPage] = useState(0); // MUI 0-indexed; backend is 1-indexed
-	const [rowsPerPage, setRowsPerPage] = useState(20);
+	const [rowsPerPage, setRowsPerPage] = useState(5);
 	const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
 	const [statusDialogOpen, setStatusDialogOpen] = useState(false);

@@ -26,4 +26,8 @@ export interface AdminStats {
 	active_trials: number;
 	total_users: number;
 	avg_users_per_org: number;
+	inactive_organizations: number;
+	expired_trials: number;
+	paid_organizations: number;
+	paid_users: number;
 }

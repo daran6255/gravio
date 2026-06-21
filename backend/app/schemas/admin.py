@@ -72,3 +72,7 @@ class AdminStatsResponse(BaseModel):
     active_trials: int
     total_users: int
     avg_users_per_org: float
+    inactive_organizations: int
+    expired_trials: int
+    paid_organizations: int
+    paid_users: int

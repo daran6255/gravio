@@ -105,6 +105,8 @@ async def get_admin_stats(db: AsyncSession) -> dict:
     """Calculate platform-wide statistics for the Super Admin dashboard."""
     from sqlalchemy import func, select
     from datetime import datetime, timezone
+    from app.models.user import User
+    from app.models.organization import Organization
 
     # 1. Total Organizations
     total_orgs_query = select(func.count(Organization.id))
@@ -133,9 +135,44 @@ async def get_admin_stats(db: AsyncSession) -> dict:
     else:
         avg_users_per_org = 0.0
 
+    # 5. Inactive Organizations
+    inactive_orgs_query = select(func.count(Organization.id)).where(
+        Organization.is_active == False
+    )
+    inactive_orgs_res = await db.execute(inactive_orgs_query)
+    inactive_organizations = inactive_orgs_res.scalar_one()
+
+    # 6. Expired Trials
+    expired_trials_query = select(func.count(Organization.id)).where(
+        (Organization.subscription_status == "expired") | 
+        ((Organization.subscription_status == "trial") & (Organization.trial_expires_at <= now))
+    )
+    expired_trials_res = await db.execute(expired_trials_query)
+    expired_trials = expired_trials_res.scalar_one()
+
+    # 7. Paid Organizations
+    paid_orgs_query = select(func.count(Organization.id)).where(
+        Organization.plan_id.isnot(None),
+        Organization.subscription_status.notin_(["trial", "expired"])
+    )
+    paid_orgs_res = await db.execute(paid_orgs_query)
+    paid_organizations = paid_orgs_res.scalar_one()
+
+    # 8. Paid User Count (Users inside paid organizations)
+    paid_users_query = select(func.count(User.id)).join(Organization).where(
+        Organization.plan_id.isnot(None),
+        Organization.subscription_status.notin_(["trial", "expired"])
+    )
+    paid_users_res = await db.execute(paid_users_query)
+    paid_users = paid_users_res.scalar_one()
+
     return {
         "total_organizations": total_organizations,
         "active_trials": active_trials,
         "total_users": total_users,
         "avg_users_per_org": avg_users_per_org,
+        "inactive_organizations": inactive_organizations,
+        "expired_trials": expired_trials,
+        "paid_organizations": paid_organizations,
+        "paid_users": paid_users,
     }
