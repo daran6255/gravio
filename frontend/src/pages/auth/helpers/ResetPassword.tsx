@@ -20,28 +20,28 @@ import {
 	Visibility,
 	VisibilityOff,
 } from '@mui/icons-material';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { acceptInvite } from '../../store/slices/authSlice';
-import { useColorMode } from '../../theme/ThemeContext';
+import authService from '../../../services/authService';
+import { useColorMode } from '../../../theme/ThemeContext';
 
-const AcceptInvite: React.FC = () => {
+const ResetPassword: React.FC = () => {
 	const theme = useTheme();
 	const navigate = useNavigate();
-	const dispatch = useAppDispatch();
 	const { mode } = useColorMode();
 	const [searchParams] = useSearchParams();
 	const token = searchParams.get('token');
-	const { loading, error } = useAppSelector((state) => state.auth);
 
 	const [password, setPassword] = useState('');
 	const [confirmPassword, setConfirmPassword] = useState('');
 	const [showPassword, setShowPassword] = useState(false);
+	const [loading, setLoading] = useState(false);
 	const [status, setStatus] = useState<'form' | 'success' | 'error'>(token ? 'form' : 'error');
+	const [error, setError] = useState<string | null>(null);
 	const [formError, setFormError] = useState<string | null>(null);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setFormError(null);
+		setError(null);
 
 		if (!token) return;
 
@@ -50,12 +50,16 @@ const AcceptInvite: React.FC = () => {
 			return;
 		}
 
+		setLoading(true);
 		try {
-			await dispatch(acceptInvite({ token, newPassword: password })).unwrap();
+			await authService.resetPassword(token, password);
 			setStatus('success');
-			setTimeout(() => navigate('/dashboard'), 1500);
-		} catch {
+			setTimeout(() => navigate('/login'), 2000);
+		} catch (err: any) {
+			setError(err?.response?.data?.detail || err?.message || 'Failed to reset password.');
 			setStatus('error');
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -117,13 +121,13 @@ const AcceptInvite: React.FC = () => {
 						{status === 'form' && (
 							<Box sx={{ width: '100%' }}>
 								<Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.secondary.main, mb: 1 }}>
-									Set Your Password
+									Reset Your Password
 								</Typography>
 								<Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-									You've been invited to join Gravit. Choose a password to activate your account.
+									Choose a new password to restore access to your account.
 								</Typography>
 
-								{(formError || error) && (
+								{formError && (
 									<Box
 										role="alert"
 										sx={{
@@ -137,7 +141,7 @@ const AcceptInvite: React.FC = () => {
 											textAlign: 'left',
 										}}
 									>
-										{formError || (typeof error === 'string' ? error : 'Failed to accept invite.')}
+										{formError}
 									</Box>
 								)}
 
@@ -203,7 +207,7 @@ const AcceptInvite: React.FC = () => {
 											borderRadius: 1,
 										}}
 									>
-										{loading ? <CircularProgress size={24} color="inherit" /> : 'Activate Account'}
+										{loading ? <CircularProgress size={24} color="inherit" /> : 'Reset Password'}
 									</Button>
 								</Box>
 							</Box>
@@ -213,10 +217,10 @@ const AcceptInvite: React.FC = () => {
 							<Box>
 								<CheckCircleIcon sx={{ fontSize: 72, color: theme.palette.success.main, mb: 2 }} />
 								<Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette.secondary.main, mb: 2 }}>
-									Account Activated!
+									Password Reset Successfully!
 								</Typography>
 								<Typography variant="body1" color="text.secondary">
-									Redirecting you to your dashboard...
+									Redirecting you to login...
 								</Typography>
 							</Box>
 						)}
@@ -225,14 +229,14 @@ const AcceptInvite: React.FC = () => {
 							<Box>
 								<ErrorIcon sx={{ fontSize: 72, color: theme.palette.error.main, mb: 2 }} />
 								<Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette.secondary.main, mb: 2 }}>
-									Invite Link Invalid
+									Reset Link Invalid
 								</Typography>
 								<Typography variant="body1" color="text.secondary" sx={{ mb: 4, px: 2 }}>
 									{!token
-										? 'This invite link is missing its token. Please use the link from your invite email.'
+										? 'This password reset link is missing its token.'
 										: typeof error === 'string'
 										? error
-										: 'This invite link is invalid or has expired. Please ask for a new invite.'}
+										: 'This password reset link is invalid or has expired. Please request another reset email.'}
 								</Typography>
 								<Button
 									variant="contained"
@@ -258,4 +262,4 @@ const AcceptInvite: React.FC = () => {
 	);
 };
 
-export default AcceptInvite;
+export default ResetPassword;

@@ -93,6 +93,21 @@ export const acceptInvite = createAsyncThunk(
 );
 
 /**
+ * Onboard a new organization and admin user
+ */
+export const onboardUser = createAsyncThunk(
+	'auth/onboard',
+	async (onboardData: any, { rejectWithValue }) => {
+		try {
+			const response = await authService.onboard(onboardData);
+			return response;
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || 'Onboarding failed');
+		}
+	}
+);
+
+/**
  * Refresh access token
  */
 export const refreshAccessToken = createAsyncThunk(
@@ -206,6 +221,18 @@ const authSlice = createSlice({
 				state.isInitialized = true;
 			})
 			.addCase(acceptInvite.rejected, (state, action: PayloadAction<any>) => {
+				state.loading = false;
+				state.error = action.payload;
+			})
+			// Onboard User
+			.addCase(onboardUser.pending, (state) => {
+				state.loading = true;
+				state.error = null;
+			})
+			.addCase(onboardUser.fulfilled, (state) => {
+				state.loading = false;
+			})
+			.addCase(onboardUser.rejected, (state, action: PayloadAction<any>) => {
 				state.loading = false;
 				state.error = action.payload;
 			})

@@ -14,8 +14,8 @@ import {
 	CheckCircleOutline as CheckCircleIcon,
 	ErrorOutline as ErrorIcon,
 } from '@mui/icons-material';
-import authService from '../../services/authService';
-import { useColorMode } from '../../theme/ThemeContext';
+import authService from '../../../services/authService';
+import { useColorMode } from '../../../theme/ThemeContext';
 
 const VerifyEmail: React.FC = () => {
 	const theme = useTheme();
