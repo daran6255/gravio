@@ -16,8 +16,7 @@ import {
 } from '@mui/icons-material';
 import type { TeamMember } from '../../../../models/user';
 import DetailDrawer from '../../../common/drawer/DetailDrawer';
-import ContextMenu from '../../../common/action-menu/ContextMenu';
-import type { ActionMenuItem } from '../../../common/action-menu/ActionMenu';
+import ContextMenu, { type ActionMenuItem } from '../../../common/action-menu/ContextMenu';
 
 interface UserDetailDrawerProps {
 	user: TeamMember | null;
@@ -81,20 +80,25 @@ export const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({
 			label: 'Edit Details',
 			icon: <EditIcon fontSize="small" />,
 			onClick: () => onEdit(user),
+			color: theme.palette.primary.main,
 		},
-		...(!isSelf ? [{
+		{
 			label: user.is_active ? 'Deactivate Teammate' : 'Reactivate Teammate',
 			icon: user.is_active ? <DeactivateIcon fontSize="small" /> : <ReactivateIcon fontSize="small" />,
 			onClick: () => (user.is_active ? onDeactivate(user) : onReactivate(user)),
 			color: user.is_active ? theme.palette.warning.main : theme.palette.success.main,
-		}] : []),
-		...(!isSelf ? [{
+			disabled: isSelf,
+			tooltip: isSelf ? "You can't deactivate your own account" : undefined,
+		},
+		{
 			label: user.is_verified ? 'Delete Account' : 'Cancel Invitation',
 			icon: <DeleteIcon fontSize="small" />,
 			onClick: () => onDelete(user),
 			color: theme.palette.error.main,
 			divider: true,
-		}] : []),
+			disabled: isSelf,
+			tooltip: isSelf ? "You can't delete your own account" : undefined,
+		},
 	];
 
 	const headerExtra = (
