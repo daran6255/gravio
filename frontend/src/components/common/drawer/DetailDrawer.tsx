@@ -9,6 +9,7 @@ interface DetailDrawerProps {
 	subtitle?: React.ReactNode;
 	width?: string | number;
 	headerExtra?: React.ReactNode;
+	headerActions?: React.ReactNode;
 	children?: React.ReactNode;
 }
 
@@ -19,6 +20,7 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 	subtitle,
 	width = 460,
 	headerExtra,
+	headerActions,
 	children
 }) => {
 	const theme = useTheme();
@@ -68,16 +70,19 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 							)
 						)}
 					</Box>
-					<IconButton 
-						onClick={onClose} 
-						size="small"
-						sx={{ 
-							bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-							'&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }
-						}}
-					>
-						<Close sx={{ fontSize: 20 }} />
-					</IconButton>
+					<Box display="flex" alignItems="center" gap={0.75}>
+						{headerActions}
+						<IconButton
+							onClick={onClose}
+							size="small"
+							sx={{
+								bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+								'&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }
+							}}
+						>
+							<Close sx={{ fontSize: 20 }} />
+						</IconButton>
+					</Box>
 				</Box>
 
 				{/* Header Extra Actions (e.g. badges, status tags) */}

@@ -1,7 +1,7 @@
 import React from 'react';
 import {
 	Box, Divider, Card, CardContent, Typography, Avatar, Chip,
-	Button, List, ListItemButton, ListItemIcon, ListItemText, useTheme, alpha
+	Button, useTheme, alpha
 } from '@mui/material';
 import {
 	Block as DeactivateIcon,
@@ -16,6 +16,8 @@ import {
 } from '@mui/icons-material';
 import type { TeamMember } from '../../../../models/user';
 import DetailDrawer from '../../../common/drawer/DetailDrawer';
+import ContextMenu from '../../../common/action-menu/ContextMenu';
+import type { ActionMenuItem } from '../../../common/action-menu/ActionMenu';
 
 interface UserDetailDrawerProps {
 	user: TeamMember | null;
@@ -74,6 +76,27 @@ export const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({
 	const primaryColor = theme.palette.primary.main;
 	const lastActive = getLastActiveString(user);
 
+	const actionMenuItems: ActionMenuItem[] = [
+		{
+			label: 'Edit Details',
+			icon: <EditIcon fontSize="small" />,
+			onClick: () => onEdit(user),
+		},
+		...(!isSelf ? [{
+			label: user.is_active ? 'Deactivate Teammate' : 'Reactivate Teammate',
+			icon: user.is_active ? <DeactivateIcon fontSize="small" /> : <ReactivateIcon fontSize="small" />,
+			onClick: () => (user.is_active ? onDeactivate(user) : onReactivate(user)),
+			color: user.is_active ? theme.palette.warning.main : theme.palette.success.main,
+		}] : []),
+		...(!isSelf ? [{
+			label: user.is_verified ? 'Delete Account' : 'Cancel Invitation',
+			icon: <DeleteIcon fontSize="small" />,
+			onClick: () => onDelete(user),
+			color: theme.palette.error.main,
+			divider: true,
+		}] : []),
+	];
+
 	const headerExtra = (
 		<Box display="flex" alignItems="center" gap={1.5} sx={{ mt: 1 }}>
 			<Chip
@@ -110,6 +133,7 @@ export const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({
 			title={user.full_name || user.username}
 			subtitle={user.email}
 			headerExtra={headerExtra}
+			headerActions={<ContextMenu actions={actionMenuItems} />}
 			width={480}
 		>
 			<Divider sx={{ mb: 2, opacity: 0.5 }} />
@@ -244,71 +268,6 @@ export const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({
 					</Box>
 				)}
 
-				{/* Actions list */}
-				<Box sx={{ mt: 'auto', pb: 1 }}>
-					<Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5, letterSpacing: '0.02em', color: 'text.primary' }}>
-						ADMINISTRATIVE ACTIONS
-					</Typography>
-					<List sx={{ p: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-						<ListItemButton
-							onClick={() => onEdit(user)}
-							sx={{
-								borderRadius: '12px',
-								border: `1px solid ${theme.palette.divider}`,
-								bgcolor: isDark ? 'rgba(255, 255, 255, 0.01)' : 'rgba(0, 0, 0, 0.005)',
-								'&:hover': { bgcolor: alpha(primaryColor, 0.04), borderColor: primaryColor }
-							}}
-						>
-							<ListItemIcon sx={{ minWidth: 40, color: 'primary.main' }}>
-								<EditIcon />
-							</ListItemIcon>
-							<ListItemText primary={<Typography variant="body2" sx={{ fontWeight: 700 }}>Edit Details</Typography>} secondary="Change email, name, or role settings" />
-						</ListItemButton>
-
-						{!isSelf && (
-							<ListItemButton
-								onClick={() => user.is_active ? onDeactivate(user) : onReactivate(user)}
-								sx={{
-									borderRadius: '12px',
-									border: `1px solid ${theme.palette.divider}`,
-									bgcolor: isDark ? 'rgba(255, 255, 255, 0.01)' : 'rgba(0, 0, 0, 0.005)',
-									'&:hover': { 
-										bgcolor: user.is_active ? alpha(theme.palette.warning.main, 0.04) : alpha(theme.palette.success.main, 0.04), 
-										borderColor: user.is_active ? 'warning.main' : 'success.main' 
-									}
-								}}
-							>
-								<ListItemIcon sx={{ minWidth: 40, color: user.is_active ? 'warning.main' : 'success.main' }}>
-									{user.is_active ? <DeactivateIcon /> : <ReactivateIcon />}
-								</ListItemIcon>
-								<ListItemText 
-									primary={<Typography variant="body2" sx={{ fontWeight: 700, color: user.is_active ? 'warning.main' : 'success.main' }}>{user.is_active ? 'Deactivate Teammate' : 'Reactivate Teammate'}</Typography>} 
-									secondary={user.is_active ? "Temporarily block user login access" : "Restore login access for this user"} 
-								/>
-							</ListItemButton>
-						)}
-
-						{!isSelf && (
-							<ListItemButton
-								onClick={() => onDelete(user)}
-								sx={{
-									borderRadius: '12px',
-									border: `1px solid ${theme.palette.divider}`,
-									bgcolor: isDark ? 'rgba(255, 255, 255, 0.01)' : 'rgba(0, 0, 0, 0.005)',
-									'&:hover': { bgcolor: alpha(theme.palette.error.main, 0.04), borderColor: 'error.main' }
-								}}
-							>
-								<ListItemIcon sx={{ minWidth: 40, color: 'error.main' }}>
-									<DeleteIcon />
-								</ListItemIcon>
-								<ListItemText 
-									primary={<Typography variant="body2" sx={{ fontWeight: 700, color: 'error.main' }}>{user.is_verified ? 'Delete Account' : 'Cancel Invitation'}</Typography>} 
-									secondary={user.is_verified ? "Permanently remove user from organization" : "Revoke pending email invite"} 
-								/>
-							</ListItemButton>
-						)}
-					</List>
-				</Box>
 			</Box>
 		</DetailDrawer>
 	);
