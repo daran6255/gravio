@@ -19,11 +19,6 @@ import {
 import {
 	ExpandLess,
 	ExpandMore,
-	Dns as InfrastructureIcon,
-	Security as SecurityIcon,
-	Settings as SettingsIcon,
-	Memory as ComputeIcon,
-	Storage as StorageIcon,
 	Person as ProfileIcon,
 	ExitToApp as LogoutIcon
 } from '@mui/icons-material';
@@ -347,53 +342,7 @@ const Sidebar: React.FC = () => {
 		);
 	};
 
-	const renderMockItem = (label: string, Icon: React.ComponentType<any>) => {
-		return (
-			<ListItem disablePadding sx={{ display: 'block', mb: 0.5 }} key={label}>
-				<Tooltip title={drawerExpanded ? '' : label} placement="right" arrow>
-					<ListItemButton
-						disabled
-						sx={{
-							minHeight: 44,
-							px: drawerExpanded ? 2 : 0,
-							py: 0,
-							mx: drawerExpanded ? 1 : 0.5,
-							width: 'auto',
-							borderRadius: 1.5,
-							justifyContent: drawerExpanded ? 'initial' : 'center',
-							opacity: 0.8,
-							cursor: 'default',
-							'&.Mui-disabled': {
-								opacity: 0.8,
-								color: sidebarTextMuted,
-							},
-							'&:hover': {
-								bgcolor: sidebarHoverBg,
-								'& .MuiListItemText-primary': { color: isDarkSidebar ? '#ffffff' : '#0B0D12' },
-								'& .MuiListItemIcon-root': { color: isDarkSidebar ? '#ffffff' : '#0B0D12' },
-							}
-						}}
-					>
-						<ListItemIcon sx={{ minWidth: 0, mr: drawerExpanded ? 1.5 : 0, justifyContent: 'center', color: sidebarTextMuted }}>
-							<Icon sx={{ fontSize: '1.25rem' }} />
-						</ListItemIcon>
-						<ListItemText
-							primary={label}
-							sx={{
-								opacity: drawerExpanded ? 1 : 0,
-								display: drawerExpanded ? 'block' : 'none',
-								m: 0,
-								'& .MuiListItemText-primary': {
-									...theme.typography.sidebarItem,
-									color: sidebarTextMuted,
-								}
-							}}
-						/>
-					</ListItemButton>
-				</Tooltip>
-			</ListItem>
-		);
-	};
+
 
 	return (
 		<Drawer
@@ -477,38 +426,7 @@ const Sidebar: React.FC = () => {
 							)
 						))}
 
-						{/* Mock Navigation Items (to perfectly match mockup aesthetics) */}
-						{!user?.is_superuser && (
-							<>
-								{renderMockItem('Infrastructure', InfrastructureIcon)}
-								{renderMockItem('Security', SecurityIcon)}
-								{renderMockItem('Settings', SettingsIcon)}
 
-								{/* Resources Mock Section */}
-								{drawerExpanded ? (
-									<Typography
-										variant="caption"
-										sx={{
-											display: 'block',
-											px: 2.5,
-											pt: 2.5,
-											pb: 1,
-											fontWeight: 700,
-											letterSpacing: '0.05em',
-											color: sidebarTextMuted,
-											textTransform: 'uppercase'
-										}}
-									>
-										Resources
-									</Typography>
-								) : (
-									<Box sx={{ borderBottom: `1px solid ${sidebarDivider}`, my: 2, mx: 2 }} />
-								)}
-
-								{renderMockItem('Compute', ComputeIcon)}
-								{renderMockItem('Storage', StorageIcon)}
-							</>
-						)}
 					</List>
 				</Box>
 

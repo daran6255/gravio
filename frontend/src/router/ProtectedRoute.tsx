@@ -28,6 +28,17 @@ const ProtectedRoute: React.FC = () => {
 		return <Navigate to="/dashboard" replace />;
 	}
 
+	// Restrict administrative routes (Team, Billing) to admin or superuser only
+	const isAdminRoute = 
+		location.pathname === '/users' || 
+		location.pathname === '/billing' || 
+		(location.pathname.startsWith('/org/') && (location.pathname.endsWith('/users') || location.pathname.endsWith('/billing')));
+
+	if (isAdminRoute && user?.role !== 'admin' && !user?.is_superuser) {
+		const targetRedirect = user?.organization?.public_id ? `/org/${user.organization.public_id}/dashboard` : '/dashboard';
+		return <Navigate to={targetRedirect} replace />;
+	}
+
 	// Redirect tenant users if they access a route without the /org/:orgId prefix
 	if (user?.organization?.public_id) {
 		const orgPrefix = `/org/${user.organization.public_id}`;
