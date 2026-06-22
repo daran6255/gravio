@@ -39,12 +39,14 @@ const ConsoleStepIcon = (props: StepIconProps) => {
 	const { active, completed, icon, error } = props;
 	const theme = useTheme();
 
+	const activeColor = error ? theme.palette.error.main : theme.palette.primary.main;
+
 	return (
 		<Box
 			sx={{
-				width: 24,
-				height: 24,
-				borderRadius: '50%',
+				width: 26,
+				height: 26,
+				borderRadius: '9px',
 				display: 'flex',
 				alignItems: 'center',
 				justifyContent: 'center',
@@ -58,6 +60,7 @@ const ConsoleStepIcon = (props: StepIconProps) => {
 				color: completed || active || error ? '#fff' : theme.palette.text.secondary,
 				fontWeight: 700,
 				fontSize: '0.75rem',
+				boxShadow: active ? `0 0 0 4px ${alpha(activeColor, 0.16)}` : 'none',
 				transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
 				zIndex: 1
 			}}
@@ -101,20 +104,23 @@ const EnterpriseFormHeader: React.FC<EnterpriseFormHeaderProps> = ({
 
 	const modeConfig = getModeConfig();
 
+	const isDark = theme.palette.mode === 'dark';
+
 	return (
 		<Box sx={{
 			position: 'relative',
-			borderBottom: `1px solid ${theme.palette.divider}`,
+			borderBottom: '1px solid',
+			borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
 			bgcolor: theme.palette.background.paper
 		}}>
-			{/* Precise 2px Brand Accent */}
+			{/* Gradient brand accent */}
 			<Box sx={{
 				position: 'absolute',
 				top: 0,
 				left: 0,
 				right: 0,
-				height: 2,
-				bgcolor: theme.palette.primary.main
+				height: 3,
+				background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)'
 			}} />
 
 			<Box sx={{ p: { xs: 2.5, md: 3 }, pb: 2 }}>
@@ -138,7 +144,7 @@ const EnterpriseFormHeader: React.FC<EnterpriseFormHeaderProps> = ({
 									fontWeight: 800,
 									fontSize: '0.6rem',
 									height: 18,
-									borderRadius: '4px',
+									borderRadius: '999px',
 									letterSpacing: '0.02em'
 								}}
 							/>
@@ -156,8 +162,9 @@ const EnterpriseFormHeader: React.FC<EnterpriseFormHeaderProps> = ({
 								onClick={onClose}
 								size="small"
 								sx={{
+									bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
 									color: theme.palette.text.secondary,
-									'&:hover': { color: theme.palette.error.main, bgcolor: alpha(theme.palette.error.main, 0.05) }
+									'&:hover': { color: theme.palette.error.main, bgcolor: alpha(theme.palette.error.main, 0.08) }
 								}}
 							>
 								<CloseIcon fontSize="small" />
@@ -206,7 +213,10 @@ const EnterpriseFormHeader: React.FC<EnterpriseFormHeaderProps> = ({
 				sx={{
 					height: 2,
 					bgcolor: 'transparent',
-					'& .MuiLinearProgress-bar': { transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }
+					'& .MuiLinearProgress-bar': {
+						transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+						background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)'
+					}
 				}}
 			/>
 		</Box>

@@ -36,6 +36,7 @@ const EnterpriseForm: React.FC<EnterpriseFormProps> = ({
 	headerActions
 }) => {
 	const theme = useTheme();
+	const isDark = theme.palette.mode === 'dark';
 	const [activeStep, setActiveStep] = useState(0);
 	const [direction, setDirection] = useState<'left' | 'right'>('left');
 
@@ -69,10 +70,13 @@ const EnterpriseForm: React.FC<EnterpriseFormProps> = ({
 			minHeight: { xs: 'calc(100vh - 100px)', md: '620px' },
 			maxHeight: 'calc(100vh - 40px)',
 			overflow: 'hidden',
-			borderRadius: '4px', // Enterprise standard precision
-			border: `1px solid ${theme.palette.divider}`,
+			borderRadius: '20px',
+			border: '1px solid',
+			borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
 			bgcolor: theme.palette.background.paper,
-			boxShadow: theme.shadows[3],
+			boxShadow: isDark
+				? '0 24px 60px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0,0,0,0.4)'
+				: '0 24px 60px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(15,23,42,0.06)',
 			transition: 'all 0.2s ease-in-out'
 		}}>
 			<EnterpriseFormHeader
@@ -98,13 +102,13 @@ const EnterpriseForm: React.FC<EnterpriseFormProps> = ({
 				<Box sx={{ maxWidth: '1000px', mx: 'auto', position: 'relative' }}>
 					<Collapse in={!!error}>
 						{error && (
-							<Alert 
-								severity="error" 
-								sx={{ 
-									mb: 4, 
-									borderRadius: '4px',
+							<Alert
+								severity="error"
+								sx={{
+									mb: 4,
+									borderRadius: '14px',
 									border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
-									bgcolor: alpha(theme.palette.error.main, 0.02),
+									bgcolor: alpha(theme.palette.error.main, 0.04),
 									'& .MuiAlert-message': { fontWeight: 600 }
 								}}
 							>

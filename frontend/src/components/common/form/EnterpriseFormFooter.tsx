@@ -18,7 +18,6 @@ interface EnterpriseFormFooterProps {
 	onCancel: () => void;
 	isSubmitting?: boolean;
 	saveDisabled?: boolean;
-	useAccent?: boolean; // Toggle between Accent (Orange) and Primary (Blue)
 	saveButtonText?: string;
 	mode: 'create' | 'edit' | 'view';
 	onDelete?: () => void;
@@ -37,27 +36,20 @@ const EnterpriseFormFooter: React.FC<EnterpriseFormFooterProps> = ({
 	onCancel,
 	isSubmitting = false,
 	saveDisabled = false,
-	useAccent = true,
 	saveButtonText = 'Save Changes',
 	mode,
 	onDelete
 }) => {
 	const theme = useTheme();
+	const isDark = theme.palette.mode === 'dark';
 	const isLastStep = activeStep === totalSteps - 1;
-
-	const accentColor = useAccent 
-		? ((theme.palette as any).accent?.main || theme.palette.primary.main)
-		: theme.palette.primary.main;
-		
-	const accentDark = useAccent
-		? ((theme.palette as any).accent?.dark || theme.palette.primary.dark)
-		: theme.palette.primary.dark;
 
 	return (
 		<Box sx={{
 			p: { xs: 2, md: 2.5 },
 			px: { xs: 3, md: 4 },
-			borderTop: `1px solid ${theme.palette.divider}`,
+			borderTop: '1px solid',
+			borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
 			bgcolor: alpha(theme.palette.background.paper, 0.95),
 			backdropFilter: 'blur(8px)',
 			display: 'flex',
@@ -75,9 +67,9 @@ const EnterpriseFormFooter: React.FC<EnterpriseFormFooterProps> = ({
 						textTransform: 'none',
 						fontWeight: 600,
 						px: 3,
+						borderRadius: '10px',
 						color: theme.palette.text.secondary,
-						borderColor: theme.palette.divider,
-						borderRadius: '4px', // Enterprise precision
+						borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
 						'&:hover': {
 							borderColor: theme.palette.text.primary,
 							bgcolor: alpha(theme.palette.text.primary, 0.05)
@@ -97,11 +89,11 @@ const EnterpriseFormFooter: React.FC<EnterpriseFormFooterProps> = ({
 							textTransform: 'none',
 							fontWeight: 600,
 							px: 2,
-							borderRadius: '4px',
+							borderRadius: '10px',
 							borderColor: alpha(theme.palette.error.main, 0.3),
 							'&:hover': {
 								borderColor: theme.palette.error.main,
-								bgcolor: alpha(theme.palette.error.main, 0.05)
+								bgcolor: alpha(theme.palette.error.main, 0.06)
 							}
 						}}
 					>
@@ -126,10 +118,10 @@ const EnterpriseFormFooter: React.FC<EnterpriseFormFooterProps> = ({
 							sx={{
 								textTransform: 'none',
 								fontWeight: 600,
-								borderRadius: '4px',
+								borderRadius: '10px',
 								px: 2,
 								color: theme.palette.text.primary,
-								borderColor: theme.palette.divider
+								borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'
 							}}
 						>
 							Back
@@ -146,16 +138,16 @@ const EnterpriseFormFooter: React.FC<EnterpriseFormFooterProps> = ({
 								sx={{
 									textTransform: 'none',
 									fontWeight: 700,
-									borderRadius: '4px',
+									borderRadius: '10px',
 									px: 4,
-									bgcolor: accentColor,
+									color: '#fff',
+									background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
 									boxShadow: 'none',
 									'&:hover': {
-										bgcolor: accentDark,
-										boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+										boxShadow: '0 4px 12px rgba(139,124,246,0.3)'
 									},
 									'&.Mui-disabled': {
-										bgcolor: alpha(accentColor, 0.3),
+										background: theme.palette.action.disabledBackground,
 										color: alpha('#fff', 0.8)
 									}
 								}}
@@ -171,16 +163,16 @@ const EnterpriseFormFooter: React.FC<EnterpriseFormFooterProps> = ({
 								sx={{
 									textTransform: 'none',
 									fontWeight: 700,
-									borderRadius: '4px',
+									borderRadius: '10px',
 									px: 3,
-									bgcolor: theme.palette.primary.main,
+									color: '#fff',
+									background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
 									boxShadow: 'none',
 									'&:hover': {
-										bgcolor: theme.palette.primary.dark,
-										boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+										boxShadow: '0 4px 12px rgba(139,124,246,0.3)'
 									},
 									'&.Mui-disabled': {
-										bgcolor: alpha(theme.palette.primary.main, 0.3),
+										background: theme.palette.action.disabledBackground,
 										color: alpha('#fff', 0.8)
 									}
 								}}
