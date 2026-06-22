@@ -51,16 +51,17 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
 
 	const actions = (
 		<>
-			<Button 
-				onClick={onClose} 
+			<Button
+				onClick={onClose}
 				disabled={loading}
 				variant="text"
-				sx={{ 
+				sx={{
 					color: 'text.secondary',
 					textTransform: 'none',
 					fontWeight: 600,
+					borderRadius: '10px',
 					px: 3,
-					'&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.05) }
+					'&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.06) }
 				}}
 			>
 				{cancelLabel}
@@ -75,12 +76,12 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
 					textTransform: 'none',
 					fontWeight: 700,
 					px: 4,
-					borderRadius: '4px',
-					boxShadow: `0 4px 14px 0 ${alpha(sevColor.main, 0.39)}`,
+					borderRadius: '10px',
+					boxShadow: `0 4px 14px 0 ${alpha(sevColor.main, 0.35)}`,
 					minWidth: 120,
 					'&:hover': {
 						bgcolor: sevColor.dark,
-						boxShadow: `0 6px 20px 0 ${alpha(sevColor.main, 0.23)}`,
+						boxShadow: `0 6px 18px 0 ${alpha(sevColor.main, 0.4)}`,
 					}
 				}}
 			>
@@ -100,11 +101,14 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
 			actions={actions}
 		>
 			<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 2 }}>
-				<Box sx={{ 
-					p: 2, 
-					borderRadius: '50%', 
-					bgcolor: alpha(sevColor.main, 0.08),
+				<Box sx={{
+					width: 72,
+					height: 72,
+					borderRadius: '20px',
+					bgcolor: alpha(sevColor.main, 0.1),
 					display: 'flex',
+					alignItems: 'center',
+					justifyContent: 'center',
 					mb: 1
 				}}>
 					{renderIcon()}

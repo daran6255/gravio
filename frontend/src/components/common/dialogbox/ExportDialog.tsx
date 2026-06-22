@@ -59,18 +59,16 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
 				onClick={handleExport}
 				disabled={loading}
 				sx={{
-					bgcolor: 'primary.main',
 					color: 'white',
 					textTransform: 'none',
 					fontWeight: 700,
 					px: 4,
-					borderRadius: '4px',
-					boxShadow: `0 4px 14px 0 ${alpha(theme.palette.primary.main, 0.39)}`,
+					borderRadius: '10px',
+					boxShadow: 'none',
+					background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
 					minWidth: 140,
-					'&:hover': {
-						bgcolor: 'primary.dark',
-						boxShadow: `0 6px 20px 0 ${alpha(theme.palette.primary.main, 0.23)}`,
-					}
+					'&:hover': { boxShadow: '0 4px 12px rgba(139,124,246,0.3)' },
+					'&.Mui-disabled': { background: theme.palette.action.disabledBackground }
 				}}
 			>
 				{loading ? <CircularProgress size={20} color="inherit" /> : 'Start Export'}
@@ -106,9 +104,10 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
 										flex: 1,
 										p: 2.5,
 										cursor: loading ? 'default' : 'pointer',
+										borderRadius: '16px',
 										border: '2px solid',
 										borderColor: isActive ? 'primary.main' : alpha(theme.palette.divider, 0.6),
-										bgcolor: isActive ? alpha(theme.palette.primary.main, 0.02) : 'transparent',
+										bgcolor: isActive ? alpha(theme.palette.primary.main, 0.04) : 'transparent',
 										transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
 										display: 'flex',
 										flexDirection: 'column',
@@ -116,14 +115,15 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
 										position: 'relative',
 										'&:hover': {
 											borderColor: isActive ? 'primary.main' : 'primary.light',
-											bgcolor: alpha(theme.palette.primary.main, 0.01)
+											bgcolor: alpha(theme.palette.primary.main, 0.02),
+											transform: 'translateY(-1px)'
 										}
 									}}
 								>
-									<Box sx={{ 
-										p: 1, 
-										borderRadius: '8px', 
-										bgcolor: alpha(format.color, 0.1), 
+									<Box sx={{
+										p: 1,
+										borderRadius: '12px',
+										bgcolor: alpha(format.color, 0.1),
 										color: format.color,
 										width: 'fit-content',
 										display: 'flex'
@@ -179,10 +179,10 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
 							/>
 						</Box>
 					) : (
-						<Box sx={{ 
-							p: 2, 
-							borderRadius: '8px', 
-							bgcolor: alpha(theme.palette.info.main, 0.05),
+						<Box sx={{
+							p: 2,
+							borderRadius: '14px',
+							bgcolor: alpha(theme.palette.info.main, 0.06),
 							border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
 							display: 'flex',
 							alignItems: 'center',

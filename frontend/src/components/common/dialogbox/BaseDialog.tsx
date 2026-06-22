@@ -27,6 +27,7 @@ const BaseDialog: React.FC<BaseDialogProps> = ({
 	showCloseButton = true
 }) => {
 	const theme = useTheme();
+	const isDark = theme.palette.mode === 'dark';
 
 	return (
 		<Dialog
@@ -38,23 +39,28 @@ const BaseDialog: React.FC<BaseDialogProps> = ({
 			TransitionProps={{ timeout: 400 }}
 			PaperProps={{
 				sx: {
-					borderRadius: '6px',
-					boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-					border: `1px solid ${theme.palette.divider}`,
+					borderRadius: '20px',
+					boxShadow: isDark
+						? '0 24px 60px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0,0,0,0.4)'
+						: '0 24px 60px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(15,23,42,0.06)',
+					border: '1px solid',
+					borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+					backgroundImage: isDark
+						? 'linear-gradient(135deg, rgba(20, 24, 34, 0.6) 0%, rgba(11, 13, 18, 0.4) 100%)'
+						: 'linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(248, 250, 252, 0.3) 100%)',
 					overflow: 'hidden'
 				}
 			}}
 		>
-			<DialogTitle sx={{ 
-				p: 3, 
-				pb: subtitle ? 1 : 2,
-				display: 'flex', 
-				justifyContent: 'space-between', 
-				alignItems: 'flex-start',
-				bgcolor: alpha(theme.palette.background.default, 0.5)
+			<DialogTitle sx={{
+				p: 3,
+				pb: subtitle ? 1.5 : 2,
+				display: 'flex',
+				justifyContent: 'space-between',
+				alignItems: 'flex-start'
 			}}>
-				<Box>
-					<Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1.2 }}>
+				<Box sx={{ pr: 2 }}>
+					<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.01em', color: 'text.primary', lineHeight: 1.2 }}>
 						{title}
 					</Typography>
 					{subtitle && (
@@ -64,14 +70,15 @@ const BaseDialog: React.FC<BaseDialogProps> = ({
 					)}
 				</Box>
 				{showCloseButton && (
-					<IconButton 
-						onClick={onClose} 
+					<IconButton
+						onClick={onClose}
 						disabled={loading}
-						size="small" 
-						sx={{ 
+						size="small"
+						sx={{
+							bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
 							color: 'text.secondary',
 							transition: 'all 0.2s',
-							'&:hover': { color: 'error.main', bgcolor: alpha(theme.palette.error.main, 0.05) }
+							'&:hover': { color: 'error.main', bgcolor: alpha(theme.palette.error.main, 0.08) }
 						}}
 					>
 						<CloseIcon fontSize="small" />
@@ -86,11 +93,11 @@ const BaseDialog: React.FC<BaseDialogProps> = ({
 			</DialogContent>
 
 			{actions && (
-				<DialogActions sx={{ 
-					p: 3, 
-					pt: 1, 
-					borderTop: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
-					bgcolor: alpha(theme.palette.background.default, 0.3)
+				<DialogActions sx={{
+					p: 3,
+					pt: 1.5,
+					borderTop: '1px solid',
+					borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
 				}}>
 					{actions}
 				</DialogActions>

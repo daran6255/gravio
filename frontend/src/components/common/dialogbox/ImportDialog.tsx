@@ -94,12 +94,12 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
 		
 		return (
 			<Box sx={{ mt: 1 }}>
-				<Alert 
-					severity={hasErrors ? 'warning' : 'success'} 
+				<Alert
+					severity={hasErrors ? 'warning' : 'success'}
 					icon={hasErrors ? <ErrorIcon /> : <SuccessIcon />}
-					sx={{ 
-						mb: 2, 
-						borderRadius: '4px',
+					sx={{
+						mb: 2,
+						borderRadius: '14px',
 						'& .MuiAlert-message': { width: '100%' }
 					}}
 				>
@@ -116,14 +116,14 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
 						<Typography variant="caption" sx={{ color: 'error.main', fontWeight: 700, mb: 1, display: 'block', textTransform: 'uppercase' }}>
 							Data Validation Errors ({result.errors.length})
 						</Typography>
-						<Paper 
-							variant="outlined" 
-							sx={{ 
-								maxHeight: 200, 
-								overflow: 'auto', 
+						<Paper
+							variant="outlined"
+							sx={{
+								maxHeight: 200,
+								overflow: 'auto',
 								bgcolor: alpha(theme.palette.error.main, 0.02),
-								borderColor: alpha(theme.palette.error.main, 0.1),
-								borderRadius: '4px'
+								borderColor: alpha(theme.palette.error.main, 0.12),
+								borderRadius: '14px'
 							}}
 						>
 							<List dense disablePadding>
@@ -197,10 +197,10 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
 				</Link>
 			) : <Box />}
 			<Box sx={{ display: 'flex', gap: 1.5 }}>
-				<Button 
-					onClick={handleClose} 
+				<Button
+					onClick={handleClose}
 					disabled={loading}
-					sx={{ textTransform: 'none', color: 'text.secondary', fontWeight: 600 }}
+					sx={{ textTransform: 'none', color: 'text.secondary', fontWeight: 600, borderRadius: '10px' }}
 				>
 					{result ? 'Dismiss' : 'Cancel'}
 				</Button>
@@ -210,12 +210,15 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
 						disabled={!selectedFile || loading}
 						onClick={handleConfirmImport}
 						sx={{
-							bgcolor: 'accent.main',
 							color: 'white',
 							textTransform: 'none',
 							fontWeight: 700,
 							px: 4,
-							'&:hover': { bgcolor: 'accent.dark' }
+							borderRadius: '10px',
+							boxShadow: 'none',
+							background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
+							'&:hover': { boxShadow: '0 4px 12px rgba(139,124,246,0.3)' },
+							'&.Mui-disabled': { background: theme.palette.action.disabledBackground }
 						}}
 					>
 						{loading ? 'Processing...' : 'Begin Ingestion'}
@@ -252,14 +255,15 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
 							alignItems: 'center',
 							justifyContent: 'center',
 							cursor: 'pointer',
+							borderRadius: '16px',
 							transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-							bgcolor: dragActive ? alpha(theme.palette.primary.main, 0.03) : alpha(theme.palette.background.default, 0.2),
+							bgcolor: dragActive ? alpha(theme.palette.primary.main, 0.04) : alpha(theme.palette.background.default, 0.2),
 							borderStyle: 'dashed',
 							borderWidth: 2,
 							borderColor: dragActive ? 'primary.main' : alpha(theme.palette.divider, 0.8),
 							'&:hover': {
 								borderColor: 'primary.main',
-								bgcolor: alpha(theme.palette.primary.main, 0.02)
+								bgcolor: alpha(theme.palette.primary.main, 0.03)
 							}
 						}}
 					>
@@ -292,10 +296,10 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
 							</Box>
 						) : (
 							<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
-								<Box sx={{ 
-									p: 1.5, 
-									borderRadius: '12px', 
-									bgcolor: alpha(theme.palette.primary.main, 0.08),
+								<Box sx={{
+									p: 1.5,
+									borderRadius: '14px',
+									bgcolor: alpha(theme.palette.primary.main, 0.1),
 									color: 'primary.main'
 								}}>
 									<CloudUploadRounded sx={{ fontSize: 32 }} />
