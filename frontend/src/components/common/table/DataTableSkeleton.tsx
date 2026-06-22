@@ -27,14 +27,15 @@ const DataTableSkeleton: React.FC<DataTableSkeletonProps> = ({ columns, rowsPerP
 							align={col.align || 'left'}
 							sx={{ display: col.hideOnMobile ? { xs: 'none', md: 'table-cell' } : 'table-cell' }}
 						>
-							<Skeleton 
-								variant="text" 
-								width={col.id === 'actions' ? 60 : '80%'} 
-								height={24} 
-								sx={{ 
+							<Skeleton
+								variant="rounded"
+								width={col.id === 'actions' ? 32 : '80%'}
+								height={col.id === 'actions' ? 32 : 18}
+								sx={{
+									borderRadius: col.id === 'actions' ? '10px' : '6px',
 									ml: col.align === 'right' ? 'auto' : 0,
 									mr: col.align === 'center' ? 'auto' : 0
-								}} 
+								}}
 							/>
 						</TableCell>
 					))}

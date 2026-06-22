@@ -31,6 +31,8 @@ interface ContextMenuProps {
 	size?: 'small' | 'medium' | 'large';
 	minWidth?: number;
 	buttonSx?: SxProps<Theme>;
+	/** Tooltip shown on hover over the trigger button itself (e.g. "Actions"). */
+	triggerTooltip?: string;
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({
@@ -38,28 +40,33 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
 	icon,
 	size = 'small',
 	minWidth = 240,
-	buttonSx
+	buttonSx,
+	triggerTooltip
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
+	const triggerButton = (
+		<IconButton
+			size={size}
+			onClick={(e) => {
+				e.stopPropagation();
+				setAnchorEl(e.currentTarget);
+			}}
+			sx={{
+				bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+				'&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' },
+				...buttonSx
+			}}
+		>
+			{icon || <MoreVertIcon sx={{ fontSize: 20 }} />}
+		</IconButton>
+	);
+
 	return (
 		<>
-			<IconButton
-				size={size}
-				onClick={(e) => {
-					e.stopPropagation();
-					setAnchorEl(e.currentTarget);
-				}}
-				sx={{
-					bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-					'&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' },
-					...buttonSx
-				}}
-			>
-				{icon || <MoreVertIcon sx={{ fontSize: 20 }} />}
-			</IconButton>
+			{triggerTooltip ? <Tooltip title={triggerTooltip}>{triggerButton}</Tooltip> : triggerButton}
 
 			<Menu
 				anchorEl={anchorEl}

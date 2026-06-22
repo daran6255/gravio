@@ -29,6 +29,7 @@ const CustomTablePagination: React.FC<CustomTablePaginationProps> = ({
 	onRowsPerPageSelectChange
 }) => {
 	const theme = useTheme();
+	const isDark = theme.palette.mode === 'dark';
 	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
 	return (
@@ -39,10 +40,10 @@ const CustomTablePagination: React.FC<CustomTablePaginationProps> = ({
 			alignItems: 'center',
 			p: { xs: 1.5, sm: 2 },
 			gap: { xs: 1.5, sm: 2 },
-			bgcolor: theme.palette.background.default,
-			borderTop: `1px solid ${theme.palette.divider}`
+			borderTop: '1px solid',
+			borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
 		}}>
-			<Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 2 }}>
+			<Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1.5 }}>
 				<Typography variant="caption" sx={{ fontWeight: 700, color: theme.palette.text.secondary, letterSpacing: '0.05em' }}>
 					Rows per page:
 				</Typography>
@@ -51,14 +52,19 @@ const CustomTablePagination: React.FC<CustomTablePaginationProps> = ({
 						value={rowsPerPage}
 						onChange={(e) => onRowsPerPageSelectChange(parseInt(String(e.target.value), 10))}
 						sx={{
-							height: '28px',
+							height: '30px',
 							fontSize: '0.75rem',
-							bgcolor: theme.palette.background.paper,
+							fontWeight: 600,
+							borderRadius: '999px',
+							bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
 							'& .MuiOutlinedInput-notchedOutline': {
-								borderColor: theme.palette.divider,
+								borderColor: 'transparent',
 							},
 							'&:hover .MuiOutlinedInput-notchedOutline': {
-								borderColor: alpha(theme.palette.text.primary, 0.4),
+								borderColor: alpha(theme.palette.primary.main, 0.3),
+							},
+							'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+								borderColor: theme.palette.primary.main,
 							}
 						}}
 					>
@@ -97,8 +103,10 @@ const CustomTablePagination: React.FC<CustomTablePaginationProps> = ({
 					'.MuiTablePagination-actions': {
 						marginLeft: { xs: 1, sm: 2 },
 						'& .MuiIconButton-root': {
-							padding: '4px',
-							color: theme.palette.accent.main,
+							padding: '6px',
+							borderRadius: '8px',
+							color: theme.palette.primary.main,
+							'&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08) },
 							'&.Mui-disabled': { color: theme.palette.divider }
 						}
 					},

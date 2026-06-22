@@ -4,7 +4,8 @@ import {
 	TableCell,
 	TableSortLabel,
 	Checkbox,
-	useTheme
+	useTheme,
+	alpha
 } from '@mui/material';
 
 export interface ColumnDefinition<T> {
@@ -42,20 +43,22 @@ const DataTableHead = <T,>({
 	rowCount = 0
 }: DataTableHeadProps<T>) => {
 	const theme = useTheme();
+	const isDark = theme.palette.mode === 'dark';
 	const visibleColumns = columns.filter(col => !col.hidden);
 	const isAllSelected = rowCount > 0 && numSelected === rowCount;
 	const isSomeSelected = numSelected > 0 && numSelected < rowCount;
 
 	return (
 		<TableHead>
-			<TableRow sx={{ bgcolor: theme.palette.background.default }}>
+			<TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, isDark ? 0.05 : 0.03) }}>
 				{onSelectAllClick && (
-					<TableCell padding="checkbox" sx={{ borderBottom: `2px solid ${theme.palette.divider}`, py: 1.5 }}>
+					<TableCell padding="checkbox" sx={{ borderBottom: `1px solid ${theme.palette.divider}`, py: 1.5 }}>
 						<Checkbox
 							indeterminate={isSomeSelected}
 							checked={isAllSelected}
 							onChange={onSelectAllClick}
 							size="small"
+							sx={{ color: theme.palette.text.secondary, '&.Mui-checked, &.MuiCheckbox-indeterminate': { color: theme.palette.primary.main } }}
 						/>
 					</TableCell>
 				)}
@@ -70,8 +73,8 @@ const DataTableHead = <T,>({
 							whiteSpace: 'nowrap',
 							fontSize: '0.75rem',
 							textTransform: 'uppercase',
-							letterSpacing: '0.05em',
-							borderBottom: `2px solid ${theme.palette.divider}`,
+							letterSpacing: '0.04em',
+							borderBottom: `1px solid ${theme.palette.divider}`,
 							py: 1.5,
 							display: column.hideOnMobile ? { xs: 'none', md: 'table-cell' } : 'table-cell'
 						}}
@@ -84,7 +87,7 @@ const DataTableHead = <T,>({
 								sx={{
 									'&.Mui-active': {
 										fontWeight: 800,
-										color: theme.palette.text.primary
+										color: theme.palette.primary.main
 									},
 									'& .MuiTableSortLabel-icon': { fontSize: 16 }
 								}}

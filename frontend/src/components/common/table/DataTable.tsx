@@ -63,14 +63,18 @@ const DataTable = <T,>({
 	onSelectAllClick
 }: DataTableProps<T>) => {
 	const theme = useTheme();
+	const isDark = theme.palette.mode === 'dark';
 	const visibleColumns = columns.filter(col => !col.hidden);
 	const columnCount = visibleColumns.length + (onSelectAllClick ? 1 : 0);
 
 	return (
 		<Paper sx={{
-			border: `1px solid ${theme.palette.divider}`,
-			boxShadow: 'none',
-			borderRadius: `${theme.shape.borderRadius}px`,
+			border: '1px solid',
+			borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+			boxShadow: isDark
+				? '0 12px 32px rgba(0, 0, 0, 0.35)'
+				: '0 12px 32px rgba(15, 23, 42, 0.06)',
+			borderRadius: '20px',
 			overflow: 'hidden',
 			bgcolor: theme.palette.background.paper
 		}}>
