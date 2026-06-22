@@ -5,10 +5,14 @@ import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 import Breadcrumbs from '../common/breadcrumb/Breadcrumbs';
+import { useAppSelector } from '../../store/hooks';
 
 const MainLayout: React.FC = () => {
 	const location = useLocation();
+	const { user } = useAppSelector((state) => state.auth);
 	const isOrgPage = location.pathname === '/organizations';
+
+	const showBreadcrumbs = user?.is_superuser && !isOrgPage;
 
 	return (
 		<Box sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -32,7 +36,7 @@ const MainLayout: React.FC = () => {
 					overflowX: 'hidden'
 				}}
 			>
-				{!isOrgPage && <Breadcrumbs />}
+				{showBreadcrumbs && <Breadcrumbs />}
 				<Box sx={{ flexGrow: 1 }}>
 					<Outlet />
 				</Box>
