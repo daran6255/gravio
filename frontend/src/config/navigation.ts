@@ -15,6 +15,7 @@ export interface NavigationItem {
 	requiresSuperuser?: boolean;
 	children?: NavigationItem[];
 	divider?: boolean;
+	hidden?: boolean;
 }
 
 export const topNavigation: NavigationItem[] = [
@@ -35,6 +36,38 @@ export const topNavigation: NavigationItem[] = [
 		icon: OrgIcon,
 		requiresSuperuser: true,
 	},
+	{
+		label: 'Billing',
+		path: '/billing',
+		roles: ['admin'],
+		hidden: true,
+	},
 ];
 
 export const bottomNavigation: NavigationItem[] = [];
+
+/**
+ * Resolves a route's configuration dynamically from top and bottom navigation lists.
+ * Handles tenant-prefixed routes (e.g., /org/:orgId/users -> /users) automatically.
+ */
+export const getRouteConfig = (pathname: string): NavigationItem | undefined => {
+	// Normalize route: strip tenant-prefixed /org/:orgId
+	let normalizedPath = pathname;
+	const orgMatch = pathname.match(/^\/org\/[^\/]+(\/.*)?$/);
+	if (orgMatch) {
+		normalizedPath = orgMatch[1] || '/';
+	}
+
+	const findItem = (items: NavigationItem[]): NavigationItem | undefined => {
+		for (const item of items) {
+			if (item.path === normalizedPath) return item;
+			if (item.children) {
+				const found = findItem(item.children);
+				if (found) return found;
+			}
+		}
+		return undefined;
+	};
+
+	return findItem(topNavigation) || findItem(bottomNavigation);
+};

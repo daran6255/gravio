@@ -143,6 +143,7 @@ const Sidebar: React.FC = () => {
 	};
 
 	const hasPermission = (item: NavigationItem): boolean => {
+		if (item.hidden) return false;
 		if (item.requiresSuperuser) return !!user?.is_superuser;
 		
 		// Hide the regular non-superuser 'Team' link if user is superuser (they use 'Organizations' point to /users)
