@@ -108,13 +108,21 @@ const OrgManagement: React.FC = () => {
 			startIcon={<AddIcon />}
 			onClick={handleAddUser}
 			sx={{
+				borderRadius: '10px',
+				fontWeight: 700,
 				textTransform: 'none',
-				fontWeight: 600,
 				px: 3,
 				py: 1,
-				borderRadius: 3,
-				boxShadow: 'none',
-				'&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }
+				color: '#ffffff',
+				background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
+				boxShadow: '0 4px 14px 0 rgba(139, 124, 246, 0.4)',
+				border: 'none',
+				transition: 'all 0.2s ease',
+				'&:hover': {
+					background: 'linear-gradient(135deg, #9C8FFF 0%, #7062E9 100%)',
+					boxShadow: '0 6px 20px 0 rgba(139, 124, 246, 0.6)',
+					transform: 'translateY(-1px)',
+				}
 			}}
 		>
 			Invite Teammate
