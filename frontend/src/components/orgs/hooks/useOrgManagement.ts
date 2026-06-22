@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { deactivateTeamUser, reactivateTeamUser, deleteTeamUser, resendTeamUserInvite, bulkDeleteTeamUsers } from '../../../store/slices/userSlice';
+import {
+	deactivateTeamUser,
+	reactivateTeamUser,
+	deleteTeamUser,
+	resendTeamUserInvite,
+	bulkDeleteTeamUsers,
+	resetTeamUserPassword
+} from '../../../store/slices/userSlice';
 import useToast from '../../../hooks/useToast';
 import type { TeamMember } from '../../../models/user';
 
@@ -22,6 +29,9 @@ export const useOrgManagement = () => {
 	const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 	const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 	const [refreshKey, setRefreshKey] = useState(0);
+
+	const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+	const [selectedDetailUser, setSelectedDetailUser] = useState<TeamMember | null>(null);
 
 	const refreshData = () => setRefreshKey((prev) => prev + 1);
 
@@ -148,6 +158,25 @@ export const useOrgManagement = () => {
 		setEditDialogOpen(false);
 	};
 
+	const handleOpenDetailDrawer = (user: TeamMember) => {
+		setSelectedDetailUser(user);
+		setDetailDrawerOpen(true);
+	};
+
+	const handleCloseDetailDrawer = () => {
+		setSelectedDetailUser(null);
+		setDetailDrawerOpen(false);
+	};
+
+	const handleSendPasswordReset = async (user: TeamMember) => {
+		try {
+			await dispatch(resetTeamUserPassword(user.public_id)).unwrap();
+			toast.success(`Password reset email has been sent to ${user.email}.`);
+		} catch (error: any) {
+			toast.error(error || 'Failed to send password reset link');
+		}
+	};
+
 	return {
 		currentUser,
 		users,
@@ -184,5 +213,12 @@ export const useOrgManagement = () => {
 		handleConfirmBulkDelete,
 		handleSuccessInvite,
 		handleSuccessEdit,
+		detailDrawerOpen,
+		setDetailDrawerOpen,
+		selectedDetailUser,
+		setSelectedDetailUser,
+		handleOpenDetailDrawer,
+		handleCloseDetailDrawer,
+		handleSendPasswordReset,
 	};
 };

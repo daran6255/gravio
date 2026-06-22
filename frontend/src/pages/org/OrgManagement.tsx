@@ -12,7 +12,8 @@ import {
 	OrgManagementTable,
 	OrgManagementModals,
 	useOrgManagement,
-	OrgSummaryCard
+	OrgSummaryCard,
+	UserDetailDrawer
 } from '../../components/orgs';
 import StatCard from '../../components/common/stats/StatCard';
 import { useAppSelector } from '../../store/hooks';
@@ -55,6 +56,12 @@ const OrgManagement: React.FC = () => {
 		handleConfirmBulkDelete,
 		handleSuccessInvite,
 		handleSuccessEdit,
+		currentUser,
+		detailDrawerOpen,
+		selectedDetailUser,
+		handleOpenDetailDrawer,
+		handleCloseDetailDrawer,
+		handleSendPasswordReset,
 	} = useOrgManagement();
 
 	const { users, total } = useAppSelector((state) => state.users);
@@ -152,6 +159,7 @@ const OrgManagement: React.FC = () => {
 							onSelectId={handleSelectId}
 							onSelectAll={handleSelectAll}
 							onBulkDelete={handleBulkDelete}
+							onUserClick={handleOpenDetailDrawer}
 						/>
 					</Grid>
 				</Grid>
@@ -178,6 +186,18 @@ const OrgManagement: React.FC = () => {
 					selectedCount={selectedIds.length}
 					onBulkDeleteClose={() => setBulkDeleteDialogOpen(false)}
 					onBulkDeleteConfirm={handleConfirmBulkDelete}
+				/>
+
+				<UserDetailDrawer
+					user={selectedDetailUser}
+					open={detailDrawerOpen}
+					onClose={handleCloseDetailDrawer}
+					onSendPasswordReset={handleSendPasswordReset}
+					onDeactivate={handleDeactivateUser}
+					onReactivate={handleReactivateUser}
+					onDelete={handleDeleteUser}
+					onEdit={handleEditUser}
+					isSelf={selectedDetailUser?.public_id === currentUser?.public_id}
 				/>
 
 			</Container>

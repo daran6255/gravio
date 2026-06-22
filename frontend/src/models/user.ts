@@ -30,6 +30,7 @@ export interface TeamMember {
 	role: UserRole;
 	is_active: boolean;
 	is_verified: boolean;
+	created_at: string;
 }
 
 /** Invite a teammate — matches backend's InviteUserRequest exactly. No password is ever collected. */

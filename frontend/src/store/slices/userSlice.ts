@@ -110,6 +110,17 @@ export const resendTeamUserInvite = createAsyncThunk(
 	}
 );
 
+export const resetTeamUserPassword = createAsyncThunk(
+	'users/resetPassword',
+	async (publicId: string, { rejectWithValue }) => {
+		try {
+			return await userService.triggerPasswordReset(publicId);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to send password reset link');
+		}
+	}
+);
+
 
 const userSlice = createSlice({
 	name: 'users',
@@ -187,6 +198,13 @@ const userSlice = createSlice({
 				if (idx !== -1) state.users[idx] = action.payload;
 			})
 			.addCase(resendTeamUserInvite.rejected, (state, action: PayloadAction<any>) => {
+				state.error = action.payload;
+			})
+			.addCase(resetTeamUserPassword.fulfilled, (state, action: PayloadAction<TeamMember>) => {
+				const idx = state.users.findIndex((u) => u.public_id === action.payload.public_id);
+				if (idx !== -1) state.users[idx] = action.payload;
+			})
+			.addCase(resetTeamUserPassword.rejected, (state, action: PayloadAction<any>) => {
 				state.error = action.payload;
 			});
 	},

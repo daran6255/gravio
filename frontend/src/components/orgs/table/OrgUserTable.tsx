@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { TableRow, TableCell, Chip, Typography, useMediaQuery, useTheme, Button, Checkbox } from '@mui/material';
-import { Block, CheckCircleOutline, Delete, MailOutline, Edit } from '@mui/icons-material';
+import { Delete } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTeamUsers } from '../../../store/slices/userSlice';
 import type { TeamMember } from '../../../models/user';
-import { DataTable, DataTableActions, type TableMenuAction } from '../../common/table';
+import { DataTable } from '../../common/table';
 import { useOrgUserTableConfig, getRoleColor } from './OrgUserTableConfig';
 
 interface OrgUserTableProps {
@@ -19,22 +19,20 @@ interface OrgUserTableProps {
 	onSelectId: (id: string, checked: boolean) => void;
 	onSelectAll: (checked: boolean) => void;
 	onBulkDelete: () => void;
+	onUserClick?: (user: TeamMember) => void;
 }
 
 export const OrgUserTable: React.FC<OrgUserTableProps> = ({
 	refreshKey,
 	onAddUser,
-	onEditUser,
-	onDeactivateUser,
-	onReactivateUser,
-	onResendInvite,
-	onDeleteUser,
 	selectedIds,
 	onSelectId,
 	onSelectAll,
 	onBulkDelete,
+	onUserClick,
 }) => {
 	const theme = useTheme();
+	const isDark = theme.palette.mode === 'dark';
 	const dispatch = useAppDispatch();
 	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 	const isMedium = useMediaQuery(theme.breakpoints.down('md'));
@@ -55,46 +53,7 @@ export const OrgUserTable: React.FC<OrgUserTableProps> = ({
 		fetchData();
 	}, [fetchData, refreshKey]);
 
-	const getRowActions = (user: TeamMember): TableMenuAction<TeamMember>[] => {
-		const actions: TableMenuAction<TeamMember>[] = [];
 
-		actions.push({
-			label: 'Edit Details', icon: <Edit fontSize="small" />,
-			onClick: () => onEditUser(user), color: 'primary.main',
-		});
-
-		if (!user.is_verified) {
-			actions.push({
-				label: 'Resend Invite', icon: <MailOutline fontSize="small" />,
-				onClick: () => onResendInvite(user), color: 'primary.main',
-			});
-			actions.push({
-				label: 'Cancel Invite', icon: <Delete fontSize="small" />,
-				onClick: () => onDeleteUser(user), color: 'error.main',
-			});
-		} else {
-			if (user.is_active) {
-				actions.push({
-					label: 'Deactivate', icon: <Block fontSize="small" />,
-					onClick: () => onDeactivateUser(user), color: 'error.main',
-					hidden: user.public_id === currentUser?.public_id,
-				});
-			} else {
-				actions.push({
-					label: 'Reactivate', icon: <CheckCircleOutline fontSize="small" />,
-					onClick: () => onReactivateUser(user), color: 'success.main',
-				});
-			}
-
-			actions.push({
-				label: 'Delete User', icon: <Delete fontSize="small" />,
-				onClick: () => onDeleteUser(user), color: 'error.main',
-				hidden: user.public_id === currentUser?.public_id,
-			});
-		}
-
-		return actions;
-	};
 
 	const headerActions = selectedIds.length > 0 ? (
 		<Button
@@ -109,11 +68,27 @@ export const OrgUserTable: React.FC<OrgUserTableProps> = ({
 		const isSelected = selectedIds.includes(user.public_id);
 		const isSelf = user.public_id === currentUser?.public_id;
 		return (
-			<TableRow key={user.public_id} selected={isSelected} sx={{ '&:last-child td': { borderBottom: 0 } }}>
-				<TableCell padding="checkbox">
+			<TableRow
+				key={user.public_id}
+				selected={isSelected}
+				onClick={() => onUserClick?.(user)}
+				sx={{
+					cursor: 'pointer',
+					transition: 'background-color 0.2s ease',
+					'&:hover': {
+						bgcolor: isDark ? 'rgba(255, 255, 255, 0.02) !important' : 'rgba(139, 124, 246, 0.02) !important',
+					},
+					'&:last-child td': { borderBottom: 0 }
+				}}
+			>
+				<TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
 					<Checkbox checked={isSelected} onChange={(e) => onSelectId(user.public_id, e.target.checked)} disabled={isSelf} size="small" />
 				</TableCell>
-				<TableCell><Typography variant="body2" sx={{ fontWeight: 500 }}>{user.full_name || '-'}</Typography></TableCell>
+				<TableCell>
+					<Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+						{user.full_name || '-'}
+					</Typography>
+				</TableCell>
 				<TableCell><Typography variant="body2" color="text.secondary">{user.email}</Typography></TableCell>
 				{!isMedium && <TableCell><Typography variant="body2" color="text.secondary">{user.username}</Typography></TableCell>}
 				{!isMobile && (
@@ -136,7 +111,6 @@ export const OrgUserTable: React.FC<OrgUserTableProps> = ({
 						<Chip label={user.is_verified ? 'Accepted' : 'Pending'} size="small" variant="outlined" color={user.is_verified ? 'success' : 'default'} sx={{ fontWeight: 600, fontSize: '0.7rem' }} />
 					</TableCell>
 				)}
-				<TableCell align="right"><DataTableActions item={user} actions={getRowActions(user)} /></TableCell>
 			</TableRow>
 		);
 	};

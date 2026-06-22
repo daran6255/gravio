@@ -1,6 +1,7 @@
 """Pydantic schemas for Org-Admin-side user management (Flow C)"""
 
 import uuid
+from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from app.models.user import UserRole
@@ -31,6 +32,7 @@ class UserListItem(BaseModel):
     role: str
     is_active: bool
     is_verified: bool
+    created_at: datetime
 
 
 class UpdateUserRequest(BaseModel):

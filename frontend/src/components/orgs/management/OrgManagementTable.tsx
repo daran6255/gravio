@@ -15,6 +15,7 @@ interface OrgManagementTableProps {
 	onSelectId: (id: string, checked: boolean) => void;
 	onSelectAll: (checked: boolean) => void;
 	onBulkDelete: () => void;
+	onUserClick?: (user: TeamMember) => void;
 }
 
 export const OrgManagementTable: React.FC<OrgManagementTableProps> = ({
@@ -29,6 +30,7 @@ export const OrgManagementTable: React.FC<OrgManagementTableProps> = ({
 	onSelectId,
 	onSelectAll,
 	onBulkDelete,
+	onUserClick,
 }) => {
 	return (
 		<Box>
@@ -44,6 +46,7 @@ export const OrgManagementTable: React.FC<OrgManagementTableProps> = ({
 				onSelectId={onSelectId}
 				onSelectAll={onSelectAll}
 				onBulkDelete={onBulkDelete}
+				onUserClick={onUserClick}
 			/>
 		</Box>
 	);

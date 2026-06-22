@@ -27,7 +27,6 @@ export const useOrgUserTableConfig = ({ isMobile, isMedium }: OrgUserTableConfig
 		{ id: 'role', label: 'Role', sortable: false, hidden: isMobile },
 		{ id: 'is_active', label: 'Status', sortable: false },
 		{ id: 'is_verified', label: 'Invite', sortable: false, hidden: isMobile },
-		{ id: 'actions', label: 'Actions', sortable: false, align: 'right' },
 	], [isMobile, isMedium]);
 
 	return { columns };
