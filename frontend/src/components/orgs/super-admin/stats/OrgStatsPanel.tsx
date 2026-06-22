@@ -1,8 +1,8 @@
 import React from 'react';
 import { Grid } from '@mui/material';
 import { Business, CalendarToday, Group, Speed } from '@mui/icons-material';
-import type { AdminStats } from '../../../models/admin';
-import StatCard from '../../common/stats/StatCard';
+import type { AdminStats } from '../../../../models/admin';
+import StatCard from '../../../common/stats/StatCard';
 
 interface OrgStatsPanelProps {
 	stats: AdminStats | null;

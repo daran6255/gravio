@@ -1,7 +1,8 @@
 import React from 'react';
-import { InviteOrgUserDialog, EditOrgUserDialog } from '../forms';
-import { ConfirmationDialog } from '../../common/dialogbox';
-import type { TeamMember } from '../../../models/user';
+import { InviteOrgUserDialog } from '../forms';
+import { EditOrgUserDialog } from '../../shared';
+import { ConfirmationDialog } from '../../../common/dialogbox';
+import type { TeamMember } from '../../../../models/user';
 
 interface OrgManagementModalsProps {
 	inviteDialogOpen: boolean;

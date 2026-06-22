@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
-import OrgUserTable from '../table/OrgUserTable';
-import type { TeamMember } from '../../../models/user';
+import OrgUserTable from '../../shared/OrgUserTable';
+import type { TeamMember } from '../../../../models/user';
 
 interface OrgManagementTableProps {
 	refreshKey: number;

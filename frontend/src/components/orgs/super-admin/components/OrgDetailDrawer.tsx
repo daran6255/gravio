@@ -6,10 +6,10 @@ import {
 	Menu, MenuItem, ListItemIcon
 } from '@mui/material';
 import { Search, MailOutline, Block, CheckCircleOutline, DeleteOutline, EditOutlined, MoreVert, LockOutlined } from '@mui/icons-material';
-import type { Organization } from '../../../models/auth';
-import type { TeamMember } from '../../../models/user';
-import StatusBadge from '../../common/badge/StatusBadge';
-import DetailDrawer from '../../common/drawer/DetailDrawer';
+import type { Organization } from '../../../../models/auth';
+import type { TeamMember } from '../../../../models/user';
+import StatusBadge from '../../../common/badge/StatusBadge';
+import DetailDrawer from '../../../common/drawer/DetailDrawer';
 
 interface OrgDetailDrawerProps {
 	selectedOrg: Organization | null;

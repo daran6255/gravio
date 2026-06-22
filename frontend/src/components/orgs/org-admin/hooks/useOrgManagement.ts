@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import {
 	deactivateTeamUser,
 	reactivateTeamUser,
@@ -7,9 +7,9 @@ import {
 	resendTeamUserInvite,
 	bulkDeleteTeamUsers,
 	resetTeamUserPassword
-} from '../../../store/slices/userSlice';
-import useToast from '../../../hooks/useToast';
-import type { TeamMember } from '../../../models/user';
+} from '../../../../store/slices/userSlice';
+import useToast from '../../../../hooks/useToast';
+import type { TeamMember } from '../../../../models/user';
 
 export const useOrgManagement = () => {
 	const dispatch = useAppDispatch();

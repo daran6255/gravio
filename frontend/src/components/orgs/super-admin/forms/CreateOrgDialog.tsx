@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Dialog, Box, TextField, Typography, Divider } from '@mui/material';
-import { EnterpriseForm, type FormStep } from '../../common/form';
-import { useAppDispatch } from '../../../store/hooks';
-import { createOrganization } from '../../../store/slices/orgAdminSlice';
+import { EnterpriseForm, type FormStep } from '../../../common/form';
+import { useAppDispatch } from '../../../../store/hooks';
+import { createOrganization } from '../../../../store/slices/orgAdminSlice';
 
 interface CreateOrgDialogProps {
 	open: boolean;

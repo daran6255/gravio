@@ -1,6 +1,6 @@
 import React from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Typography, TextField, Button } from '@mui/material';
-import type { Organization } from '../../../models/auth';
+import type { Organization } from '../../../../models/auth';
 
 interface ExtendTrialDialogProps {
 	open: boolean;

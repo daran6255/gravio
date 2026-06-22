@@ -1,17 +1,17 @@
 import React from 'react';
 import { Box, Container, Button, TableRow, TableCell, Typography, LinearProgress, useTheme, Grid } from '@mui/material';
 import { Add as AddIcon, Block, CheckCircleOutline, CalendarToday, DeleteOutline } from '@mui/icons-material';
-import type { Organization } from '../../../models/auth';
+import type { Organization } from '../../../../models/auth';
 import { useOrgConsole } from '../hooks/useOrgConsole';
-import { OrgStatsPanel } from './OrgStatsPanel';
-import { TenantDistribution } from './TenantDistribution';
+import { OrgStatsPanel, TenantDistribution } from '../stats';
 import { OrgDetailDrawer } from './OrgDetailDrawer';
 import { ExtendTrialDialog } from './ExtendTrialDialog';
-import { CreateOrgDialog, EditOrgUserDialog } from '../forms';
-import PageHeader from '../../common/page-header';
-import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../common/table';
-import { ConfirmationDialog } from '../../common/dialogbox';
-import StatusBadge from '../../common/badge/StatusBadge';
+import { CreateOrgDialog } from '../forms';
+import { EditOrgUserDialog } from '../../shared';
+import PageHeader from '../../../common/page-header';
+import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../../common/table';
+import { ConfirmationDialog } from '../../../common/dialogbox';
+import StatusBadge from '../../../common/badge/StatusBadge';
 
 const columns: ColumnDefinition<Organization>[] = [
 	{ id: 'name', label: 'Organization', sortable: false },

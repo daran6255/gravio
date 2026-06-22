@@ -14,8 +14,8 @@ import {
 	AssignmentInd as RoleIcon,
 	CalendarToday as JoinIcon
 } from '@mui/icons-material';
-import type { TeamMember } from '../../../models/user';
-import DetailDrawer from '../../common/drawer/DetailDrawer';
+import type { TeamMember } from '../../../../models/user';
+import DetailDrawer from '../../../common/drawer/DetailDrawer';
 
 interface UserDetailDrawerProps {
 	user: TeamMember | null;

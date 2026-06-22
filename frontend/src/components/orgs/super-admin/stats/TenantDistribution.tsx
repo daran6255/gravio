@@ -1,6 +1,6 @@
 import { Card, CardContent, Typography, Box, useTheme, Avatar } from '@mui/material';
 import { Speed, CheckCircle, Block, HourglassEmpty, People } from '@mui/icons-material';
-import type { AdminStats } from '../../../models/admin';
+import type { AdminStats } from '../../../../models/admin';
 
 interface TenantDistributionProps {
 	stats: AdminStats | null;

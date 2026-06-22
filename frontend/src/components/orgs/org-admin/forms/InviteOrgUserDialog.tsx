@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Dialog, Box, TextField, MenuItem, Typography } from '@mui/material';
-import { EnterpriseForm, type FormStep } from '../../common/form';
-import { useAppDispatch } from '../../../store/hooks';
-import { inviteTeamUser } from '../../../store/slices/userSlice';
-import { USER_ROLES, type UserRole } from '../../../models/user';
+import { EnterpriseForm, type FormStep } from '../../../common/form';
+import { useAppDispatch } from '../../../../store/hooks';
+import { inviteTeamUser } from '../../../../store/slices/userSlice';
+import { USER_ROLES, type UserRole } from '../../../../models/user';
 
 interface InviteOrgUserDialogProps {
 	open: boolean;

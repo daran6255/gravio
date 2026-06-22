@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import {
 	fetchOrganizations,
 	deactivateOrg,
@@ -12,11 +12,11 @@ import {
 	resendOrgUserInvite,
 	triggerUserPasswordReset,
 	deleteOrg
-} from '../../../store/slices/orgAdminSlice';
-import useToast from '../../../hooks/useToast';
-import type { Organization } from '../../../models/auth';
-import type { TeamMember } from '../../../models/user';
-import authService from '../../../services/authService';
+} from '../../../../store/slices/orgAdminSlice';
+import useToast from '../../../../hooks/useToast';
+import type { Organization } from '../../../../models/auth';
+import type { TeamMember } from '../../../../models/user';
+import authService from '../../../../services/authService';
 
 export const useOrgConsole = () => {
 	const dispatch = useAppDispatch();
