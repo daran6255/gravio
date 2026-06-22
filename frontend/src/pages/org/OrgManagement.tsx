@@ -11,7 +11,8 @@ import PageHeader from '../../components/common/page-header';
 import {
 	OrgManagementTable,
 	OrgManagementModals,
-	useOrgManagement
+	useOrgManagement,
+	OrgSummaryCard
 } from '../../components/orgs';
 import StatCard from '../../components/common/stats/StatCard';
 import { useAppSelector } from '../../store/hooks';
@@ -131,19 +132,29 @@ const OrgManagement: React.FC = () => {
 					))}
 				</Grid>
 
-				<OrgManagementTable
-					refreshKey={refreshKey}
-					onAddUser={handleAddUser}
-					onEditUser={handleEditUser}
-					onDeactivateUser={handleDeactivateUser}
-					onReactivateUser={handleReactivateUser}
-					onResendInvite={handleResendInvite}
-					onDeleteUser={handleDeleteUser}
-					selectedIds={selectedIds}
-					onSelectId={handleSelectId}
-					onSelectAll={handleSelectAll}
-					onBulkDelete={handleBulkDelete}
-				/>
+				<Grid container spacing={3} sx={{ alignItems: 'stretch' }}>
+					{/* Left: Org Summary Card (1/4 space) */}
+					<Grid size={{ xs: 12, md: 3 }}>
+						<OrgSummaryCard />
+					</Grid>
+
+					{/* Right: User Management Table (3/4 space) */}
+					<Grid size={{ xs: 12, md: 9 }}>
+						<OrgManagementTable
+							refreshKey={refreshKey}
+							onAddUser={handleAddUser}
+							onEditUser={handleEditUser}
+							onDeactivateUser={handleDeactivateUser}
+							onReactivateUser={handleReactivateUser}
+							onResendInvite={handleResendInvite}
+							onDeleteUser={handleDeleteUser}
+							selectedIds={selectedIds}
+							onSelectId={handleSelectId}
+							onSelectAll={handleSelectAll}
+							onBulkDelete={handleBulkDelete}
+						/>
+					</Grid>
+				</Grid>
 
 				<OrgManagementModals
 					inviteDialogOpen={inviteDialogOpen}
