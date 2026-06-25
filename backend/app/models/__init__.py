@@ -7,6 +7,23 @@ from app.models.trial_registry import TrialEmailRegistry
 from app.models.plan import Plan, PlanTier, Module
 from app.models.ai_usage import AIUsageCounter
 from app.models.refresh_token import RefreshToken
+from app.models.crm import (
+    CRMTag,
+    CRMCompany,
+    CRMContact,
+    CRMPipeline,
+    CRMPipelineStage,
+    CRMLead,
+    CRMDeal,
+    CRMActivity,
+    CompanySize,
+    CompanyStatus,
+    LeadSource,
+    LeadStatus,
+    LeadPriority,
+    DealStatus,
+    ActivityType,
+)
 
 __all__ = [
     "Organization",
@@ -19,6 +36,21 @@ __all__ = [
     "Module",
     "AIUsageCounter",
     "RefreshToken",
+    "CRMTag",
+    "CRMCompany",
+    "CRMContact",
+    "CRMPipeline",
+    "CRMPipelineStage",
+    "CRMLead",
+    "CRMDeal",
+    "CRMActivity",
+    "CompanySize",
+    "CompanyStatus",
+    "LeadSource",
+    "LeadStatus",
+    "LeadPriority",
+    "DealStatus",
+    "ActivityType",
 ]
 
 

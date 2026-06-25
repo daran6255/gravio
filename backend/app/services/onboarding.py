@@ -80,6 +80,10 @@ async def onboard_organization(
     if free_plan:
         org.plan_id = free_plan.id
 
+    # Seed default CRM sales pipeline and stages
+    from app.services.crm import CRMService
+    await CRMService.seed_default_pipeline(db, org.id)
+
     # ── 4. Hash password ──────────────────────────────────────────────────────
     hashed_pw = get_password_hash(payload.admin_user.password)
 

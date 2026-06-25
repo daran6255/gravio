@@ -32,3 +32,7 @@ router.include_router(plans_router)
 #                             POST /api/v1/users/{public_id}/deactivate
 #                             POST /api/v1/users/{public_id}/reactivate
 router.include_router(users_router)
+
+# Gravit CRM Management      →  /api/v1/crm/...
+from app.api.v1.endpoints.crm import router as crm_router
+router.include_router(crm_router)
