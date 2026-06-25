@@ -281,12 +281,17 @@ class CRMDealRepository:
 
 class CRMPipelineRepository:
     @staticmethod
-    async def get_by_id(db: AsyncSession, pipeline_id: int) -> Optional[CRMPipeline]:
-        result = await db.execute(
+    async def get_by_id(db: AsyncSession, pipeline_id: int, *, refresh: bool = False) -> Optional[CRMPipeline]:
+        query = (
             select(CRMPipeline)
             .options(selectinload(CRMPipeline.stages))
             .where(CRMPipeline.id == pipeline_id)
         )
+        if refresh:
+            # Without this, selectinload won't re-populate `.stages` on a pipeline
+            # instance already in the identity map (e.g. re-fetched after mutating its stages).
+            query = query.execution_options(populate_existing=True)
+        result = await db.execute(query)
         return result.scalars().first()
 
     @staticmethod
@@ -315,6 +320,25 @@ class CRMPipelineRepository:
     @staticmethod
     async def get_stage_by_id(db: AsyncSession, stage_id: int) -> Optional[CRMPipelineStage]:
         return await db.get(CRMPipelineStage, stage_id)
+
+    @staticmethod
+    async def update_stage(db: AsyncSession, stage: CRMPipelineStage, **kwargs) -> CRMPipelineStage:
+        for key, val in kwargs.items():
+            setattr(stage, key, val)
+        await db.flush()
+        return stage
+
+    @staticmethod
+    async def delete_stage(db: AsyncSession, stage: CRMPipelineStage) -> None:
+        await db.delete(stage)
+        await db.flush()
+
+    @staticmethod
+    async def update(db: AsyncSession, pipeline: CRMPipeline, **kwargs) -> CRMPipeline:
+        for key, val in kwargs.items():
+            setattr(pipeline, key, val)
+        await db.flush()
+        return pipeline
 
     @staticmethod
     async def list_all(db: AsyncSession) -> list[CRMPipeline]:

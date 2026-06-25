@@ -1,8 +1,8 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import crmService from '../../services/crmService';
 import type { Lead, LeadCreate, LeadUpdate, LeadConvertRequest } from '../../models/crm/lead';
-import type { Deal } from '../../models/crm/deal';
-import type { Pipeline } from '../../models/crm/pipeline';
+import type { Deal, DealCreate, DealUpdate } from '../../models/crm/deal';
+import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../../models/crm/pipeline';
 import type { Company } from '../../models/crm/company';
 import type { Contact } from '../../models/crm/contact';
 import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../../models/crm/crmActivity';
@@ -18,6 +18,12 @@ interface CrmState {
 
 	pipelines: Pipeline[];
 	pipelinesLoading: boolean;
+	pipelineMutationLoading: boolean;
+	pipelineMutationError: string | null;
+
+	deals: Deal[];
+	dealsLoading: boolean;
+	dealsError: string | null;
 
 	companyOptions: Company[];
 	companyOptionsLoading: boolean;
@@ -43,6 +49,12 @@ const initialState: CrmState = {
 
 	pipelines: [],
 	pipelinesLoading: false,
+	pipelineMutationLoading: false,
+	pipelineMutationError: null,
+
+	deals: [],
+	dealsLoading: false,
+	dealsError: null,
 
 	companyOptions: [],
 	companyOptionsLoading: false,
@@ -126,6 +138,73 @@ export const fetchPipelines = createAsyncThunk(
 	}
 );
 
+export const createPipeline = createAsyncThunk(
+	'crm/createPipeline',
+	async (payload: PipelineCreate, { rejectWithValue }) => {
+		try {
+			return await crmService.createPipeline(payload);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to create pipeline');
+		}
+	}
+);
+
+export const updatePipelineStages = createAsyncThunk(
+	'crm/updatePipelineStages',
+	async ({ pipelineId, stages }: { pipelineId: number; stages: PipelineStageUpsert[] }, { rejectWithValue }) => {
+		try {
+			return await crmService.updatePipelineStages(pipelineId, stages);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to update pipeline stages');
+		}
+	}
+);
+
+export const fetchDeals = createAsyncThunk(
+	'crm/fetchDeals',
+	async (params: { pipelineId?: number; search?: string } | undefined, { rejectWithValue }) => {
+		try {
+			return await crmService.listDeals({ ...params, pageSize: 200 });
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to fetch deals');
+		}
+	}
+);
+
+export const createDeal = createAsyncThunk(
+	'crm/createDeal',
+	async (payload: DealCreate, { rejectWithValue }) => {
+		try {
+			return await crmService.createDeal(payload);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to create deal');
+		}
+	}
+);
+
+export const updateDeal = createAsyncThunk(
+	'crm/updateDeal',
+	async ({ publicId, payload }: { publicId: string; payload: DealUpdate }, { rejectWithValue }) => {
+		try {
+			return await crmService.updateDeal(publicId, payload);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to update deal');
+		}
+	}
+);
+
+export const deleteDeal = createAsyncThunk(
+	'crm/deleteDeal',
+	async (publicId: string, { rejectWithValue }) => {
+		try {
+			await crmService.deleteDeal(publicId);
+			return publicId;
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to delete deal');
+		}
+	}
+);
+
 export const searchCompanyOptions = createAsyncThunk(
 	'crm/searchCompanyOptions',
 	async (search: string | undefined, { rejectWithValue }) => {
@@ -150,11 +229,11 @@ export const searchContactOptions = createAsyncThunk(
 	}
 );
 
-export const fetchLeadActivities = createAsyncThunk(
-	'crm/fetchLeadActivities',
-	async (leadId: number, { rejectWithValue }) => {
+export const fetchEntityActivities = createAsyncThunk(
+	'crm/fetchEntityActivities',
+	async ({ entityType, entityId }: { entityType: string; entityId: number }, { rejectWithValue }) => {
 		try {
-			return await crmService.listActivities({ entityType: 'lead', entityId: leadId, pageSize: 100 });
+			return await crmService.listActivities({ entityType, entityId, pageSize: 100 });
 		} catch (error: any) {
 			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to fetch activities');
 		}
@@ -263,6 +342,53 @@ const crmSlice = createSlice({
 			.addCase(fetchPipelines.rejected, (state) => {
 				state.pipelinesLoading = false;
 			})
+			.addCase(createPipeline.pending, (state) => {
+				state.pipelineMutationLoading = true;
+				state.pipelineMutationError = null;
+			})
+			.addCase(createPipeline.fulfilled, (state, action: PayloadAction<Pipeline>) => {
+				state.pipelineMutationLoading = false;
+				state.pipelines.push(action.payload);
+			})
+			.addCase(createPipeline.rejected, (state, action: PayloadAction<any>) => {
+				state.pipelineMutationLoading = false;
+				state.pipelineMutationError = action.payload;
+			})
+			.addCase(updatePipelineStages.pending, (state) => {
+				state.pipelineMutationLoading = true;
+				state.pipelineMutationError = null;
+			})
+			.addCase(updatePipelineStages.fulfilled, (state, action: PayloadAction<Pipeline>) => {
+				state.pipelineMutationLoading = false;
+				const idx = state.pipelines.findIndex((p) => p.id === action.payload.id);
+				if (idx !== -1) state.pipelines[idx] = action.payload;
+			})
+			.addCase(updatePipelineStages.rejected, (state, action: PayloadAction<any>) => {
+				state.pipelineMutationLoading = false;
+				state.pipelineMutationError = action.payload;
+			})
+			.addCase(fetchDeals.pending, (state) => {
+				state.dealsLoading = true;
+				state.dealsError = null;
+			})
+			.addCase(fetchDeals.fulfilled, (state, action: PayloadAction<PaginatedResponse<Deal>>) => {
+				state.dealsLoading = false;
+				state.deals = action.payload.items;
+			})
+			.addCase(fetchDeals.rejected, (state, action: PayloadAction<any>) => {
+				state.dealsLoading = false;
+				state.dealsError = action.payload;
+			})
+			.addCase(createDeal.fulfilled, (state, action: PayloadAction<Deal>) => {
+				state.deals.unshift(action.payload);
+			})
+			.addCase(updateDeal.fulfilled, (state, action: PayloadAction<Deal>) => {
+				const idx = state.deals.findIndex((d) => d.public_id === action.payload.public_id);
+				if (idx !== -1) state.deals[idx] = action.payload;
+			})
+			.addCase(deleteDeal.fulfilled, (state, action: PayloadAction<string>) => {
+				state.deals = state.deals.filter((d) => d.public_id !== action.payload);
+			})
 			.addCase(searchCompanyOptions.pending, (state) => {
 				state.companyOptionsLoading = true;
 			})
@@ -283,15 +409,15 @@ const crmSlice = createSlice({
 			.addCase(searchContactOptions.rejected, (state) => {
 				state.contactOptionsLoading = false;
 			})
-			.addCase(fetchLeadActivities.pending, (state) => {
+			.addCase(fetchEntityActivities.pending, (state) => {
 				state.activitiesLoading = true;
 				state.activitiesError = null;
 			})
-			.addCase(fetchLeadActivities.fulfilled, (state, action: PayloadAction<PaginatedResponse<CRMActivity>>) => {
+			.addCase(fetchEntityActivities.fulfilled, (state, action: PayloadAction<PaginatedResponse<CRMActivity>>) => {
 				state.activitiesLoading = false;
 				state.activities = action.payload.items;
 			})
-			.addCase(fetchLeadActivities.rejected, (state, action: PayloadAction<any>) => {
+			.addCase(fetchEntityActivities.rejected, (state, action: PayloadAction<any>) => {
 				state.activitiesLoading = false;
 				state.activitiesError = action.payload;
 			})

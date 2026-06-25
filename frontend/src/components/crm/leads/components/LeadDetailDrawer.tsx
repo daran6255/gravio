@@ -5,7 +5,7 @@ import DetailDrawer from '../../../common/drawer/DetailDrawer';
 import StatusBadge from '../../../common/badge/StatusBadge';
 import { ActivityComposer, ActivityTimeline } from '../../shared';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
-import { fetchLeadActivities, clearActivities } from '../../../../store/slices/crmSlice';
+import { fetchEntityActivities, clearActivities } from '../../../../store/slices/crmSlice';
 import type { Lead } from '../../../../models/crm/lead';
 
 interface LeadDetailDrawerProps {
@@ -23,7 +23,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 
 	useEffect(() => {
 		if (open && lead) {
-			dispatch(fetchLeadActivities(lead.id));
+			dispatch(fetchEntityActivities({ entityType: 'lead', entityId: lead.id }));
 		} else {
 			dispatch(clearActivities());
 		}
@@ -91,7 +91,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 				<ActivityComposer
 					entityType="lead"
 					entityId={lead.id}
-					onCreated={() => dispatch(fetchLeadActivities(lead.id))}
+					onCreated={() => dispatch(fetchEntityActivities({ entityType: 'lead', entityId: lead.id }))}
 				/>
 				<ActivityTimeline activities={activities} loading={activitiesLoading} />
 			</Box>

@@ -6,6 +6,7 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func, and_
+from sqlalchemy.exc import IntegrityError
 
 from app.models.crm import (
     CRMCompany,
@@ -39,11 +40,13 @@ from app.schemas.crm import (
     CRMDealUpdate,
     CRMActivityCreate,
     CRMActivityUpdate,
+    CRMPipelineCreate,
+    CRMPipelineStageUpsert,
     CRMStatsResponse,
     StageStats,
     SourceStats,
 )
-from app.middleware.exceptions import NotFoundError, BadRequestError
+from app.middleware.exceptions import NotFoundError, BadRequestError, ConflictError
 
 
 class CRMService:
@@ -372,6 +375,52 @@ class CRMService:
     @staticmethod
     async def list_pipelines(db: AsyncSession) -> list[CRMPipeline]:
         return await CRMPipelineRepository.list_all(db)
+
+    @staticmethod
+    async def create_pipeline(db: AsyncSession, payload: CRMPipelineCreate) -> CRMPipeline:
+        pipeline = await CRMPipelineRepository.create(
+            db,
+            name=payload.name,
+            is_default=payload.is_default,
+            custom_fields=payload.custom_fields,
+        )
+        for stage in payload.stages:
+            await CRMPipelineRepository.create_stage(db, pipeline_id=pipeline.id, **stage.model_dump())
+
+        return await CRMPipelineRepository.get_by_id(db, pipeline.id)
+
+    @staticmethod
+    async def update_pipeline_stages(
+        db: AsyncSession, pipeline_id: int, stages: list[CRMPipelineStageUpsert]
+    ) -> CRMPipeline:
+        """Create, update, reorder, and delete a pipeline's stages in one call.
+        Any existing stage whose id is not present in `stages` is deleted."""
+        pipeline = await CRMPipelineRepository.get_by_id(db, pipeline_id)
+        if not pipeline:
+            raise NotFoundError("Pipeline not found")
+
+        existing_by_id = {stage.id: stage for stage in pipeline.stages}
+        keep_ids = {s.id for s in stages if s.id is not None}
+
+        for stage_id, stage in existing_by_id.items():
+            if stage_id not in keep_ids:
+                stage_name = stage.name
+                try:
+                    await CRMPipelineRepository.delete_stage(db, stage)
+                except IntegrityError:
+                    await db.rollback()
+                    raise ConflictError(
+                        f"Cannot delete stage '{stage_name}' — it still has deals assigned to it."
+                    )
+
+        for s in stages:
+            data = s.model_dump(exclude={"id"})
+            if s.id is not None and s.id in existing_by_id:
+                await CRMPipelineRepository.update_stage(db, existing_by_id[s.id], **data)
+            else:
+                await CRMPipelineRepository.create_stage(db, pipeline_id=pipeline.id, **data)
+
+        return await CRMPipelineRepository.get_by_id(db, pipeline.id, refresh=True)
 
     # --- Activity CRUD ---
     @staticmethod

@@ -45,16 +45,29 @@ async def crm_test_data(db_session: AsyncSession):
         is_verified=True,
     )
 
-    db_session.add_all([marketing, dev])
+    # Admin role — has CRM access plus pipeline management rights
+    admin = User(
+        email="admin@crmtest.com",
+        username="admin_crm",
+        full_name="Admin User",
+        hashed_password=get_password_hash("password123"),
+        organization_id=org.id,
+        role=UserRole.ADMIN,
+        is_active=True,
+        is_verified=True,
+    )
+
+    db_session.add_all([marketing, dev, admin])
     await db_session.commit()
     await db_session.refresh(marketing)
     await db_session.refresh(dev)
-    return org, marketing, dev
+    await db_session.refresh(admin)
+    return org, marketing, dev, admin
 
 
 @pytest.fixture
 async def auth_crm_client(client: AsyncClient, crm_test_data) -> AsyncClient:
-    _, marketing, _ = crm_test_data
+    _, marketing, _, _ = crm_test_data
     response = await client.post(
         "/api/v1/auth/login",
         json={
@@ -70,7 +83,7 @@ async def auth_crm_client(client: AsyncClient, crm_test_data) -> AsyncClient:
 
 @pytest.fixture
 async def auth_no_crm_client(client: AsyncClient, crm_test_data) -> AsyncClient:
-    _, _, dev = crm_test_data
+    _, _, dev, _ = crm_test_data
     response = await client.post(
         "/api/v1/auth/login",
         json={
@@ -81,6 +94,22 @@ async def auth_no_crm_client(client: AsyncClient, crm_test_data) -> AsyncClient:
     assert response.status_code == 200
     tokens = response.json()
     # Create new client headers
+    client.headers["Authorization"] = f"Bearer {tokens['access_token']}"
+    return client
+
+
+@pytest.fixture
+async def auth_admin_crm_client(client: AsyncClient, crm_test_data) -> AsyncClient:
+    _, _, _, admin = crm_test_data
+    response = await client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "admin@crmtest.com",
+            "password": "password123",
+        }
+    )
+    assert response.status_code == 200
+    tokens = response.json()
     client.headers["Authorization"] = f"Bearer {tokens['access_token']}"
     return client
 
@@ -314,3 +343,105 @@ async def test_update_deal_rejects_cross_org_stage(auth_crm_client: AsyncClient,
         json={"stage_id": other_stage_id},
     )
     assert response.status_code == 404
+
+
+@pytest.mark.anyio
+async def test_pipeline_management_requires_admin_or_manager(auth_crm_client: AsyncClient):
+    # Marketing role has CRM access but not pipeline management rights
+    response = await auth_crm_client.post(
+        "/api/v1/crm/pipelines",
+        json={"name": "Partnerships", "stages": []},
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.anyio
+async def test_create_pipeline_with_stages(auth_admin_crm_client: AsyncClient):
+    response = await auth_admin_crm_client.post(
+        "/api/v1/crm/pipelines",
+        json={
+            "name": "Partnerships",
+            "stages": [
+                {"name": "Outreach", "order": 0, "probability": 10},
+                {"name": "Signed", "order": 1, "probability": 100, "is_won_stage": True},
+            ],
+        },
+    )
+    assert response.status_code == 201
+    pipeline = response.json()
+    assert pipeline["name"] == "Partnerships"
+    assert len(pipeline["stages"]) == 2
+    assert pipeline["stages"][1]["is_won_stage"] is True
+
+
+@pytest.mark.anyio
+async def test_update_pipeline_stages_add_edit_reorder_delete(auth_admin_crm_client: AsyncClient):
+    response = await auth_admin_crm_client.get("/api/v1/crm/pipelines")
+    pipeline = response.json()[0]
+    stages = pipeline["stages"]
+    assert len(stages) == 7  # default seeded pipeline
+
+    keep_stage = stages[0]
+    rename_stage = stages[1]
+
+    # Keep stage 0 unchanged, rename+reprobability stage 1, drop the rest, add one new stage.
+    response = await auth_admin_crm_client.patch(
+        f"/api/v1/crm/pipelines/{pipeline['id']}/stages",
+        json={
+            "stages": [
+                {
+                    "id": keep_stage["id"],
+                    "name": keep_stage["name"],
+                    "order": 0,
+                    "probability": keep_stage["probability"],
+                    "color": keep_stage["color"],
+                },
+                {
+                    "id": rename_stage["id"],
+                    "name": "Renamed Stage",
+                    "order": 1,
+                    "probability": 55,
+                    "color": "#123456",
+                },
+                {"name": "Brand New Stage", "order": 2, "probability": 80},
+            ]
+        },
+    )
+    assert response.status_code == 200
+    updated = response.json()
+    assert len(updated["stages"]) == 3
+    names = {s["name"] for s in updated["stages"]}
+    assert names == {keep_stage["name"], "Renamed Stage", "Brand New Stage"}
+    renamed = next(s for s in updated["stages"] if s["name"] == "Renamed Stage")
+    assert renamed["probability"] == 55
+    assert renamed["id"] == rename_stage["id"]
+
+
+@pytest.mark.anyio
+async def test_delete_stage_with_active_deal_is_rejected(auth_admin_crm_client: AsyncClient):
+    response = await auth_admin_crm_client.get("/api/v1/crm/pipelines")
+    pipeline = response.json()[0]
+    occupied_stage = pipeline["stages"][0]
+    untouched_stage = pipeline["stages"][1]
+
+    response = await auth_admin_crm_client.post(
+        "/api/v1/crm/deals",
+        json={
+            "title": "Deal blocking stage deletion",
+            "pipeline_id": pipeline["id"],
+            "stage_id": occupied_stage["id"],
+        },
+    )
+    assert response.status_code == 201
+
+    # Try to update stages without including the occupied stage -> should be rejected, not silently dropped
+    response = await auth_admin_crm_client.patch(
+        f"/api/v1/crm/pipelines/{pipeline['id']}/stages",
+        json={"stages": [untouched_stage]},
+    )
+    assert response.status_code == 409
+
+    # Pipeline must still have all its original stages since the operation was rolled back
+    response = await auth_admin_crm_client.get("/api/v1/crm/pipelines")
+    pipeline_after = next(p for p in response.json() if p["id"] == pipeline["id"])
+    assert len(pipeline_after["stages"]) == len(pipeline["stages"])

@@ -68,6 +68,16 @@ class CRMPipelineResponse(CRMPipelineBase):
     stages: list[CRMPipelineStageResponse] = []
 
 
+class CRMPipelineStageUpsert(CRMPipelineStageBase):
+    """A stage in a bulk stage-update request. Omit `id` to create a new stage;
+    any existing stage whose id is not present in the request is deleted."""
+    id: Optional[int] = None
+
+
+class CRMPipelineStagesUpdateRequest(BaseModel):
+    stages: list[CRMPipelineStageUpsert]
+
+
 # --- Company Schemas ---
 class CRMCompanyBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)

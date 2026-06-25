@@ -24,7 +24,9 @@ from app.schemas.crm import (
     CRMDealCreate,
     CRMDealUpdate,
     CRMDealResponse,
+    CRMPipelineCreate,
     CRMPipelineResponse,
+    CRMPipelineStagesUpdateRequest,
     CRMActivityCreate,
     CRMActivityUpdate,
     CRMActivityResponse,
@@ -40,6 +42,9 @@ require_crm_access = require_roles([
     UserRole.MARKETING,
     UserRole.PLACEMENT,
 ])
+
+# Pipeline/stage configuration is an admin/manager-only capability
+require_pipeline_management = require_roles([UserRole.ADMIN, UserRole.MANAGER])
 
 
 # --- Dashboard Stats ---
@@ -67,6 +72,36 @@ async def list_pipelines_endpoint(
 ) -> list[CRMPipelineResponse]:
     pipelines = await CRMService.list_pipelines(db)
     return [CRMPipelineResponse.model_validate(p) for p in pipelines]
+
+
+@router.post(
+    "/pipelines",
+    response_model=CRMPipelineResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a sales pipeline with its initial stages",
+)
+async def create_pipeline_endpoint(
+    payload: CRMPipelineCreate,
+    current_user: User = Depends(require_pipeline_management),
+    db: AsyncSession = Depends(get_db),
+) -> CRMPipelineResponse:
+    pipeline = await CRMService.create_pipeline(db, payload)
+    return CRMPipelineResponse.model_validate(pipeline)
+
+
+@router.patch(
+    "/pipelines/{pipeline_id}/stages",
+    response_model=CRMPipelineResponse,
+    summary="Create, update, reorder, and delete a pipeline's stages",
+)
+async def update_pipeline_stages_endpoint(
+    pipeline_id: int,
+    payload: CRMPipelineStagesUpdateRequest,
+    current_user: User = Depends(require_pipeline_management),
+    db: AsyncSession = Depends(get_db),
+) -> CRMPipelineResponse:
+    pipeline = await CRMService.update_pipeline_stages(db, pipeline_id, payload.stages)
+    return CRMPipelineResponse.model_validate(pipeline)
 
 
 # --- Companies ---

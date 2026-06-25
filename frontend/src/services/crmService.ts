@@ -4,7 +4,7 @@ import type { Company, CompanyCreate, CompanyUpdate } from '../models/crm/compan
 import type { Contact, ContactCreate, ContactUpdate } from '../models/crm/contact';
 import type { Lead, LeadCreate, LeadUpdate, LeadConvertRequest } from '../models/crm/lead';
 import type { Deal, DealCreate, DealUpdate } from '../models/crm/deal';
-import type { Pipeline } from '../models/crm/pipeline';
+import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../models/crm/pipeline';
 import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../models/crm/crmActivity';
 import type { CRMStats } from '../models/crm/crmStats';
 
@@ -129,6 +129,14 @@ const crmService = {
 	// --- Pipelines ---
 	listPipelines: async (): Promise<Pipeline[]> => {
 		const response = await api.get<Pipeline[]>('/crm/pipelines');
+		return response.data;
+	},
+	createPipeline: async (payload: PipelineCreate): Promise<Pipeline> => {
+		const response = await api.post<Pipeline>('/crm/pipelines', payload);
+		return response.data;
+	},
+	updatePipelineStages: async (pipelineId: number, stages: PipelineStageUpsert[]): Promise<Pipeline> => {
+		const response = await api.patch<Pipeline>(`/crm/pipelines/${pipelineId}/stages`, { stages });
 		return response.data;
 	},
 
