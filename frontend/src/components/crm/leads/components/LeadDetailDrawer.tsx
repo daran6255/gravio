@@ -6,7 +6,7 @@ import StatusBadge from '../../../common/badge/StatusBadge';
 import { ActivityComposer, ActivityTimeline } from '../../shared';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchLeadActivities, clearActivities } from '../../../../store/slices/crmSlice';
-import type { Lead } from '../../../../models/lead';
+import type { Lead } from '../../../../models/crm/lead';
 
 interface LeadDetailDrawerProps {
 	open: boolean;

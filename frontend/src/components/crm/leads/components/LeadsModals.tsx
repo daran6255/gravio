@@ -1,8 +1,8 @@
 import React from 'react';
 import { LeadFormDrawer, ConvertLeadDialog } from '../forms';
 import { ConfirmationDialog } from '../../../common/dialogbox';
-import type { Lead } from '../../../../models/lead';
-import type { Deal } from '../../../../models/deal';
+import type { Lead } from '../../../../models/crm/lead';
+import type { Deal } from '../../../../models/crm/deal';
 
 interface LeadsModalsProps {
 	formOpen: boolean;

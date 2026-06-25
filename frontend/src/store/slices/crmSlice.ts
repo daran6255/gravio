@@ -1,11 +1,11 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import crmService from '../../services/crmService';
-import type { Lead, LeadCreate, LeadUpdate, LeadConvertRequest } from '../../models/lead';
-import type { Deal } from '../../models/deal';
-import type { Pipeline } from '../../models/pipeline';
-import type { Company } from '../../models/company';
-import type { Contact } from '../../models/contact';
-import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../../models/crmActivity';
+import type { Lead, LeadCreate, LeadUpdate, LeadConvertRequest } from '../../models/crm/lead';
+import type { Deal } from '../../models/crm/deal';
+import type { Pipeline } from '../../models/crm/pipeline';
+import type { Company } from '../../models/crm/company';
+import type { Contact } from '../../models/crm/contact';
+import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../../models/crm/crmActivity';
 import type { PaginatedResponse } from '../../models/common';
 
 interface CrmState {

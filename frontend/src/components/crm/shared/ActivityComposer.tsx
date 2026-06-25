@@ -3,7 +3,7 @@ import { Box, TextField, Button, Stack, CircularProgress, ToggleButtonGroup, Tog
 import { Notes, Call, Email, Groups, CheckCircleOutline, WhatsApp } from '@mui/icons-material';
 import { useAppDispatch } from '../../../store/hooks';
 import { createActivity } from '../../../store/slices/crmSlice';
-import type { CRMActivityType, CRMActivityEntityType } from '../../../models/crmActivity';
+import type { CRMActivityType, CRMActivityEntityType } from '../../../models/crm/crmActivity';
 import useToast from '../../../hooks/useToast';
 
 const TYPE_OPTIONS: { value: CRMActivityType; label: string; icon: React.ReactNode }[] = [

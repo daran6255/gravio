@@ -12,9 +12,9 @@ import {
 import DetailDrawer from '../../../common/drawer/DetailDrawer';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { createLead, updateLead, searchCompanyOptions, searchContactOptions } from '../../../../store/slices/crmSlice';
-import type { Lead, LeadSource, LeadPriority } from '../../../../models/lead';
-import type { Company } from '../../../../models/company';
-import type { Contact } from '../../../../models/contact';
+import type { Lead, LeadSource, LeadPriority } from '../../../../models/crm/lead';
+import type { Company } from '../../../../models/crm/company';
+import type { Contact } from '../../../../models/crm/contact';
 import useToast from '../../../../hooks/useToast';
 
 const LEAD_SOURCES: LeadSource[] = ['website', 'referral', 'cold_call', 'linkedin', 'ad', 'event', 'other'];

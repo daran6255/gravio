@@ -1,12 +1,12 @@
 import api from './api';
 import type { PaginatedResponse } from '../models/common';
-import type { Company, CompanyCreate, CompanyUpdate } from '../models/company';
-import type { Contact, ContactCreate, ContactUpdate } from '../models/contact';
-import type { Lead, LeadCreate, LeadUpdate, LeadConvertRequest } from '../models/lead';
-import type { Deal, DealCreate, DealUpdate } from '../models/deal';
-import type { Pipeline } from '../models/pipeline';
-import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../models/crmActivity';
-import type { CRMStats } from '../models/crmStats';
+import type { Company, CompanyCreate, CompanyUpdate } from '../models/crm/company';
+import type { Contact, ContactCreate, ContactUpdate } from '../models/crm/contact';
+import type { Lead, LeadCreate, LeadUpdate, LeadConvertRequest } from '../models/crm/lead';
+import type { Deal, DealCreate, DealUpdate } from '../models/crm/deal';
+import type { Pipeline } from '../models/crm/pipeline';
+import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../models/crm/crmActivity';
+import type { CRMStats } from '../models/crm/crmStats';
 
 const crmService = {
 	// --- Companies ---

@@ -3,8 +3,8 @@ import { Box, TextField, MenuItem, Button, Stack, CircularProgress, Alert, Typog
 import BaseDialog from '../../../common/dialogbox/BaseDialog';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchPipelines, convertLead } from '../../../../store/slices/crmSlice';
-import type { Lead } from '../../../../models/lead';
-import type { Deal } from '../../../../models/deal';
+import type { Lead } from '../../../../models/crm/lead';
+import type { Deal } from '../../../../models/crm/deal';
 import useToast from '../../../../hooks/useToast';
 
 interface ConvertLeadDialogProps {

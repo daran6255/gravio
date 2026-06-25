@@ -3,7 +3,7 @@ import { TableRow, TableCell, Typography, Stack } from '@mui/material';
 import { Visibility, Edit, SwapHoriz, DeleteOutline } from '@mui/icons-material';
 import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../../common/table';
 import StatusBadge from '../../../common/badge/StatusBadge';
-import type { Lead } from '../../../../models/lead';
+import type { Lead } from '../../../../models/crm/lead';
 
 interface LeadsTableProps {
 	leads: Lead[];

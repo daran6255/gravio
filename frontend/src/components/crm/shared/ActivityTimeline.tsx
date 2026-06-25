@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography, Stack, Checkbox, IconButton, Tooltip } from '@mui/material';
 import { Notes, Call, Email, Groups, CheckCircleOutline, WhatsApp, DeleteOutline } from '@mui/icons-material';
-import type { CRMActivity, CRMActivityType } from '../../../models/crmActivity';
+import type { CRMActivity, CRMActivityType } from '../../../models/crm/crmActivity';
 import { useAppDispatch } from '../../../store/hooks';
 import { updateActivity, deleteActivity } from '../../../store/slices/crmSlice';
 

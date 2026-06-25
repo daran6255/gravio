@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchLeads, deleteLead, searchCompanyOptions, searchContactOptions } from '../../../../store/slices/crmSlice';
 import useToast from '../../../../hooks/useToast';
-import type { Lead } from '../../../../models/lead';
+import type { Lead } from '../../../../models/crm/lead';
 
 export const useLeadsManagement = () => {
 	const dispatch = useAppDispatch();
