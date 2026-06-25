@@ -3,7 +3,6 @@ import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchLeads, deleteLead, searchCompanyOptions, searchContactOptions } from '../../../../store/slices/crmSlice';
 import useToast from '../../../../hooks/useToast';
 import type { Lead } from '../../../../models/lead';
-import type { Deal } from '../../../../models/deal';
 
 export const useLeadsManagement = () => {
 	const dispatch = useAppDispatch();
@@ -89,9 +88,9 @@ export const useLeadsManagement = () => {
 		}
 	};
 
-	const handleFormSuccess = (_lead: Lead) => refreshData();
+	const handleFormSuccess = () => refreshData();
 
-	const handleConverted = (_deal: Deal) => refreshData();
+	const handleConverted = () => refreshData();
 
 	return {
 		leads,
