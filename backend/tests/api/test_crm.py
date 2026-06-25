@@ -497,3 +497,161 @@ async def test_delete_stage_with_active_deal_is_rejected(auth_admin_crm_client: 
     response = await auth_admin_crm_client.get("/api/v1/crm/pipelines")
     pipeline_after = next(p for p in response.json() if p["id"] == pipeline["id"])
     assert len(pipeline_after["stages"]) == len(pipeline["stages"])
+
+
+@pytest.mark.anyio
+async def test_dashboard_stats_include_conversion_rate_and_my_tasks(
+    auth_crm_client: AsyncClient, crm_test_data
+):
+    _, marketing, _, _ = crm_test_data
+
+    # One lead converts, one stays open -> 50% conversion rate
+    response = await auth_crm_client.post("/api/v1/crm/leads", json={"title": "Lead A"})
+    lead_a = response.json()
+    response = await auth_crm_client.post("/api/v1/crm/leads", json={"title": "Lead B"})
+    assert response.status_code == 201
+
+    response = await auth_crm_client.get("/api/v1/crm/pipelines")
+    pipeline = response.json()[0]
+    response = await auth_crm_client.post(
+        f"/api/v1/crm/leads/{lead_a['public_id']}/convert",
+        json={"pipeline_id": pipeline["id"], "stage_id": pipeline["stages"][0]["id"]},
+    )
+    assert response.status_code == 200
+
+    # A task owned by the requesting user should surface in "my tasks"
+    response = await auth_crm_client.post(
+        "/api/v1/crm/activities",
+        json={
+            "type": "task",
+            "subject": "Call back prospect",
+            "entity_type": "lead",
+            "entity_id": lead_a["id"],
+            "owner_id": marketing.id,
+        },
+    )
+    assert response.status_code == 201
+
+    response = await auth_crm_client.get("/api/v1/crm/dashboard/stats")
+    assert response.status_code == 200
+    stats = response.json()
+    assert stats["conversion_rate"] == 50.0
+    assert len(stats["my_tasks"]) == 1
+    assert stats["my_tasks"][0]["subject"] == "Call back prospect"
+
+
+@pytest.mark.anyio
+async def test_list_owners_endpoint(auth_crm_client: AsyncClient, crm_test_data):
+    org, marketing, dev, admin = crm_test_data
+
+    response = await auth_crm_client.get("/api/v1/crm/owners")
+    assert response.status_code == 200
+    owners = response.json()
+    owner_ids = {o["id"] for o in owners}
+    # All active org users are assignable, regardless of CRM access (e.g. dev)
+    assert {marketing.id, dev.id, admin.id} <= owner_ids
+
+
+@pytest.mark.anyio
+async def test_bulk_update_leads_requires_admin_or_manager(auth_crm_client: AsyncClient):
+    response = await auth_crm_client.post("/api/v1/crm/leads", json={"title": "Bulk Target"})
+    lead_public_id = response.json()["public_id"]
+
+    response = await auth_crm_client.patch(
+        "/api/v1/crm/leads/bulk",
+        json={"public_ids": [lead_public_id], "status": "qualified"},
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.anyio
+async def test_bulk_update_leads_reassigns_owner_and_status(
+    auth_admin_crm_client: AsyncClient, crm_test_data
+):
+    _, marketing, _, admin = crm_test_data
+
+    response = await auth_admin_crm_client.post("/api/v1/crm/leads", json={"title": "Lead One"})
+    lead_one = response.json()["public_id"]
+    response = await auth_admin_crm_client.post("/api/v1/crm/leads", json={"title": "Lead Two"})
+    lead_two = response.json()["public_id"]
+
+    response = await auth_admin_crm_client.patch(
+        "/api/v1/crm/leads/bulk",
+        json={"public_ids": [lead_one, lead_two], "owner_id": marketing.id, "status": "qualified"},
+    )
+    assert response.status_code == 200
+    updated = response.json()
+    assert len(updated) == 2
+    assert all(l["owner_id"] == marketing.id for l in updated)
+    assert all(l["status"] == "qualified" for l in updated)
+
+    # An unknown public_id mixed into the batch must reject the whole request, not partially apply
+    response = await auth_admin_crm_client.patch(
+        "/api/v1/crm/leads/bulk",
+        json={"public_ids": [lead_one, str(uuid.uuid4())], "status": "contacted"},
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.anyio
+async def test_activities_feed_filters_by_type_and_date(auth_crm_client: AsyncClient):
+    response = await auth_crm_client.post("/api/v1/crm/companies", json={"name": "FilterCo"})
+    company_id = response.json()["id"]
+
+    await auth_crm_client.post(
+        "/api/v1/crm/activities",
+        json={"type": "note", "subject": "A note", "entity_type": "company", "entity_id": company_id},
+    )
+    await auth_crm_client.post(
+        "/api/v1/crm/activities",
+        json={"type": "call", "subject": "A call", "entity_type": "company", "entity_id": company_id},
+    )
+
+    response = await auth_crm_client.get("/api/v1/crm/activities", params={"type": "call"})
+    assert response.status_code == 200
+    result = response.json()
+    assert result["total"] == 1
+    assert result["items"][0]["subject"] == "A call"
+
+    # date_from in the far future should exclude everything just logged
+    response = await auth_crm_client.get(
+        "/api/v1/crm/activities", params={"date_from": "2999-01-01T00:00:00Z"}
+    )
+    assert response.status_code == 200
+    assert response.json()["total"] == 0
+
+
+@pytest.mark.anyio
+async def test_crm_search_across_entities(auth_crm_client: AsyncClient):
+    response = await auth_crm_client.post(
+        "/api/v1/crm/companies", json={"name": "Zentron Industries"}
+    )
+    assert response.status_code == 201
+
+    response = await auth_crm_client.post(
+        "/api/v1/crm/contacts", json={"first_name": "Zentron", "last_name": "Rep"}
+    )
+    assert response.status_code == 201
+
+    response = await auth_crm_client.post("/api/v1/crm/leads", json={"title": "Zentron expansion deal"})
+    assert response.status_code == 201
+
+    response = await auth_crm_client.get("/api/v1/crm/pipelines")
+    pipeline = response.json()[0]
+    response = await auth_crm_client.post(
+        "/api/v1/crm/deals",
+        json={
+            "title": "Zentron renewal",
+            "pipeline_id": pipeline["id"],
+            "stage_id": pipeline["stages"][0]["id"],
+        },
+    )
+    assert response.status_code == 201
+
+    response = await auth_crm_client.get("/api/v1/crm/search", params={"q": "Zentron"})
+    assert response.status_code == 200
+    results = response.json()
+    assert len(results["companies"]) == 1
+    assert len(results["contacts"]) == 1
+    assert len(results["leads"]) == 1
+    assert len(results["deals"]) == 1

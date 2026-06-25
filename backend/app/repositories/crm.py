@@ -177,6 +177,20 @@ class CRMLeadRepository:
         await db.flush()
 
     @staticmethod
+    async def bulk_update(db: AsyncSession, lead_ids: list[int], **kwargs) -> list[CRMLead]:
+        result = await db.execute(
+            select(CRMLead).where(CRMLead.id.in_(lead_ids), CRMLead.is_deleted.is_(False))
+        )
+        leads = list(result.scalars().all())
+        for lead in leads:
+            for key, val in kwargs.items():
+                setattr(lead, key, val)
+        await db.flush()
+        for lead in leads:
+            await db.refresh(lead)
+        return leads
+
+    @staticmethod
     async def list_all(
         db: AsyncSession,
         *,
@@ -395,6 +409,9 @@ class CRMActivityRepository:
         entity_id: Optional[int] = None,
         owner_id: Optional[int] = None,
         is_completed: Optional[bool] = None,
+        type: Optional[str] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[CRMActivity], int]:
@@ -407,6 +424,12 @@ class CRMActivityRepository:
             conditions.append(CRMActivity.owner_id == owner_id)
         if is_completed is not None:
             conditions.append(CRMActivity.is_completed == is_completed)
+        if type:
+            conditions.append(CRMActivity.type == type)
+        if date_from:
+            conditions.append(CRMActivity.created_at >= date_from)
+        if date_to:
+            conditions.append(CRMActivity.created_at <= date_to)
 
         count_result = await db.execute(
             select(func.count()).select_from(CRMActivity).where(*conditions)

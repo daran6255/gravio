@@ -322,3 +322,28 @@ class CRMStatsResponse(BaseModel):
     deal_value_by_stage: list[StageStats]
     leads_by_source: list[SourceStats]
     overdue_tasks_count: int
+    conversion_rate: float
+    my_tasks: list[CRMActivityResponse]
+
+
+# --- Owner Option Schema (for owner-reassignment pickers) ---
+class CRMOwnerOption(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    full_name: Optional[str] = None
+    email: str
+
+
+# --- Bulk Update Schemas ---
+class CRMBulkLeadUpdateRequest(BaseModel):
+    public_ids: list[uuid.UUID] = Field(..., min_length=1)
+    owner_id: Optional[int] = None
+    status: Optional[LeadStatus] = None
+
+
+# --- Cross-Entity Search Schema ---
+class CRMSearchResponse(BaseModel):
+    companies: list[CRMCompanyResponse]
+    contacts: list[CRMContactResponse]
+    leads: list[CRMLeadResponse]
+    deals: list[CRMDealResponse]

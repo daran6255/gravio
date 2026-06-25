@@ -7,6 +7,8 @@ import type { Deal, DealCreate, DealUpdate } from '../models/crm/deal';
 import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../models/crm/pipeline';
 import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../models/crm/crmActivity';
 import type { CRMStats } from '../models/crm/crmStats';
+import type { CRMOwnerOption } from '../models/crm/owner';
+import type { CRMSearchResults } from '../models/crm/search';
 
 const crmService = {
 	// --- Companies ---
@@ -93,6 +95,14 @@ const crmService = {
 		const response = await api.post<Deal>(`/crm/leads/${publicId}/convert`, payload);
 		return response.data;
 	},
+	bulkUpdateLeads: async (publicIds: string[], updates: { ownerId?: number; status?: string }): Promise<Lead[]> => {
+		const response = await api.patch<Lead[]>('/crm/leads/bulk', {
+			public_ids: publicIds,
+			owner_id: updates.ownerId,
+			status: updates.status,
+		});
+		return response.data;
+	},
 
 	// --- Deals ---
 	listDeals: async (params: {
@@ -158,16 +168,22 @@ const crmService = {
 		entityId?: number;
 		ownerId?: number;
 		isCompleted?: boolean;
+		type?: string;
+		dateFrom?: string;
+		dateTo?: string;
 		page?: number;
 		pageSize?: number;
 	} = {}): Promise<PaginatedResponse<CRMActivity>> => {
-		const { entityType, entityId, ownerId, isCompleted, page = 1, pageSize = 20 } = params;
+		const { entityType, entityId, ownerId, isCompleted, type, dateFrom, dateTo, page = 1, pageSize = 20 } = params;
 		const response = await api.get<PaginatedResponse<CRMActivity>>('/crm/activities', {
 			params: {
 				entity_type: entityType,
 				entity_id: entityId,
 				owner_id: ownerId,
 				is_completed: isCompleted,
+				type,
+				date_from: dateFrom,
+				date_to: dateTo,
 				page,
 				page_size: pageSize,
 			},
@@ -189,6 +205,18 @@ const crmService = {
 	// --- Dashboard ---
 	getStats: async (): Promise<CRMStats> => {
 		const response = await api.get<CRMStats>('/crm/dashboard/stats');
+		return response.data;
+	},
+
+	// --- Owners ---
+	listOwners: async (): Promise<CRMOwnerOption[]> => {
+		const response = await api.get<CRMOwnerOption[]>('/crm/owners');
+		return response.data;
+	},
+
+	// --- Search ---
+	search: async (q: string): Promise<CRMSearchResults> => {
+		const response = await api.get<CRMSearchResults>('/crm/search', { params: { q } });
 		return response.data;
 	},
 };

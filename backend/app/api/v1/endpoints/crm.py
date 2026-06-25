@@ -1,6 +1,7 @@
 """FastAPI endpoint routers for Gravit CRM"""
 
 import uuid
+from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,6 +32,9 @@ from app.schemas.crm import (
     CRMActivityUpdate,
     CRMActivityResponse,
     CRMStatsResponse,
+    CRMOwnerOption,
+    CRMBulkLeadUpdateRequest,
+    CRMSearchResponse,
 )
 
 router = APIRouter(prefix="/crm", tags=["CRM"])
@@ -57,7 +61,41 @@ async def get_crm_stats(
     current_user: User = Depends(require_crm_access),
     db: AsyncSession = Depends(get_db),
 ) -> CRMStatsResponse:
-    return await CRMService.get_stats(db)
+    return await CRMService.get_stats(db, current_user.id)
+
+
+# --- Owner Options ---
+@router.get(
+    "/owners",
+    response_model=list[CRMOwnerOption],
+    summary="List org users assignable as a lead/deal owner",
+)
+async def list_owners_endpoint(
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> list[CRMOwnerOption]:
+    owners = await CRMService.list_assignable_owners(db, current_user.organization_id)
+    return [CRMOwnerOption.model_validate(o) for o in owners]
+
+
+# --- Cross-Entity Search ---
+@router.get(
+    "/search",
+    response_model=CRMSearchResponse,
+    summary="Search companies, contacts, leads, and deals by a single query",
+)
+async def search_crm_endpoint(
+    q: str = Query(..., min_length=1),
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> CRMSearchResponse:
+    results = await CRMService.search(db, q)
+    return CRMSearchResponse(
+        companies=[CRMCompanyResponse.model_validate(c) for c in results["companies"]],
+        contacts=[CRMContactResponse.model_validate(c) for c in results["contacts"]],
+        leads=[CRMLeadResponse.model_validate(l) for l in results["leads"]],
+        deals=[CRMDealResponse.model_validate(d) for d in results["deals"]],
+    )
 
 
 # --- Pipelines ---
@@ -277,6 +315,20 @@ async def create_lead_endpoint(
 ) -> CRMLeadResponse:
     lead = await CRMService.create_lead(db, payload, current_user.id)
     return CRMLeadResponse.model_validate(lead)
+
+
+@router.patch(
+    "/leads/bulk",
+    response_model=list[CRMLeadResponse],
+    summary="Bulk reassign owner and/or change status on multiple leads",
+)
+async def bulk_update_leads_endpoint(
+    payload: CRMBulkLeadUpdateRequest,
+    current_user: User = Depends(require_pipeline_management),
+    db: AsyncSession = Depends(get_db),
+) -> list[CRMLeadResponse]:
+    leads = await CRMService.bulk_update_leads(db, payload.public_ids, payload.owner_id, payload.status)
+    return [CRMLeadResponse.model_validate(l) for l in leads]
 
 
 @router.get(
@@ -515,13 +567,17 @@ async def list_activities_endpoint(
     entity_id: Optional[int] = Query(None),
     owner_id: Optional[int] = Query(None),
     is_completed: Optional[bool] = Query(None),
+    type: Optional[str] = Query(None),
+    date_from: Optional[datetime] = Query(None),
+    date_to: Optional[datetime] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(require_crm_access),
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[CRMActivityResponse]:
     items, total = await CRMService.list_activities(
-        db, entity_type, entity_id, owner_id, is_completed, page, page_size
+        db, entity_type, entity_id, owner_id, is_completed, page, page_size,
+        type=type, date_from=date_from, date_to=date_to,
     )
     return PaginatedResponse[CRMActivityResponse](
         items=[CRMActivityResponse.model_validate(i) for i in items],

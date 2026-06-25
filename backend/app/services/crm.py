@@ -40,12 +40,14 @@ from app.schemas.crm import (
     CRMDealUpdate,
     CRMActivityCreate,
     CRMActivityUpdate,
+    CRMActivityResponse,
     CRMPipelineCreate,
     CRMPipelineStageUpsert,
     CRMStatsResponse,
     StageStats,
     SourceStats,
 )
+from app.models.user import User
 from app.middleware.exceptions import NotFoundError, BadRequestError, ConflictError
 
 
@@ -225,6 +227,28 @@ class CRMService:
         return await CRMLeadRepository.list_all(
             db, status=status, owner_id=owner_id, page=page, page_size=page_size, search=search
         )
+
+    @staticmethod
+    async def bulk_update_leads(
+        db: AsyncSession, public_ids: list[uuid.UUID], owner_id: Optional[int], status: Optional[str]
+    ) -> list[CRMLead]:
+        if owner_id is None and status is None:
+            raise BadRequestError("Provide at least one of owner_id or status to update")
+
+        result = await db.execute(
+            select(CRMLead.id).where(CRMLead.public_id.in_(public_ids), CRMLead.is_deleted.is_(False))
+        )
+        lead_ids = [row[0] for row in result.all()]
+        if len(lead_ids) != len(set(public_ids)):
+            raise NotFoundError("One or more leads not found")
+
+        updates: dict[str, Any] = {}
+        if owner_id is not None:
+            updates["owner_id"] = owner_id
+        if status is not None:
+            updates["status"] = status
+
+        return await CRMLeadRepository.bulk_update(db, lead_ids, **updates)
 
     # --- Lead Conversion logic ---
     @staticmethod
@@ -488,6 +512,9 @@ class CRMService:
         is_completed: Optional[bool],
         page: int,
         page_size: int,
+        type: Optional[str] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
     ) -> tuple[list[CRMActivity], int]:
         return await CRMActivityRepository.list_all(
             db,
@@ -495,13 +522,16 @@ class CRMService:
             entity_id=entity_id,
             owner_id=owner_id,
             is_completed=is_completed,
+            type=type,
+            date_from=date_from,
+            date_to=date_to,
             page=page,
             page_size=page_size,
         )
 
     # --- Dashboard Summary ---
     @staticmethod
-    async def get_stats(db: AsyncSession) -> CRMStatsResponse:
+    async def get_stats(db: AsyncSession, current_user_id: int) -> CRMStatsResponse:
         # Leads count (excluding converted)
         lead_count_result = await db.execute(
             select(func.count(CRMLead.id)).where(
@@ -572,10 +602,66 @@ class CRMService:
             for row in leads_source_res.all()
         ]
 
+        # Conversion rate — converted leads as a share of all leads ever created
+        all_leads_result = await db.execute(
+            select(func.count(CRMLead.id)).where(CRMLead.is_deleted.is_(False))
+        )
+        all_leads_count = all_leads_result.scalar_one()
+
+        converted_result = await db.execute(
+            select(func.count(CRMLead.id)).where(
+                and_(CRMLead.is_deleted.is_(False), CRMLead.status == LeadStatus.CONVERTED)
+            )
+        )
+        converted_count = converted_result.scalar_one()
+        conversion_rate = round((converted_count / all_leads_count) * 100, 1) if all_leads_count else 0.0
+
+        # My tasks — this user's open tasks, soonest due date first
+        my_tasks_result = await db.execute(
+            select(CRMActivity)
+            .where(
+                and_(
+                    CRMActivity.is_deleted.is_(False),
+                    CRMActivity.type == ActivityType.TASK,
+                    CRMActivity.is_completed.is_(False),
+                    CRMActivity.owner_id == current_user_id,
+                )
+            )
+            .order_by(CRMActivity.due_date.asc().nulls_last())
+            .limit(10)
+        )
+        my_tasks = list(my_tasks_result.scalars().all())
+
         return CRMStatsResponse(
             total_active_leads=total_leads,
             total_deal_value=float(total_deal_val),
             deal_value_by_stage=deal_stage_stats,
             leads_by_source=leads_by_source,
             overdue_tasks_count=overdue_tasks,
+            conversion_rate=conversion_rate,
+            my_tasks=[CRMActivityResponse.model_validate(t) for t in my_tasks],
         )
+
+    # --- Owner Options (for owner-reassignment pickers) ---
+    @staticmethod
+    async def list_assignable_owners(db: AsyncSession, organization_id: int) -> list[User]:
+        result = await db.execute(
+            select(User)
+            .where(User.organization_id == organization_id, User.is_active.is_(True))
+            .order_by(User.full_name, User.email)
+        )
+        return list(result.scalars().all())
+
+    # --- Cross-Entity Search ---
+    @staticmethod
+    async def search(db: AsyncSession, query: str) -> dict[str, list]:
+        companies, _ = await CRMCompanyRepository.list_all(db, page=1, page_size=5, search=query)
+        contacts, _ = await CRMContactRepository.list_all(db, company_id=None, page=1, page_size=5, search=query)
+        leads, _ = await CRMLeadRepository.list_all(db, page=1, page_size=5, search=query)
+        deals, _ = await CRMDealRepository.list_all(db, page=1, page_size=5, search=query)
+        return {
+            "companies": companies,
+            "contacts": contacts,
+            "leads": leads,
+            "deals": deals,
+        }

@@ -5,3 +5,5 @@ export * from './deal';
 export * from './pipeline';
 export * from './crmActivity';
 export * from './crmStats';
+export * from './owner';
+export * from './search';

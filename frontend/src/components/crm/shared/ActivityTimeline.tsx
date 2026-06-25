@@ -21,9 +21,10 @@ const formatDate = (iso: string) => new Date(iso).toLocaleString(undefined, {
 interface ActivityTimelineProps {
 	activities: CRMActivity[];
 	loading?: boolean;
+	showEntityType?: boolean;
 }
 
-export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ activities, loading }) => {
+export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ activities, loading, showEntityType }) => {
 	const dispatch = useAppDispatch();
 
 	if (loading) {
@@ -95,6 +96,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ activities, 
 							</Typography>
 						)}
 						<Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>
+							{showEntityType ? `On ${activity.entity_type} #${activity.entity_id} · ` : ''}
 							{activity.due_date ? `Due ${formatDate(activity.due_date)} · ` : ''}
 							Logged {formatDate(activity.created_at)}
 						</Typography>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { TableRow, TableCell, Typography, Stack } from '@mui/material';
+import { TableRow, TableCell, Typography, Stack, Checkbox } from '@mui/material';
 import { Visibility, Edit, SwapHoriz, DeleteOutline } from '@mui/icons-material';
 import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../../common/table';
 import StatusBadge from '../../../common/badge/StatusBadge';
@@ -21,6 +21,10 @@ interface LeadsTableProps {
 	onEdit: (lead: Lead) => void;
 	onConvert: (lead: Lead) => void;
 	onDelete: (lead: Lead) => void;
+	selectable?: boolean;
+	selectedIds?: Set<string>;
+	onToggleSelect?: (publicId: string) => void;
+	onSelectAll?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const formatCurrency = (value?: number, currency?: string) => {
@@ -44,6 +48,10 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
 	onEdit,
 	onConvert,
 	onDelete,
+	selectable,
+	selectedIds,
+	onToggleSelect,
+	onSelectAll,
 }) => {
 	const columns: ColumnDefinition<Lead>[] = [
 		{ id: 'title', label: 'Lead' },
@@ -80,6 +88,15 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
 				onClick={() => onRowClick(lead)}
 				sx={{ cursor: 'pointer' }}
 			>
+				{selectable && (
+					<TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+						<Checkbox
+							size="small"
+							checked={selectedIds?.has(lead.public_id) ?? false}
+							onChange={() => onToggleSelect?.(lead.public_id)}
+						/>
+					</TableCell>
+				)}
 				<TableCell>
 					<Typography variant="body2" sx={{ fontWeight: 600 }}>{lead.title}</Typography>
 				</TableCell>
@@ -119,6 +136,8 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
 			canCreate
 			renderRow={renderRow}
 			emptyMessage="No leads yet. Create your first lead to get started."
+			numSelected={selectable ? selectedIds?.size : undefined}
+			onSelectAllClick={selectable ? onSelectAll : undefined}
 		/>
 	);
 };

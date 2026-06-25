@@ -6,6 +6,9 @@ import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../../models
 import type { Company, CompanyCreate, CompanyUpdate } from '../../models/crm/company';
 import type { Contact, ContactCreate, ContactUpdate } from '../../models/crm/contact';
 import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../../models/crm/crmActivity';
+import type { CRMStats } from '../../models/crm/crmStats';
+import type { CRMOwnerOption } from '../../models/crm/owner';
+import type { CRMSearchResults } from '../../models/crm/search';
 import type { PaginatedResponse } from '../../models/common';
 
 interface CrmState {
@@ -54,6 +57,26 @@ interface CrmState {
 	activities: CRMActivity[];
 	activitiesLoading: boolean;
 	activitiesError: string | null;
+
+	feedActivities: CRMActivity[];
+	feedActivitiesTotal: number;
+	feedActivitiesPage: number;
+	feedActivitiesPageSize: number;
+	feedActivitiesLoading: boolean;
+	feedActivitiesError: string | null;
+
+	stats: CRMStats | null;
+	statsLoading: boolean;
+	statsError: string | null;
+
+	owners: CRMOwnerOption[];
+	ownersLoading: boolean;
+
+	bulkUpdateLoading: boolean;
+	bulkUpdateError: string | null;
+
+	searchResults: CRMSearchResults | null;
+	searchLoading: boolean;
 
 	convertLoading: boolean;
 	convertError: string | null;
@@ -105,6 +128,26 @@ const initialState: CrmState = {
 	activities: [],
 	activitiesLoading: false,
 	activitiesError: null,
+
+	feedActivities: [],
+	feedActivitiesTotal: 0,
+	feedActivitiesPage: 1,
+	feedActivitiesPageSize: 20,
+	feedActivitiesLoading: false,
+	feedActivitiesError: null,
+
+	stats: null,
+	statsLoading: false,
+	statsError: null,
+
+	owners: [],
+	ownersLoading: false,
+
+	bulkUpdateLoading: false,
+	bulkUpdateError: null,
+
+	searchResults: null,
+	searchLoading: false,
 
 	convertLoading: false,
 	convertError: null,
@@ -163,6 +206,17 @@ export const convertLead = createAsyncThunk(
 			return { publicId, deal };
 		} catch (error: any) {
 			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to convert lead');
+		}
+	}
+);
+
+export const bulkUpdateLeads = createAsyncThunk(
+	'crm/bulkUpdateLeads',
+	async (params: { publicIds: string[]; ownerId?: number; status?: string }, { rejectWithValue }) => {
+		try {
+			return await crmService.bulkUpdateLeads(params.publicIds, { ownerId: params.ownerId, status: params.status });
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to update leads');
 		}
 	}
 );
@@ -430,6 +484,53 @@ export const deleteActivity = createAsyncThunk(
 	}
 );
 
+export const fetchActivityFeed = createAsyncThunk(
+	'crm/fetchActivityFeed',
+	async (
+		params: { type?: string; ownerId?: number; dateFrom?: string; dateTo?: string; page?: number; pageSize?: number } | undefined,
+		{ rejectWithValue }
+	) => {
+		try {
+			return await crmService.listActivities(params || {});
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to fetch activity feed');
+		}
+	}
+);
+
+export const fetchStats = createAsyncThunk(
+	'crm/fetchStats',
+	async (_, { rejectWithValue }) => {
+		try {
+			return await crmService.getStats();
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to fetch dashboard stats');
+		}
+	}
+);
+
+export const fetchOwners = createAsyncThunk(
+	'crm/fetchOwners',
+	async (_, { rejectWithValue }) => {
+		try {
+			return await crmService.listOwners();
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to fetch owners');
+		}
+	}
+);
+
+export const searchCrm = createAsyncThunk(
+	'crm/searchCrm',
+	async (q: string, { rejectWithValue }) => {
+		try {
+			return await crmService.search(q);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Search failed');
+		}
+	}
+);
+
 const crmSlice = createSlice({
 	name: 'crm',
 	initialState,
@@ -446,6 +547,9 @@ const crmSlice = createSlice({
 		clearLinkedRecords: (state) => {
 			state.linkedContacts = [];
 			state.linkedDeals = [];
+		},
+		clearSearchResults: (state) => {
+			state.searchResults = null;
 		},
 	},
 	extraReducers: (builder) => {
@@ -491,6 +595,21 @@ const crmSlice = createSlice({
 			.addCase(convertLead.rejected, (state, action: PayloadAction<any>) => {
 				state.convertLoading = false;
 				state.convertError = action.payload;
+			})
+			.addCase(bulkUpdateLeads.pending, (state) => {
+				state.bulkUpdateLoading = true;
+				state.bulkUpdateError = null;
+			})
+			.addCase(bulkUpdateLeads.fulfilled, (state, action: PayloadAction<Lead[]>) => {
+				state.bulkUpdateLoading = false;
+				for (const updated of action.payload) {
+					const idx = state.leads.findIndex((l) => l.public_id === updated.public_id);
+					if (idx !== -1) state.leads[idx] = updated;
+				}
+			})
+			.addCase(bulkUpdateLeads.rejected, (state, action: PayloadAction<any>) => {
+				state.bulkUpdateLoading = false;
+				state.bulkUpdateError = action.payload;
 			})
 			.addCase(fetchPipelines.pending, (state) => {
 				state.pipelinesLoading = true;
@@ -661,12 +780,62 @@ const crmSlice = createSlice({
 			.addCase(updateActivity.fulfilled, (state, action: PayloadAction<CRMActivity>) => {
 				const idx = state.activities.findIndex((a) => a.public_id === action.payload.public_id);
 				if (idx !== -1) state.activities[idx] = action.payload;
+				const feedIdx = state.feedActivities.findIndex((a) => a.public_id === action.payload.public_id);
+				if (feedIdx !== -1) state.feedActivities[feedIdx] = action.payload;
 			})
 			.addCase(deleteActivity.fulfilled, (state, action: PayloadAction<string>) => {
 				state.activities = state.activities.filter((a) => a.public_id !== action.payload);
+				state.feedActivities = state.feedActivities.filter((a) => a.public_id !== action.payload);
+			})
+			.addCase(fetchActivityFeed.pending, (state) => {
+				state.feedActivitiesLoading = true;
+				state.feedActivitiesError = null;
+			})
+			.addCase(fetchActivityFeed.fulfilled, (state, action: PayloadAction<PaginatedResponse<CRMActivity>>) => {
+				state.feedActivitiesLoading = false;
+				state.feedActivities = action.payload.items;
+				state.feedActivitiesTotal = action.payload.total;
+				state.feedActivitiesPage = action.payload.page;
+				state.feedActivitiesPageSize = action.payload.page_size;
+			})
+			.addCase(fetchActivityFeed.rejected, (state, action: PayloadAction<any>) => {
+				state.feedActivitiesLoading = false;
+				state.feedActivitiesError = action.payload;
+			})
+			.addCase(fetchStats.pending, (state) => {
+				state.statsLoading = true;
+				state.statsError = null;
+			})
+			.addCase(fetchStats.fulfilled, (state, action: PayloadAction<CRMStats>) => {
+				state.statsLoading = false;
+				state.stats = action.payload;
+			})
+			.addCase(fetchStats.rejected, (state, action: PayloadAction<any>) => {
+				state.statsLoading = false;
+				state.statsError = action.payload;
+			})
+			.addCase(fetchOwners.pending, (state) => {
+				state.ownersLoading = true;
+			})
+			.addCase(fetchOwners.fulfilled, (state, action: PayloadAction<CRMOwnerOption[]>) => {
+				state.ownersLoading = false;
+				state.owners = action.payload;
+			})
+			.addCase(fetchOwners.rejected, (state) => {
+				state.ownersLoading = false;
+			})
+			.addCase(searchCrm.pending, (state) => {
+				state.searchLoading = true;
+			})
+			.addCase(searchCrm.fulfilled, (state, action: PayloadAction<CRMSearchResults>) => {
+				state.searchLoading = false;
+				state.searchResults = action.payload;
+			})
+			.addCase(searchCrm.rejected, (state) => {
+				state.searchLoading = false;
 			});
 	},
 });
 
-export const { clearLeadsError, clearConvertError, clearActivities, clearLinkedRecords } = crmSlice.actions;
+export const { clearLeadsError, clearConvertError, clearActivities, clearLinkedRecords, clearSearchResults } = crmSlice.actions;
 export default crmSlice.reducer;

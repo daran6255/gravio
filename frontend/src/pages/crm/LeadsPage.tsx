@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Container } from '@mui/material';
 import PageHeader from '../../components/common/page-header';
-import { LeadsTable, LeadDetailDrawer, LeadsModals, useLeadsManagement } from '../../components/crm';
+import { LeadsTable, LeadDetailDrawer, LeadsModals, LeadsBulkActionBar, useLeadsManagement } from '../../components/crm';
 
 /**
  * CRM Leads — capture, qualify, and convert sales opportunities into deals.
@@ -30,6 +30,15 @@ const LeadsPage: React.FC = () => {
 		deleteTarget,
 		setDeleteTarget,
 		deleteLoading,
+		canBulkActions,
+		owners,
+		selectedIds,
+		bulkUpdateLoading,
+		handleToggleSelect,
+		handleSelectAll,
+		handleClearSelection,
+		handleBulkReassign,
+		handleBulkStatusChange,
 		handleCreateClick,
 		handleEdit,
 		handleRowClick,
@@ -48,6 +57,17 @@ const LeadsPage: React.FC = () => {
 					subtitle="Capture, qualify, and convert your sales pipeline"
 				/>
 
+				{canBulkActions && (
+					<LeadsBulkActionBar
+						selectedCount={selectedIds.size}
+						owners={owners}
+						loading={bulkUpdateLoading}
+						onReassign={handleBulkReassign}
+						onChangeStatus={handleBulkStatusChange}
+						onClear={handleClearSelection}
+					/>
+				)}
+
 				<LeadsTable
 					leads={leads}
 					loading={leadsLoading}
@@ -64,6 +84,10 @@ const LeadsPage: React.FC = () => {
 					onEdit={handleEdit}
 					onConvert={handleConvert}
 					onDelete={handleDeleteRequest}
+					selectable={canBulkActions}
+					selectedIds={selectedIds}
+					onToggleSelect={handleToggleSelect}
+					onSelectAll={handleSelectAll}
 				/>
 
 				<LeadDetailDrawer

@@ -1,3 +1,5 @@
+import type { CRMActivity } from './crmActivity';
+
 export interface StageStats {
 	stage_id: number;
 	stage_name: string;
@@ -17,4 +19,6 @@ export interface CRMStats {
 	deal_value_by_stage: StageStats[];
 	leads_by_source: SourceStats[];
 	overdue_tasks_count: number;
+	conversion_rate: number;
+	my_tasks: CRMActivity[];
 }

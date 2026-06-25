@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchCompanies, deleteCompany } from '../../../../store/slices/crmSlice';
 import useToast from '../../../../hooks/useToast';
@@ -8,10 +9,11 @@ export const useCompaniesManagement = () => {
 	const dispatch = useAppDispatch();
 	const toast = useToast();
 	const { companies, companiesTotal, companiesLoading } = useAppSelector((state) => state.crm);
+	const [searchParams] = useSearchParams();
 
 	const [page, setPage] = useState(0);
 	const [rowsPerPage, setRowsPerPage] = useState(20);
-	const [searchTerm, setSearchTerm] = useState('');
+	const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
 	const [refreshKey, setRefreshKey] = useState(0);
 
 	const [formOpen, setFormOpen] = useState(false);
