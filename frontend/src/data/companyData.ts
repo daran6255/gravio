@@ -1,18 +1,17 @@
 import type { CompanySize, CompanyStatus } from '../models/company';
 
 export const COMPANY_SIZES: { value: CompanySize; label: string }[] = [
-	{ value: 'micro', label: 'Micro (1-10)' },
+	{ value: 'startup', label: 'Startup (1-10)' },
 	{ value: 'small', label: 'Small (11-50)' },
 	{ value: 'medium', label: 'Medium (51-250)' },
-	{ value: 'large', label: 'Large (251-1000)' },
-	{ value: 'enterprise', label: 'Enterprise (1000+)' }
+	{ value: 'enterprise', label: 'Enterprise (250+)' }
 ];
 
 export const COMPANY_STATUSES: { value: CompanyStatus; label: string }[] = [
-	{ value: 'active', label: 'Active' },
-	{ value: 'inactive', label: 'Inactive' },
 	{ value: 'prospect', label: 'Prospect' },
-	{ value: 'customer', label: 'Customer' }
+	{ value: 'customer', label: 'Customer' },
+	{ value: 'churned', label: 'Churned' },
+	{ value: 'partner', label: 'Partner' }
 ];
 
 export const COMPANY_INDUSTRIES = [

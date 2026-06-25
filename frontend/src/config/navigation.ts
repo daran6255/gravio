@@ -2,6 +2,7 @@ import {
 	Home as HomeIcon,
 	ManageAccounts as UserIcon,
 	CorporateFare as OrgIcon,
+	TrendingUp as CrmIcon,
 } from '@mui/icons-material';
 import type { SvgIconComponent } from '@mui/icons-material';
 
@@ -29,6 +30,12 @@ export const topNavigation: NavigationItem[] = [
 		path: '/users',
 		icon: UserIcon,
 		roles: ['admin'],
+	},
+	{
+		label: 'CRM',
+		path: '/crm/leads',
+		icon: CrmIcon,
+		roles: ['admin', 'manager', 'marketing', 'placement'],
 	},
 	{
 		label: 'Organizations',

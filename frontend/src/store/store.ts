@@ -4,6 +4,7 @@ import authReducer from './slices/authSlice';
 import userReducer from './slices/userSlice';
 import healthReducer from './slices/healthSlice';
 import orgAdminReducer from './slices/orgAdminSlice';
+import crmReducer from './slices/crmSlice';
 
 export const store = configureStore({
 	reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
 		users: userReducer,
 		health: healthReducer,
 		orgAdmin: orgAdminReducer,
+		crm: crmReducer,
 	},
 	middleware: (getDefaultMiddleware) =>
 		getDefaultMiddleware({

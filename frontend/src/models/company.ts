@@ -1,43 +1,46 @@
-import type { Contact } from './contact';
-import type { Lead } from './lead';
-import type { Deal } from './deal';
-import type { CRMTask } from './crmTask';
+export type CompanySize = 'startup' | 'small' | 'medium' | 'enterprise';
+export type CompanyStatus = 'prospect' | 'customer' | 'churned' | 'partner';
 
-export type CompanySize = 'micro' | 'small' | 'medium' | 'large' | 'enterprise';
-export type CompanyStatus = 'active' | 'inactive' | 'prospect' | 'customer';
+export interface CompanyAddress {
+	street?: string;
+	city?: string;
+	state?: string;
+	country?: string;
+	zip?: string;
+}
 
+/** Matches backend's CRMCompanyResponse exactly. */
 export interface Company {
 	id: number;
 	public_id: string;
 	name: string;
 	industry?: string;
-	company_size?: CompanySize;
 	website?: string;
 	phone?: string;
 	email?: string;
+	address?: CompanyAddress;
+	size?: CompanySize;
 	status: CompanyStatus;
-	address?: Record<string, any>;
-	social_media?: Record<string, any>;
+	owner_id?: number;
+	tags?: string[];
 	custom_fields?: Record<string, any>;
-	contacts?: Contact[];
-	leads?: Lead[];
-	deals?: Deal[];
-	tasks?: CRMTask[];
-	crm_activities?: any[];
 	created_at: string;
 	updated_at: string;
 }
 
-export interface CompanyCreate extends Omit<Company, 'id' | 'public_id' | 'created_at' | 'updated_at'> { }
+/** Matches backend's CRMCompanyCreate. */
+export interface CompanyCreate {
+	name: string;
+	industry?: string;
+	website?: string;
+	phone?: string;
+	email?: string;
+	address?: CompanyAddress;
+	size?: CompanySize;
+	status?: CompanyStatus;
+	owner_id?: number;
+	tags?: string[];
+	custom_fields?: Record<string, any>;
+}
+
 export interface CompanyUpdate extends Partial<CompanyCreate> { }
-
-export interface CompanyStats {
-	total: number;
-	by_status: Record<string, number>;
-	top_industries: { industry: string; count: number }[];
-}
-
-export interface CompanyPaginatedResponse {
-	items: Company[];
-	total: number;
-}

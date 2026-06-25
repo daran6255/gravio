@@ -19,14 +19,14 @@ const getStatusTone = (status: string, type: BadgeType): StatusTone => {
 		if (['qualified', 'converted'].includes(s)) return 'success';
 		if (['contacted', 'negotiation', 'proposal_sent'].includes(s)) return 'info';
 		if (['new', 'nurturing'].includes(s)) return 'warning';
-		if (['lost'].includes(s)) return 'error';
+		if (['lost', 'unqualified'].includes(s)) return 'error';
 	}
 
 	if (type === 'deal') {
-		if (['closed_won'].includes(s)) return 'success';
-		if (['proposal', 'negotiation', 'discovery', 'qualification'].includes(s)) return 'info';
+		if (['closed_won', 'won'].includes(s)) return 'success';
+		if (['proposal', 'negotiation', 'discovery', 'qualification', 'open'].includes(s)) return 'info';
 		if (['on_hold'].includes(s)) return 'warning';
-		if (['closed_lost'].includes(s)) return 'error';
+		if (['closed_lost', 'lost'].includes(s)) return 'error';
 	}
 
 	if (type === 'task') {

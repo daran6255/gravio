@@ -1,35 +1,44 @@
-import type { Company } from './company';
+export type ContactSocialLinks = {
+	linkedin?: string;
+	twitter?: string;
+};
 
-export type ContactSource = 'linkedin' | 'website' | 'referral' | 'cold_call' | 'event' | 'other' | 'whatsapp';
-
+/** Matches backend's CRMContactResponse exactly. */
 export interface Contact {
 	id: number;
 	public_id: string;
-	company_id?: number;
 	first_name: string;
-	last_name: string;
+	last_name?: string;
 	email?: string;
 	phone?: string;
 	mobile?: string;
-	designation?: string;
+	job_title?: string;
 	department?: string;
+	company_id?: number;
+	owner_id?: number;
 	is_primary: boolean;
-	is_decision_maker: boolean;
-	linkedin_url?: string;
-	contact_source?: ContactSource;
-	contact_preferences?: Record<string, any>;
-	address?: Record<string, any>;
+	tags?: string[];
+	social_links?: ContactSocialLinks;
 	custom_fields?: Record<string, any>;
 	created_at: string;
 	updated_at: string;
-	company?: Company;
-	full_name?: string;
 }
 
-export interface ContactCreate extends Omit<Contact, 'id' | 'public_id' | 'created_at' | 'updated_at' | 'company'> { }
+/** Matches backend's CRMContactCreate. */
+export interface ContactCreate {
+	first_name: string;
+	last_name?: string;
+	email?: string;
+	phone?: string;
+	mobile?: string;
+	job_title?: string;
+	department?: string;
+	company_id?: number;
+	owner_id?: number;
+	is_primary?: boolean;
+	tags?: string[];
+	social_links?: ContactSocialLinks;
+	custom_fields?: Record<string, any>;
+}
+
 export interface ContactUpdate extends Partial<ContactCreate> { }
-
-export interface ContactPaginatedResponse {
-	items: Contact[];
-	total: number;
-}
