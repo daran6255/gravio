@@ -427,6 +427,8 @@ async def list_deals_endpoint(
     stage_id: Optional[int] = Query(None),
     status: Optional[str] = Query(None),
     owner_id: Optional[int] = Query(None),
+    company_id: Optional[int] = Query(None),
+    contact_id: Optional[int] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     search: Optional[str] = Query(None),
@@ -434,7 +436,8 @@ async def list_deals_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[CRMDealResponse]:
     items, total = await CRMService.list_deals(
-        db, pipeline_id, stage_id, status, owner_id, page, page_size, search
+        db, pipeline_id, stage_id, status, owner_id, page, page_size, search,
+        company_id=company_id, contact_id=contact_id,
     )
     return PaginatedResponse[CRMDealResponse](
         items=[CRMDealResponse.model_validate(i) for i in items],

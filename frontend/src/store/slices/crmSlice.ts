@@ -3,8 +3,8 @@ import crmService from '../../services/crmService';
 import type { Lead, LeadCreate, LeadUpdate, LeadConvertRequest } from '../../models/crm/lead';
 import type { Deal, DealCreate, DealUpdate } from '../../models/crm/deal';
 import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../../models/crm/pipeline';
-import type { Company } from '../../models/crm/company';
-import type { Contact } from '../../models/crm/contact';
+import type { Company, CompanyCreate, CompanyUpdate } from '../../models/crm/company';
+import type { Contact, ContactCreate, ContactUpdate } from '../../models/crm/contact';
 import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../../models/crm/crmActivity';
 import type { PaginatedResponse } from '../../models/common';
 
@@ -25,11 +25,31 @@ interface CrmState {
 	dealsLoading: boolean;
 	dealsError: string | null;
 
+	companies: Company[];
+	companiesTotal: number;
+	companiesPage: number;
+	companiesPageSize: number;
+	companiesLoading: boolean;
+	companiesError: string | null;
+
+	contacts: Contact[];
+	contactsTotal: number;
+	contactsPage: number;
+	contactsPageSize: number;
+	contactsLoading: boolean;
+	contactsError: string | null;
+
 	companyOptions: Company[];
 	companyOptionsLoading: boolean;
 
 	contactOptions: Contact[];
 	contactOptionsLoading: boolean;
+
+	linkedContacts: Contact[];
+	linkedContactsLoading: boolean;
+
+	linkedDeals: Deal[];
+	linkedDealsLoading: boolean;
 
 	activities: CRMActivity[];
 	activitiesLoading: boolean;
@@ -56,11 +76,31 @@ const initialState: CrmState = {
 	dealsLoading: false,
 	dealsError: null,
 
+	companies: [],
+	companiesTotal: 0,
+	companiesPage: 1,
+	companiesPageSize: 20,
+	companiesLoading: false,
+	companiesError: null,
+
+	contacts: [],
+	contactsTotal: 0,
+	contactsPage: 1,
+	contactsPageSize: 20,
+	contactsLoading: false,
+	contactsError: null,
+
 	companyOptions: [],
 	companyOptionsLoading: false,
 
 	contactOptions: [],
 	contactOptionsLoading: false,
+
+	linkedContacts: [],
+	linkedContactsLoading: false,
+
+	linkedDeals: [],
+	linkedDealsLoading: false,
 
 	activities: [],
 	activitiesLoading: false,
@@ -229,6 +269,122 @@ export const searchContactOptions = createAsyncThunk(
 	}
 );
 
+export const fetchCompanies = createAsyncThunk(
+	'crm/fetchCompanies',
+	async (params: { page?: number; pageSize?: number; search?: string } | undefined, { rejectWithValue }) => {
+		try {
+			const { page = 1, pageSize = 20, search } = params || {};
+			return await crmService.listCompanies(page, pageSize, search);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to fetch companies');
+		}
+	}
+);
+
+export const createCompany = createAsyncThunk(
+	'crm/createCompany',
+	async (payload: CompanyCreate, { rejectWithValue }) => {
+		try {
+			return await crmService.createCompany(payload);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to create company');
+		}
+	}
+);
+
+export const updateCompany = createAsyncThunk(
+	'crm/updateCompany',
+	async ({ publicId, payload }: { publicId: string; payload: CompanyUpdate }, { rejectWithValue }) => {
+		try {
+			return await crmService.updateCompany(publicId, payload);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to update company');
+		}
+	}
+);
+
+export const deleteCompany = createAsyncThunk(
+	'crm/deleteCompany',
+	async (publicId: string, { rejectWithValue }) => {
+		try {
+			await crmService.deleteCompany(publicId);
+			return publicId;
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to delete company');
+		}
+	}
+);
+
+export const fetchContacts = createAsyncThunk(
+	'crm/fetchContacts',
+	async (params: { companyId?: number; page?: number; pageSize?: number; search?: string } | undefined, { rejectWithValue }) => {
+		try {
+			const { companyId, page = 1, pageSize = 20, search } = params || {};
+			return await crmService.listContacts(companyId, page, pageSize, search);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to fetch contacts');
+		}
+	}
+);
+
+export const createContact = createAsyncThunk(
+	'crm/createContact',
+	async (payload: ContactCreate, { rejectWithValue }) => {
+		try {
+			return await crmService.createContact(payload);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to create contact');
+		}
+	}
+);
+
+export const updateContact = createAsyncThunk(
+	'crm/updateContact',
+	async ({ publicId, payload }: { publicId: string; payload: ContactUpdate }, { rejectWithValue }) => {
+		try {
+			return await crmService.updateContact(publicId, payload);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to update contact');
+		}
+	}
+);
+
+export const deleteContact = createAsyncThunk(
+	'crm/deleteContact',
+	async (publicId: string, { rejectWithValue }) => {
+		try {
+			await crmService.deleteContact(publicId);
+			return publicId;
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to delete contact');
+		}
+	}
+);
+
+export const fetchLinkedContacts = createAsyncThunk(
+	'crm/fetchLinkedContacts',
+	async (companyId: number, { rejectWithValue }) => {
+		try {
+			const result = await crmService.listContacts(companyId, 1, 50);
+			return result.items;
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to fetch linked contacts');
+		}
+	}
+);
+
+export const fetchLinkedDeals = createAsyncThunk(
+	'crm/fetchLinkedDeals',
+	async (params: { companyId?: number; contactId?: number }, { rejectWithValue }) => {
+		try {
+			const result = await crmService.listDeals({ companyId: params.companyId, contactId: params.contactId, pageSize: 50 });
+			return result.items;
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to fetch linked deals');
+		}
+	}
+);
+
 export const fetchEntityActivities = createAsyncThunk(
 	'crm/fetchEntityActivities',
 	async ({ entityType, entityId }: { entityType: string; entityId: number }, { rejectWithValue }) => {
@@ -286,6 +442,10 @@ const crmSlice = createSlice({
 		},
 		clearActivities: (state) => {
 			state.activities = [];
+		},
+		clearLinkedRecords: (state) => {
+			state.linkedContacts = [];
+			state.linkedDeals = [];
 		},
 	},
 	extraReducers: (builder) => {
@@ -389,6 +549,80 @@ const crmSlice = createSlice({
 			.addCase(deleteDeal.fulfilled, (state, action: PayloadAction<string>) => {
 				state.deals = state.deals.filter((d) => d.public_id !== action.payload);
 			})
+			.addCase(fetchCompanies.pending, (state) => {
+				state.companiesLoading = true;
+				state.companiesError = null;
+			})
+			.addCase(fetchCompanies.fulfilled, (state, action: PayloadAction<PaginatedResponse<Company>>) => {
+				state.companiesLoading = false;
+				state.companies = action.payload.items;
+				state.companiesTotal = action.payload.total;
+				state.companiesPage = action.payload.page;
+				state.companiesPageSize = action.payload.page_size;
+			})
+			.addCase(fetchCompanies.rejected, (state, action: PayloadAction<any>) => {
+				state.companiesLoading = false;
+				state.companiesError = action.payload;
+			})
+			.addCase(createCompany.fulfilled, (state, action: PayloadAction<Company>) => {
+				state.companies.unshift(action.payload);
+				state.companiesTotal += 1;
+			})
+			.addCase(updateCompany.fulfilled, (state, action: PayloadAction<Company>) => {
+				const idx = state.companies.findIndex((c) => c.public_id === action.payload.public_id);
+				if (idx !== -1) state.companies[idx] = action.payload;
+			})
+			.addCase(deleteCompany.fulfilled, (state, action: PayloadAction<string>) => {
+				state.companies = state.companies.filter((c) => c.public_id !== action.payload);
+				state.companiesTotal = Math.max(0, state.companiesTotal - 1);
+			})
+			.addCase(fetchContacts.pending, (state) => {
+				state.contactsLoading = true;
+				state.contactsError = null;
+			})
+			.addCase(fetchContacts.fulfilled, (state, action: PayloadAction<PaginatedResponse<Contact>>) => {
+				state.contactsLoading = false;
+				state.contacts = action.payload.items;
+				state.contactsTotal = action.payload.total;
+				state.contactsPage = action.payload.page;
+				state.contactsPageSize = action.payload.page_size;
+			})
+			.addCase(fetchContacts.rejected, (state, action: PayloadAction<any>) => {
+				state.contactsLoading = false;
+				state.contactsError = action.payload;
+			})
+			.addCase(createContact.fulfilled, (state, action: PayloadAction<Contact>) => {
+				state.contacts.unshift(action.payload);
+				state.contactsTotal += 1;
+			})
+			.addCase(updateContact.fulfilled, (state, action: PayloadAction<Contact>) => {
+				const idx = state.contacts.findIndex((c) => c.public_id === action.payload.public_id);
+				if (idx !== -1) state.contacts[idx] = action.payload;
+			})
+			.addCase(deleteContact.fulfilled, (state, action: PayloadAction<string>) => {
+				state.contacts = state.contacts.filter((c) => c.public_id !== action.payload);
+				state.contactsTotal = Math.max(0, state.contactsTotal - 1);
+			})
+			.addCase(fetchLinkedContacts.pending, (state) => {
+				state.linkedContactsLoading = true;
+			})
+			.addCase(fetchLinkedContacts.fulfilled, (state, action: PayloadAction<Contact[]>) => {
+				state.linkedContactsLoading = false;
+				state.linkedContacts = action.payload;
+			})
+			.addCase(fetchLinkedContacts.rejected, (state) => {
+				state.linkedContactsLoading = false;
+			})
+			.addCase(fetchLinkedDeals.pending, (state) => {
+				state.linkedDealsLoading = true;
+			})
+			.addCase(fetchLinkedDeals.fulfilled, (state, action: PayloadAction<Deal[]>) => {
+				state.linkedDealsLoading = false;
+				state.linkedDeals = action.payload;
+			})
+			.addCase(fetchLinkedDeals.rejected, (state) => {
+				state.linkedDealsLoading = false;
+			})
 			.addCase(searchCompanyOptions.pending, (state) => {
 				state.companyOptionsLoading = true;
 			})
@@ -434,5 +668,5 @@ const crmSlice = createSlice({
 	},
 });
 
-export const { clearLeadsError, clearConvertError, clearActivities } = crmSlice.actions;
+export const { clearLeadsError, clearConvertError, clearActivities, clearLinkedRecords } = crmSlice.actions;
 export default crmSlice.reducer;

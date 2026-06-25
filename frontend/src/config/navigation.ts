@@ -46,6 +46,16 @@ export const topNavigation: NavigationItem[] = [
 				path: '/crm/deals',
 				roles: ['admin', 'manager', 'marketing', 'placement'],
 			},
+			{
+				label: 'Companies',
+				path: '/crm/companies',
+				roles: ['admin', 'manager', 'marketing', 'placement'],
+			},
+			{
+				label: 'Contacts',
+				path: '/crm/contacts',
+				roles: ['admin', 'manager', 'marketing', 'placement'],
+			},
 		],
 	},
 	{

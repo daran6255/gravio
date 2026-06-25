@@ -100,13 +100,25 @@ const crmService = {
 		stageId?: number;
 		status?: string;
 		ownerId?: number;
+		companyId?: number;
+		contactId?: number;
 		page?: number;
 		pageSize?: number;
 		search?: string;
 	} = {}): Promise<PaginatedResponse<Deal>> => {
-		const { pipelineId, stageId, status, ownerId, page = 1, pageSize = 20, search } = params;
+		const { pipelineId, stageId, status, ownerId, companyId, contactId, page = 1, pageSize = 20, search } = params;
 		const response = await api.get<PaginatedResponse<Deal>>('/crm/deals', {
-			params: { pipeline_id: pipelineId, stage_id: stageId, status, owner_id: ownerId, page, page_size: pageSize, search },
+			params: {
+				pipeline_id: pipelineId,
+				stage_id: stageId,
+				status,
+				owner_id: ownerId,
+				company_id: companyId,
+				contact_id: contactId,
+				page,
+				page_size: pageSize,
+				search,
+			},
 		});
 		return response.data;
 	},

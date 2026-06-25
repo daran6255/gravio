@@ -359,6 +359,8 @@ class CRMService:
         page: int,
         page_size: int,
         search: Optional[str] = None,
+        company_id: Optional[int] = None,
+        contact_id: Optional[int] = None,
     ) -> tuple[list[CRMDeal], int]:
         return await CRMDealRepository.list_all(
             db,
@@ -366,6 +368,8 @@ class CRMService:
             stage_id=stage_id,
             status=status,
             owner_id=owner_id,
+            company_id=company_id,
+            contact_id=contact_id,
             page=page,
             page_size=page_size,
             search=search,

@@ -298,6 +298,58 @@ async def test_crm_complete_lifecycle(auth_crm_client: AsyncClient, db_session: 
 
 
 @pytest.mark.anyio
+async def test_list_deals_filters_by_company_and_contact(auth_crm_client: AsyncClient):
+    """Deals list must support narrowing to a single company/contact for detail-page widgets."""
+    response = await auth_crm_client.post("/api/v1/crm/companies", json={"name": "Initech"})
+    assert response.status_code == 201
+    company_id = response.json()["id"]
+
+    response = await auth_crm_client.post(
+        "/api/v1/crm/contacts", json={"first_name": "Peter", "company_id": company_id}
+    )
+    assert response.status_code == 201
+    contact_id = response.json()["id"]
+
+    response = await auth_crm_client.get("/api/v1/crm/pipelines")
+    pipeline = response.json()[0]
+
+    response = await auth_crm_client.post(
+        "/api/v1/crm/deals",
+        json={
+            "title": "Initech Deal",
+            "company_id": company_id,
+            "contact_id": contact_id,
+            "pipeline_id": pipeline["id"],
+            "stage_id": pipeline["stages"][0]["id"],
+        },
+    )
+    assert response.status_code == 201
+
+    # An unrelated deal that should not show up in either filtered result
+    response = await auth_crm_client.post(
+        "/api/v1/crm/deals",
+        json={
+            "title": "Unrelated Deal",
+            "pipeline_id": pipeline["id"],
+            "stage_id": pipeline["stages"][0]["id"],
+        },
+    )
+    assert response.status_code == 201
+
+    response = await auth_crm_client.get("/api/v1/crm/deals", params={"company_id": company_id})
+    assert response.status_code == 200
+    by_company = response.json()
+    assert by_company["total"] == 1
+    assert by_company["items"][0]["title"] == "Initech Deal"
+
+    response = await auth_crm_client.get("/api/v1/crm/deals", params={"contact_id": contact_id})
+    assert response.status_code == 200
+    by_contact = response.json()
+    assert by_contact["total"] == 1
+    assert by_contact["items"][0]["title"] == "Initech Deal"
+
+
+@pytest.mark.anyio
 async def test_update_deal_rejects_cross_org_stage(auth_crm_client: AsyncClient, db_session: AsyncSession):
     """A deal must not be movable to a pipeline stage owned by a different organization."""
     from app.models.organization import Organization

@@ -248,6 +248,8 @@ class CRMDealRepository:
         stage_id: Optional[int] = None,
         status: Optional[str] = None,
         owner_id: Optional[int] = None,
+        company_id: Optional[int] = None,
+        contact_id: Optional[int] = None,
         page: int = 1,
         page_size: int = 20,
         search: Optional[str] = None,
@@ -261,6 +263,10 @@ class CRMDealRepository:
             conditions.append(CRMDeal.status == status)
         if owner_id:
             conditions.append(CRMDeal.owner_id == owner_id)
+        if company_id:
+            conditions.append(CRMDeal.company_id == company_id)
+        if contact_id:
+            conditions.append(CRMDeal.contact_id == contact_id)
         if search:
             conditions.append(CRMDeal.title.ilike(f"%{search}%"))
 

@@ -10,7 +10,7 @@ import SuccessPage from '../pages/common/SuccessPage';
 import NotFoundPage from '../pages/common/NotFoundPage';
 import MaintenancePage from '../pages/common/MaintenancePage';
 import BillingSettings from '../pages/settings/BillingSettings';
-import { LeadsPage, DealsPage } from '../pages/crm';
+import { LeadsPage, DealsPage, CompaniesPage, ContactsPage } from '../pages/crm';
 
 const AppRouter: React.FC = () => {
 	return (
@@ -35,6 +35,8 @@ const AppRouter: React.FC = () => {
 					<Route path="billing" element={<BillingSettings />} />
 					<Route path="crm/leads" element={<LeadsPage />} />
 					<Route path="crm/deals" element={<DealsPage />} />
+					<Route path="crm/companies" element={<CompaniesPage />} />
+					<Route path="crm/contacts" element={<ContactsPage />} />
 
 					{/* Prefixed Tenant Routes */}
 					<Route path="org/:orgId/dashboard" element={<Dashboard />} />
@@ -42,6 +44,8 @@ const AppRouter: React.FC = () => {
 					<Route path="org/:orgId/billing" element={<BillingSettings />} />
 					<Route path="org/:orgId/crm/leads" element={<LeadsPage />} />
 					<Route path="org/:orgId/crm/deals" element={<DealsPage />} />
+					<Route path="org/:orgId/crm/companies" element={<CompaniesPage />} />
+					<Route path="org/:orgId/crm/contacts" element={<ContactsPage />} />
 				</Route>
 			</Route>
 
