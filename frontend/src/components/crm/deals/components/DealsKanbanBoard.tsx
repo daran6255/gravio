@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
-import { Box, CircularProgress, Typography } from '@mui/material';
-import { DndContext, DragOverlay, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
-import KanbanColumn from './KanbanColumn';
+import React from 'react';
+import { Box, Typography } from '@mui/material';
+import { KanbanBoard, type KanbanColumnDef } from '../../../common/kanban';
 import DealCard from './DealCard';
 import type { Deal } from '../../../../models/crm/deal';
 import type { Pipeline, PipelineStage } from '../../../../models/crm/pipeline';
@@ -28,70 +27,46 @@ export const DealsKanbanBoard: React.FC<DealsKanbanBoardProps> = ({
 	onEditDeal,
 	onDeleteDeal,
 }) => {
-	const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
-
-	const handleDragStart = (event: DragStartEvent) => {
-		setActiveDeal((event.active.data.current?.deal as Deal) ?? null);
-	};
-
-	const handleDragEnd = (event: DragEndEvent) => {
-		setActiveDeal(null);
-		const { active, over } = event;
-		if (!over || !pipeline) return;
-
-		const deal = active.data.current?.deal as Deal | undefined;
-		const targetStage = pipeline.stages.find((s) => s.id === over.id);
-		if (!deal || !targetStage || deal.stage_id === targetStage.id) return;
-
-		onMoveDeal(deal, targetStage);
-	};
-
-	if (loading) {
-		return (
-			<Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-				<CircularProgress />
-			</Box>
-		);
-	}
-
 	if (!pipeline) {
-		return (
+		return loading ? null : (
 			<Box sx={{ textAlign: 'center', py: 8 }}>
 				<Typography color="text.secondary">No pipeline found for your organization.</Typography>
 			</Box>
 		);
 	}
 
-	const dealsByStage = (stageId: number) => deals.filter((d) => d.stage_id === stageId);
+	const columns: KanbanColumnDef[] = pipeline.stages.map((stage) => ({
+		id: stage.id,
+		label: stage.name,
+		color: stage.color,
+	}));
 
 	return (
-		<DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-			<Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 2 }}>
-				{pipeline.stages.map((stage) => (
-					<KanbanColumn
-						key={stage.id}
-						stage={stage}
-						deals={dealsByStage(stage.id)}
-						companyOptions={companyOptions}
-						onViewDeal={onViewDeal}
-						onEditDeal={onEditDeal}
-						onDeleteDeal={onDeleteDeal}
-					/>
-				))}
-			</Box>
-
-			<DragOverlay>
-				{activeDeal && (
-					<DealCard
-						deal={activeDeal}
-						companyName={companyOptions.find((c) => c.id === activeDeal.company_id)?.name}
-						onView={() => {}}
-						onEdit={() => {}}
-						onDelete={() => {}}
-					/>
-				)}
-			</DragOverlay>
-		</DndContext>
+		<KanbanBoard<Deal>
+			columns={columns}
+			items={deals}
+			loading={loading}
+			getItemId={(deal) => deal.public_id}
+			getItemColumnId={(deal) => deal.stage_id}
+			renderCard={(deal) => (
+				<DealCard
+					deal={deal}
+					companyName={companyOptions.find((c) => c.id === deal.company_id)?.name}
+					onView={onViewDeal}
+					onEdit={onEditDeal}
+					onDelete={onDeleteDeal}
+				/>
+			)}
+			renderColumnFooter={(columnDeals) => (
+				<Typography variant="caption" color="text.secondary">
+					{columnDeals.reduce((sum, d) => sum + (d.value || 0), 0).toLocaleString()} total
+				</Typography>
+			)}
+			onMoveItem={(deal, column) => {
+				const targetStage = pipeline.stages.find((s) => s.id === column.id);
+				if (targetStage) onMoveDeal(deal, targetStage);
+			}}
+		/>
 	);
 };
 

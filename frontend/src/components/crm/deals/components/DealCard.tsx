@@ -1,7 +1,6 @@
 import React from 'react';
-import { Box, Typography, Stack, useTheme, alpha } from '@mui/material';
-import { useDraggable } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
+import { Box, Typography, Stack } from '@mui/material';
+import { KanbanCard } from '../../../common/kanban';
 import { DataTableActions, type TableMenuAction } from '../../../common/table';
 import { Visibility, Edit, DeleteOutline } from '@mui/icons-material';
 import type { Deal } from '../../../../models/crm/deal';
@@ -20,13 +19,6 @@ const formatValue = (value?: number, currency?: string) => {
 };
 
 export const DealCard: React.FC<DealCardProps> = ({ deal, companyName, onView, onEdit, onDelete }) => {
-	const theme = useTheme();
-	const isDark = theme.palette.mode === 'dark';
-	const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-		id: deal.public_id,
-		data: { deal },
-	});
-
 	const actions: TableMenuAction<Deal>[] = [
 		{ label: 'View Details', icon: <Visibility fontSize="small" />, onClick: () => onView(deal) },
 		{ label: 'Edit', icon: <Edit fontSize="small" />, onClick: () => onEdit(deal) },
@@ -34,29 +26,7 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, companyName, onView, o
 	];
 
 	return (
-		<Box
-			ref={setNodeRef}
-			{...listeners}
-			{...attributes}
-			onClick={() => onView(deal)}
-			sx={{
-				p: 1.5,
-				mb: 1.25,
-				borderRadius: '12px',
-				border: '1px solid',
-				borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-				bgcolor: theme.palette.background.paper,
-				cursor: 'grab',
-				touchAction: 'none',
-				opacity: isDragging ? 0.4 : 1,
-				transform: transform ? CSS.Translate.toString(transform) : undefined,
-				transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
-				'&:hover': {
-					borderColor: alpha(theme.palette.primary.main, 0.3),
-					boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.1)}`,
-				},
-			}}
-		>
+		<KanbanCard id={deal.public_id} data={{ item: deal }} onClick={() => onView(deal)}>
 			<Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 0.5 }}>
 				<Typography variant="body2" sx={{ fontWeight: 700, pr: 1 }}>{deal.title}</Typography>
 				<Box onClick={(e) => e.stopPropagation()}>
@@ -78,7 +48,7 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, companyName, onView, o
 				)}
 				<Typography variant="caption" color="text.disabled">{deal.probability}%</Typography>
 			</Stack>
-		</Box>
+		</KanbanCard>
 	);
 };
 
