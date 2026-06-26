@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
-import { fetchLeads, deleteLead, searchCompanyOptions, searchContactOptions, fetchOwners, bulkUpdateLeads } from '../../../../store/slices/crmSlice';
+import { fetchLeads, fetchLeadStats, fetchStats, deleteLead, searchCompanyOptions, searchContactOptions, fetchOwners, bulkUpdateLeads } from '../../../../store/slices/crmSlice';
 import useToast from '../../../../hooks/useToast';
-import type { Lead, LeadStatus } from '../../../../models/crm/lead';
+import type { Lead, LeadStatus, LeadPriority, LeadSource } from '../../../../models/crm/lead';
 
 export const useLeadsManagement = () => {
 	const dispatch = useAppDispatch();
 	const toast = useToast();
-	const { leads, leadsTotal, leadsLoading, owners, bulkUpdateLoading } = useAppSelector((state) => state.crm);
+	const { leads, leadsTotal, leadsLoading, leadStats, stats, owners, bulkUpdateLoading } = useAppSelector((state) => state.crm);
 	const { user } = useAppSelector((state) => state.auth);
 	const [searchParams] = useSearchParams();
 	const canBulkActions = user?.role === 'admin' || user?.role === 'manager';
@@ -17,6 +17,11 @@ export const useLeadsManagement = () => {
 	const [rowsPerPage, setRowsPerPage] = useState(20);
 	const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
 	const [refreshKey, setRefreshKey] = useState(0);
+
+	const [statusFilter, setStatusFilter] = useState<LeadStatus | ''>('');
+	const [priorityFilter, setPriorityFilter] = useState<LeadPriority | ''>('');
+	const [sourceFilter, setSourceFilter] = useState<LeadSource | ''>('');
+	const [ownerFilter, setOwnerFilter] = useState<number | ''>('');
 
 	const [formOpen, setFormOpen] = useState(false);
 	const [editingLead, setEditingLead] = useState<Lead | null>(null);
@@ -33,8 +38,20 @@ export const useLeadsManagement = () => {
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
 	useEffect(() => {
-		dispatch(fetchLeads({ page: page + 1, pageSize: rowsPerPage, search: searchTerm || undefined }));
-	}, [dispatch, page, rowsPerPage, searchTerm, refreshKey]);
+		dispatch(fetchLeads({
+			page: page + 1,
+			pageSize: rowsPerPage,
+			search: searchTerm || undefined,
+			status: statusFilter || undefined,
+			priority: priorityFilter || undefined,
+			source: sourceFilter || undefined,
+			ownerId: ownerFilter || undefined,
+		}));
+	}, [dispatch, page, rowsPerPage, searchTerm, statusFilter, priorityFilter, sourceFilter, ownerFilter, refreshKey]);
+
+	useEffect(() => {
+		dispatch(fetchLeadStats());
+	}, [dispatch, refreshKey]);
 
 	// Pre-warm the company/contact option cache so detail drawers can resolve linked names.
 	useEffect(() => {
@@ -42,10 +59,15 @@ export const useLeadsManagement = () => {
 		dispatch(searchContactOptions(undefined));
 	}, [dispatch]);
 
-	// Owner options are only needed to populate the bulk-reassign dropdown.
+	// Source breakdown for the filter sidebar comes from the shared dashboard stats.
 	useEffect(() => {
-		if (canBulkActions) dispatch(fetchOwners());
-	}, [dispatch, canBulkActions]);
+		dispatch(fetchStats());
+	}, [dispatch]);
+
+	// Needed both for the bulk-reassign dropdown and to resolve owner names in the table/filters.
+	useEffect(() => {
+		dispatch(fetchOwners());
+	}, [dispatch]);
 
 	const refreshData = useCallback(() => setRefreshKey((k) => k + 1), []);
 
@@ -58,6 +80,34 @@ export const useLeadsManagement = () => {
 
 	const handleSearchChange = (value: string) => {
 		setSearchTerm(value);
+		setPage(0);
+	};
+
+	const handleStatusFilterChange = (value: LeadStatus | '') => {
+		setStatusFilter(value);
+		setPage(0);
+	};
+
+	const handlePriorityFilterChange = (value: LeadPriority | '') => {
+		setPriorityFilter(value);
+		setPage(0);
+	};
+
+	const handleSourceFilterChange = (value: LeadSource | '') => {
+		setSourceFilter(value);
+		setPage(0);
+	};
+
+	const handleOwnerFilterChange = (value: number | '') => {
+		setOwnerFilter(value);
+		setPage(0);
+	};
+
+	const handleClearFilters = () => {
+		setStatusFilter('');
+		setPriorityFilter('');
+		setSourceFilter('');
+		setOwnerFilter('');
 		setPage(0);
 	};
 
@@ -92,6 +142,7 @@ export const useLeadsManagement = () => {
 			toast.success('Lead deleted');
 			if (selectedLead?.public_id === deleteTarget.public_id) setDetailOpen(false);
 			setDeleteTarget(null);
+			dispatch(fetchLeadStats());
 		} catch (err: any) {
 			toast.error(err || 'Failed to delete lead');
 		} finally {
@@ -133,6 +184,7 @@ export const useLeadsManagement = () => {
 			await dispatch(bulkUpdateLeads({ publicIds: Array.from(selectedIds), status })).unwrap();
 			toast.success(`Updated status for ${selectedIds.size} lead(s)`);
 			handleClearSelection();
+			dispatch(fetchLeadStats());
 		} catch (err: any) {
 			toast.error(err || 'Failed to update lead status');
 		}
@@ -142,6 +194,8 @@ export const useLeadsManagement = () => {
 		leads,
 		leadsTotal,
 		leadsLoading,
+		leadStats,
+		sourceStats: stats?.leads_by_source ?? [],
 
 		page,
 		rowsPerPage,
@@ -150,6 +204,16 @@ export const useLeadsManagement = () => {
 		handlePageChange,
 		handleRowsPerPageChange,
 		handleSearchChange,
+
+		statusFilter,
+		priorityFilter,
+		sourceFilter,
+		ownerFilter,
+		handleStatusFilterChange,
+		handlePriorityFilterChange,
+		handleSourceFilterChange,
+		handleOwnerFilterChange,
+		handleClearFilters,
 
 		formOpen,
 		setFormOpen,

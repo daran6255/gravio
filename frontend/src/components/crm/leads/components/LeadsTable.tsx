@@ -1,12 +1,16 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TableRow, TableCell, Typography, Stack, Checkbox } from '@mui/material';
 import { Visibility, Edit, SwapHoriz, DeleteOutline } from '@mui/icons-material';
 import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../../common/table';
 import StatusBadge from '../../../common/badge/StatusBadge';
+import EnterpriseAvatar from '../../../common/avatar/Avatar';
 import type { Lead } from '../../../../models/crm/lead';
+import type { CRMOwnerOption } from '../../../../models/crm/owner';
+import { getCurrencySymbol } from '../../../../utils/currency';
 
 interface LeadsTableProps {
 	leads: Lead[];
+	owners: CRMOwnerOption[];
 	loading: boolean;
 	totalCount: number;
 	page: number;
@@ -29,11 +33,12 @@ interface LeadsTableProps {
 
 const formatCurrency = (value?: number, currency?: string) => {
 	if (value == null) return '—';
-	return `${value.toLocaleString()} ${currency || ''}`.trim();
+	return `${getCurrencySymbol(currency)}${value.toLocaleString()} ${currency || ''}`.trim();
 };
 
 export const LeadsTable: React.FC<LeadsTableProps> = ({
 	leads,
+	owners,
 	loading,
 	totalCount,
 	page,
@@ -53,9 +58,12 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
 	onToggleSelect,
 	onSelectAll,
 }) => {
+	const ownerMap = useMemo(() => new Map(owners.map((o) => [o.id, o])), [owners]);
+
 	const columns: ColumnDefinition<Lead>[] = [
 		{ id: 'title', label: 'Lead' },
 		{ id: 'status', label: 'Status' },
+		{ id: 'owner', label: 'Owner', hideOnMobile: true },
 		{ id: 'priority', label: 'Priority', hideOnMobile: true },
 		{ id: 'source', label: 'Source', hideOnMobile: true },
 		{ id: 'estimated_value', label: 'Value', align: 'right', hideOnMobile: true },
@@ -63,6 +71,9 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
 	];
 
 	const renderRow = (lead: Lead) => {
+		const owner = lead.owner_id != null ? ownerMap.get(lead.owner_id) : undefined;
+		const ownerName = owner?.full_name || owner?.email;
+
 		const actions: TableMenuAction<Lead>[] = [
 			{ label: 'View Details', icon: <Visibility fontSize="small" />, onClick: () => onRowClick(lead) },
 			{ label: 'Edit', icon: <Edit fontSize="small" />, onClick: () => onEdit(lead) },
@@ -101,6 +112,16 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
 					<Typography variant="body2" sx={{ fontWeight: 600 }}>{lead.title}</Typography>
 				</TableCell>
 				<TableCell><StatusBadge label={lead.status} status={lead.status} type="lead" /></TableCell>
+				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+					{ownerName ? (
+						<Stack direction="row" spacing={1} alignItems="center">
+							<EnterpriseAvatar name={ownerName} size={24} />
+							<Typography variant="body2" noWrap sx={{ maxWidth: 140 }}>{ownerName}</Typography>
+						</Stack>
+					) : (
+						<Typography variant="body2" color="text.secondary">Unassigned</Typography>
+					)}
+				</TableCell>
 				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' }, textTransform: 'capitalize' }}>{lead.priority}</TableCell>
 				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' }, textTransform: 'capitalize' }}>
 					{lead.source ? lead.source.replace('_', ' ') : '—'}

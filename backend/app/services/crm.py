@@ -44,6 +44,7 @@ from app.schemas.crm import (
     CRMPipelineCreate,
     CRMPipelineStageUpsert,
     CRMStatsResponse,
+    CRMLeadStatsResponse,
     StageStats,
     SourceStats,
 )
@@ -222,10 +223,25 @@ class CRMService:
 
     @staticmethod
     async def list_leads(
-        db: AsyncSession, status: Optional[str], owner_id: Optional[int], page: int, page_size: int, search: Optional[str] = None
+        db: AsyncSession,
+        status: Optional[str],
+        owner_id: Optional[int],
+        page: int,
+        page_size: int,
+        search: Optional[str] = None,
+        *,
+        priority: Optional[str] = None,
+        source: Optional[str] = None,
     ) -> tuple[list[CRMLead], int]:
         return await CRMLeadRepository.list_all(
-            db, status=status, owner_id=owner_id, page=page, page_size=page_size, search=search
+            db,
+            status=status,
+            priority=priority,
+            source=source,
+            owner_id=owner_id,
+            page=page,
+            page_size=page_size,
+            search=search,
         )
 
     @staticmethod
@@ -640,6 +656,29 @@ class CRMService:
             overdue_tasks_count=overdue_tasks,
             conversion_rate=conversion_rate,
             my_tasks=[CRMActivityResponse.model_validate(t) for t in my_tasks],
+        )
+
+    # --- Lead Stats (for the Leads list page) ---
+    @staticmethod
+    async def get_lead_stats(db: AsyncSession) -> CRMLeadStatsResponse:
+        status_counts_result = await db.execute(
+            select(CRMLead.status, func.count(CRMLead.id))
+            .where(CRMLead.is_deleted.is_(False))
+            .group_by(CRMLead.status)
+        )
+        counts = {row[0]: row[1] for row in status_counts_result.all()}
+        total_leads = sum(counts.values())
+        converted_count = counts.get(LeadStatus.CONVERTED, 0)
+        conversion_rate = round((converted_count / total_leads) * 100, 1) if total_leads else 0.0
+
+        return CRMLeadStatsResponse(
+            total_leads=total_leads,
+            new_count=counts.get(LeadStatus.NEW, 0),
+            contacted_count=counts.get(LeadStatus.CONTACTED, 0),
+            qualified_count=counts.get(LeadStatus.QUALIFIED, 0),
+            unqualified_count=counts.get(LeadStatus.UNQUALIFIED, 0),
+            converted_count=converted_count,
+            conversion_rate=conversion_rate,
         )
 
     # --- Owner Options (for owner-reassignment pickers) ---

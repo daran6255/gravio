@@ -6,7 +6,7 @@ import type { Lead, LeadCreate, LeadUpdate, LeadConvertRequest } from '../models
 import type { Deal, DealCreate, DealUpdate } from '../models/crm/deal';
 import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../models/crm/pipeline';
 import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../models/crm/crmActivity';
-import type { CRMStats } from '../models/crm/crmStats';
+import type { CRMStats, CRMLeadStats } from '../models/crm/crmStats';
 import type { CRMOwnerOption } from '../models/crm/owner';
 import type { CRMSearchResults } from '../models/crm/search';
 
@@ -65,14 +65,16 @@ const crmService = {
 	// --- Leads ---
 	listLeads: async (params: {
 		status?: string;
+		priority?: string;
+		source?: string;
 		ownerId?: number;
 		page?: number;
 		pageSize?: number;
 		search?: string;
 	} = {}): Promise<PaginatedResponse<Lead>> => {
-		const { status, ownerId, page = 1, pageSize = 20, search } = params;
+		const { status, priority, source, ownerId, page = 1, pageSize = 20, search } = params;
 		const response = await api.get<PaginatedResponse<Lead>>('/crm/leads', {
-			params: { status, owner_id: ownerId, page, page_size: pageSize, search },
+			params: { status, priority, source, owner_id: ownerId, page, page_size: pageSize, search },
 		});
 		return response.data;
 	},
@@ -101,6 +103,10 @@ const crmService = {
 			owner_id: updates.ownerId,
 			status: updates.status,
 		});
+		return response.data;
+	},
+	getLeadStats: async (): Promise<CRMLeadStats> => {
+		const response = await api.get<CRMLeadStats>('/crm/leads/stats');
 		return response.data;
 	},
 

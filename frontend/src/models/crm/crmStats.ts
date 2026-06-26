@@ -22,3 +22,14 @@ export interface CRMStats {
 	conversion_rate: number;
 	my_tasks: CRMActivity[];
 }
+
+/** Matches backend's CRMLeadStatsResponse exactly. */
+export interface CRMLeadStats {
+	total_leads: number;
+	new_count: number;
+	contacted_count: number;
+	qualified_count: number;
+	unqualified_count: number;
+	converted_count: number;
+	conversion_rate: number;
+}

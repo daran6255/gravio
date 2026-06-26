@@ -3,8 +3,7 @@ import { Box, Typography, TextField, MenuItem, Button, Stack } from '@mui/materi
 import { Close } from '@mui/icons-material';
 import type { LeadStatus } from '../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
-
-const LEAD_STATUSES: LeadStatus[] = ['new', 'contacted', 'qualified', 'unqualified', 'converted'];
+import { LEAD_STATUSES } from '../constants';
 
 interface LeadsBulkActionBarProps {
 	selectedCount: number;

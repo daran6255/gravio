@@ -32,6 +32,7 @@ from app.schemas.crm import (
     CRMActivityUpdate,
     CRMActivityResponse,
     CRMStatsResponse,
+    CRMLeadStatsResponse,
     CRMOwnerOption,
     CRMBulkLeadUpdateRequest,
     CRMSearchResponse,
@@ -317,6 +318,18 @@ async def create_lead_endpoint(
     return CRMLeadResponse.model_validate(lead)
 
 
+@router.get(
+    "/leads/stats",
+    response_model=CRMLeadStatsResponse,
+    summary="Get lead counts by status and conversion rate, for the leads list page",
+)
+async def get_lead_stats_endpoint(
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> CRMLeadStatsResponse:
+    return await CRMService.get_lead_stats(db)
+
+
 @router.patch(
     "/leads/bulk",
     response_model=list[CRMLeadResponse],
@@ -380,6 +393,8 @@ async def delete_lead_endpoint(
 )
 async def list_leads_endpoint(
     status: Optional[str] = Query(None),
+    priority: Optional[str] = Query(None),
+    source: Optional[str] = Query(None),
     owner_id: Optional[int] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -387,7 +402,9 @@ async def list_leads_endpoint(
     current_user: User = Depends(require_crm_access),
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[CRMLeadResponse]:
-    items, total = await CRMService.list_leads(db, status, owner_id, page, page_size, search)
+    items, total = await CRMService.list_leads(
+        db, status, owner_id, page, page_size, search, priority=priority, source=source
+    )
     return PaginatedResponse[CRMLeadResponse](
         items=[CRMLeadResponse.model_validate(i) for i in items],
         total=total,

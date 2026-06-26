@@ -326,6 +326,16 @@ class CRMStatsResponse(BaseModel):
     my_tasks: list[CRMActivityResponse]
 
 
+class CRMLeadStatsResponse(BaseModel):
+    total_leads: int
+    new_count: int
+    contacted_count: int
+    qualified_count: int
+    unqualified_count: int
+    converted_count: int
+    conversion_rate: float
+
+
 # --- Owner Option Schema (for owner-reassignment pickers) ---
 class CRMOwnerOption(BaseModel):
     model_config = ConfigDict(from_attributes=True)

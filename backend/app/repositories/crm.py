@@ -195,6 +195,8 @@ class CRMLeadRepository:
         db: AsyncSession,
         *,
         status: Optional[str] = None,
+        priority: Optional[str] = None,
+        source: Optional[str] = None,
         owner_id: Optional[int] = None,
         page: int = 1,
         page_size: int = 20,
@@ -203,6 +205,10 @@ class CRMLeadRepository:
         conditions = [CRMLead.is_deleted.is_(False)]
         if status:
             conditions.append(CRMLead.status == status)
+        if priority:
+            conditions.append(CRMLead.priority == priority)
+        if source:
+            conditions.append(CRMLead.source == source)
         if owner_id:
             conditions.append(CRMLead.owner_id == owner_id)
         if search:

@@ -20,9 +20,7 @@ import type { Contact } from '../../../../models/crm/contact';
 import useToast from '../../../../hooks/useToast';
 import { getWorldCurrencies, getCurrencySymbol } from '../../../../utils/currency';
 import RichTextEditor from '../../../common/form/RichTextEditor';
-
-const LEAD_SOURCES: LeadSource[] = ['website', 'referral', 'cold_call', 'linkedin', 'ad', 'event', 'other'];
-const LEAD_PRIORITIES: LeadPriority[] = ['low', 'medium', 'high', 'urgent'];
+import { LEAD_SOURCES, LEAD_PRIORITIES } from '../constants';
 
 interface LeadFormDialogProps {
 	open: boolean;

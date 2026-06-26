@@ -1,7 +1,16 @@
 import React from 'react';
-import { Box, Container } from '@mui/material';
+import { Box, Container, Grid, Stack } from '@mui/material';
 import PageHeader from '../../components/common/page-header';
-import { LeadsTable, LeadDetailDrawer, LeadsModals, LeadsBulkActionBar, useLeadsManagement } from '../../components/crm';
+import {
+	LeadsTable,
+	LeadDetailDrawer,
+	LeadsModals,
+	LeadsBulkActionBar,
+	LeadsStatsPanel,
+	LeadsFilterPanel,
+	LeadsSourceBreakdown,
+	useLeadsManagement,
+} from '../../components/crm';
 
 /**
  * CRM Leads — capture, qualify, and convert sales opportunities into deals.
@@ -11,6 +20,8 @@ const LeadsPage: React.FC = () => {
 		leads,
 		leadsTotal,
 		leadsLoading,
+		leadStats,
+		sourceStats,
 		page,
 		rowsPerPage,
 		searchTerm,
@@ -18,6 +29,15 @@ const LeadsPage: React.FC = () => {
 		handleRowsPerPageChange,
 		handleSearchChange,
 		refreshData,
+		statusFilter,
+		priorityFilter,
+		sourceFilter,
+		ownerFilter,
+		handleStatusFilterChange,
+		handlePriorityFilterChange,
+		handleSourceFilterChange,
+		handleOwnerFilterChange,
+		handleClearFilters,
 		formOpen,
 		setFormOpen,
 		editingLead,
@@ -57,38 +77,64 @@ const LeadsPage: React.FC = () => {
 					subtitle="Capture, qualify, and convert your sales pipeline"
 				/>
 
-				{canBulkActions && (
-					<LeadsBulkActionBar
-						selectedCount={selectedIds.size}
-						owners={owners}
-						loading={bulkUpdateLoading}
-						onReassign={handleBulkReassign}
-						onChangeStatus={handleBulkStatusChange}
-						onClear={handleClearSelection}
-					/>
-				)}
+				<LeadsStatsPanel stats={leadStats} />
 
-				<LeadsTable
-					leads={leads}
-					loading={leadsLoading}
-					totalCount={leadsTotal}
-					page={page}
-					rowsPerPage={rowsPerPage}
-					onPageChange={handlePageChange}
-					onRowsPerPageChange={handleRowsPerPageChange}
-					searchTerm={searchTerm}
-					onSearchChange={handleSearchChange}
-					onRefresh={refreshData}
-					onCreateClick={handleCreateClick}
-					onRowClick={handleRowClick}
-					onEdit={handleEdit}
-					onConvert={handleConvert}
-					onDelete={handleDeleteRequest}
-					selectable={canBulkActions}
-					selectedIds={selectedIds}
-					onToggleSelect={handleToggleSelect}
-					onSelectAll={handleSelectAll}
-				/>
+				<Grid container spacing={3}>
+					<Grid size={{ xs: 12, md: 3 }}>
+						<Stack spacing={3}>
+							<LeadsFilterPanel
+								stats={leadStats}
+								status={statusFilter}
+								priority={priorityFilter}
+								source={sourceFilter}
+								ownerId={ownerFilter}
+								owners={owners}
+								onStatusChange={handleStatusFilterChange}
+								onPriorityChange={handlePriorityFilterChange}
+								onSourceChange={handleSourceFilterChange}
+								onOwnerChange={handleOwnerFilterChange}
+								onClear={handleClearFilters}
+							/>
+							<LeadsSourceBreakdown sourceStats={sourceStats} />
+						</Stack>
+					</Grid>
+
+					<Grid size={{ xs: 12, md: 9 }}>
+						{canBulkActions && (
+							<LeadsBulkActionBar
+								selectedCount={selectedIds.size}
+								owners={owners}
+								loading={bulkUpdateLoading}
+								onReassign={handleBulkReassign}
+								onChangeStatus={handleBulkStatusChange}
+								onClear={handleClearSelection}
+							/>
+						)}
+
+						<LeadsTable
+							leads={leads}
+							owners={owners}
+							loading={leadsLoading}
+							totalCount={leadsTotal}
+							page={page}
+							rowsPerPage={rowsPerPage}
+							onPageChange={handlePageChange}
+							onRowsPerPageChange={handleRowsPerPageChange}
+							searchTerm={searchTerm}
+							onSearchChange={handleSearchChange}
+							onRefresh={refreshData}
+							onCreateClick={handleCreateClick}
+							onRowClick={handleRowClick}
+							onEdit={handleEdit}
+							onConvert={handleConvert}
+							onDelete={handleDeleteRequest}
+							selectable={canBulkActions}
+							selectedIds={selectedIds}
+							onToggleSelect={handleToggleSelect}
+							onSelectAll={handleSelectAll}
+						/>
+					</Grid>
+				</Grid>
 
 				<LeadDetailDrawer
 					open={detailOpen}

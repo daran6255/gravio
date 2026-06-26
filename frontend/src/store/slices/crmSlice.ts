@@ -6,7 +6,7 @@ import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../../models
 import type { Company, CompanyCreate, CompanyUpdate } from '../../models/crm/company';
 import type { Contact, ContactCreate, ContactUpdate } from '../../models/crm/contact';
 import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../../models/crm/crmActivity';
-import type { CRMStats } from '../../models/crm/crmStats';
+import type { CRMStats, CRMLeadStats } from '../../models/crm/crmStats';
 import type { CRMOwnerOption } from '../../models/crm/owner';
 import type { CRMSearchResults } from '../../models/crm/search';
 import type { PaginatedResponse } from '../../models/common';
@@ -18,6 +18,10 @@ interface CrmState {
 	leadsPageSize: number;
 	leadsLoading: boolean;
 	leadsError: string | null;
+
+	leadStats: CRMLeadStats | null;
+	leadStatsLoading: boolean;
+	leadStatsError: string | null;
 
 	pipelines: Pipeline[];
 	pipelinesLoading: boolean;
@@ -90,6 +94,10 @@ const initialState: CrmState = {
 	leadsLoading: false,
 	leadsError: null,
 
+	leadStats: null,
+	leadStatsLoading: false,
+	leadStatsError: null,
+
 	pipelines: [],
 	pipelinesLoading: false,
 	pipelineMutationLoading: false,
@@ -155,7 +163,18 @@ const initialState: CrmState = {
 
 export const fetchLeads = createAsyncThunk(
 	'crm/fetchLeads',
-	async (params: { page?: number; pageSize?: number; search?: string; status?: string } | undefined, { rejectWithValue }) => {
+	async (
+		params: {
+			page?: number;
+			pageSize?: number;
+			search?: string;
+			status?: string;
+			priority?: string;
+			source?: string;
+			ownerId?: number;
+		} | undefined,
+		{ rejectWithValue }
+	) => {
 		try {
 			return await crmService.listLeads(params || {});
 		} catch (error: any) {
@@ -509,6 +528,17 @@ export const fetchStats = createAsyncThunk(
 	}
 );
 
+export const fetchLeadStats = createAsyncThunk(
+	'crm/fetchLeadStats',
+	async (_, { rejectWithValue }) => {
+		try {
+			return await crmService.getLeadStats();
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to fetch lead stats');
+		}
+	}
+);
+
 export const fetchOwners = createAsyncThunk(
 	'crm/fetchOwners',
 	async (_, { rejectWithValue }) => {
@@ -813,6 +843,18 @@ const crmSlice = createSlice({
 			.addCase(fetchStats.rejected, (state, action: PayloadAction<any>) => {
 				state.statsLoading = false;
 				state.statsError = action.payload;
+			})
+			.addCase(fetchLeadStats.pending, (state) => {
+				state.leadStatsLoading = true;
+				state.leadStatsError = null;
+			})
+			.addCase(fetchLeadStats.fulfilled, (state, action: PayloadAction<CRMLeadStats>) => {
+				state.leadStatsLoading = false;
+				state.leadStats = action.payload;
+			})
+			.addCase(fetchLeadStats.rejected, (state, action: PayloadAction<any>) => {
+				state.leadStatsLoading = false;
+				state.leadStatsError = action.payload;
 			})
 			.addCase(fetchOwners.pending, (state) => {
 				state.ownersLoading = true;
