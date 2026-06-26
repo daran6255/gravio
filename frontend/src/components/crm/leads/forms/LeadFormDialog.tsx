@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
 	Box,
 	TextField,
@@ -6,9 +6,11 @@ import {
 	Button,
 	Stack,
 	Autocomplete,
+	InputAdornment,
 	CircularProgress,
 	Alert,
 } from '@mui/material';
+import { NumericFormat } from 'react-number-format';
 import BaseDialog from '../../../common/dialogbox/BaseDialog';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { createLead, updateLead, searchCompanyOptions, searchContactOptions } from '../../../../store/slices/crmSlice';
@@ -16,6 +18,7 @@ import type { Lead, LeadSource, LeadPriority } from '../../../../models/crm/lead
 import type { Company } from '../../../../models/crm/company';
 import type { Contact } from '../../../../models/crm/contact';
 import useToast from '../../../../hooks/useToast';
+import { getWorldCurrencies, getCurrencySymbol } from '../../../../utils/currency';
 
 const LEAD_SOURCES: LeadSource[] = ['website', 'referral', 'cold_call', 'linkedin', 'ad', 'event', 'other'];
 const LEAD_PRIORITIES: LeadPriority[] = ['low', 'medium', 'high', 'urgent'];
@@ -33,6 +36,7 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 	const isEdit = !!lead;
 
 	const { companyOptions, companyOptionsLoading, contactOptions, contactOptionsLoading } = useAppSelector((state) => state.crm);
+	const currencies = useMemo(() => getWorldCurrencies(), []);
 
 	const [title, setTitle] = useState('');
 	const [source, setSource] = useState<LeadSource | ''>('');
@@ -212,21 +216,39 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 				</Stack>
 
 				<Stack direction="row" spacing={2}>
-					<TextField
+					<NumericFormat
+						customInput={TextField}
 						label="Estimated Value"
-						type="number"
 						value={estimatedValue}
-						onChange={(e) => setEstimatedValue(e.target.value)}
+						onValueChange={(values) => setEstimatedValue(values.value)}
+						thousandSeparator
+						decimalScale={2}
+						allowNegative={false}
 						fullWidth
 						size="small"
+						InputProps={{
+							startAdornment: <InputAdornment position="start">{getCurrencySymbol(currency)}</InputAdornment>,
+						}}
 					/>
-					<TextField
-						label="Currency"
-						value={currency}
-						onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+					<Autocomplete
+						options={currencies}
+						getOptionLabel={(o) => `${o.code} — ${o.name}`}
+						value={currencies.find((c) => c.code === currency) || null}
+						onChange={(_e, value) => setCurrency(value?.code || '')}
+						isOptionEqualToValue={(o, v) => o.code === v.code}
 						fullWidth
-						size="small"
-						inputProps={{ maxLength: 10 }}
+						renderOption={(props, option) => (
+							<Box component="li" {...props} key={option.code}>
+								{option.symbol} {option.code} — {option.name}
+							</Box>
+						)}
+						renderInput={(params) => (
+							<TextField
+								{...params}
+								label="Currency"
+								size="small"
+							/>
+						)}
 					/>
 				</Stack>
 
