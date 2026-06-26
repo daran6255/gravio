@@ -9,7 +9,7 @@ import {
 	CircularProgress,
 	Alert,
 } from '@mui/material';
-import DetailDrawer from '../../../common/drawer/DetailDrawer';
+import BaseDialog from '../../../common/dialogbox/BaseDialog';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { createLead, updateLead, searchCompanyOptions, searchContactOptions } from '../../../../store/slices/crmSlice';
 import type { Lead, LeadSource, LeadPriority } from '../../../../models/crm/lead';
@@ -20,14 +20,14 @@ import useToast from '../../../../hooks/useToast';
 const LEAD_SOURCES: LeadSource[] = ['website', 'referral', 'cold_call', 'linkedin', 'ad', 'event', 'other'];
 const LEAD_PRIORITIES: LeadPriority[] = ['low', 'medium', 'high', 'urgent'];
 
-interface LeadFormDrawerProps {
+interface LeadFormDialogProps {
 	open: boolean;
 	onClose: () => void;
 	lead?: Lead | null;
 	onSuccess: (lead: Lead) => void;
 }
 
-export const LeadFormDrawer: React.FC<LeadFormDrawerProps> = ({ open, onClose, lead, onSuccess }) => {
+export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, lead, onSuccess }) => {
 	const dispatch = useAppDispatch();
 	const toast = useToast();
 	const isEdit = !!lead;
@@ -94,13 +94,30 @@ export const LeadFormDrawer: React.FC<LeadFormDrawerProps> = ({ open, onClose, l
 	};
 
 	return (
-		<DetailDrawer
+		<BaseDialog
 			open={open}
 			onClose={onClose}
 			title={isEdit ? 'Edit Lead' : 'New Lead'}
 			subtitle={isEdit ? lead?.title : 'Capture a new sales opportunity'}
+			maxWidth="sm"
+			loading={submitting}
+			actions={
+				<>
+					<Button onClick={onClose} disabled={submitting} sx={{ textTransform: 'none', fontWeight: 600 }}>
+						Cancel
+					</Button>
+					<Button
+						variant="contained"
+						onClick={handleSave}
+						disabled={submitting}
+						sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px', px: 3 }}
+					>
+						{submitting ? <CircularProgress size={20} color="inherit" /> : isEdit ? 'Save Changes' : 'Create Lead'}
+					</Button>
+				</>
+			}
 		>
-			<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, overflowY: 'auto', flex: 1 }}>
+			<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 				{error && <Alert severity="error">{error}</Alert>}
 
 				<TextField
@@ -222,23 +239,9 @@ export const LeadFormDrawer: React.FC<LeadFormDrawerProps> = ({ open, onClose, l
 					minRows={3}
 					size="small"
 				/>
-
-				<Stack direction="row" spacing={1.5} justifyContent="flex-end" sx={{ mt: 2 }}>
-					<Button onClick={onClose} disabled={submitting} sx={{ textTransform: 'none', fontWeight: 600 }}>
-						Cancel
-					</Button>
-					<Button
-						variant="contained"
-						onClick={handleSave}
-						disabled={submitting}
-						sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px', px: 3 }}
-					>
-						{submitting ? <CircularProgress size={20} color="inherit" /> : isEdit ? 'Save Changes' : 'Create Lead'}
-					</Button>
-				</Stack>
 			</Box>
-		</DetailDrawer>
+		</BaseDialog>
 	);
 };
 
-export default LeadFormDrawer;
+export default LeadFormDialog;

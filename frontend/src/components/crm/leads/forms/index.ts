@@ -1,2 +1,2 @@
-export * from './LeadFormDrawer';
+export * from './LeadFormDialog';
 export * from './ConvertLeadDialog';

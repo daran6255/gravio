@@ -1,5 +1,5 @@
 import React from 'react';
-import { LeadFormDrawer, ConvertLeadDialog } from '../forms';
+import { LeadFormDialog, ConvertLeadDialog } from '../forms';
 import { ConfirmationDialog } from '../../../common/dialogbox';
 import type { Lead } from '../../../../models/crm/lead';
 import type { Deal } from '../../../../models/crm/deal';
@@ -37,7 +37,7 @@ export const LeadsModals: React.FC<LeadsModalsProps> = ({
 }) => {
 	return (
 		<>
-			<LeadFormDrawer
+			<LeadFormDialog
 				open={formOpen}
 				onClose={onCloseForm}
 				lead={editingLead}
