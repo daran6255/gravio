@@ -19,6 +19,7 @@ import type { Company } from '../../../../models/crm/company';
 import type { Contact } from '../../../../models/crm/contact';
 import useToast from '../../../../hooks/useToast';
 import { getWorldCurrencies, getCurrencySymbol } from '../../../../utils/currency';
+import RichTextEditor from '../../../common/form/RichTextEditor';
 
 const LEAD_SOURCES: LeadSource[] = ['website', 'referral', 'cold_call', 'linkedin', 'ad', 'event', 'other'];
 const LEAD_PRIORITIES: LeadPriority[] = ['low', 'medium', 'high', 'urgent'];
@@ -72,13 +73,14 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 		setSubmitting(true);
 		setError(null);
 		try {
+			const hasDescription = description.replace(/<[^>]*>/g, '').trim().length > 0;
 			const payload = {
 				title: title.trim(),
 				source: source || undefined,
 				priority,
 				estimated_value: estimatedValue ? Number(estimatedValue) : undefined,
 				currency,
-				description: description || undefined,
+				description: hasDescription ? description : undefined,
 				company_id: company?.id,
 				contact_id: contact?.id,
 			};
@@ -252,14 +254,11 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 					/>
 				</Stack>
 
-				<TextField
+				<RichTextEditor
 					label="Description"
 					value={description}
-					onChange={(e) => setDescription(e.target.value)}
-					fullWidth
-					multiline
-					minRows={3}
-					size="small"
+					onChange={setDescription}
+					placeholder="Add notes about this opportunity..."
 				/>
 			</Box>
 		</BaseDialog>

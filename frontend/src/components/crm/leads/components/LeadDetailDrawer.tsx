@@ -3,6 +3,7 @@ import { Box, Typography, Stack, Divider, IconButton, Tooltip } from '@mui/mater
 import { Edit, SwapHoriz, Business, Person, AttachMoney } from '@mui/icons-material';
 import DetailDrawer from '../../../common/drawer/DetailDrawer';
 import StatusBadge from '../../../common/badge/StatusBadge';
+import { RichTextViewer } from '../../../common/form';
 import { ActivityComposer, ActivityTimeline } from '../../shared';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchEntityActivities, clearActivities } from '../../../../store/slices/crmSlice';
@@ -81,9 +82,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 					)}
 				</Stack>
 
-				{lead.description && (
-					<Typography variant="body2" color="text.secondary">{lead.description}</Typography>
-				)}
+				{lead.description && <RichTextViewer html={lead.description} />}
 
 				<Divider />
 
