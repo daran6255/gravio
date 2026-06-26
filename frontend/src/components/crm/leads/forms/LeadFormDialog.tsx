@@ -49,6 +49,13 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 	const [contact, setContact] = useState<Contact | null>(null);
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [touched, setTouched] = useState<{ title?: boolean; currency?: boolean }>({});
+
+	const fieldErrors = {
+		title: title.trim() ? '' : 'Title is required',
+		currency: estimatedValue && !currency ? 'Select a currency for the estimated value' : '',
+	};
+	const isValid = !fieldErrors.title && !fieldErrors.currency;
 
 	useEffect(() => {
 		if (!open) return;
@@ -61,15 +68,15 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 		setCompany(null);
 		setContact(null);
 		setError(null);
+		setTouched({});
 		dispatch(searchCompanyOptions(undefined));
 		dispatch(searchContactOptions(undefined));
 	}, [open, lead, dispatch]);
 
 	const handleSave = async () => {
-		if (!title.trim()) {
-			setError('Title is required');
-			return;
-		}
+		setTouched({ title: true, currency: true });
+		if (!isValid) return;
+
 		setSubmitting(true);
 		setError(null);
 		try {
@@ -115,7 +122,7 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 					<Button
 						variant="contained"
 						onClick={handleSave}
-						disabled={submitting}
+						disabled={submitting || !isValid}
 						sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px', px: 3 }}
 					>
 						{submitting ? <CircularProgress size={20} color="inherit" /> : isEdit ? 'Save Changes' : 'Create Lead'}
@@ -130,6 +137,9 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 					label="Title"
 					value={title}
 					onChange={(e) => setTitle(e.target.value)}
+					onBlur={() => setTouched((t) => ({ ...t, title: true }))}
+					error={!!touched.title && !!fieldErrors.title}
+					helperText={touched.title && fieldErrors.title}
 					required
 					fullWidth
 					size="small"
@@ -237,6 +247,7 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 						getOptionLabel={(o) => `${o.code} — ${o.name}`}
 						value={currencies.find((c) => c.code === currency) || null}
 						onChange={(_e, value) => setCurrency(value?.code || '')}
+						onBlur={() => setTouched((t) => ({ ...t, currency: true }))}
 						isOptionEqualToValue={(o, v) => o.code === v.code}
 						fullWidth
 						renderOption={(props, option) => (
@@ -249,6 +260,8 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 								{...params}
 								label="Currency"
 								size="small"
+								error={!!touched.currency && !!fieldErrors.currency}
+								helperText={touched.currency && fieldErrors.currency}
 							/>
 						)}
 					/>
