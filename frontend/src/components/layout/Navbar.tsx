@@ -153,7 +153,7 @@ const Navbar: React.FC = () => {
 						textTransform: 'none',
 						fontSize: '0.8125rem',
 						fontWeight: 700,
-						borderRadius: '20px',
+						borderRadius: '10px',
 						px: { xs: 1, sm: 2 },
 						py: 0.5,
 						minWidth: 0,
