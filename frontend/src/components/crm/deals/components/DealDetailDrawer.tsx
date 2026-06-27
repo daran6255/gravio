@@ -3,7 +3,7 @@ import { Box, Typography, Stack, Divider, TextField, InputAdornment } from '@mui
 import { Business, Person } from '@mui/icons-material';
 import DetailDrawer from '../../../common/drawer/DetailDrawer';
 import StatusBadge from '../../../common/badge/StatusBadge';
-import { ActivityComposer, ActivityTimeline } from '../../shared';
+import { NotesComposer, NotesTimeline } from '../../shared';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchEntityActivities, clearActivities, updateDeal } from '../../../../store/slices/crmSlice';
 import type { Deal } from '../../../../models/crm/deal';
@@ -111,13 +111,13 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({ open, onClos
 
 				<Divider />
 
-				<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Activity</Typography>
-				<ActivityComposer
+				<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Notes</Typography>
+				<NotesComposer
 					entityType="deal"
 					entityId={deal.id}
 					onCreated={() => dispatch(fetchEntityActivities({ entityType: 'deal', entityId: deal.id }))}
 				/>
-				<ActivityTimeline activities={activities} loading={activitiesLoading} />
+				<NotesTimeline activities={activities} loading={activitiesLoading} />
 			</Box>
 		</DetailDrawer>
 	);

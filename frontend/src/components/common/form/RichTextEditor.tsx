@@ -10,7 +10,17 @@ interface RichTextEditorProps {
 	placeholder?: string;
 	minHeight?: number;
 	variant?: 'standard' | 'simple';
+	/** Caps the plain-text word count; edits that would exceed it are rejected and a live counter is shown below the editor. */
+	maxWords?: number;
 }
+
+const countWords = (html: string): number => {
+	if (typeof document === 'undefined') return 0;
+	const temp = document.createElement('div');
+	temp.innerHTML = html;
+	const text = (temp.textContent || temp.innerText || '').trim();
+	return text ? text.split(/\s+/).length : 0;
+};
 
 const STANDARD_TOOLBAR_OPTIONS = [
 	[{ header: [1, 2, 3, false] }],
@@ -28,20 +38,28 @@ const SIMPLE_TOOLBAR_OPTIONS = [
 	[{ align: [] }],
 ];
 
-export const RichTextEditor: React.FC<RichTextEditorProps> = ({ 
-	label, 
-	value, 
-	onChange, 
-	placeholder, 
+export const RichTextEditor: React.FC<RichTextEditorProps> = ({
+	label,
+	value,
+	onChange,
+	placeholder,
 	minHeight = 160,
-	variant = 'standard'
+	variant = 'standard',
+	maxWords
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
-	
-	const modules = useMemo(() => ({ 
-		toolbar: variant === 'simple' ? SIMPLE_TOOLBAR_OPTIONS : STANDARD_TOOLBAR_OPTIONS 
+
+	const modules = useMemo(() => ({
+		toolbar: variant === 'simple' ? SIMPLE_TOOLBAR_OPTIONS : STANDARD_TOOLBAR_OPTIONS
 	}), [variant]);
+
+	const wordCount = useMemo(() => (maxWords ? countWords(value) : 0), [value, maxWords]);
+
+	const handleChange = (html: string) => {
+		if (maxWords && countWords(html) > maxWords) return;
+		onChange(html);
+	};
 
 	return (
 		<Box>
@@ -106,8 +124,16 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 					},
 				}}
 			>
-				<ReactQuill theme="snow" value={value} onChange={onChange} modules={modules} placeholder={placeholder} />
+				<ReactQuill theme="snow" value={value} onChange={handleChange} modules={modules} placeholder={placeholder} />
 			</Box>
+			{maxWords && (
+				<Typography
+					variant="caption"
+					sx={{ display: 'block', textAlign: 'right', mt: 0.5, color: wordCount >= maxWords ? 'error.main' : 'text.secondary' }}
+				>
+					{wordCount}/{maxWords} words
+				</Typography>
+			)}
 		</Box>
 	);
 };

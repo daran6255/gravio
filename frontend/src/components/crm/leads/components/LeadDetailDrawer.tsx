@@ -3,7 +3,7 @@ import { Box, Typography, Stack, IconButton, Tooltip, useTheme, alpha, Tabs, Tab
 import { Edit, DeleteOutline, Phone, Email, InsertDriveFileOutlined } from '@mui/icons-material';
 import DetailDrawer from '../../../common/drawer/DetailDrawer';
 import { RichTextViewer } from '../../../common/form';
-import { ActivityComposer, ActivityTimeline } from '../../shared';
+import { NotesComposer, NotesTimeline } from '../../shared';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchEntityActivities, clearActivities } from '../../../../store/slices/crmSlice';
 import type { Lead } from '../../../../models/crm/lead';
@@ -302,7 +302,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 				)}
 
 				<Box>
-					<Typography sx={sectionTitleSx}>Log Activity</Typography>
+					<Typography sx={sectionTitleSx}>Notes</Typography>
 					<Box
 						sx={{
 							...fieldCardSx,
@@ -311,7 +311,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 						}}
 					>
 						<Box sx={{ p: 1.5 }}>
-							<ActivityComposer
+							<NotesComposer
 								entityType="lead"
 								entityId={lead.id}
 								variant="compact"
@@ -323,7 +323,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 			</Box>
 
 			<Box sx={{ display: tab === 1 ? 'flex' : 'none', flexDirection: 'column', overflowY: 'auto', flex: 1 }}>
-				<ActivityTimeline activities={activities} loading={activitiesLoading} />
+				<NotesTimeline activities={activities} loading={activitiesLoading} />
 			</Box>
 
 			<Box

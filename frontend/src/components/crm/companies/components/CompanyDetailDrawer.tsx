@@ -3,7 +3,7 @@ import { Box, Typography, Stack, Divider, IconButton, Tooltip, List, ListItem, L
 import { Edit, Language, Phone, Email, LocationOn, Person, AttachMoney } from '@mui/icons-material';
 import DetailDrawer from '../../../common/drawer/DetailDrawer';
 import StatusBadge from '../../../common/badge/StatusBadge';
-import { ActivityComposer, ActivityTimeline } from '../../shared';
+import { NotesComposer, NotesTimeline } from '../../shared';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchEntityActivities, clearActivities, fetchLinkedContacts, fetchLinkedDeals, clearLinkedRecords } from '../../../../store/slices/crmSlice';
 import type { Company } from '../../../../models/crm/company';
@@ -141,13 +141,13 @@ export const CompanyDetailDrawer: React.FC<CompanyDetailDrawerProps> = ({ open, 
 
 				<Divider />
 
-				<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Activity</Typography>
-				<ActivityComposer
+				<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Notes</Typography>
+				<NotesComposer
 					entityType="company"
 					entityId={company.id}
 					onCreated={() => dispatch(fetchEntityActivities({ entityType: 'company', entityId: company.id }))}
 				/>
-				<ActivityTimeline activities={activities} loading={activitiesLoading} />
+				<NotesTimeline activities={activities} loading={activitiesLoading} />
 			</Box>
 		</DetailDrawer>
 	);

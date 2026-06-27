@@ -1,5 +1,5 @@
 import React from 'react';
-import { Checkbox, IconButton, Tooltip } from '@mui/material';
+import { Chip, IconButton, Tooltip } from '@mui/material';
 import { Notes, Call, Email, Groups, CheckCircleOutline, WhatsApp, DeleteOutline } from '@mui/icons-material';
 import type { CRMActivity, CRMActivityType } from '../../../models/crm/crmActivity';
 import { useAppDispatch } from '../../../store/hooks';
@@ -79,13 +79,13 @@ const formatDate = (iso: string) => {
 	}) + `, ${timeString}`;
 };
 
-interface ActivityTimelineProps {
+interface NotesTimelineProps {
 	activities: CRMActivity[];
 	loading?: boolean;
 	showEntityType?: boolean;
 }
 
-export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ activities, loading, showEntityType }) => {
+export const NotesTimeline: React.FC<NotesTimelineProps> = ({ activities, loading, showEntityType }) => {
 	const dispatch = useAppDispatch();
 
 	const timelineItems: TimelineItemDef[] = activities.map((activity) => {
@@ -110,19 +110,17 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ activities, 
 			isCompleted: activity.is_completed,
 			actions: (
 				<>
-					{activity.type === 'task' && (
-						<Checkbox
+					{activity.type !== 'note' && (
+						<Chip
 							size="small"
-							checked={activity.is_completed}
-							onChange={(e) => dispatch(updateActivity({
+							label={activity.is_completed ? 'Completed' : 'Pending'}
+							color={activity.is_completed ? 'success' : 'default'}
+							variant={activity.is_completed ? 'filled' : 'outlined'}
+							onClick={() => dispatch(updateActivity({
 								publicId: activity.public_id,
-								payload: { is_completed: e.target.checked },
+								payload: { is_completed: !activity.is_completed },
 							}))}
-							sx={{
-								color: 'text.secondary',
-								'&.Mui-checked': { color: 'success.main' },
-								p: 0.5,
-							}}
+							sx={{ fontWeight: 600, cursor: 'pointer' }}
 						/>
 					)}
 					<Tooltip title="Delete">
@@ -152,4 +150,4 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ activities, 
 	);
 };
 
-export default ActivityTimeline;
+export default NotesTimeline;

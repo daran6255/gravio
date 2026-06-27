@@ -3,7 +3,7 @@ import { Box, Typography, Stack, Divider, IconButton, Tooltip, List, ListItem, L
 import { Edit, Business, Phone, Email, Smartphone, AttachMoney } from '@mui/icons-material';
 import DetailDrawer from '../../../common/drawer/DetailDrawer';
 import StatusBadge from '../../../common/badge/StatusBadge';
-import { ActivityComposer, ActivityTimeline } from '../../shared';
+import { NotesComposer, NotesTimeline } from '../../shared';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchEntityActivities, clearActivities, fetchLinkedDeals, clearLinkedRecords } from '../../../../store/slices/crmSlice';
 import type { Contact } from '../../../../models/crm/contact';
@@ -106,13 +106,13 @@ export const ContactDetailDrawer: React.FC<ContactDetailDrawerProps> = ({ open, 
 
 				<Divider />
 
-				<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Activity</Typography>
-				<ActivityComposer
+				<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Notes</Typography>
+				<NotesComposer
 					entityType="contact"
 					entityId={contact.id}
 					onCreated={() => dispatch(fetchEntityActivities({ entityType: 'contact', entityId: contact.id }))}
 				/>
-				<ActivityTimeline activities={activities} loading={activitiesLoading} />
+				<NotesTimeline activities={activities} loading={activitiesLoading} />
 			</Box>
 		</DetailDrawer>
 	);

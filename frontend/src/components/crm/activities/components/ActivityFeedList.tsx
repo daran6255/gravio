@@ -1,7 +1,7 @@
 import React from 'react';
 import { Paper, Box } from '@mui/material';
 import CustomTablePagination from '../../../common/table/CustomTablePagination';
-import { ActivityTimeline } from '../../shared';
+import { NotesTimeline } from '../../shared';
 import type { CRMActivity } from '../../../../models/crm/crmActivity';
 
 interface ActivityFeedListProps {
@@ -26,7 +26,7 @@ export const ActivityFeedList: React.FC<ActivityFeedListProps> = ({
 	return (
 		<Paper sx={{ borderRadius: '20px', border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
 			<Box sx={{ p: 2 }}>
-				<ActivityTimeline activities={activities} loading={loading} showEntityType />
+				<NotesTimeline activities={activities} loading={loading} showEntityType />
 			</Box>
 			<CustomTablePagination
 				count={totalCount}

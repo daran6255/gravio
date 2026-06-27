@@ -1,2 +1,2 @@
-export * from './ActivityComposer';
-export * from './ActivityTimeline';
+export * from './NotesComposer';
+export * from './NotesTimeline';

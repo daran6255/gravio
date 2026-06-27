@@ -29,7 +29,9 @@ const SAVE_LABEL: Record<CRMActivityType, string> = {
 	whatsapp: 'Log WhatsApp',
 };
 
-interface ActivityComposerProps {
+const NOTE_MAX_WORDS = 250;
+
+interface NotesComposerProps {
 	entityType: CRMActivityEntityType;
 	entityId: number;
 	onCreated?: () => void;
@@ -37,13 +39,14 @@ interface ActivityComposerProps {
 	variant?: 'standard' | 'compact';
 }
 
-export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, entityId, onCreated, variant = 'standard' }) => {
+export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entityId, onCreated, variant = 'standard' }) => {
 	const dispatch = useAppDispatch();
 	const toast = useToast();
 	const [type, setType] = useState<CRMActivityType>('note');
 	const [subject, setSubject] = useState('');
 	const [description, setDescription] = useState('');
 	const [dueDate, setDueDate] = useState('');
+	const [isCompleted, setIsCompleted] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
 	const compact = variant === 'compact';
 
@@ -84,10 +87,12 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 				entity_type: entityType,
 				entity_id: entityId,
 				due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
+				is_completed: type !== 'note' ? isCompleted : undefined,
 			})).unwrap();
 			setSubject('');
 			setDescription('');
 			setDueDate('');
+			setIsCompleted(false);
 			toast.success('Activity logged');
 			onCreated?.();
 		} catch (err: any) {
@@ -106,6 +111,7 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 						setType(value);
 						setSubject('');
 						setDescription('');
+						setIsCompleted(false);
 					}}
 					variant="scrollable"
 					scrollButtons={false}
@@ -141,6 +147,7 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 							placeholder="Write your note here..."
 							minHeight={90}
 							variant="simple"
+							maxWords={NOTE_MAX_WORDS}
 						/>
 					</Box>
 				) : (
@@ -168,6 +175,21 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 						InputLabelProps={{ shrink: true }}
 						sx={{ mb: 1.5 }}
 					/>
+				)}
+
+				{type !== 'note' && (
+					<ToggleButtonGroup
+						value={isCompleted}
+						exclusive
+						onChange={(_e, value) => {
+							if (value !== null) setIsCompleted(value);
+						}}
+						size="small"
+						sx={{ mb: 1.5, '& .MuiToggleButtonGroup-grouped': { border: '1px solid', borderColor: 'divider', borderRadius: '8px !important', textTransform: 'none', px: 1.25 } }}
+					>
+						<ToggleButton value={false}>Pending</ToggleButton>
+						<ToggleButton value={true}>Completed</ToggleButton>
+					</ToggleButtonGroup>
 				)}
 
 				<Divider sx={{ mb: 1 }} />
@@ -212,6 +234,7 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 						setType(value);
 						setSubject('');
 						setDescription('');
+						setIsCompleted(false);
 					}
 				}}
 				size="small"
@@ -243,20 +266,38 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 					placeholder={type === 'note' ? 'Write your note here...' : 'Details (optional)'}
 					minHeight={100}
 					variant="simple"
+					maxWords={type === 'note' ? NOTE_MAX_WORDS : undefined}
 				/>
 			</Box>
 
 			<Stack direction="row" spacing={1.5} alignItems="center" justifyContent="space-between">
-				{(type === 'task' || type === 'meeting' || type === 'call') ? (
-					<TextField
-						type="datetime-local"
-						label="Due"
-						value={dueDate}
-						onChange={(e) => setDueDate(e.target.value)}
-						size="small"
-						InputLabelProps={{ shrink: true }}
-					/>
-				) : <Box />}
+				<Stack direction="row" spacing={1.5} alignItems="center">
+					{(type === 'task' || type === 'meeting' || type === 'call') && (
+						<TextField
+							type="datetime-local"
+							label="Due"
+							value={dueDate}
+							onChange={(e) => setDueDate(e.target.value)}
+							size="small"
+							InputLabelProps={{ shrink: true }}
+						/>
+					)}
+
+					{type !== 'note' && (
+						<ToggleButtonGroup
+							value={isCompleted}
+							exclusive
+							onChange={(_e, value) => {
+								if (value !== null) setIsCompleted(value);
+							}}
+							size="small"
+							sx={{ '& .MuiToggleButtonGroup-grouped': { border: '1px solid', borderColor: 'divider', borderRadius: '8px !important', textTransform: 'none', px: 1.25 } }}
+						>
+							<ToggleButton value={false}>Pending</ToggleButton>
+							<ToggleButton value={true}>Completed</ToggleButton>
+						</ToggleButtonGroup>
+					)}
+				</Stack>
 
 				<Button
 					variant="contained"
@@ -272,4 +313,4 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 	);
 };
 
-export default ActivityComposer;
+export default NotesComposer;
