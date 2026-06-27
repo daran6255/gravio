@@ -47,7 +47,14 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 	const [submitting, setSubmitting] = useState(false);
 	const compact = variant === 'compact';
 
-	const hasDescriptionContent = description.replace(/<[^>]*>/g, '').trim().length > 0;
+	const getPlainText = (htmlStr: string) => {
+		if (typeof document === 'undefined') return '';
+		const temp = document.createElement('div');
+		temp.innerHTML = htmlStr;
+		return (temp.textContent || temp.innerText || '').trim();
+	};
+
+	const hasDescriptionContent = getPlainText(description).length > 0;
 	const isButtonDisabled = type === 'note'
 		? !hasDescriptionContent
 		: !subject.trim();
@@ -55,8 +62,8 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 	const handleSubmit = async () => {
 		let finalSubject = '';
 		if (type === 'note') {
-			// Strip HTML tags to get the plain text title for the timeline
-			const plainText = description.replace(/<[^>]*>/g, '').trim();
+			// Extract plain text and decode HTML entities dynamically using the browser DOM parser
+			const plainText = getPlainText(description);
 			if (plainText.length > 60) {
 				finalSubject = plainText.substring(0, 60) + '...';
 			} else {
