@@ -1,54 +1,106 @@
-# WinVinaya CRM System
+# Gravit
 
-Welcome to the WinVinaya CRM project repository. This is a robust, full-stack Client Relationship Management system designed to streamline operations for the WinVinaya Foundation. It manages candidate registrations, internal user administration, and key organizational metrics.
+Welcome to the **Gravit** repository. Gravit is an AI-driven, highly scalable multi-tenant ecosystem built for managing complex enterprise workflows, multi-tenant infrastructures, and automated processes. 
 
-## 📂 Documentation
+By integrating a state-of-the-art Model Context Protocol (MCP) agentic AI engine with a modern full-stack architecture, Gravit enables automated planning, execution, and monitoring of organizational tasks.
 
-We have comprehensive documentation to help you understand, deploy, and use the system.
+---
 
-### 📘 For Users & Stakeholders
-*   **[Application User Manual](docs/APPLICATION_USER_MANUAL.md)**: A complete guide for End Users (Candidates) and Administrators.
-*   **[Application Workflow](docs/APPLICATION_WORKFLOW.md)**: Visual and descriptive overview of key business processes (Registration, Login, etc.).
+## 🚀 Key Features
 
+*   **AI-Driven Orchestration**: An integrated Model Context Protocol (MCP) agentic AI engine capable of task planning, automatic tool execution, and human-in-the-loop approvals.
+*   **Highly Scalable Architecture**: Built with production-ready, async-first patterns supporting multi-tenant orchestration, Nginx load balancing, and Redis rate limiting.
+*   **Modern Frontend**: A fully responsive interface constructed using React 19, TypeScript, Vite, Material UI (MUI) v6, and Redux Toolkit.
+*   **Robust Backend**: Python FastAPI, async SQLAlchemy ORM, Pydantic v2 validation, Alembic migrations, and structured JSON logging.
+*   **Enterprise Security**: JWT-based authentication (access/refresh tokens), strict CORS rules, rate-limiting, and security headers.
 
-### �️ Architecture & Deployment
-*   **[Architecture & Design](docs/ARCHITECTURE_AND_DESIGN.md)**: Technical diagrams (Mermaid) of the Application, Deployment, and CI/CD pipelines.
-*   **[Initial Deployment Guide](docs/INITIAL_DEPLOYMENT.md)**: Step-by-step technical guide to setting up the server from scratch (EC2, Nginx, Postgres, PM2).
-*   **[CI/CD Workflow Guide](docs/CI_CD_WORKFLOW_GUIDE.md)**: Instructions on how to trigger automated tests and deployments using Git.
-*   **[Jules Integration & Usage Guide](docs/JULES_GUIDE.md)**: Steps to setup and use Jules (Google Labs AI Agent) for automated coding tasks.
-*   **[Optimization and Architecture](docs/OPTIMIZATION_AND_ARCHITECTURE.md)**: Non-technical breakdown of cost savings and performance strategies (Cost Analysis included).
+---
+
+## 📂 Repository Structure
+
+*   [backend](file:///c:/External-projects/Taydens/gravit/backend): Python FastAPI service, Alembic database migrations, test suite, and the AI Engine modules.
+*   [frontend](file:///c:/External-projects/Taydens/gravit/frontend): React + Vite client application with MUI layout and page components.
+*   [docs](file:///c:/External-projects/Taydens/gravit/docs): Core architecture guidelines, user manuals, deployment protocols, and AI Engine plans.
+*   [nginx](file:///c:/External-projects/Taydens/gravit/nginx): Configuration files for the reverse proxy and load balancer.
+
+---
+
+## 🛠️ Tech Stack & Ecosystem
+
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | React 19, TypeScript, Vite, Material UI (MUI) v6, Redux Toolkit, React Router v7 |
+| **Backend** | Python FastAPI, SQLAlchemy (Async), Pydantic v2, Loguru |
+| **AI Engine** | MCP Agentic Framework, LLM Providers (Gemini, OpenAI, Ollama), task journaling |
+| **Database & Cache** | PostgreSQL, Redis (production-only, optional for dev) |
+| **Infrastructure** | Docker & Docker Compose, Nginx, PM2, AWS EC2, GitHub Actions |
+
+---
+
+## 📘 Documentation
+
+We maintain comprehensive documentation for developers and operators:
+
+### 🤖 AI Engine & Architecture
+*   [AI Engine Architecture Guide](file:///c:/External-projects/Taydens/gravit/docs/AI-Engine_plan.md): Detailed module layout, API endpoints, tool registry, and implementation phases of Gravit's AI agent.
+*   [Architecture & Design Guide](file:///c:/External-projects/Taydens/gravit/docs/ARCHITECTURE_AND_DESIGN.md): System design and database topology visual models.
+
+### 🌐 Operations & Deployment
+*   [Initial Deployment Guide](file:///c:/External-projects/Taydens/gravit/docs/INITIAL_DEPLOYMENT.md): Setting up EC2, Nginx, PostgreSQL, PM2, and services from scratch.
+*   [CI/CD Workflow Guide](file:///c:/External-projects/Taydens/gravit/docs/CI_CD_WORKFLOW_GUIDE.md): Pull requests, testing pipelines, and environment deployment triggers.
+*   [Jules Integration & Usage Guide](file:///c:/External-projects/Taydens/gravit/docs/JULES_GUIDE.md): AI agent onboarding and repository workflow context.
 
 ---
 
 ## 🚀 Live Environments
 
-The application is deployed across three environments to ensure stability and quality assurance.
-
 | Environment | Purpose | App URL | API Documentation |
 | :--- | :--- | :--- | :--- |
-| **Development** | *"The Kitchen"* - For active development and experimentation. | [https://dev.winvinaya.com](https://dev.winvinaya.com) | [API Docs](https://dev-api.winvinaya.com/docs) |
-| **QA** | *"The Tasting Room"* - For testing stable features before release. | [https://qa.winvinaya.com](https://qa.winvinaya.com) | [API Docs](https://qa-api.winvinaya.com/docs) |
-| **Production** | *"The Dining Hall"* - The live, stable environment for end-users. | [https://winvinaya.com](https://winvinaya.com) | [API Docs](https://api.winvinaya.com/docs) |
+| **Development** | Active integration and sandbox experimentation. | [https://dev.winvinaya.com](https://dev.winvinaya.com) | [API Docs](https://dev-api.winvinaya.com/docs) |
+| **QA** | Testing of release candidates and stable features. | [https://qa.winvinaya.com](https://qa.winvinaya.com) | [API Docs](https://qa-api.winvinaya.com/docs) |
+| **Production** | Live, stable ecosystem for users and tenants. | [https://winvinaya.com](https://winvinaya.com) | [API Docs](https://api.winvinaya.com/docs) |
 
 ---
 
-## �️ Tech Stack
-*   **Frontend**: React, TypeScript, Vite, Material UI (MUI).
-*   **Backend**: Python FastAPI, SQLAlchemy, Pydantic.
-*   **Database**: PostgreSQL.
-*   **Infrastructure**: AWS EC2, Nginx, PM2, GitHub Actions.
+## 💻 Local Development Setup
 
-## � Local Development Setup
-To run the project locally on your machine:
+Follow these steps to run Gravit locally:
 
-1.  **Clone the repository**:
-    ```bash
-    git clone https://github.com/winvinayainfosystemsindia/winvinaya-crm.git
-    cd winvinaya-crm
-    ```
+### 1. Backend Setup
+For detailed setup instructions, database migrations, and testing, please refer to [backend/README.md](file:///c:/External-projects/Taydens/gravit/backend/README.md).
 
-2.  **Backend Setup**:
-    Refer to **[backend/README.md](backend/README.md)** for instructions on setting up the Python environment and database.
+```bash
+# Navigate to the backend directory
+cd backend
 
-3.  **Frontend Setup**:
-    Refer to **[frontend/README.md](frontend/README.md)** for instructions on installing Node.js dependencies and starting the dev server.
+# Create virtual environment and activate it
+python -m venv venv
+source venv/bin/activate # On Windows: venv\Scripts\activate
+
+# Install requirements
+pip install -r requirements.txt
+
+# Run migrations and start uvicorn
+alembic upgrade head
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+### 2. Frontend Setup
+For instructions on environment configuration and MUI theme customization, please refer to [frontend/README.md](file:///c:/External-projects/Taydens/gravit/frontend/README.md).
+
+```bash
+# Navigate to the frontend directory
+cd frontend
+
+# Install npm dependencies
+npm install
+
+# Start the local Vite server
+npm run dev
+```
+
+### 3. Running with Docker (Optional)
+To test the entire containerized stack locally (App + DB + Nginx proxy):
+```bash
+docker-compose up --build
+```
