@@ -5,6 +5,7 @@ import { useAppDispatch } from '../../../store/hooks';
 import { createActivity } from '../../../store/slices/crmSlice';
 import type { CRMActivityType, CRMActivityEntityType } from '../../../models/crm/crmActivity';
 import useToast from '../../../hooks/useToast';
+import RichTextEditor from '../../common/form/RichTextEditor';
 
 const TYPE_OPTIONS: { value: CRMActivityType; label: string; icon: React.ReactElement }[] = [
 	{ value: 'note', label: 'Note', icon: <Notes fontSize="small" /> },
@@ -46,14 +47,33 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 	const [submitting, setSubmitting] = useState(false);
 	const compact = variant === 'compact';
 
+	const hasDescriptionContent = description.replace(/<[^>]*>/g, '').trim().length > 0;
+	const isButtonDisabled = type === 'note'
+		? !hasDescriptionContent
+		: !subject.trim();
+
 	const handleSubmit = async () => {
-		if (!subject.trim()) return;
+		let finalSubject = '';
+		if (type === 'note') {
+			// Strip HTML tags to get the plain text title for the timeline
+			const plainText = description.replace(/<[^>]*>/g, '').trim();
+			if (plainText.length > 60) {
+				finalSubject = plainText.substring(0, 60) + '...';
+			} else {
+				finalSubject = plainText || 'Note';
+			}
+		} else {
+			finalSubject = subject.trim();
+		}
+
+		if (!finalSubject) return;
+
 		setSubmitting(true);
 		try {
 			await dispatch(createActivity({
 				type,
-				subject: subject.trim(),
-				description: description || undefined,
+				subject: finalSubject,
+				description: hasDescriptionContent ? description : undefined,
 				entity_type: entityType,
 				entity_id: entityId,
 				due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
@@ -75,7 +95,11 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 			<Box>
 				<Tabs
 					value={type}
-					onChange={(_e, value) => setType(value)}
+					onChange={(_e, value) => {
+						setType(value);
+						setSubject('');
+						setDescription('');
+					}}
 					variant="scrollable"
 					scrollButtons={false}
 					sx={{
@@ -102,17 +126,29 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 					))}
 				</Tabs>
 
-				<TextField
-					variant="standard"
-					placeholder={type === 'task' ? 'What needs to be done?' : 'Type a note or record a summary...'}
-					value={subject}
-					onChange={(e) => setSubject(e.target.value)}
-					fullWidth
-					multiline
-					minRows={2}
-					InputProps={{ disableUnderline: true }}
-					sx={{ mb: 1 }}
-				/>
+				{type === 'note' ? (
+					<Box sx={{ mb: 1.5 }}>
+						<RichTextEditor
+							value={description}
+							onChange={setDescription}
+							placeholder="Write your note here..."
+							minHeight={90}
+							variant="simple"
+						/>
+					</Box>
+				) : (
+					<TextField
+						variant="standard"
+						placeholder={type === 'task' ? 'What needs to be done?' : 'Type a note or record a summary...'}
+						value={subject}
+						onChange={(e) => setSubject(e.target.value)}
+						fullWidth
+						multiline
+						minRows={2}
+						InputProps={{ disableUnderline: true }}
+						sx={{ mb: 1 }}
+					/>
+				)}
 
 				{(type === 'task' || type === 'meeting' || type === 'call') && (
 					<TextField
@@ -123,7 +159,7 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 						size="small"
 						fullWidth
 						InputLabelProps={{ shrink: true }}
-						sx={{ mb: 1 }}
+						sx={{ mb: 1.5 }}
 					/>
 				)}
 
@@ -142,7 +178,7 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 					<Button
 						variant="contained"
 						size="small"
-						disabled={submitting}
+						disabled={isButtonDisabled || submitting}
 						onClick={handleSubmit}
 						sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px' }}
 					>
@@ -164,7 +200,13 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 			<ToggleButtonGroup
 				value={type}
 				exclusive
-				onChange={(_e, value) => value && setType(value)}
+				onChange={(_e, value) => {
+					if (value) {
+						setType(value);
+						setSubject('');
+						setDescription('');
+					}
+				}}
 				size="small"
 				sx={{ mb: 1.5, flexWrap: 'wrap', gap: 0.5, '& .MuiToggleButtonGroup-grouped': { border: '1px solid', borderColor: 'divider', borderRadius: '8px !important' } }}
 			>
@@ -176,25 +218,26 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 				))}
 			</ToggleButtonGroup>
 
-			<TextField
-				placeholder={type === 'task' ? 'What needs to be done?' : 'Add a quick note...'}
-				value={subject}
-				onChange={(e) => setSubject(e.target.value)}
-				fullWidth
-				size="small"
-				sx={{ mb: 1.5 }}
-			/>
+			{type !== 'note' && (
+				<TextField
+					placeholder={type === 'task' ? 'What needs to be done?' : 'Add a quick note...'}
+					value={subject}
+					onChange={(e) => setSubject(e.target.value)}
+					fullWidth
+					size="small"
+					sx={{ mb: 1.5 }}
+				/>
+			)}
 
-			<TextField
-				placeholder="Details (optional)"
-				value={description}
-				onChange={(e) => setDescription(e.target.value)}
-				fullWidth
-				multiline
-				minRows={2}
-				size="small"
-				sx={{ mb: 1.5 }}
-			/>
+			<Box sx={{ mb: 1.5 }}>
+				<RichTextEditor
+					value={description}
+					onChange={setDescription}
+					placeholder={type === 'note' ? 'Write your note here...' : 'Details (optional)'}
+					minHeight={100}
+					variant="simple"
+				/>
+			</Box>
 
 			<Stack direction="row" spacing={1.5} alignItems="center" justifyContent="space-between">
 				{(type === 'task' || type === 'meeting' || type === 'call') ? (
@@ -211,7 +254,7 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 				<Button
 					variant="contained"
 					size="small"
-					disabled={!subject.trim() || submitting}
+					disabled={isButtonDisabled || submitting}
 					onClick={handleSubmit}
 					sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px' }}
 				>

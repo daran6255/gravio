@@ -152,22 +152,19 @@ export const Timeline: React.FC<TimelineProps> = ({
 							</Stack>
 
 							{item.description && (
-								<Typography
-									variant="caption"
-									color="text.secondary"
+								<Box
 									sx={{
 										display: 'block',
 										mt: 1,
 										pl: 1.5,
 										borderLeft: '2px solid',
 										borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
-										whiteSpace: 'pre-line',
-										fontSize: '0.78rem',
-										lineHeight: 1.4,
+										color: 'text.secondary',
+										fontSize: '0.8rem',
 									}}
 								>
 									{item.description}
-								</Typography>
+								</Box>
 							)}
 
 							{item.content && <Box sx={{ mt: 1 }}>{item.content}</Box>}

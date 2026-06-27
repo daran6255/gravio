@@ -9,9 +9,10 @@ interface RichTextEditorProps {
 	onChange: (html: string) => void;
 	placeholder?: string;
 	minHeight?: number;
+	variant?: 'standard' | 'simple';
 }
 
-const TOOLBAR_OPTIONS = [
+const STANDARD_TOOLBAR_OPTIONS = [
 	[{ header: [1, 2, 3, false] }],
 	['bold', 'italic', 'underline', 'strike'],
 	[{ color: [] }, { background: [] }],
@@ -21,10 +22,26 @@ const TOOLBAR_OPTIONS = [
 	['clean'],
 ];
 
-export const RichTextEditor: React.FC<RichTextEditorProps> = ({ label, value, onChange, placeholder, minHeight = 160 }) => {
+const SIMPLE_TOOLBAR_OPTIONS = [
+	['bold', 'italic'],
+	[{ list: 'ordered' }, { list: 'bullet' }],
+	[{ align: [] }],
+];
+
+export const RichTextEditor: React.FC<RichTextEditorProps> = ({ 
+	label, 
+	value, 
+	onChange, 
+	placeholder, 
+	minHeight = 160,
+	variant = 'standard'
+}) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
-	const modules = useMemo(() => ({ toolbar: TOOLBAR_OPTIONS }), []);
+	
+	const modules = useMemo(() => ({ 
+		toolbar: variant === 'simple' ? SIMPLE_TOOLBAR_OPTIONS : STANDARD_TOOLBAR_OPTIONS 
+	}), [variant]);
 
 	return (
 		<Box>

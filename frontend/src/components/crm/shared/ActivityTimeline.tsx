@@ -5,6 +5,7 @@ import type { CRMActivity, CRMActivityType } from '../../../models/crm/crmActivi
 import { useAppDispatch } from '../../../store/hooks';
 import { updateActivity, deleteActivity } from '../../../store/slices/crmSlice';
 import { Timeline, type TimelineItemDef } from '../../common/timeline';
+import { RichTextViewer } from '../../common/form';
 
 const TONES: Record<CRMActivityType, { icon: React.ReactNode; color: string; bgColor: string; borderColor: string }> = {
 	note: {
@@ -100,7 +101,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ activities, 
 			id: activity.public_id,
 			title: `${titlePrefix}: ${activity.subject}`,
 			subtitle,
-			description: activity.description,
+			description: activity.description ? <RichTextViewer html={activity.description} /> : undefined,
 			timestamp: formatDate(activity.created_at),
 			icon: tone.icon,
 			iconColor: tone.color,
