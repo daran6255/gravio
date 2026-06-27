@@ -8,7 +8,6 @@ import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../models/cr
 import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../models/crm/crmActivity';
 import type { CRMStats, CRMLeadStats } from '../models/crm/crmStats';
 import type { CRMOwnerOption } from '../models/crm/owner';
-import type { CRMSearchResults } from '../models/crm/search';
 
 const crmService = {
 	// --- Companies ---
@@ -217,12 +216,6 @@ const crmService = {
 	// --- Owners ---
 	listOwners: async (): Promise<CRMOwnerOption[]> => {
 		const response = await api.get<CRMOwnerOption[]>('/crm/owners');
-		return response.data;
-	},
-
-	// --- Search ---
-	search: async (q: string): Promise<CRMSearchResults> => {
-		const response = await api.get<CRMSearchResults>('/crm/search', { params: { q } });
 		return response.data;
 	},
 };

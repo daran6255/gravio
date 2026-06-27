@@ -37,11 +37,6 @@ export const topNavigation: NavigationItem[] = [
 		roles: ['admin', 'manager', 'marketing', 'placement'],
 		children: [
 			{
-				label: 'Dashboard',
-				path: '/crm/dashboard',
-				roles: ['admin', 'manager', 'marketing', 'placement'],
-			},
-			{
 				label: 'Leads',
 				path: '/crm/leads',
 				roles: ['admin', 'manager', 'marketing', 'placement'],

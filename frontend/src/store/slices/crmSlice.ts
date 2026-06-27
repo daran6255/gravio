@@ -8,7 +8,6 @@ import type { Contact, ContactCreate, ContactUpdate } from '../../models/crm/con
 import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../../models/crm/crmActivity';
 import type { CRMStats, CRMLeadStats } from '../../models/crm/crmStats';
 import type { CRMOwnerOption } from '../../models/crm/owner';
-import type { CRMSearchResults } from '../../models/crm/search';
 import type { PaginatedResponse } from '../../models/common';
 
 interface CrmState {
@@ -78,9 +77,6 @@ interface CrmState {
 
 	bulkUpdateLoading: boolean;
 	bulkUpdateError: string | null;
-
-	searchResults: CRMSearchResults | null;
-	searchLoading: boolean;
 
 	convertLoading: boolean;
 	convertError: string | null;
@@ -153,9 +149,6 @@ const initialState: CrmState = {
 
 	bulkUpdateLoading: false,
 	bulkUpdateError: null,
-
-	searchResults: null,
-	searchLoading: false,
 
 	convertLoading: false,
 	convertError: null,
@@ -550,17 +543,6 @@ export const fetchOwners = createAsyncThunk(
 	}
 );
 
-export const searchCrm = createAsyncThunk(
-	'crm/searchCrm',
-	async (q: string, { rejectWithValue }) => {
-		try {
-			return await crmService.search(q);
-		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || error.message || 'Search failed');
-		}
-	}
-);
-
 const crmSlice = createSlice({
 	name: 'crm',
 	initialState,
@@ -577,9 +559,6 @@ const crmSlice = createSlice({
 		clearLinkedRecords: (state) => {
 			state.linkedContacts = [];
 			state.linkedDeals = [];
-		},
-		clearSearchResults: (state) => {
-			state.searchResults = null;
 		},
 	},
 	extraReducers: (builder) => {
@@ -865,19 +844,9 @@ const crmSlice = createSlice({
 			})
 			.addCase(fetchOwners.rejected, (state) => {
 				state.ownersLoading = false;
-			})
-			.addCase(searchCrm.pending, (state) => {
-				state.searchLoading = true;
-			})
-			.addCase(searchCrm.fulfilled, (state, action: PayloadAction<CRMSearchResults>) => {
-				state.searchLoading = false;
-				state.searchResults = action.payload;
-			})
-			.addCase(searchCrm.rejected, (state) => {
-				state.searchLoading = false;
 			});
 	},
 });
 
-export const { clearLeadsError, clearConvertError, clearActivities, clearLinkedRecords, clearSearchResults } = crmSlice.actions;
+export const { clearLeadsError, clearConvertError, clearActivities, clearLinkedRecords } = crmSlice.actions;
 export default crmSlice.reducer;
