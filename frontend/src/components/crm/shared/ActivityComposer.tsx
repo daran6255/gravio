@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Box, TextField, Button, Stack, CircularProgress, ToggleButtonGroup, ToggleButton } from '@mui/material';
-import { Notes, Call, Email, Groups, CheckCircleOutline, WhatsApp } from '@mui/icons-material';
+import { Box, TextField, Button, Stack, Divider, CircularProgress, ToggleButtonGroup, ToggleButton, Tabs, Tab, IconButton, Tooltip } from '@mui/material';
+import { Notes, Call, Email, Groups, CheckCircleOutline, WhatsApp, AttachFile, AlternateEmail } from '@mui/icons-material';
 import { useAppDispatch } from '../../../store/hooks';
 import { createActivity } from '../../../store/slices/crmSlice';
 import type { CRMActivityType, CRMActivityEntityType } from '../../../models/crm/crmActivity';
 import useToast from '../../../hooks/useToast';
 
-const TYPE_OPTIONS: { value: CRMActivityType; label: string; icon: React.ReactNode }[] = [
+const TYPE_OPTIONS: { value: CRMActivityType; label: string; icon: React.ReactElement }[] = [
 	{ value: 'note', label: 'Note', icon: <Notes fontSize="small" /> },
 	{ value: 'call', label: 'Call', icon: <Call fontSize="small" /> },
 	{ value: 'email', label: 'Email', icon: <Email fontSize="small" /> },
@@ -15,13 +15,28 @@ const TYPE_OPTIONS: { value: CRMActivityType; label: string; icon: React.ReactNo
 	{ value: 'whatsapp', label: 'WhatsApp', icon: <WhatsApp fontSize="small" /> },
 ];
 
+const COMPACT_TYPE_OPTIONS = TYPE_OPTIONS.filter((opt) =>
+	['note', 'call', 'email', 'meeting'].includes(opt.value)
+);
+
+const SAVE_LABEL: Record<CRMActivityType, string> = {
+	note: 'Save Note',
+	call: 'Log Call',
+	email: 'Log Email',
+	meeting: 'Log Meeting',
+	task: 'Log Task',
+	whatsapp: 'Log WhatsApp',
+};
+
 interface ActivityComposerProps {
 	entityType: CRMActivityEntityType;
 	entityId: number;
 	onCreated?: () => void;
+	/** 'compact' renders an underlined-tab type selector and a single note field, for use in tighter detail panels. */
+	variant?: 'standard' | 'compact';
 }
 
-export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, entityId, onCreated }) => {
+export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, entityId, onCreated, variant = 'standard' }) => {
 	const dispatch = useAppDispatch();
 	const toast = useToast();
 	const [type, setType] = useState<CRMActivityType>('note');
@@ -29,6 +44,7 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 	const [description, setDescription] = useState('');
 	const [dueDate, setDueDate] = useState('');
 	const [submitting, setSubmitting] = useState(false);
+	const compact = variant === 'compact';
 
 	const handleSubmit = async () => {
 		if (!subject.trim()) return;
@@ -53,6 +69,89 @@ export const ActivityComposer: React.FC<ActivityComposerProps> = ({ entityType, 
 			setSubmitting(false);
 		}
 	};
+
+	if (compact) {
+		return (
+			<Box>
+				<Tabs
+					value={type}
+					onChange={(_e, value) => setType(value)}
+					variant="scrollable"
+					scrollButtons={false}
+					sx={{
+						mb: 1.5,
+						minHeight: 32,
+						borderBottom: '1px solid',
+						borderColor: 'divider',
+						'& .MuiTabs-indicator': { height: 2, bgcolor: 'primary.main' },
+						'& .MuiTab-root': {
+							textTransform: 'none',
+							fontWeight: 700,
+							minHeight: 32,
+							minWidth: 'auto',
+							px: 1.25,
+							gap: 0.5,
+							fontSize: '0.8rem',
+							color: 'text.secondary',
+							'&.Mui-selected': { color: 'primary.main' },
+						},
+					}}
+				>
+					{COMPACT_TYPE_OPTIONS.map((opt) => (
+						<Tab key={opt.value} value={opt.value} icon={opt.icon} iconPosition="start" label={opt.label} />
+					))}
+				</Tabs>
+
+				<TextField
+					variant="standard"
+					placeholder={type === 'task' ? 'What needs to be done?' : 'Type a note or record a summary...'}
+					value={subject}
+					onChange={(e) => setSubject(e.target.value)}
+					fullWidth
+					multiline
+					minRows={2}
+					InputProps={{ disableUnderline: true }}
+					sx={{ mb: 1 }}
+				/>
+
+				{(type === 'task' || type === 'meeting' || type === 'call') && (
+					<TextField
+						type="datetime-local"
+						label="Due"
+						value={dueDate}
+						onChange={(e) => setDueDate(e.target.value)}
+						size="small"
+						fullWidth
+						InputLabelProps={{ shrink: true }}
+						sx={{ mb: 1 }}
+					/>
+				)}
+
+				<Divider sx={{ mb: 1 }} />
+
+				<Stack direction="row" spacing={0.5} alignItems="center" justifyContent="space-between">
+					<Stack direction="row" spacing={0.5}>
+						<Tooltip title="Attachments coming soon">
+							<IconButton size="small" disabled><AttachFile fontSize="small" /></IconButton>
+						</Tooltip>
+						<Tooltip title="Mentions coming soon">
+							<IconButton size="small" disabled><AlternateEmail fontSize="small" /></IconButton>
+						</Tooltip>
+					</Stack>
+
+					<Button
+						variant="contained"
+						size="small"
+						disabled={submitting}
+						onClick={handleSubmit}
+						sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px' }}
+					>
+						{submitting ? <CircularProgress size={18} color="inherit" /> : SAVE_LABEL[type]}
+					</Button>
+				</Stack>
+			</Box>
+		);
+	}
 
 	return (
 		<Box sx={{

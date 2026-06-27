@@ -1,5 +1,5 @@
 import React from 'react';
-import { Drawer, Box, Typography, IconButton, useTheme } from '@mui/material';
+import { Drawer, Box, Typography, IconButton, Divider, useTheme } from '@mui/material';
 import { Close } from '@mui/icons-material';
 
 interface DetailDrawerProps {
@@ -10,6 +10,7 @@ interface DetailDrawerProps {
 	width?: string | number;
 	headerExtra?: React.ReactNode;
 	headerActions?: React.ReactNode;
+	hideDivider?: boolean;
 	children?: React.ReactNode;
 }
 
@@ -21,6 +22,7 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 	width = 460,
 	headerExtra,
 	headerActions,
+	hideDivider,
 	children
 }) => {
 	const theme = useTheme();
@@ -38,10 +40,8 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 					p: { xs: 2.5, sm: 3.5 },
 					borderLeft: '1px solid',
 					borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
-					background: isDark
-						? 'linear-gradient(180deg, rgba(20, 24, 34, 0.94) 0%, rgba(11, 13, 18, 0.98) 100%)'
-						: 'linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(248, 250, 252, 0.96) 100%)',
-					backdropFilter: 'blur(24px)',
+					bgcolor: 'background.default',
+					color: 'text.primary',
 					boxShadow: isDark
 						? '-16px 0px 48px rgba(0, 0, 0, 0.65), inset 1px 0px 0px rgba(255,255,255,0.05)'
 						: '-16px 0px 48px rgba(139, 124, 246, 0.08), inset 1px 0px 0px rgba(255,255,255,0.4)',
@@ -86,7 +86,11 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 				</Box>
 
 				{/* Header Extra Actions (e.g. badges, status tags) */}
-				{headerExtra && <Box sx={{ mb: 3 }}>{headerExtra}</Box>}
+				{headerExtra && <Box sx={{ mb: 2.5 }}>{headerExtra}</Box>}
+
+				{!hideDivider && (
+					<Divider sx={{ mb: 2.5, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
+				)}
 
 				{/* Drawer Content */}
 				{children}

@@ -8,6 +8,7 @@ interface StatusBadgeProps {
 	label: string;
 	status: string;
 	type?: BadgeType;
+	variant?: 'soft' | 'solid';
 }
 
 type StatusTone = 'success' | 'info' | 'warning' | 'error' | 'default';
@@ -45,7 +46,7 @@ const getStatusTone = (status: string, type: BadgeType): StatusTone => {
 	return 'default';
 };
 
-const StatusBadge: React.FC<StatusBadgeProps> = ({ label, status, type = 'generic' }) => {
+const StatusBadge: React.FC<StatusBadgeProps> = ({ label, status, type = 'generic', variant = 'soft' }) => {
 	const theme = useTheme();
 	const tone = getStatusTone(status, type);
 
@@ -57,6 +58,8 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ label, status, type = 'generi
 		default: theme.palette.text.disabled,
 	}[tone];
 
+	const isSolid = variant === 'solid';
+
 	return (
 		<Box
 			sx={{
@@ -66,8 +69,8 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ label, status, type = 'generi
 				px: 1.25,
 				py: 0.4,
 				borderRadius: '6px',
-				bgcolor: alpha(paletteColor, 0.1),
-				border: `1px solid ${alpha(paletteColor, 0.25)}`,
+				bgcolor: isSolid ? paletteColor : alpha(paletteColor, 0.1),
+				border: isSolid ? 'none' : `1px solid ${alpha(paletteColor, 0.25)}`,
 			}}
 		>
 			{/* Status dot */}
@@ -76,7 +79,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ label, status, type = 'generi
 					width: 6,
 					height: 6,
 					borderRadius: '50%',
-					bgcolor: paletteColor,
+					bgcolor: isSolid ? '#ffffff' : paletteColor,
 					flexShrink: 0,
 				}}
 			/>
@@ -87,7 +90,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ label, status, type = 'generi
 					textTransform: 'capitalize',
 					fontSize: '0.72rem',
 					letterSpacing: '0.02em',
-					color: paletteColor,
+					color: isSolid ? '#ffffff' : paletteColor,
 					lineHeight: 1,
 				}}
 			>

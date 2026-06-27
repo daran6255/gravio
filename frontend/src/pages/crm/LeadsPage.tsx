@@ -140,8 +140,9 @@ const LeadsPage: React.FC = () => {
 					open={detailOpen}
 					onClose={() => setDetailOpen(false)}
 					lead={selectedLead}
+					owners={owners}
 					onEdit={handleEdit}
-					onConvert={handleConvert}
+					onDelete={handleDeleteRequest}
 				/>
 
 				<LeadsModals

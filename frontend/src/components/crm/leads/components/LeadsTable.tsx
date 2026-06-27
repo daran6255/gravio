@@ -63,7 +63,7 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
 	const columns: ColumnDefinition<Lead>[] = [
 		{ id: 'title', label: 'Lead' },
 		{ id: 'status', label: 'Status' },
-		{ id: 'owner', label: 'Owner', hideOnMobile: true },
+		{ id: 'owner_id', label: 'Owner', hideOnMobile: true },
 		{ id: 'priority', label: 'Priority', hideOnMobile: true },
 		{ id: 'source', label: 'Source', hideOnMobile: true },
 		{ id: 'estimated_value', label: 'Value', align: 'right', hideOnMobile: true },
