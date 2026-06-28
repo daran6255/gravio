@@ -7,6 +7,8 @@ from app.models.trial_registry import TrialEmailRegistry
 from app.models.plan import Plan, PlanTier, Module
 from app.models.ai_usage import AIUsageCounter
 from app.models.refresh_token import RefreshToken
+from app.models.audit import AuditLog
+from app.models.notification import Notification, NotificationType
 from app.models.crm import (
     CRMTag,
     CRMCompany,
@@ -37,6 +39,9 @@ __all__ = [
     "Module",
     "AIUsageCounter",
     "RefreshToken",
+    "AuditLog",
+    "Notification",
+    "NotificationType",
     "CRMTag",
     "CRMCompany",
     "CRMContact",

@@ -57,17 +57,43 @@ async def crm_test_data(db_session: AsyncSession):
         is_verified=True,
     )
 
-    db_session.add_all([marketing, dev, admin])
+    # Manager role — has CRM access plus pipeline management/bulk rights (unrestricted visibility)
+    manager = User(
+        email="manager@crmtest.com",
+        username="manager_crm",
+        full_name="Manager User",
+        hashed_password=get_password_hash("password123"),
+        organization_id=org.id,
+        role=UserRole.MANAGER,
+        is_active=True,
+        is_verified=True,
+    )
+
+    # A second restricted-visibility (marketing) user, to prove row-level isolation
+    marketing2 = User(
+        email="marketing2@crmtest.com",
+        username="mktg2_crm",
+        full_name="Marketing User Two",
+        hashed_password=get_password_hash("password123"),
+        organization_id=org.id,
+        role=UserRole.MARKETING,
+        is_active=True,
+        is_verified=True,
+    )
+
+    db_session.add_all([marketing, dev, admin, manager, marketing2])
     await db_session.commit()
     await db_session.refresh(marketing)
     await db_session.refresh(dev)
     await db_session.refresh(admin)
-    return org, marketing, dev, admin
+    await db_session.refresh(manager)
+    await db_session.refresh(marketing2)
+    return org, marketing, dev, admin, manager, marketing2
 
 
 @pytest.fixture
 async def auth_crm_client(client: AsyncClient, crm_test_data) -> AsyncClient:
-    _, marketing, _, _ = crm_test_data
+    _, marketing, _, _, _, _ = crm_test_data
     response = await client.post(
         "/api/v1/auth/login",
         json={
@@ -83,7 +109,7 @@ async def auth_crm_client(client: AsyncClient, crm_test_data) -> AsyncClient:
 
 @pytest.fixture
 async def auth_no_crm_client(client: AsyncClient, crm_test_data) -> AsyncClient:
-    _, _, dev, _ = crm_test_data
+    _, _, dev, _, _, _ = crm_test_data
     response = await client.post(
         "/api/v1/auth/login",
         json={
@@ -100,13 +126,37 @@ async def auth_no_crm_client(client: AsyncClient, crm_test_data) -> AsyncClient:
 
 @pytest.fixture
 async def auth_admin_crm_client(client: AsyncClient, crm_test_data) -> AsyncClient:
-    _, _, _, admin = crm_test_data
+    _, _, _, admin, _, _ = crm_test_data
     response = await client.post(
         "/api/v1/auth/login",
         json={
             "email": "admin@crmtest.com",
             "password": "password123",
         }
+    )
+    assert response.status_code == 200
+    tokens = response.json()
+    client.headers["Authorization"] = f"Bearer {tokens['access_token']}"
+    return client
+
+
+@pytest.fixture
+async def auth_manager_crm_client(client: AsyncClient, crm_test_data) -> AsyncClient:
+    response = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "manager@crmtest.com", "password": "password123"},
+    )
+    assert response.status_code == 200
+    tokens = response.json()
+    client.headers["Authorization"] = f"Bearer {tokens['access_token']}"
+    return client
+
+
+@pytest.fixture
+async def auth_marketing2_crm_client(client: AsyncClient, crm_test_data) -> AsyncClient:
+    response = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "marketing2@crmtest.com", "password": "password123"},
     )
     assert response.status_code == 200
     tokens = response.json()
@@ -503,7 +553,7 @@ async def test_delete_stage_with_active_deal_is_rejected(auth_admin_crm_client: 
 async def test_dashboard_stats_include_conversion_rate_and_my_tasks(
     auth_crm_client: AsyncClient, crm_test_data
 ):
-    _, marketing, _, _ = crm_test_data
+    _, marketing, _, _, _, _ = crm_test_data
 
     # One lead converts, one stays open -> 50% conversion rate
     response = await auth_crm_client.post("/api/v1/crm/leads", json={"title": "Lead A"})
@@ -542,7 +592,7 @@ async def test_dashboard_stats_include_conversion_rate_and_my_tasks(
 
 @pytest.mark.anyio
 async def test_list_owners_endpoint(auth_crm_client: AsyncClient, crm_test_data):
-    org, marketing, dev, admin = crm_test_data
+    org, marketing, dev, admin, manager, marketing2 = crm_test_data
 
     response = await auth_crm_client.get("/api/v1/crm/owners")
     assert response.status_code == 200
@@ -568,7 +618,7 @@ async def test_bulk_update_leads_requires_admin_or_manager(auth_crm_client: Asyn
 async def test_bulk_update_leads_reassigns_owner_and_status(
     auth_admin_crm_client: AsyncClient, crm_test_data
 ):
-    _, marketing, _, admin = crm_test_data
+    _, marketing, _, admin, _, _ = crm_test_data
 
     response = await auth_admin_crm_client.post("/api/v1/crm/leads", json={"title": "Lead One"})
     lead_one = response.json()["public_id"]
@@ -655,3 +705,362 @@ async def test_crm_search_across_entities(auth_crm_client: AsyncClient):
     assert len(results["contacts"]) == 1
     assert len(results["leads"]) == 1
     assert len(results["deals"]) == 1
+
+
+# --- Phase 1: tags ---
+@pytest.mark.anyio
+async def test_lead_tags_roundtrip(auth_crm_client: AsyncClient):
+    response = await auth_crm_client.post(
+        "/api/v1/crm/leads", json={"title": "Tagged Lead", "tags": ["hot", "q3-campaign"]}
+    )
+    assert response.status_code == 201
+    lead = response.json()
+    assert lead["tags"] == ["hot", "q3-campaign"]
+
+    response = await auth_crm_client.patch(
+        f"/api/v1/crm/leads/{lead['public_id']}", json={"tags": ["cold"]}
+    )
+    assert response.status_code == 200
+    assert response.json()["tags"] == ["cold"]
+
+
+# --- Phase 1: row-level visibility ---
+@pytest.mark.anyio
+async def test_marketing_user_only_sees_own_leads(client: AsyncClient, crm_test_data):
+    org, marketing, dev, admin, manager, marketing2 = crm_test_data
+
+    login = await client.post(
+        "/api/v1/auth/login", json={"email": "marketing@crmtest.com", "password": "password123"}
+    )
+    client.headers["Authorization"] = f"Bearer {login.json()['access_token']}"
+    response = await client.post("/api/v1/crm/leads", json={"title": "Marketing-One Lead"})
+    assert response.status_code == 201
+    lead_one_public_id = response.json()["public_id"]
+
+    login = await client.post(
+        "/api/v1/auth/login", json={"email": "marketing2@crmtest.com", "password": "password123"}
+    )
+    client.headers["Authorization"] = f"Bearer {login.json()['access_token']}"
+    response = await client.post("/api/v1/crm/leads", json={"title": "Marketing-Two Lead"})
+    assert response.status_code == 201
+
+    # marketing2's list should only contain their own lead
+    response = await client.get("/api/v1/crm/leads")
+    assert response.status_code == 200
+    titles = {l["title"] for l in response.json()["items"]}
+    assert titles == {"Marketing-Two Lead"}
+
+    # marketing2 cannot fetch marketing's lead directly - 404, not 403
+    response = await client.get(f"/api/v1/crm/leads/{lead_one_public_id}")
+    assert response.status_code == 404
+
+
+@pytest.mark.anyio
+async def test_manager_sees_all_leads(client: AsyncClient, crm_test_data):
+    async def login(email: str) -> dict:
+        r = await client.post("/api/v1/auth/login", json={"email": email, "password": "password123"})
+        return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+    marketing_headers = await login("marketing@crmtest.com")
+    manager_headers = await login("manager@crmtest.com")
+
+    await client.post(
+        "/api/v1/crm/leads", json={"title": "A Marketing Lead"}, headers=marketing_headers
+    )
+
+    response = await client.get("/api/v1/crm/leads", headers=manager_headers)
+    assert response.status_code == 200
+    titles = {l["title"] for l in response.json()["items"]}
+    assert "A Marketing Lead" in titles
+
+
+# --- Phase 1: search by company name ---
+@pytest.mark.anyio
+async def test_search_matches_company_name(auth_crm_client: AsyncClient):
+    response = await auth_crm_client.post("/api/v1/crm/companies", json={"name": "Distinctive Co"})
+    company_id = response.json()["id"]
+    await auth_crm_client.post(
+        "/api/v1/crm/leads", json={"title": "Unrelated title", "company_id": company_id}
+    )
+
+    response = await auth_crm_client.get("/api/v1/crm/leads", params={"search": "Distinctive"})
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+
+
+# --- Phase 1: bulk delete ---
+@pytest.mark.anyio
+async def test_bulk_delete_leads(auth_admin_crm_client: AsyncClient):
+    r1 = await auth_admin_crm_client.post("/api/v1/crm/leads", json={"title": "Delete Me One"})
+    r2 = await auth_admin_crm_client.post("/api/v1/crm/leads", json={"title": "Delete Me Two"})
+    ids = [r1.json()["public_id"], r2.json()["public_id"]]
+
+    response = await auth_admin_crm_client.post("/api/v1/crm/leads/bulk-delete", json={"public_ids": ids})
+    assert response.status_code == 200
+    assert response.json()["deleted_count"] == 2
+
+    response = await auth_admin_crm_client.get("/api/v1/crm/leads")
+    titles = {l["title"] for l in response.json()["items"]}
+    assert "Delete Me One" not in titles
+    assert "Delete Me Two" not in titles
+
+
+@pytest.mark.anyio
+async def test_bulk_delete_requires_admin_or_manager(auth_crm_client: AsyncClient):
+    response = await auth_crm_client.post("/api/v1/crm/leads", json={"title": "Target"})
+    public_id = response.json()["public_id"]
+    response = await auth_crm_client.post(
+        "/api/v1/crm/leads/bulk-delete", json={"public_ids": [public_id]}
+    )
+    assert response.status_code == 403
+
+
+# --- Phase 1: currency validation ---
+@pytest.mark.anyio
+async def test_invalid_currency_rejected(auth_crm_client: AsyncClient):
+    response = await auth_crm_client.post(
+        "/api/v1/crm/leads", json={"title": "Bad Currency", "currency": "NOTACODE"}
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_currency_defaults_to_usd_when_unset(auth_crm_client: AsyncClient):
+    response = await auth_crm_client.post("/api/v1/crm/leads", json={"title": "No Currency"})
+    assert response.status_code == 201
+    assert response.json()["currency"] == "USD"
+
+
+# --- Phase 2: optimistic locking ---
+@pytest.mark.anyio
+async def test_concurrent_edit_returns_409(auth_crm_client: AsyncClient):
+    response = await auth_crm_client.post("/api/v1/crm/leads", json={"title": "Lockable Lead"})
+    lead = response.json()
+    assert lead["version"] == 1
+
+    # First update with the correct version succeeds and bumps the version
+    response = await auth_crm_client.patch(
+        f"/api/v1/crm/leads/{lead['public_id']}", json={"title": "Updated Once", "version": 1}
+    )
+    assert response.status_code == 200
+    assert response.json()["version"] == 2
+
+    # Second update still claiming version=1 (stale) must conflict
+    response = await auth_crm_client.patch(
+        f"/api/v1/crm/leads/{lead['public_id']}", json={"title": "Updated Twice", "version": 1}
+    )
+    assert response.status_code == 409
+
+
+# --- Phase 2: duplicate lead detection ---
+@pytest.mark.anyio
+async def test_duplicate_lead_warning_on_create(auth_crm_client: AsyncClient):
+    response = await auth_crm_client.post(
+        "/api/v1/crm/contacts", json={"first_name": "Dup", "last_name": "Contact"}
+    )
+    contact_id = response.json()["id"]
+
+    response = await auth_crm_client.post(
+        "/api/v1/crm/leads", json={"title": "First Lead", "contact_id": contact_id}
+    )
+    assert response.status_code == 201
+    assert response.json().get("duplicate_warning") is None
+
+    response = await auth_crm_client.post(
+        "/api/v1/crm/leads", json={"title": "Second Lead, Same Contact", "contact_id": contact_id}
+    )
+    assert response.status_code == 201
+    assert response.json()["duplicate_warning"] is not None
+
+
+# --- Phase 2: stale leads ---
+@pytest.mark.anyio
+async def test_stale_lead_filter(auth_crm_client: AsyncClient, db_session: AsyncSession):
+    from datetime import datetime, timedelta, timezone
+
+    response = await auth_crm_client.post("/api/v1/crm/leads", json={"title": "Old Lead"})
+    public_id = response.json()["public_id"]
+
+    result = await db_session.execute(select(CRMLead).where(CRMLead.public_id == uuid.UUID(public_id)))
+    lead = result.scalars().first()
+    lead.created_at = datetime.now(timezone.utc) - timedelta(days=30)
+    await db_session.commit()
+
+    response = await auth_crm_client.get("/api/v1/crm/leads", params={"stale": "true"})
+    assert response.status_code == 200
+    titles = {l["title"] for l in response.json()["items"]}
+    assert "Old Lead" in titles
+
+
+# --- Phase 2: audit trail ---
+@pytest.mark.anyio
+async def test_audit_log_created_on_update(auth_crm_client: AsyncClient):
+    response = await auth_crm_client.post("/api/v1/crm/leads", json={"title": "Audited Lead"})
+    lead = response.json()
+
+    response = await auth_crm_client.patch(
+        f"/api/v1/crm/leads/{lead['public_id']}", json={"status": "contacted", "version": 1}
+    )
+    assert response.status_code == 200
+
+    response = await auth_crm_client.get(f"/api/v1/crm/leads/{lead['public_id']}/history")
+    assert response.status_code == 200
+    history = response.json()["items"]
+    assert any(h["field_name"] == "status" and h["new_value"] == "contacted" for h in history)
+
+
+# --- Phase 3: notifications ---
+@pytest.mark.anyio
+async def test_notification_created_on_reassignment(client: AsyncClient, crm_test_data):
+    org, marketing, dev, admin, manager, marketing2 = crm_test_data
+
+    async def login(email: str) -> dict:
+        r = await client.post("/api/v1/auth/login", json={"email": email, "password": "password123"})
+        return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+    admin_headers = await login("admin@crmtest.com")
+    marketing_headers = await login("marketing@crmtest.com")
+
+    response = await client.post(
+        "/api/v1/crm/leads", json={"title": "Reassign Me"}, headers=admin_headers
+    )
+    lead = response.json()
+
+    response = await client.patch(
+        f"/api/v1/crm/leads/{lead['public_id']}",
+        json={"owner_id": marketing.id, "version": lead["version"]},
+        headers=admin_headers,
+    )
+    assert response.status_code == 200
+
+    response = await client.get("/api/v1/notifications", headers=marketing_headers)
+    assert response.status_code == 200
+    notifications = response.json()["items"]
+    assert any(n["type"] == "lead_assigned" for n in notifications)
+
+
+# --- Phase 3: CSV export/import ---
+@pytest.mark.anyio
+async def test_csv_export_returns_csv(auth_crm_client: AsyncClient):
+    await auth_crm_client.post("/api/v1/crm/leads", json={"title": "Exportable Lead"})
+    response = await auth_crm_client.get("/api/v1/crm/leads/export")
+    assert response.status_code == 200
+    assert "text/csv" in response.headers["content-type"]
+    assert "Exportable Lead" in response.text
+
+
+@pytest.mark.anyio
+async def test_csv_import_partial_failure_report(auth_crm_client: AsyncClient):
+    csv_content = "title,source\nValid Lead,website\n,website\n"
+    files = {"file": ("leads.csv", csv_content, "text/csv")}
+    response = await auth_crm_client.post("/api/v1/crm/leads/import", files=files)
+    assert response.status_code == 200
+    result = response.json()
+    assert result["total_rows"] == 2
+    assert result["success_count"] == 1
+    assert result["failure_count"] == 1
+    assert result["results"][1]["error"] is not None
+
+
+# --- Phase 3: GDPR anonymize ---
+@pytest.mark.anyio
+async def test_anonymize_requires_admin(client: AsyncClient, crm_test_data):
+    async def login(email: str) -> dict:
+        r = await client.post("/api/v1/auth/login", json={"email": email, "password": "password123"})
+        return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+    marketing_headers = await login("marketing@crmtest.com")
+    admin_headers = await login("admin@crmtest.com")
+
+    response = await client.post(
+        "/api/v1/crm/leads",
+        json={"title": "Sensitive Lead", "description": "PII here"},
+        headers=marketing_headers,
+    )
+    lead = response.json()
+
+    # Marketing (non-admin) is forbidden
+    response = await client.post(
+        f"/api/v1/crm/leads/{lead['public_id']}/anonymize", headers=marketing_headers
+    )
+    assert response.status_code == 403
+
+    # Admin succeeds and PII is scrubbed; status/source are preserved
+    response = await client.post(
+        f"/api/v1/crm/leads/{lead['public_id']}/anonymize", headers=admin_headers
+    )
+    assert response.status_code == 200
+    anonymized = response.json()
+    assert anonymized["title"] == "[Anonymized Lead]"
+    assert anonymized["description"] is None
+    assert anonymized["is_anonymized"] is True
+    assert anonymized["status"] == "new"
+
+
+# --- Phase 3: file upload validation ---
+@pytest.mark.anyio
+async def test_file_upload_rejects_disallowed_mime(auth_crm_client: AsyncClient):
+    response = await auth_crm_client.post("/api/v1/crm/leads", json={"title": "File Target"})
+    lead_id = response.json()["id"]
+
+    files = {"file": ("malware.exe", b"binarycontent", "application/x-msdownload")}
+    response = await auth_crm_client.post(
+        "/api/v1/crm/files/upload",
+        data={"entity_type": "lead", "entity_id": str(lead_id)},
+        files=files,
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.anyio
+async def test_file_upload_rejects_oversized_file(auth_crm_client: AsyncClient, monkeypatch):
+    from app.core.config import settings as app_settings
+    monkeypatch.setattr(app_settings, "MAX_UPLOAD_FILE_SIZE_BYTES", 10)
+
+    response = await auth_crm_client.post("/api/v1/crm/leads", json={"title": "File Target 2"})
+    lead_id = response.json()["id"]
+
+    files = {"file": ("doc.pdf", b"this content is definitely over ten bytes", "application/pdf")}
+    response = await auth_crm_client.post(
+        "/api/v1/crm/files/upload",
+        data={"entity_type": "lead", "entity_id": str(lead_id)},
+        files=files,
+    )
+    assert response.status_code == 413
+
+
+# --- Phase 3: owner deactivation reassignment ---
+@pytest.mark.anyio
+async def test_deactivate_user_with_owned_leads_requires_reassignment(client: AsyncClient, crm_test_data):
+    org, marketing, dev, admin, manager, marketing2 = crm_test_data
+
+    async def login(email: str) -> dict:
+        r = await client.post("/api/v1/auth/login", json={"email": email, "password": "password123"})
+        return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+    marketing_headers = await login("marketing@crmtest.com")
+    admin_headers = await login("admin@crmtest.com")
+
+    await client.post(
+        "/api/v1/crm/leads", json={"title": "Owned By Marketing"}, headers=marketing_headers
+    )
+
+    # Deactivating without a reassignment target is blocked
+    response = await client.post(
+        f"/api/v1/users/{marketing.public_id}/deactivate", headers=admin_headers
+    )
+    assert response.status_code == 409
+
+    # Supplying reassign_to_user_id succeeds
+    response = await client.post(
+        f"/api/v1/users/{marketing.public_id}/deactivate",
+        params={"reassign_to_user_id": admin.id},
+        headers=admin_headers,
+    )
+    assert response.status_code == 200
+
+    response = await client.get(
+        "/api/v1/crm/leads", params={"owner_id": admin.id}, headers=admin_headers
+    )
+    titles = {l["title"] for l in response.json()["items"]}
+    assert "Owned By Marketing" in titles

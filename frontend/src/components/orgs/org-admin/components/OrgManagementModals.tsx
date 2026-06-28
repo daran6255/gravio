@@ -1,8 +1,10 @@
 import React from 'react';
+import { MenuItem, Select, FormControl, InputLabel, Typography } from '@mui/material';
 import { InviteOrgUserDialog } from '../forms';
 import { EditOrgUserDialog } from '../../shared';
 import { ConfirmationDialog } from '../../../common/dialogbox';
 import type { TeamMember } from '../../../../models/user';
+import type { CRMOwnerOption } from '../../../../models/crm/owner';
 
 interface OrgManagementModalsProps {
 	inviteDialogOpen: boolean;
@@ -30,6 +32,16 @@ interface OrgManagementModalsProps {
 	selectedCount: number;
 	onBulkDeleteClose: () => void;
 	onBulkDeleteConfirm: () => void;
+
+	reassignDialogOpen: boolean;
+	reassignAction: 'deactivate' | 'delete';
+	reassignMessage: string;
+	reassignOwners: CRMOwnerOption[];
+	reassignToUserId: number | '';
+	onReassignToUserChange: (id: number | '') => void;
+	reassignLoading: boolean;
+	onCancelReassign: () => void;
+	onConfirmReassign: () => void;
 }
 
 export const OrgManagementModals: React.FC<OrgManagementModalsProps> = ({
@@ -54,6 +66,15 @@ export const OrgManagementModals: React.FC<OrgManagementModalsProps> = ({
 	selectedCount,
 	onBulkDeleteClose,
 	onBulkDeleteConfirm,
+	reassignDialogOpen,
+	reassignAction,
+	reassignMessage,
+	reassignOwners,
+	reassignToUserId,
+	onReassignToUserChange,
+	reassignLoading,
+	onCancelReassign,
+	onConfirmReassign,
 }) => {
 	const isDeactivate = statusAction === 'deactivate';
 
@@ -118,6 +139,40 @@ export const OrgManagementModals: React.FC<OrgManagementModalsProps> = ({
 				severity="error"
 				loading={bulkDeleteLoading}
 			/>
+
+			<ConfirmationDialog
+				open={reassignDialogOpen}
+				onClose={onCancelReassign}
+				onConfirm={onConfirmReassign}
+				title="Reassign Owned Leads"
+				subtitle="Pick a new owner to continue"
+				message={reassignMessage}
+				confirmLabel={reassignAction === 'deactivate' ? 'Reassign & Deactivate' : 'Reassign & Delete'}
+				cancelLabel="Cancel"
+				severity="warning"
+				loading={reassignLoading}
+			>
+				<FormControl fullWidth size="small">
+					<InputLabel id="reassign-owner-label">New Owner</InputLabel>
+					<Select<number | ''>
+						labelId="reassign-owner-label"
+						label="New Owner"
+						value={reassignToUserId}
+						onChange={(e) => onReassignToUserChange(e.target.value === '' ? '' : Number(e.target.value))}
+					>
+						{reassignOwners.length === 0 && (
+							<MenuItem value="" disabled>
+								<Typography variant="body2" color="text.secondary">No other teammates available</Typography>
+							</MenuItem>
+						)}
+						{reassignOwners.map((o) => (
+							<MenuItem key={o.id} value={o.id}>
+								{o.full_name || o.email}
+							</MenuItem>
+						))}
+					</Select>
+				</FormControl>
+			</ConfirmationDialog>
 		</>
 	);
 };

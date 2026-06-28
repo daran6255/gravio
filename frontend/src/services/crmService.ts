@@ -2,7 +2,15 @@ import api from './api';
 import type { PaginatedResponse } from '../models/common';
 import type { Company, CompanyCreate, CompanyUpdate } from '../models/crm/company';
 import type { Contact, ContactCreate, ContactUpdate } from '../models/crm/contact';
-import type { Lead, LeadCreate, LeadUpdate, LeadConvertRequest } from '../models/crm/lead';
+import type {
+	Lead,
+	LeadCreate,
+	LeadCreateResponse,
+	LeadUpdate,
+	LeadConvertRequest,
+	LeadHistoryEntry,
+	LeadImportResponse,
+} from '../models/crm/lead';
 import type { Deal, DealCreate, DealUpdate } from '../models/crm/deal';
 import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../models/crm/pipeline';
 import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../models/crm/crmActivity';
@@ -68,13 +76,14 @@ const crmService = {
 		priority?: string;
 		source?: string;
 		ownerId?: number;
+		stale?: boolean;
 		page?: number;
 		pageSize?: number;
 		search?: string;
 	} = {}): Promise<PaginatedResponse<Lead>> => {
-		const { status, priority, source, ownerId, page = 1, pageSize = 20, search } = params;
+		const { status, priority, source, ownerId, stale, page = 1, pageSize = 20, search } = params;
 		const response = await api.get<PaginatedResponse<Lead>>('/crm/leads', {
-			params: { status, priority, source, owner_id: ownerId, page, page_size: pageSize, search },
+			params: { status, priority, source, owner_id: ownerId, stale, page, page_size: pageSize, search },
 		});
 		return response.data;
 	},
@@ -82,8 +91,8 @@ const crmService = {
 		const response = await api.get<Lead>(`/crm/leads/${publicId}`);
 		return response.data;
 	},
-	createLead: async (payload: LeadCreate): Promise<Lead> => {
-		const response = await api.post<Lead>('/crm/leads', payload);
+	createLead: async (payload: LeadCreate): Promise<LeadCreateResponse> => {
+		const response = await api.post<LeadCreateResponse>('/crm/leads', payload);
 		return response.data;
 	},
 	updateLead: async (publicId: string, payload: LeadUpdate): Promise<Lead> => {
@@ -105,8 +114,50 @@ const crmService = {
 		});
 		return response.data;
 	},
+	bulkDeleteLeads: async (publicIds: string[]): Promise<number> => {
+		const response = await api.post<{ deleted_count: number }>('/crm/leads/bulk-delete', {
+			public_ids: publicIds,
+		});
+		return response.data.deleted_count;
+	},
 	getLeadStats: async (): Promise<CRMLeadStats> => {
 		const response = await api.get<CRMLeadStats>('/crm/leads/stats');
+		return response.data;
+	},
+	getLeadHistory: async (publicId: string, page = 1, pageSize = 50): Promise<PaginatedResponse<LeadHistoryEntry>> => {
+		const response = await api.get<PaginatedResponse<LeadHistoryEntry>>(`/crm/leads/${publicId}/history`, {
+			params: { page, page_size: pageSize },
+		});
+		return response.data;
+	},
+	anonymizeLead: async (publicId: string): Promise<Lead> => {
+		const response = await api.post<Lead>(`/crm/leads/${publicId}/anonymize`);
+		return response.data;
+	},
+	exportLeadsCsv: async (params: {
+		status?: string; priority?: string; source?: string; ownerId?: number; search?: string;
+	} = {}): Promise<void> => {
+		const { status, priority, source, ownerId, search } = params;
+		const response = await api.get('/crm/leads/export', {
+			params: { status, priority, source, owner_id: ownerId, search },
+			responseType: 'blob',
+		});
+		const blob = new Blob([response.data], { type: 'text/csv' });
+		const downloadUrl = window.URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = downloadUrl;
+		link.download = 'leads_export.csv';
+		document.body.appendChild(link);
+		link.click();
+		link.remove();
+		window.URL.revokeObjectURL(downloadUrl);
+	},
+	importLeadsCsv: async (file: File): Promise<LeadImportResponse> => {
+		const formData = new FormData();
+		formData.append('file', file);
+		const response = await api.post<LeadImportResponse>('/crm/leads/import', formData, {
+			headers: { 'Content-Type': 'multipart/form-data' },
+		});
 		return response.data;
 	},
 

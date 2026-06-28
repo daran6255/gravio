@@ -105,6 +105,26 @@ class Settings(BaseSettings):
     # Pagination
     DEFAULT_PAGE_SIZE: int = 20
     MAX_PAGE_SIZE: int = 100
+
+    # File uploads (shared across CRM entities - leads/deals/companies/contacts)
+    MAX_UPLOAD_FILE_SIZE_BYTES: int = 10 * 1024 * 1024  # 10MB
+    ALLOWED_UPLOAD_MIME_TYPES: List[str] = [
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "text/csv",
+        "text/plain",
+        "application/zip",
+    ]
+
+    # CRM
+    LEAD_STALE_DAYS: int = 14
     
     # Email (optional - for future use)
     SMTP_TLS: bool = True

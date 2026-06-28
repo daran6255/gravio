@@ -18,9 +18,18 @@ export interface Lead {
 	description?: string;
 	converted_at?: string;
 	deal_id?: number;
+	tags?: string[];
 	custom_fields?: Record<string, any>;
+	version: number;
+	last_activity_at?: string;
+	is_anonymized: boolean;
 	created_at: string;
 	updated_at: string;
+}
+
+/** Matches backend's CRMLeadCreateResponse - returned only from POST /leads. */
+export interface LeadCreateResponse extends Lead {
+	duplicate_warning?: string;
 }
 
 /** Matches backend's CRMLeadCreate. */
@@ -35,10 +44,14 @@ export interface LeadCreate {
 	estimated_value?: number;
 	currency?: string;
 	description?: string;
+	tags?: string[];
 	custom_fields?: Record<string, any>;
 }
 
-export interface LeadUpdate extends Partial<LeadCreate> { }
+export interface LeadUpdate extends Partial<LeadCreate> {
+	/** Client's last-seen version, for optimistic locking. Omit to skip the conflict check. */
+	version?: number;
+}
 
 /** Matches backend's CRMLeadConvertRequest. */
 export interface LeadConvertRequest {
@@ -47,4 +60,32 @@ export interface LeadConvertRequest {
 	deal_title?: string;
 	value?: number;
 	close_date?: string;
+}
+
+/** Matches backend's AuditLogResponse. */
+export interface LeadHistoryEntry {
+	id: number;
+	action: string;
+	field_name?: string;
+	old_value?: string;
+	new_value?: string;
+	changed_by_user_id?: number;
+	changed_at: string;
+}
+
+/** Matches backend's CRMLeadImportRowResult. */
+export interface LeadImportRowResult {
+	row_number: number;
+	success: boolean;
+	lead_public_id?: string;
+	error?: string;
+	duplicate_warning?: string;
+}
+
+/** Matches backend's CRMLeadImportResponse. */
+export interface LeadImportResponse {
+	total_rows: number;
+	success_count: number;
+	failure_count: number;
+	results: LeadImportRowResult[];
 }

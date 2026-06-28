@@ -6,4 +6,5 @@ export * from './LeadsStatsPanel';
 export * from './LeadsFilterPanel';
 export * from './LeadsSourceBreakdown';
 export * from './LeadsGuideDrawer';
+export * from './LeadsImportDialog';
 

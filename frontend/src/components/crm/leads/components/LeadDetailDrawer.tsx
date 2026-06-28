@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Stack, IconButton, Tooltip, useTheme, alpha, Tabs, Tab, Grid, CircularProgress } from '@mui/material';
-import { Edit, DeleteOutline, Phone, Email, InsertDriveFileOutlined, KeyboardArrowDown, KeyboardArrowUp, CloudUploadOutlined, GetApp, PictureAsPdf, Image, Description, GridOn, InsertDriveFile, HelpOutline } from '@mui/icons-material';
+import { Box, Typography, Stack, IconButton, Tooltip, useTheme, alpha, Tabs, Tab, Grid, CircularProgress, Chip } from '@mui/material';
+import { Edit, DeleteOutline, Phone, Email, InsertDriveFileOutlined, KeyboardArrowDown, KeyboardArrowUp, CloudUploadOutlined, GetApp, PictureAsPdf, Image, Description, GridOn, InsertDriveFile, HelpOutline, PersonOff, History as HistoryIcon } from '@mui/icons-material';
 import DetailDrawer from '../../../common/drawer/DetailDrawer';
 import PremiumTooltip from '../../../common/PremiumTooltip';
+import { ConfirmationDialog } from '../../../common/dialogbox';
 import { RichTextViewer } from '../../../common/form';
 import { NotesComposer, NotesTimeline } from '../../shared';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
-import { fetchEntityActivities, clearActivities } from '../../../../store/slices/crmSlice';
+import { fetchEntityActivities, clearActivities, fetchLeadHistory, anonymizeLead } from '../../../../store/slices/crmSlice';
 import useToast from '../../../../hooks/useToast';
 import crmService from '../../../../services/crmService';
+import { MAX_FILE_SIZE_BYTES, ALLOWED_UPLOAD_MIME_TYPES } from '../../../../constants/fileUpload';
 import type { Lead } from '../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
 import type { CRMFile } from '../../../../models/crm/crmFile';
@@ -43,6 +45,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 	const [files, setFiles] = useState<CRMFile[]>([]);
 	const [filesLoading, setFilesLoading] = useState(false);
 	const [uploading, setUploading] = useState(false);
+	const [anonymizeConfirmOpen, setAnonymizeConfirmOpen] = useState(false);
 
 	if (lead?.id !== prevLeadId) {
 		setPrevLeadId(lead?.id);
@@ -53,7 +56,9 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 	}
 
 	const { activities, activitiesLoading } = useAppSelector((state) => state.crm);
-	const { companyOptions, contactOptions } = useAppSelector((state) => state.crm);
+	const { companyOptions, contactOptions, leadHistory, leadHistoryLoading, anonymizeLoading } = useAppSelector((state) => state.crm);
+	const { user } = useAppSelector((state) => state.auth);
+	const isAdmin = user?.role === 'admin';
 
 	const loadFiles = async () => {
 		if (!lead?.id) return;
@@ -71,9 +76,15 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 	const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		if (!lead?.id || !e.target.files || e.target.files.length === 0) return;
 		const file = e.target.files[0];
-		
-		if (file.size > 10 * 1024 * 1024) {
-			toast.error('File size exceeds 10MB limit');
+
+		if (file.size > MAX_FILE_SIZE_BYTES) {
+			toast.error(`File size exceeds the ${MAX_FILE_SIZE_BYTES / (1024 * 1024)}MB limit`);
+			e.target.value = '';
+			return;
+		}
+		if (file.type && !ALLOWED_UPLOAD_MIME_TYPES.includes(file.type)) {
+			toast.error(`File type "${file.type}" is not allowed`);
+			e.target.value = '';
 			return;
 		}
 
@@ -83,10 +94,21 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 			toast.success('File uploaded successfully');
 			loadFiles();
 		} catch (err: any) {
-			toast.error(err.response?.data?.detail || 'Failed to upload file');
+			toast.error(err.response?.data?.error?.message || 'Failed to upload file');
 		} finally {
 			setUploading(false);
 			e.target.value = '';
+		}
+	};
+
+	const handleAnonymize = async () => {
+		if (!lead) return;
+		try {
+			await dispatch(anonymizeLead(lead.public_id)).unwrap();
+			toast.success('Lead anonymized');
+			setAnonymizeConfirmOpen(false);
+		} catch (err: any) {
+			toast.error(err || 'Failed to anonymize lead');
 		}
 	};
 
@@ -105,6 +127,12 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 			loadFiles();
 		}
 	}, [open, tab, lead?.id]);
+
+	useEffect(() => {
+		if (open && tab === 3 && lead?.public_id) {
+			dispatch(fetchLeadHistory(lead.public_id));
+		}
+	}, [open, tab, lead?.public_id, dispatch]);
 
 	useEffect(() => {
 		if (open && lead) {
@@ -258,6 +286,20 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 							<DeleteOutline sx={{ fontSize: 17 }} />
 						</IconButton>
 					</Tooltip>
+					{isAdmin && !lead.is_anonymized && (
+						<Tooltip title="Anonymize (GDPR)">
+							<IconButton
+								size="small"
+								onClick={() => setAnonymizeConfirmOpen(true)}
+								sx={{
+									color: 'text.secondary',
+									'&:hover': { color: 'error.main', bgcolor: alpha(theme.palette.error.main, 0.1) },
+								}}
+							>
+								<PersonOff sx={{ fontSize: 17 }} />
+							</IconButton>
+						</Tooltip>
+					)}
 				</>
 			}
 		>
@@ -285,6 +327,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 				<Tab label="Overview" />
 				<Tab label="Timeline" />
 				<Tab label="Files" />
+				<Tab label="History" />
 			</Tabs>
 
 			<Box sx={{ display: tab === 0 ? 'flex' : 'none', flexDirection: 'column', gap: 2, overflowY: 'auto', flex: 1 }}>
@@ -312,6 +355,14 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 							</Grid>
 						)}
 					</Grid>
+				)}
+
+				{lead.tags && lead.tags.length > 0 && (
+					<Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+						{lead.tags.map((tag) => (
+							<Chip key={tag} label={tag} size="small" sx={{ borderRadius: '6px', fontWeight: 600, fontSize: '0.72rem' }} />
+						))}
+					</Stack>
 				)}
 
 				{contact && (
@@ -655,6 +706,52 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 					</Stack>
 				)}
 			</Box>
+
+			<Box sx={{ display: tab === 3 ? 'flex' : 'none', flexDirection: 'column', overflowY: 'auto', flex: 1, p: 2.5 }}>
+				<Box display="flex" alignItems="center" gap={0.5} sx={{ mb: 2 }}>
+					<Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Change History</Typography>
+					<PremiumTooltip title="A read-only audit trail of who changed what on this lead, and when." arrow placement="right">
+						<HelpOutline sx={{ fontSize: 13, color: 'text.secondary', cursor: 'pointer', opacity: 0.7, '&:hover': { opacity: 1, color: 'primary.main' } }} />
+					</PremiumTooltip>
+				</Box>
+				{leadHistoryLoading ? (
+					<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+						<CircularProgress size={28} />
+					</Box>
+				) : leadHistory.length === 0 ? (
+					<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 4, gap: 1 }}>
+						<HistoryIcon sx={{ fontSize: 28, color: 'text.disabled' }} />
+						<Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>No changes recorded yet</Typography>
+					</Box>
+				) : (
+					<Stack spacing={1.5}>
+						{leadHistory.map((h) => (
+							<Box key={h.id} sx={{ ...fieldCardSx, borderLeft: `3px solid ${theme.palette.primary.main}`, borderRadius: '12px' }}>
+								<Typography variant="body2" sx={{ fontWeight: 700 }}>
+									{h.field_name
+										? `${h.field_name.replace('_', ' ')} changed from "${h.old_value ?? '—'}" to "${h.new_value ?? '—'}"`
+										: h.action}
+								</Typography>
+								<Typography variant="caption" color="text.secondary">
+									{new Date(h.changed_at).toLocaleString()}
+								</Typography>
+							</Box>
+						))}
+					</Stack>
+				)}
+			</Box>
+
+			<ConfirmationDialog
+				open={anonymizeConfirmOpen}
+				onClose={() => setAnonymizeConfirmOpen(false)}
+				onConfirm={handleAnonymize}
+				title="Anonymize Lead (GDPR)"
+				subtitle="Scrub personally identifiable information"
+				message="This will permanently scrub this lead's title, description, tags, and delete all attached files. Status, source, and priority are kept for reporting. This action cannot be undone."
+				confirmLabel="Anonymize"
+				severity="error"
+				loading={anonymizeLoading}
+			/>
 		</DetailDrawer>
 	);
 };

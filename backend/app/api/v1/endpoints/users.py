@@ -1,6 +1,7 @@
 """Org Admin user management endpoints (Flow C) — invite, list, deactivate/reactivate"""
 
 import uuid
+from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -64,10 +65,14 @@ async def list_users_endpoint(
 )
 async def deactivate_user_endpoint(
     public_id: uuid.UUID,
+    reassign_to_user_id: Optional[int] = Query(None, description="Required if the user owns active leads"),
     current_user: User = Depends(require_org_admin),
     db: AsyncSession = Depends(get_db),
 ) -> UserListItem:
-    user = await set_user_active(db, current_user=current_user, target_public_id=public_id, active=False)
+    user = await set_user_active(
+        db, current_user=current_user, target_public_id=public_id, active=False,
+        reassign_to_user_id=reassign_to_user_id,
+    )
     return UserListItem.model_validate(user)
 
 
@@ -92,10 +97,14 @@ async def reactivate_user_endpoint(
 )
 async def delete_user_endpoint(
     public_id: uuid.UUID,
+    reassign_to_user_id: Optional[int] = Query(None, description="Required if the user owns active leads"),
     current_user: User = Depends(require_org_admin),
     db: AsyncSession = Depends(get_db),
 ) -> UserListItem:
-    user = await delete_org_user(db, current_user=current_user, target_public_id=public_id)
+    user = await delete_org_user(
+        db, current_user=current_user, target_public_id=public_id,
+        reassign_to_user_id=reassign_to_user_id,
+    )
     return UserListItem.model_validate(user)
 
 

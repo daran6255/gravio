@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Stack, TextField, MenuItem, Button, useTheme, alpha } from '@mui/material';
+import { Box, Typography, Stack, TextField, MenuItem, Button, useTheme, alpha, FormControlLabel, Switch } from '@mui/material';
 import { FilterAltOff, HelpOutline } from '@mui/icons-material';
 import PremiumTooltip from '../../../common/PremiumTooltip';
 import { LEAD_SOURCES, LEAD_PRIORITIES } from '../constants';
@@ -20,10 +20,12 @@ interface LeadsFilterPanelProps {
 	source: LeadSource | '';
 	ownerId: number | '';
 	owners: CRMOwnerOption[];
+	staleOnly: boolean;
 	onStatusChange: (status: LeadStatus | '') => void;
 	onPriorityChange: (priority: LeadPriority | '') => void;
 	onSourceChange: (source: LeadSource | '') => void;
 	onOwnerChange: (ownerId: number | '') => void;
+	onStaleChange: (staleOnly: boolean) => void;
 	onClear: () => void;
 }
 
@@ -34,15 +36,17 @@ export const LeadsFilterPanel: React.FC<LeadsFilterPanelProps> = ({
 	source,
 	ownerId,
 	owners,
+	staleOnly,
 	onStatusChange,
 	onPriorityChange,
 	onSourceChange,
 	onOwnerChange,
+	onStaleChange,
 	onClear,
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
-	const hasActiveFilters = !!(status || priority || source || ownerId);
+	const hasActiveFilters = !!(status || priority || source || ownerId || staleOnly);
 
 	const statusOptions: StatusOption[] = [
 		{ value: '', label: 'All Leads', count: stats?.total_leads ?? 0 },
@@ -155,6 +159,18 @@ export const LeadsFilterPanel: React.FC<LeadsFilterPanelProps> = ({
 						<MenuItem key={o.id} value={o.id}>{o.full_name || o.email}</MenuItem>
 					))}
 				</TextField>
+
+				<FormControlLabel
+					control={<Switch checked={staleOnly} onChange={(e) => onStaleChange(e.target.checked)} size="small" />}
+					label={
+						<Stack direction="row" alignItems="center" spacing={0.5}>
+							<Typography variant="body2" sx={{ fontWeight: 600 }}>Stale only</Typography>
+							<PremiumTooltip title="Leads with no activity logged in the last 14 days." arrow placement="top">
+								<HelpOutline sx={{ fontSize: 13, color: 'text.secondary', opacity: 0.7 }} />
+							</PremiumTooltip>
+						</Stack>
+					}
+				/>
 			</Stack>
 		</Box>
 	);

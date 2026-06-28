@@ -19,6 +19,12 @@ interface LeadsModalsProps {
 	onCloseDelete: () => void;
 	onConfirmDelete: () => void;
 	deleteLoading: boolean;
+
+	bulkDeleteOpen: boolean;
+	bulkDeleteCount: number;
+	onCloseBulkDelete: () => void;
+	onConfirmBulkDelete: () => void;
+	bulkDeleteLoading: boolean;
 }
 
 export const LeadsModals: React.FC<LeadsModalsProps> = ({
@@ -34,6 +40,11 @@ export const LeadsModals: React.FC<LeadsModalsProps> = ({
 	onCloseDelete,
 	onConfirmDelete,
 	deleteLoading,
+	bulkDeleteOpen,
+	bulkDeleteCount,
+	onCloseBulkDelete,
+	onConfirmBulkDelete,
+	bulkDeleteLoading,
 }) => {
 	return (
 		<>
@@ -61,6 +72,18 @@ export const LeadsModals: React.FC<LeadsModalsProps> = ({
 				confirmLabel="Delete"
 				severity="error"
 				loading={deleteLoading}
+			/>
+
+			<ConfirmationDialog
+				open={bulkDeleteOpen}
+				onClose={onCloseBulkDelete}
+				onConfirm={onConfirmBulkDelete}
+				title="Delete Leads"
+				subtitle="Permanently delete multiple leads"
+				message={`Are you sure you want to delete ${bulkDeleteCount} selected lead(s)? This action cannot be undone.`}
+				confirmLabel="Delete"
+				severity="error"
+				loading={bulkDeleteLoading}
 			/>
 		</>
 	);

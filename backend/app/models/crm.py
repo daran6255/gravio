@@ -228,7 +228,11 @@ class CRMLead(BaseModel, TenantAwareMixin):
     deal_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("crm_deals.id", ondelete="SET NULL", use_alter=True, name="fk_crm_leads_deal_id"), nullable=True, index=True
     )
+    tags: Mapped[Optional[list[str]]] = mapped_column(JSON, nullable=True)
     custom_fields: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    last_activity_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_anonymized: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Relationships
     contact: Mapped[Optional[CRMContact]] = relationship("CRMContact", back_populates="leads")

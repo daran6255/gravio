@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography, Button, Stack, Menu, MenuItem, Fade, useTheme, alpha } from '@mui/material';
-import { Close, PersonOutline, SyncAlt, KeyboardArrowDown } from '@mui/icons-material';
+import { Close, PersonOutline, SyncAlt, KeyboardArrowDown, DeleteOutline } from '@mui/icons-material';
 import type { LeadStatus } from '../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
 import { LEAD_STATUSES } from '../constants';
@@ -11,6 +11,7 @@ interface LeadsBulkActionBarProps {
 	loading: boolean;
 	onReassign: (ownerId: number) => void;
 	onChangeStatus: (status: LeadStatus) => void;
+	onDelete: () => void;
 	onClear: () => void;
 }
 
@@ -20,6 +21,7 @@ export const LeadsBulkActionBar: React.FC<LeadsBulkActionBarProps> = ({
 	loading,
 	onReassign,
 	onChangeStatus,
+	onDelete,
 	onClear,
 }) => {
 	const theme = useTheme();
@@ -212,6 +214,30 @@ export const LeadsBulkActionBar: React.FC<LeadsBulkActionBarProps> = ({
 							</MenuItem>
 						))}
 					</Menu>
+
+					{/* Delete Button */}
+					<Button
+						variant="outlined"
+						size="small"
+						color="error"
+						startIcon={<DeleteOutline fontSize="small" />}
+						onClick={onDelete}
+						disabled={loading}
+						sx={{
+							borderRadius: '20px',
+							textTransform: 'none',
+							fontWeight: 700,
+							fontSize: '0.8rem',
+							px: 2,
+							py: 0.5,
+							'&:hover': {
+								bgcolor: alpha(theme.palette.error.main, 0.08),
+							},
+							transition: 'all 0.2s ease-in-out',
+						}}
+					>
+						Delete
+					</Button>
 				</Stack>
 
 				<Button

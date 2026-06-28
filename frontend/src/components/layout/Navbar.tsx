@@ -1,10 +1,9 @@
 import React from 'react';
-import { AppBar, Toolbar, IconButton, Box, Button, Divider, Badge, Tooltip } from '@mui/material';
+import { AppBar, Toolbar, IconButton, Box, Button, Divider, Tooltip } from '@mui/material';
 import {
 	Menu as MenuIcon,
 	LightMode as LightModeIcon,
 	DarkMode as DarkModeIcon,
-	Notifications as NotificationsIcon,
 	HeadsetMicOutlined as SupportIcon,
 	HourglassEmpty as HourglassIcon,
 	AutoAwesome as PremiumIcon,
@@ -15,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import { toggleSidebar } from '../../store/slices/uiSlice';
 import { useColorMode } from '../../theme/ThemeContext';
 import GlobalSearch from '../common/GlobalSearch';
+import NotificationBell from './NotificationBell';
 
 const DRAWER_WIDTH = 260;
 
@@ -275,16 +275,10 @@ const Navbar: React.FC = () => {
 						{mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
 					</IconButton>
 
-					{/* Notification Icon */}
-					<IconButton
-						color="inherit"
-						sx={{ color: mode === 'light' ? '#64748b' : '#94A3B8' }}
-						aria-label="notifications"
-					>
-						<Badge badgeContent={3} color="primary" variant="dot">
-							<NotificationsIcon />
-						</Badge>
-					</IconButton>
+					{/* Notification Bell */}
+					<Box sx={{ color: mode === 'light' ? '#64748b' : '#94A3B8' }}>
+						<NotificationBell />
+					</Box>
 
 					{/* Vertical Line Divider */}
 					<Divider

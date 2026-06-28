@@ -38,6 +38,15 @@ const OrgManagement: React.FC = () => {
 		cancelLoading,
 		bulkDeleteDialogOpen,
 		bulkDeleteLoading,
+		reassignDialogOpen,
+		reassignAction,
+		reassignMessage,
+		reassignOwners,
+		reassignToUserId,
+		setReassignToUserId,
+		reassignLoading,
+		handleConfirmReassignAndRetry,
+		handleCancelReassign,
 		setTargetUser,
 		setStatusDialogOpen,
 		setCancelDialogOpen,
@@ -194,6 +203,15 @@ const OrgManagement: React.FC = () => {
 					selectedCount={selectedIds.length}
 					onBulkDeleteClose={() => setBulkDeleteDialogOpen(false)}
 					onBulkDeleteConfirm={handleConfirmBulkDelete}
+					reassignDialogOpen={reassignDialogOpen}
+					reassignAction={reassignAction}
+					reassignMessage={reassignMessage}
+					reassignOwners={reassignOwners}
+					reassignToUserId={reassignToUserId}
+					onReassignToUserChange={setReassignToUserId}
+					reassignLoading={reassignLoading}
+					onCancelReassign={handleCancelReassign}
+					onConfirmReassign={handleConfirmReassignAndRetry}
 				/>
 
 				<UserDetailDrawer

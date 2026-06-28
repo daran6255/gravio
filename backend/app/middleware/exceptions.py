@@ -71,6 +71,12 @@ class GoneError(AppError):
     message: str = "Resource has been permanently deleted"
 
 
+class PayloadTooLargeError(AppError):
+    """Uploaded payload exceeds the allowed size (HTTP 413)"""
+    status_code: int = 413
+    message: str = "Uploaded file exceeds the maximum allowed size"
+
+
 class ValidationError(AppError):
     """Pydantic validation/input error wrapper (HTTP 422)"""
     status_code: int = 422

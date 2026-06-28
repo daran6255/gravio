@@ -1,7 +1,7 @@
 """CRM data access layer repositories"""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 from sqlalchemy import func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -166,7 +166,7 @@ class CRMLeadRepository:
     @staticmethod
     async def update(db: AsyncSession, lead: CRMLead, **kwargs) -> CRMLead:
         for key, val in kwargs.items():
-            if val is not None or key in ["contact_id", "company_id", "source", "status", "priority", "owner_id", "estimated_value", "currency", "description", "custom_fields"]:
+            if val is not None or key in ["contact_id", "company_id", "source", "status", "priority", "owner_id", "estimated_value", "currency", "description", "tags", "custom_fields", "last_activity_at"]:
                 setattr(lead, key, val)
         await db.flush()
         await db.refresh(lead)
@@ -192,6 +192,17 @@ class CRMLeadRepository:
         return leads
 
     @staticmethod
+    async def bulk_delete(db: AsyncSession, lead_ids: list[int]) -> int:
+        result = await db.execute(
+            select(CRMLead).where(CRMLead.id.in_(lead_ids), CRMLead.is_deleted.is_(False))
+        )
+        leads = list(result.scalars().all())
+        for lead in leads:
+            lead.soft_delete()
+        await db.flush()
+        return len(leads)
+
+    @staticmethod
     async def list_all(
         db: AsyncSession,
         *,
@@ -199,6 +210,9 @@ class CRMLeadRepository:
         priority: Optional[str] = None,
         source: Optional[str] = None,
         owner_id: Optional[int] = None,
+        contact_id: Optional[int] = None,
+        stale_only: bool = False,
+        stale_days: int = 14,
         page: int = 1,
         page_size: int = 20,
         search: Optional[str] = None,
@@ -212,6 +226,17 @@ class CRMLeadRepository:
             conditions.append(CRMLead.source == source)
         if owner_id:
             conditions.append(CRMLead.owner_id == owner_id)
+        if contact_id:
+            conditions.append(CRMLead.contact_id == contact_id)
+        if stale_only:
+            stale_cutoff = datetime.now(timezone.utc) - timedelta(days=stale_days)
+            conditions.append(CRMLead.status.in_([LeadStatus.NEW, LeadStatus.CONTACTED, LeadStatus.QUALIFIED]))
+            conditions.append(
+                or_(
+                    and_(CRMLead.last_activity_at.is_(None), CRMLead.created_at < stale_cutoff),
+                    CRMLead.last_activity_at < stale_cutoff,
+                )
+            )
 
         base_query = select(CRMLead).where(*conditions)
         count_query = select(func.count()).select_from(CRMLead).where(*conditions)
@@ -224,9 +249,10 @@ class CRMLeadRepository:
                 CRMContact.email.ilike(f"%{search}%"),
                 CRMContact.phone.ilike(f"%{search}%"),
                 CRMContact.mobile.ilike(f"%{search}%"),
+                CRMCompany.name.ilike(f"%{search}%"),
             )
-            base_query = base_query.outerjoin(CRMLead.contact).where(search_cond)
-            count_query = count_query.outerjoin(CRMLead.contact).where(search_cond)
+            base_query = base_query.outerjoin(CRMLead.contact).outerjoin(CRMLead.company).where(search_cond)
+            count_query = count_query.outerjoin(CRMLead.contact).outerjoin(CRMLead.company).where(search_cond)
 
         count_result = await db.execute(count_query)
         total = count_result.scalar_one()

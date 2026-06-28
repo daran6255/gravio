@@ -18,6 +18,7 @@ from app.models.crm import (
     CRMActivity,
     CRMFile,
     LeadStatus,
+    LeadPriority,
     DealStatus,
     ActivityType,
 )
@@ -51,8 +52,13 @@ from app.schemas.crm import (
     StageStats,
     SourceStats,
 )
-from app.models.user import User
-from app.middleware.exceptions import NotFoundError, BadRequestError, ConflictError
+from app.models.user import User, UserRole
+from app.models.organization import Organization
+from app.models.notification import NotificationType
+from app.services.audit import AuditService
+from app.services.notification import NotificationService
+from app.middleware.exceptions import NotFoundError, BadRequestError, ConflictError, ForbiddenError
+from app.core.config import settings
 
 
 class CRMService:
@@ -184,10 +190,31 @@ class CRMService:
 
     # --- Lead CRUD ---
     @staticmethod
-    async def create_lead(db: AsyncSession, payload: CRMLeadCreate, user_id: int) -> CRMLead:
+    def _lead_owner_scope(current_user: User) -> Optional[int]:
+        """Return current_user.id if this user's lead visibility must be restricted to
+        leads they own, else None (unrestricted). MARKETING/PLACEMENT reps only see leads
+        they own, so they can't see or poach a teammate's pipeline; ADMIN/MANAGER see all."""
+        if current_user.is_superuser:
+            return None
+        if current_user.role in (UserRole.MARKETING, UserRole.PLACEMENT):
+            return current_user.id
+        return None
+
+    @staticmethod
+    async def _resolve_lead_currency(db: AsyncSession, currency: Optional[str], organization_id: Optional[int]) -> str:
+        if currency:
+            return currency
+        if organization_id:
+            org = await db.get(Organization, organization_id)
+            if org and org.default_currency:
+                return org.default_currency
+        return "USD"
+
+    @staticmethod
+    async def create_lead(db: AsyncSession, payload: CRMLeadCreate, current_user: User) -> tuple[CRMLead, Optional[str]]:
         data = payload.model_dump()
         if "owner_id" not in data or data["owner_id"] is None:
-            data["owner_id"] = user_id
+            data["owner_id"] = current_user.id
         if data.get("company_id"):
             company = await CRMCompanyRepository.get_by_id(db, data["company_id"])
             if not company or company.is_deleted:
@@ -196,19 +223,51 @@ class CRMService:
             contact = await CRMContactRepository.get_by_id(db, data["contact_id"])
             if not contact or contact.is_deleted:
                 raise NotFoundError("Linked contact not found")
-        return await CRMLeadRepository.create(db, **data)
+
+        data["currency"] = await CRMService._resolve_lead_currency(
+            db, data.get("currency"), current_user.organization_id
+        )
+
+        # Duplicate detection: warn (don't block) if the linked contact already has an open lead.
+        duplicate_warning: Optional[str] = None
+        if data.get("contact_id"):
+            existing_leads, _ = await CRMLeadRepository.list_all(
+                db, contact_id=data["contact_id"], page=1, page_size=50
+            )
+            open_existing = [l for l in existing_leads if l.status != LeadStatus.CONVERTED]
+            if open_existing:
+                duplicate_warning = (
+                    f"This contact already has {len(open_existing)} open lead(s) on file."
+                )
+
+        lead = await CRMLeadRepository.create(db, **data)
+        await AuditService.record(
+            db, entity_type="lead", entity_id=lead.id, action="create",
+            changed_by_user_id=current_user.id,
+        )
+        return lead, duplicate_warning
 
     @staticmethod
-    async def get_lead(db: AsyncSession, public_id: uuid.UUID) -> CRMLead:
+    async def get_lead(db: AsyncSession, public_id: uuid.UUID, current_user: User) -> CRMLead:
         lead = await CRMLeadRepository.get_by_public_id(db, public_id)
         if not lead or lead.is_deleted:
+            raise NotFoundError("Lead not found")
+        scope_owner_id = CRMService._lead_owner_scope(current_user)
+        if scope_owner_id is not None and lead.owner_id != scope_owner_id:
+            # 404, not 403 - a restricted-visibility user must not learn that a lead they
+            # don't own exists at all.
             raise NotFoundError("Lead not found")
         return lead
 
     @staticmethod
-    async def update_lead(db: AsyncSession, public_id: uuid.UUID, payload: CRMLeadUpdate) -> CRMLead:
-        lead = await CRMService.get_lead(db, public_id)
+    async def update_lead(db: AsyncSession, public_id: uuid.UUID, payload: CRMLeadUpdate, current_user: User) -> CRMLead:
+        lead = await CRMService.get_lead(db, public_id, current_user)
         data = payload.model_dump(exclude_unset=True)
+
+        client_version = data.pop("version", None)
+        if client_version is not None and lead.version != client_version:
+            raise ConflictError("This lead was changed by someone else. Please refresh and try again.")
+
         if data.get("company_id"):
             company = await CRMCompanyRepository.get_by_id(db, data["company_id"])
             if not company or company.is_deleted:
@@ -217,11 +276,63 @@ class CRMService:
             contact = await CRMContactRepository.get_by_id(db, data["contact_id"])
             if not contact or contact.is_deleted:
                 raise NotFoundError("Linked contact not found")
-        return await CRMLeadRepository.update(db, lead, **data)
+
+        # Snapshot old values for the fields being changed, for audit + notification purposes.
+        old_owner_id = lead.owner_id
+        old_status = lead.status
+        changes = {
+            field: (getattr(lead, field), new_val)
+            for field, new_val in data.items()
+            if hasattr(lead, field) and getattr(lead, field) != new_val
+        }
+
+        data["version"] = lead.version + 1
+        updated = await CRMLeadRepository.update(db, lead, **data)
+
+        await AuditService.record_field_changes(
+            db, entity_type="lead", entity_id=updated.id, action="update",
+            changed_by_user_id=current_user.id, changes=changes,
+        )
+
+        new_owner_id = updated.owner_id
+        if "owner_id" in data and new_owner_id != old_owner_id:
+            await AuditService.record(
+                db, entity_type="lead", entity_id=updated.id, action="reassign",
+                changed_by_user_id=current_user.id, field_name="owner_id",
+                old_value=old_owner_id, new_value=new_owner_id,
+            )
+            if new_owner_id and new_owner_id != current_user.id:
+                await NotificationService.notify(
+                    db, user_id=new_owner_id, type=NotificationType.LEAD_ASSIGNED,
+                    title="A lead was assigned to you",
+                    message=f'"{updated.title}" was assigned to you.',
+                    entity_type="lead", entity_id=updated.id,
+                )
+            if old_owner_id and old_owner_id != new_owner_id and old_owner_id != current_user.id:
+                await NotificationService.notify(
+                    db, user_id=old_owner_id, type=NotificationType.LEAD_REASSIGNED_AWAY,
+                    title="A lead was reassigned away from you",
+                    message=f'"{updated.title}" was reassigned to someone else.',
+                    entity_type="lead", entity_id=updated.id,
+                )
+
+        if "status" in data and updated.status != old_status and updated.owner_id and updated.owner_id != current_user.id:
+            await NotificationService.notify(
+                db, user_id=updated.owner_id, type=NotificationType.LEAD_STATUS_CHANGED,
+                title="A lead's status changed",
+                message=f'"{updated.title}" is now {updated.status.value}.',
+                entity_type="lead", entity_id=updated.id,
+            )
+
+        return updated
 
     @staticmethod
-    async def delete_lead(db: AsyncSession, public_id: uuid.UUID) -> None:
-        lead = await CRMService.get_lead(db, public_id)
+    async def delete_lead(db: AsyncSession, public_id: uuid.UUID, current_user: User) -> None:
+        lead = await CRMService.get_lead(db, public_id, current_user)
+        await AuditService.record(
+            db, entity_type="lead", entity_id=lead.id, action="delete",
+            changed_by_user_id=current_user.id,
+        )
         await CRMLeadRepository.delete(db, lead)
 
     @staticmethod
@@ -235,13 +346,18 @@ class CRMService:
         *,
         priority: Optional[str] = None,
         source: Optional[str] = None,
+        stale: Optional[bool] = None,
+        current_user: User,
     ) -> tuple[list[CRMLead], int]:
+        scope_owner_id = CRMService._lead_owner_scope(current_user)
+        effective_owner_id = scope_owner_id if scope_owner_id is not None else owner_id
         return await CRMLeadRepository.list_all(
             db,
             status=status,
             priority=priority,
             source=source,
-            owner_id=owner_id,
+            owner_id=effective_owner_id,
+            stale_only=bool(stale),
             page=page,
             page_size=page_size,
             search=search,
@@ -249,7 +365,8 @@ class CRMService:
 
     @staticmethod
     async def bulk_update_leads(
-        db: AsyncSession, public_ids: list[uuid.UUID], owner_id: Optional[int], status: Optional[str]
+        db: AsyncSession, public_ids: list[uuid.UUID], owner_id: Optional[int], status: Optional[str],
+        current_user: User,
     ) -> list[CRMLead]:
         if owner_id is None and status is None:
             raise BadRequestError("Provide at least one of owner_id or status to update")
@@ -267,12 +384,182 @@ class CRMService:
         if status is not None:
             updates["status"] = status
 
-        return await CRMLeadRepository.bulk_update(db, lead_ids, **updates)
+        leads = await CRMLeadRepository.bulk_update(db, lead_ids, **updates)
+        for lead in leads:
+            await AuditService.record_field_changes(
+                db, entity_type="lead", entity_id=lead.id, action="bulk_update",
+                changed_by_user_id=current_user.id, changes={k: (None, v) for k, v in updates.items()},
+            )
+            if owner_id and owner_id != current_user.id:
+                await NotificationService.notify(
+                    db, user_id=owner_id, type=NotificationType.LEAD_ASSIGNED,
+                    title="A lead was assigned to you",
+                    message=f'"{lead.title}" was assigned to you.',
+                    entity_type="lead", entity_id=lead.id,
+                )
+        return leads
+
+    @staticmethod
+    async def bulk_delete_leads(db: AsyncSession, public_ids: list[uuid.UUID], current_user: User) -> int:
+        result = await db.execute(
+            select(CRMLead.id).where(CRMLead.public_id.in_(public_ids), CRMLead.is_deleted.is_(False))
+        )
+        lead_ids = [row[0] for row in result.all()]
+        if len(lead_ids) != len(set(public_ids)):
+            raise NotFoundError("One or more leads not found")
+
+        for lead_id in lead_ids:
+            await AuditService.record(
+                db, entity_type="lead", entity_id=lead_id, action="bulk_delete",
+                changed_by_user_id=current_user.id,
+            )
+        return await CRMLeadRepository.bulk_delete(db, lead_ids)
+
+    @staticmethod
+    async def list_stale_leads(db: AsyncSession, current_user: User, page: int, page_size: int) -> tuple[list[CRMLead], int]:
+        scope_owner_id = CRMService._lead_owner_scope(current_user)
+        return await CRMLeadRepository.list_all(
+            db, owner_id=scope_owner_id, stale_only=True,
+            stale_days=settings.LEAD_STALE_DAYS, page=page, page_size=page_size,
+        )
+
+    # --- CSV Export/Import ---
+    LEAD_EXPORT_MAX_ROWS = 50_000
+    LEAD_EXPORT_COLUMNS = [
+        "title", "status", "priority", "source", "estimated_value", "currency",
+        "description", "owner_id", "contact_id", "company_id", "tags", "created_at",
+    ]
+
+    @staticmethod
+    async def export_leads_csv(
+        db: AsyncSession, current_user: User, *,
+        status: Optional[str] = None, priority: Optional[str] = None,
+        source: Optional[str] = None, owner_id: Optional[int] = None, search: Optional[str] = None,
+    ) -> str:
+        import csv
+        import io
+
+        scope_owner_id = CRMService._lead_owner_scope(current_user)
+        effective_owner_id = scope_owner_id if scope_owner_id is not None else owner_id
+
+        leads, _ = await CRMLeadRepository.list_all(
+            db, status=status, priority=priority, source=source, owner_id=effective_owner_id,
+            search=search, page=1, page_size=CRMService.LEAD_EXPORT_MAX_ROWS,
+        )
+
+        buffer = io.StringIO()
+        writer = csv.DictWriter(buffer, fieldnames=CRMService.LEAD_EXPORT_COLUMNS)
+        writer.writeheader()
+        for lead in leads:
+            writer.writerow({
+                "title": lead.title,
+                "status": lead.status.value if lead.status else "",
+                "priority": lead.priority.value if lead.priority else "",
+                "source": lead.source.value if lead.source else "",
+                "estimated_value": lead.estimated_value if lead.estimated_value is not None else "",
+                "currency": lead.currency,
+                "description": lead.description or "",
+                "owner_id": lead.owner_id or "",
+                "contact_id": lead.contact_id or "",
+                "company_id": lead.company_id or "",
+                "tags": ",".join(lead.tags or []),
+                "created_at": lead.created_at.isoformat() if lead.created_at else "",
+            })
+        return buffer.getvalue()
+
+    @staticmethod
+    async def import_leads_csv(db: AsyncSession, current_user: User, content: bytes) -> dict[str, Any]:
+        import csv
+        import io
+        from pydantic import ValidationError
+
+        try:
+            text = content.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            raise BadRequestError("CSV file must be UTF-8 encoded")
+
+        reader = csv.DictReader(io.StringIO(text))
+        if reader.fieldnames is None:
+            raise BadRequestError("CSV file is empty or missing a header row")
+
+        results: list[dict[str, Any]] = []
+        success_count = 0
+        for row_number, row in enumerate(reader, start=2):  # row 1 is the header
+            row_result: dict[str, Any] = {"row_number": row_number, "success": False, "lead_public_id": None, "error": None, "duplicate_warning": None}
+            try:
+                contact_id = None
+                if row.get("contact_email"):
+                    contacts, _ = await CRMContactRepository.list_all(db, page=1, page_size=1, search=row["contact_email"])
+                    contact_id = contacts[0].id if contacts else None
+
+                company_id = None
+                if row.get("company_name"):
+                    companies, _ = await CRMCompanyRepository.list_all(db, page=1, page_size=1, search=row["company_name"])
+                    company_id = companies[0].id if companies else None
+
+                payload = CRMLeadCreate(
+                    title=row.get("title", "").strip(),
+                    source=row.get("source") or None,
+                    priority=row.get("priority") or LeadPriority.MEDIUM,
+                    estimated_value=float(row["estimated_value"]) if row.get("estimated_value") else None,
+                    currency=row.get("currency") or None,
+                    description=row.get("description") or None,
+                    contact_id=contact_id,
+                    company_id=company_id,
+                )
+                lead, duplicate_warning = await CRMService.create_lead(db, payload, current_user)
+                row_result.update(success=True, lead_public_id=str(lead.public_id), duplicate_warning=duplicate_warning)
+                success_count += 1
+            except (ValidationError, ValueError) as e:
+                row_result["error"] = str(e)
+            except (NotFoundError, BadRequestError) as e:
+                row_result["error"] = e.message
+            results.append(row_result)
+
+        return {
+            "total_rows": len(results),
+            "success_count": success_count,
+            "failure_count": len(results) - success_count,
+            "results": results,
+        }
+
+    @staticmethod
+    async def anonymize_lead(db: AsyncSession, public_id: uuid.UUID, current_user: User) -> CRMLead:
+        """GDPR/right-to-be-forgotten: scrub PII while keeping aggregate-stat fields intact."""
+        lead = await CRMService.get_lead(db, public_id, current_user)
+
+        old_title, old_description = lead.title, lead.description
+        await CRMLeadRepository.update(
+            db, lead,
+            title="[Anonymized Lead]",
+            description=None,
+            custom_fields=None,
+            tags=None,
+            is_anonymized=True,
+        )
+
+        # Cascade-delete file attachments (disk + DB) via the existing file-deletion logic.
+        files, _ = await CRMFileRepository.list_by_entity(db, entity_type="lead", entity_id=lead.id, page=1, page_size=1000)
+        for f in files:
+            await CRMService.delete_file(db, f.public_id)
+
+        await AuditService.record(
+            db, entity_type="lead", entity_id=lead.id, action="anonymize",
+            changed_by_user_id=current_user.id, field_name="title",
+            old_value=old_title, new_value="[Anonymized Lead]",
+        )
+        return lead
+
+    @staticmethod
+    async def get_lead_history(db: AsyncSession, public_id: uuid.UUID, current_user: User, page: int, page_size: int):
+        lead = await CRMService.get_lead(db, public_id, current_user)
+        return await AuditService.list_for_entity(db, entity_type="lead", entity_id=lead.id, page=page, page_size=page_size)
 
     # --- Lead Conversion logic ---
     @staticmethod
-    async def convert_lead(db: AsyncSession, public_id: uuid.UUID, payload: CRMLeadConvertRequest, user_id: int) -> CRMDeal:
-        lead = await CRMService.get_lead(db, public_id)
+    async def convert_lead(db: AsyncSession, public_id: uuid.UUID, payload: CRMLeadConvertRequest, current_user: User) -> CRMDeal:
+        user_id = current_user.id
+        lead = await CRMService.get_lead(db, public_id, current_user)
         if lead.status == LeadStatus.CONVERTED:
             raise BadRequestError("Lead is already converted")
 
@@ -313,9 +600,14 @@ class CRMService:
             converted_at=datetime.now(timezone.utc),
             deal_id=deal.id,
         )
+        await AuditService.record(
+            db, entity_type="lead", entity_id=lead.id, action="convert",
+            changed_by_user_id=user_id, field_name="status",
+            old_value=LeadStatus.NEW if lead.status == LeadStatus.NEW else lead.status,
+            new_value=LeadStatus.CONVERTED,
+        )
 
         # Clone lead attachments to Deal and Contact
-        from app.repositories.crm import CRMFileRepository
         lead_files, _ = await CRMFileRepository.list_by_entity(
             db, entity_type="lead", entity_id=lead.id, page=1, page_size=100
         )
@@ -329,8 +621,7 @@ class CRMService:
                 file_size=f.file_size,
                 entity_type="deal",
                 entity_id=deal.id,
-                uploaded_by=f.uploaded_by,
-                org_id=f.org_id,
+                owner_id=f.owner_id,
             )
             # Clone to contact
             if lead.contact_id:
@@ -342,8 +633,7 @@ class CRMService:
                     file_size=f.file_size,
                     entity_type="contact",
                     entity_id=lead.contact_id,
-                    uploaded_by=f.uploaded_by,
-                    org_id=f.org_id,
+                    owner_id=f.owner_id,
                 )
 
         return deal
@@ -528,7 +818,14 @@ class CRMService:
         if data.get("is_completed") and not data.get("completed_at"):
             data["completed_at"] = datetime.now(timezone.utc)
 
-        return await CRMActivityRepository.create(db, **data)
+        activity = await CRMActivityRepository.create(db, **data)
+
+        # Denormalized last_activity_at on the lead - powers stale-lead detection without
+        # an expensive correlated subquery on every list call.
+        if etype == "lead":
+            await CRMLeadRepository.update(db, ent, last_activity_at=datetime.now(timezone.utc))
+
+        return activity
 
     @staticmethod
     async def get_activity(db: AsyncSession, public_id: uuid.UUID) -> CRMActivity:
@@ -695,10 +992,15 @@ class CRMService:
 
     # --- Lead Stats (for the Leads list page) ---
     @staticmethod
-    async def get_lead_stats(db: AsyncSession) -> CRMLeadStatsResponse:
+    async def get_lead_stats(db: AsyncSession, current_user: User) -> CRMLeadStatsResponse:
+        conditions = [CRMLead.is_deleted.is_(False)]
+        scope_owner_id = CRMService._lead_owner_scope(current_user)
+        if scope_owner_id is not None:
+            conditions.append(CRMLead.owner_id == scope_owner_id)
+
         status_counts_result = await db.execute(
             select(CRMLead.status, func.count(CRMLead.id))
-            .where(CRMLead.is_deleted.is_(False))
+            .where(*conditions)
             .group_by(CRMLead.status)
         )
         counts = {row[0]: row[1] for row in status_counts_result.all()}
@@ -728,10 +1030,12 @@ class CRMService:
 
     # --- Cross-Entity Search ---
     @staticmethod
-    async def search(db: AsyncSession, query: str) -> dict[str, list]:
+    async def search(db: AsyncSession, query: str, current_user: User) -> dict[str, list]:
         companies, _ = await CRMCompanyRepository.list_all(db, page=1, page_size=5, search=query)
         contacts, _ = await CRMContactRepository.list_all(db, company_id=None, page=1, page_size=5, search=query)
-        leads, _ = await CRMLeadRepository.list_all(db, page=1, page_size=5, search=query)
+        leads, _ = await CRMLeadRepository.list_all(
+            db, owner_id=CRMService._lead_owner_scope(current_user), page=1, page_size=5, search=query
+        )
         deals, _ = await CRMDealRepository.list_all(db, page=1, page_size=5, search=query)
         return {
             "companies": companies,

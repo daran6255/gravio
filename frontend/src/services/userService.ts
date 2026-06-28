@@ -25,9 +25,12 @@ const userService = {
 		return response.data;
 	},
 
-	// Deactivate a user in the current user's organization
-	deactivate: async (publicId: string): Promise<TeamMember> => {
-		const response = await api.post<TeamMember>(`/users/${publicId}/deactivate`);
+	// Deactivate a user in the current user's organization. If the user owns active
+	// leads, the backend returns 409 unless reassignToUserId is supplied.
+	deactivate: async (publicId: string, reassignToUserId?: number): Promise<TeamMember> => {
+		const response = await api.post<TeamMember>(`/users/${publicId}/deactivate`, null, {
+			params: reassignToUserId ? { reassign_to_user_id: reassignToUserId } : undefined,
+		});
 		return response.data;
 	},
 
@@ -37,9 +40,12 @@ const userService = {
 		return response.data;
 	},
 
-	// Delete a user (verified or unverified)
-	deleteUser: async (publicId: string): Promise<TeamMember> => {
-		const response = await api.delete<TeamMember>(`/users/${publicId}`);
+	// Delete a user (verified or unverified). If the user owns active leads, the
+	// backend returns 409 unless reassignToUserId is supplied.
+	deleteUser: async (publicId: string, reassignToUserId?: number): Promise<TeamMember> => {
+		const response = await api.delete<TeamMember>(`/users/${publicId}`, {
+			params: reassignToUserId ? { reassign_to_user_id: reassignToUserId } : undefined,
+		});
 		return response.data;
 	},
 

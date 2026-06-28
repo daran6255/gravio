@@ -3,6 +3,10 @@ import userService from '../../services/userService';
 import type { TeamMember, InviteUserRequest, UpdateUserRequest } from '../../models/user';
 import type { PaginatedResponse } from '../../models/common';
 
+function extractErrorMessage(error: any, fallback: string): string {
+	return error?.response?.data?.error?.message || error?.response?.data?.detail || error?.message || fallback;
+}
+
 interface UserState {
 	users: TeamMember[];
 	total: number;
@@ -57,11 +61,14 @@ export const updateTeamUser = createAsyncThunk(
 
 export const deactivateTeamUser = createAsyncThunk(
 	'users/deactivate',
-	async (publicId: string, { rejectWithValue }) => {
+	async (data: { publicId: string; reassignToUserId?: number }, { rejectWithValue }) => {
 		try {
-			return await userService.deactivate(publicId);
+			return await userService.deactivate(data.publicId, data.reassignToUserId);
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to deactivate user');
+			return rejectWithValue({
+				message: extractErrorMessage(error, 'Failed to deactivate user'),
+				status: error?.response?.status,
+			});
 		}
 	}
 );
@@ -79,11 +86,14 @@ export const reactivateTeamUser = createAsyncThunk(
 
 export const deleteTeamUser = createAsyncThunk(
 	'users/delete',
-	async (publicId: string, { rejectWithValue }) => {
+	async (data: { publicId: string; reassignToUserId?: number }, { rejectWithValue }) => {
 		try {
-			return await userService.deleteUser(publicId);
+			return await userService.deleteUser(data.publicId, data.reassignToUserId);
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to delete user invite');
+			return rejectWithValue({
+				message: extractErrorMessage(error, 'Failed to delete user invite'),
+				status: error?.response?.status,
+			});
 		}
 	}
 );
@@ -169,7 +179,7 @@ const userSlice = createSlice({
 				if (idx !== -1) state.users[idx] = action.payload;
 			})
 			.addCase(deactivateTeamUser.rejected, (state, action: PayloadAction<any>) => {
-				state.error = action.payload;
+				state.error = action.payload?.message || action.payload;
 			})
 			.addCase(reactivateTeamUser.fulfilled, (state, action: PayloadAction<TeamMember>) => {
 				const idx = state.users.findIndex((u) => u.public_id === action.payload.public_id);
@@ -183,7 +193,7 @@ const userSlice = createSlice({
 				state.total = Math.max(0, state.total - 1);
 			})
 			.addCase(deleteTeamUser.rejected, (state, action: PayloadAction<any>) => {
-				state.error = action.payload;
+				state.error = action.payload?.message || action.payload;
 			})
 			.addCase(bulkDeleteTeamUsers.fulfilled, (state, action: PayloadAction<any, string, { arg: string[] }>) => {
 				const deletedIds = action.meta.arg;

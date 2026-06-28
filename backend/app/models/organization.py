@@ -52,6 +52,11 @@ class Organization(BaseModel):
         default="trial",
         nullable=False,
     )
+
+    default_currency: Mapped[str | None] = mapped_column(
+        String(10),
+        nullable=True,
+    )
     
     trial_started_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),

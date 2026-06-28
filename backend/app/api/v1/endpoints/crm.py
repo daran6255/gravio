@@ -11,6 +11,7 @@ from app.core.database import get_db
 from app.api.deps import require_roles, get_current_active_user
 from app.models.user import User, UserRole
 from app.services.crm import CRMService
+from app.utils.file_validation import validate_upload
 from app.schemas.common import PaginatedResponse
 from app.schemas.crm import (
     CRMCompanyCreate,
@@ -22,6 +23,7 @@ from app.schemas.crm import (
     CRMLeadCreate,
     CRMLeadUpdate,
     CRMLeadResponse,
+    CRMLeadCreateResponse,
     CRMLeadConvertRequest,
     CRMDealCreate,
     CRMDealUpdate,
@@ -37,6 +39,9 @@ from app.schemas.crm import (
     CRMLeadStatsResponse,
     CRMOwnerOption,
     CRMBulkLeadUpdateRequest,
+    CRMBulkLeadDeleteRequest,
+    CRMLeadImportResponse,
+    AuditLogResponse,
     CRMSearchResponse,
 )
 
@@ -52,6 +57,9 @@ require_crm_access = require_roles([
 
 # Pipeline/stage configuration is an admin/manager-only capability
 require_pipeline_management = require_roles([UserRole.ADMIN, UserRole.MANAGER])
+
+# GDPR anonymization is admin-only - more sensitive than general pipeline management
+require_admin_only = require_roles([UserRole.ADMIN])
 
 
 # --- Dashboard Stats ---
@@ -92,7 +100,7 @@ async def search_crm_endpoint(
     current_user: User = Depends(require_crm_access),
     db: AsyncSession = Depends(get_db),
 ) -> CRMSearchResponse:
-    results = await CRMService.search(db, q)
+    results = await CRMService.search(db, q, current_user)
     return CRMSearchResponse(
         companies=[CRMCompanyResponse.model_validate(c) for c in results["companies"]],
         contacts=[CRMContactResponse.model_validate(c) for c in results["contacts"]],
@@ -307,7 +315,7 @@ async def list_contacts_endpoint(
 # --- Leads ---
 @router.post(
     "/leads",
-    response_model=CRMLeadResponse,
+    response_model=CRMLeadCreateResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a lead",
 )
@@ -315,9 +323,9 @@ async def create_lead_endpoint(
     payload: CRMLeadCreate,
     current_user: User = Depends(require_crm_access),
     db: AsyncSession = Depends(get_db),
-) -> CRMLeadResponse:
-    lead = await CRMService.create_lead(db, payload, current_user.id)
-    return CRMLeadResponse.model_validate(lead)
+) -> CRMLeadCreateResponse:
+    lead, duplicate_warning = await CRMService.create_lead(db, payload, current_user)
+    return CRMLeadCreateResponse(**CRMLeadResponse.model_validate(lead).model_dump(), duplicate_warning=duplicate_warning)
 
 
 @router.get(
@@ -329,7 +337,49 @@ async def get_lead_stats_endpoint(
     current_user: User = Depends(require_crm_access),
     db: AsyncSession = Depends(get_db),
 ) -> CRMLeadStatsResponse:
-    return await CRMService.get_lead_stats(db)
+    return await CRMService.get_lead_stats(db, current_user)
+
+
+@router.get(
+    "/leads/export",
+    summary="Export the current filtered list of leads as CSV",
+)
+async def export_leads_endpoint(
+    status: Optional[str] = Query(None),
+    priority: Optional[str] = Query(None),
+    source: Optional[str] = Query(None),
+    owner_id: Optional[int] = Query(None),
+    search: Optional[str] = Query(None),
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+):
+    from fastapi.responses import StreamingResponse
+    import io
+
+    csv_text = await CRMService.export_leads_csv(
+        db, current_user, status=status, priority=priority, source=source, owner_id=owner_id, search=search
+    )
+    return StreamingResponse(
+        io.StringIO(csv_text),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=leads_export.csv"},
+    )
+
+
+@router.post(
+    "/leads/import",
+    response_model=CRMLeadImportResponse,
+    summary="Bulk-import leads from a CSV file",
+)
+async def import_leads_endpoint(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> CRMLeadImportResponse:
+    content = await file.read()
+    validate_upload(file, content)
+    result = await CRMService.import_leads_csv(db, current_user, content)
+    return CRMLeadImportResponse(**result)
 
 
 @router.patch(
@@ -342,8 +392,21 @@ async def bulk_update_leads_endpoint(
     current_user: User = Depends(require_pipeline_management),
     db: AsyncSession = Depends(get_db),
 ) -> list[CRMLeadResponse]:
-    leads = await CRMService.bulk_update_leads(db, payload.public_ids, payload.owner_id, payload.status)
+    leads = await CRMService.bulk_update_leads(db, payload.public_ids, payload.owner_id, payload.status, current_user)
     return [CRMLeadResponse.model_validate(l) for l in leads]
+
+
+@router.post(
+    "/leads/bulk-delete",
+    summary="Bulk delete multiple leads",
+)
+async def bulk_delete_leads_endpoint(
+    payload: CRMBulkLeadDeleteRequest,
+    current_user: User = Depends(require_pipeline_management),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    deleted_count = await CRMService.bulk_delete_leads(db, payload.public_ids, current_user)
+    return {"deleted_count": deleted_count}
 
 
 @router.get(
@@ -356,7 +419,7 @@ async def get_lead_endpoint(
     current_user: User = Depends(require_crm_access),
     db: AsyncSession = Depends(get_db),
 ) -> CRMLeadResponse:
-    lead = await CRMService.get_lead(db, public_id)
+    lead = await CRMService.get_lead(db, public_id, current_user)
     return CRMLeadResponse.model_validate(lead)
 
 
@@ -371,7 +434,7 @@ async def update_lead_endpoint(
     current_user: User = Depends(require_crm_access),
     db: AsyncSession = Depends(get_db),
 ) -> CRMLeadResponse:
-    lead = await CRMService.update_lead(db, public_id, payload)
+    lead = await CRMService.update_lead(db, public_id, payload, current_user)
     return CRMLeadResponse.model_validate(lead)
 
 
@@ -385,7 +448,42 @@ async def delete_lead_endpoint(
     current_user: User = Depends(require_crm_access),
     db: AsyncSession = Depends(get_db),
 ):
-    await CRMService.delete_lead(db, public_id)
+    await CRMService.delete_lead(db, public_id, current_user)
+
+
+@router.get(
+    "/leads/{public_id}/history",
+    response_model=PaginatedResponse[AuditLogResponse],
+    summary="Get a lead's field-level change history",
+)
+async def get_lead_history_endpoint(
+    public_id: uuid.UUID,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> PaginatedResponse[AuditLogResponse]:
+    items, total = await CRMService.get_lead_history(db, public_id, current_user, page, page_size)
+    return PaginatedResponse[AuditLogResponse](
+        items=[AuditLogResponse.model_validate(i) for i in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.post(
+    "/leads/{public_id}/anonymize",
+    response_model=CRMLeadResponse,
+    summary="GDPR: anonymize a lead's PII (admin only, irreversible)",
+)
+async def anonymize_lead_endpoint(
+    public_id: uuid.UUID,
+    current_user: User = Depends(require_admin_only),
+    db: AsyncSession = Depends(get_db),
+) -> CRMLeadResponse:
+    lead = await CRMService.anonymize_lead(db, public_id, current_user)
+    return CRMLeadResponse.model_validate(lead)
 
 
 @router.get(
@@ -398,6 +496,7 @@ async def list_leads_endpoint(
     priority: Optional[str] = Query(None),
     source: Optional[str] = Query(None),
     owner_id: Optional[int] = Query(None),
+    stale: Optional[bool] = Query(None, description="If true, only return stale leads with no recent activity"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     search: Optional[str] = Query(None),
@@ -405,7 +504,8 @@ async def list_leads_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[CRMLeadResponse]:
     items, total = await CRMService.list_leads(
-        db, status, owner_id, page, page_size, search, priority=priority, source=source
+        db, status, owner_id, page, page_size, search,
+        priority=priority, source=source, stale=stale, current_user=current_user,
     )
     return PaginatedResponse[CRMLeadResponse](
         items=[CRMLeadResponse.model_validate(i) for i in items],
@@ -426,7 +526,7 @@ async def convert_lead_endpoint(
     current_user: User = Depends(require_crm_access),
     db: AsyncSession = Depends(get_db),
 ) -> CRMDealResponse:
-    deal = await CRMService.convert_lead(db, public_id, payload, current_user.id)
+    deal = await CRMService.convert_lead(db, public_id, payload, current_user)
     return CRMDealResponse.model_validate(deal)
 
 
@@ -636,13 +736,15 @@ async def upload_file_endpoint(
     safe_filename = f"{file_uuid}_{file.filename}"
     file_path = os.path.join(upload_dir, safe_filename)
     
-    # Write file contents
+    # Read and validate file contents (size/MIME) before ever touching disk
     content = await file.read()
+    mime_type = validate_upload(file, content)
+
     with open(file_path, "wb") as f:
         f.write(content)
-        
+
     file_size = len(content)
-    
+
     # Register file record in the database
     try:
         crm_file = await CRMService.create_file(
@@ -650,7 +752,7 @@ async def upload_file_endpoint(
             file_name=file.filename,
             file_path=file_path,
             file_size=file_size,
-            mime_type=file.content_type or "application/octet-stream",
+            mime_type=mime_type,
             entity_type=entity_type,
             entity_id=entity_id,
             owner_id=current_user.id,

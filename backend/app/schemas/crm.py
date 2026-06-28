@@ -3,8 +3,9 @@
 import uuid
 from datetime import datetime, date
 from typing import Any, Optional
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+from app.core.currencies import is_valid_currency
 from app.models.crm import (
     CompanySize,
     CompanyStatus,
@@ -164,6 +165,21 @@ class CRMContactResponse(CRMContactBase):
     updated_at: datetime
 
 
+class _LeadCurrencyValidatorMixin(BaseModel):
+    """Validates currency on write paths only (Create/Update) - NOT on Response, since
+    relaxing/expanding the ISO list later shouldn't break serialization of older rows."""
+    currency: Optional[str] = Field(None, max_length=10)
+
+    @field_validator("currency")
+    @classmethod
+    def _validate_currency(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if not is_valid_currency(v):
+            raise ValueError("currency code is not a recognized ISO 4217 code")
+        return v.upper()
+
+
 # --- Lead Schemas ---
 class CRMLeadBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
@@ -173,16 +189,18 @@ class CRMLeadBase(BaseModel):
     status: LeadStatus = LeadStatus.NEW
     priority: LeadPriority = LeadPriority.MEDIUM
     estimated_value: Optional[float] = Field(None, ge=0)
-    currency: str = Field("USD", max_length=10)
+    # None means "use the organization's default currency, falling back to USD" - resolved in the service layer.
+    currency: Optional[str] = Field(None, max_length=10)
     description: Optional[str] = None
+    tags: Optional[list[str]] = None
     custom_fields: Optional[dict[str, Any]] = None
 
 
-class CRMLeadCreate(CRMLeadBase):
+class CRMLeadCreate(CRMLeadBase, _LeadCurrencyValidatorMixin):
     owner_id: Optional[int] = None
 
 
-class CRMLeadUpdate(BaseModel):
+class CRMLeadUpdate(_LeadCurrencyValidatorMixin):
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     contact_id: Optional[int] = None
     company_id: Optional[int] = None
@@ -191,9 +209,10 @@ class CRMLeadUpdate(BaseModel):
     priority: Optional[LeadPriority] = None
     owner_id: Optional[int] = None
     estimated_value: Optional[float] = Field(None, ge=0)
-    currency: Optional[str] = Field(None, max_length=10)
     description: Optional[str] = None
+    tags: Optional[list[str]] = None
     custom_fields: Optional[dict[str, Any]] = None
+    version: Optional[int] = Field(None, description="Client's last-seen version, for optimistic locking")
 
 
 class CRMLeadResponse(CRMLeadBase):
@@ -203,8 +222,16 @@ class CRMLeadResponse(CRMLeadBase):
     owner_id: Optional[int] = None
     converted_at: Optional[datetime] = None
     deal_id: Optional[int] = None
+    version: int = 1
+    last_activity_at: Optional[datetime] = None
+    is_anonymized: bool = False
     created_at: datetime
     updated_at: datetime
+
+
+class CRMLeadCreateResponse(CRMLeadResponse):
+    """Response for POST /leads - adds a non-blocking duplicate warning, if any."""
+    duplicate_warning: Optional[str] = None
 
 
 class CRMLeadConvertRequest(BaseModel):
@@ -349,6 +376,38 @@ class CRMBulkLeadUpdateRequest(BaseModel):
     public_ids: list[uuid.UUID] = Field(..., min_length=1)
     owner_id: Optional[int] = None
     status: Optional[LeadStatus] = None
+
+
+class CRMBulkLeadDeleteRequest(BaseModel):
+    public_ids: list[uuid.UUID] = Field(..., min_length=1)
+
+
+# --- CSV Import Schemas ---
+class CRMLeadImportRowResult(BaseModel):
+    row_number: int
+    success: bool
+    lead_public_id: Optional[str] = None
+    error: Optional[str] = None
+    duplicate_warning: Optional[str] = None
+
+
+class CRMLeadImportResponse(BaseModel):
+    total_rows: int
+    success_count: int
+    failure_count: int
+    results: list[CRMLeadImportRowResult]
+
+
+# --- Audit Log Schema ---
+class AuditLogResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    action: str
+    field_name: Optional[str] = None
+    old_value: Optional[str] = None
+    new_value: Optional[str] = None
+    changed_by_user_id: Optional[int] = None
+    changed_at: datetime
 
 
 # --- Cross-Entity Search Schema ---

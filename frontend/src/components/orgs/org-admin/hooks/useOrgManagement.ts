@@ -9,7 +9,9 @@ import {
 	resetTeamUserPassword
 } from '../../../../store/slices/userSlice';
 import useToast from '../../../../hooks/useToast';
+import crmService from '../../../../services/crmService';
 import type { TeamMember } from '../../../../models/user';
+import type { CRMOwnerOption } from '../../../../models/crm/owner';
 
 export const useOrgManagement = () => {
 	const dispatch = useAppDispatch();
@@ -29,6 +31,13 @@ export const useOrgManagement = () => {
 	const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 	const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 	const [refreshKey, setRefreshKey] = useState(0);
+
+	const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
+	const [reassignAction, setReassignAction] = useState<'deactivate' | 'delete'>('deactivate');
+	const [reassignMessage, setReassignMessage] = useState('');
+	const [reassignOwners, setReassignOwners] = useState<CRMOwnerOption[]>([]);
+	const [reassignToUserId, setReassignToUserId] = useState<number | ''>('');
+	const [reassignLoading, setReassignLoading] = useState(false);
 
 	const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
 	const [selectedDetailUser, setSelectedDetailUser] = useState<TeamMember | null>(null);
@@ -54,24 +63,47 @@ export const useOrgManagement = () => {
 		setStatusDialogOpen(true);
 	};
 
+	const openReassignDialog = async (action: 'deactivate' | 'delete', message: string) => {
+		setReassignAction(action);
+		setReassignMessage(message);
+		setReassignToUserId('');
+		setReassignDialogOpen(true);
+		try {
+			const owners = await crmService.listOwners();
+			setReassignOwners(owners.filter((o) => o.email !== targetUser?.email));
+		} catch {
+			setReassignOwners([]);
+		}
+	};
+
 	const handleConfirmStatusChange = async () => {
 		if (!targetUser) return;
 		setStatusLoading(true);
 		try {
 			if (statusAction === 'deactivate') {
-				await dispatch(deactivateTeamUser(targetUser.public_id)).unwrap();
+				await dispatch(deactivateTeamUser({ publicId: targetUser.public_id })).unwrap();
 				toast.success(`${targetUser.full_name || targetUser.username} has been deactivated.`);
+				refreshData();
+				setStatusDialogOpen(false);
+				setTargetUser(null);
 			} else {
 				await dispatch(reactivateTeamUser(targetUser.public_id)).unwrap();
 				toast.success(`${targetUser.full_name || targetUser.username} has been reactivated.`);
+				refreshData();
+				setStatusDialogOpen(false);
+				setTargetUser(null);
 			}
-			refreshData();
 		} catch (error: any) {
-			toast.error(error || `Failed to ${statusAction} user`);
+			if (error?.status === 409) {
+				setStatusDialogOpen(false);
+				await openReassignDialog('deactivate', error.message);
+			} else {
+				toast.error(error?.message || error || `Failed to ${statusAction} user`);
+				setStatusDialogOpen(false);
+				setTargetUser(null);
+			}
 		} finally {
 			setStatusLoading(false);
-			setStatusDialogOpen(false);
-			setTargetUser(null);
 		}
 	};
 
@@ -93,19 +125,52 @@ export const useOrgManagement = () => {
 		if (!targetUser) return;
 		setCancelLoading(true);
 		try {
-			await dispatch(deleteTeamUser(targetUser.public_id)).unwrap();
+			await dispatch(deleteTeamUser({ publicId: targetUser.public_id })).unwrap();
 			const msg = targetUser.is_verified
 				? `User ${targetUser.full_name || targetUser.username} has been deleted.`
 				: `Invitation for ${targetUser.full_name || targetUser.username} has been cancelled.`;
 			toast.success(msg);
 			refreshData();
-		} catch (error: any) {
-			toast.error(error || 'Failed to delete user');
-		} finally {
-			setCancelLoading(false);
 			setCancelDialogOpen(false);
 			setTargetUser(null);
+		} catch (error: any) {
+			if (error?.status === 409) {
+				setCancelDialogOpen(false);
+				await openReassignDialog('delete', error.message);
+			} else {
+				toast.error(error?.message || error || 'Failed to delete user');
+				setCancelDialogOpen(false);
+				setTargetUser(null);
+			}
+		} finally {
+			setCancelLoading(false);
 		}
+	};
+
+	const handleConfirmReassignAndRetry = async () => {
+		if (!targetUser || reassignToUserId === '') return;
+		setReassignLoading(true);
+		try {
+			if (reassignAction === 'deactivate') {
+				await dispatch(deactivateTeamUser({ publicId: targetUser.public_id, reassignToUserId })).unwrap();
+				toast.success(`${targetUser.full_name || targetUser.username} has been deactivated.`);
+			} else {
+				await dispatch(deleteTeamUser({ publicId: targetUser.public_id, reassignToUserId })).unwrap();
+				toast.success(`${targetUser.full_name || targetUser.username} has been deleted.`);
+			}
+			refreshData();
+			setReassignDialogOpen(false);
+			setTargetUser(null);
+		} catch (error: any) {
+			toast.error(error?.message || error || `Failed to ${reassignAction} user`);
+		} finally {
+			setReassignLoading(false);
+		}
+	};
+
+	const handleCancelReassign = () => {
+		setReassignDialogOpen(false);
+		setTargetUser(null);
 	};
 
 	const handleSelectId = (id: string, checked: boolean) => {
@@ -194,6 +259,15 @@ export const useOrgManagement = () => {
 		cancelLoading,
 		bulkDeleteDialogOpen,
 		bulkDeleteLoading,
+		reassignDialogOpen,
+		reassignAction,
+		reassignMessage,
+		reassignOwners,
+		reassignToUserId,
+		setReassignToUserId,
+		reassignLoading,
+		handleConfirmReassignAndRetry,
+		handleCancelReassign,
 		setTargetUser,
 		setStatusDialogOpen,
 		setCancelDialogOpen,

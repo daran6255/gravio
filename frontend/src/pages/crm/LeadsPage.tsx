@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Container, Grid, Stack, Button, useTheme, Typography } from '@mui/material';
-import { HelpOutline } from '@mui/icons-material';
+import { HelpOutline, FileUploadOutlined, FileDownloadOutlined } from '@mui/icons-material';
 import PageHeader from '../../components/common/page-header';
 import {
 	LeadsTable,
@@ -11,6 +11,7 @@ import {
 	LeadsFilterPanel,
 	LeadsSourceBreakdown,
 	LeadsGuideDrawer,
+	LeadsImportDialog,
 	useLeadsManagement,
 } from '../../components/crm';
 
@@ -35,10 +36,12 @@ const LeadsPage: React.FC = () => {
 		priorityFilter,
 		sourceFilter,
 		ownerFilter,
+		staleOnly,
 		handleStatusFilterChange,
 		handlePriorityFilterChange,
 		handleSourceFilterChange,
 		handleOwnerFilterChange,
+		handleStaleFilterChange,
 		handleClearFilters,
 		formOpen,
 		setFormOpen,
@@ -56,11 +59,20 @@ const LeadsPage: React.FC = () => {
 		owners,
 		selectedIds,
 		bulkUpdateLoading,
+		bulkDeleteLoading,
+		bulkDeleteOpen,
+		setBulkDeleteOpen,
 		handleToggleSelect,
 		handleSelectAll,
 		handleClearSelection,
 		handleBulkReassign,
 		handleBulkStatusChange,
+		handleBulkDeleteRequest,
+		handleConfirmBulkDelete,
+		importOpen,
+		setImportOpen,
+		handleExport,
+		handleImportSuccess,
 		handleCreateClick,
 		handleEdit,
 		handleRowClick,
@@ -91,25 +103,57 @@ const LeadsPage: React.FC = () => {
 					title="Leads"
 					subtitle="Capture, qualify, and convert your sales pipeline"
 					action={
-						<Button
-							variant="outlined"
-							startIcon={<HelpOutline />}
-							onClick={() => setGuideOpen(true)}
-							sx={{
-								textTransform: 'none',
-								fontWeight: 700,
-								borderRadius: '8px',
-								borderColor: 'divider',
-								color: 'text.secondary',
-								'&:hover': {
-									borderColor: 'primary.main',
-									bgcolor: 'action.hover',
-									color: 'primary.main',
-								}
-							}}
-						>
-							Help Guide
-						</Button>
+						<Stack direction="row" spacing={1.5}>
+							<Button
+								variant="outlined"
+								startIcon={<FileDownloadOutlined />}
+								onClick={handleExport}
+								sx={{
+									textTransform: 'none',
+									fontWeight: 700,
+									borderRadius: '8px',
+									borderColor: 'divider',
+									color: 'text.secondary',
+									'&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover', color: 'primary.main' }
+								}}
+							>
+								Export
+							</Button>
+							<Button
+								variant="outlined"
+								startIcon={<FileUploadOutlined />}
+								onClick={() => setImportOpen(true)}
+								sx={{
+									textTransform: 'none',
+									fontWeight: 700,
+									borderRadius: '8px',
+									borderColor: 'divider',
+									color: 'text.secondary',
+									'&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover', color: 'primary.main' }
+								}}
+							>
+								Import
+							</Button>
+							<Button
+								variant="outlined"
+								startIcon={<HelpOutline />}
+								onClick={() => setGuideOpen(true)}
+								sx={{
+									textTransform: 'none',
+									fontWeight: 700,
+									borderRadius: '8px',
+									borderColor: 'divider',
+									color: 'text.secondary',
+									'&:hover': {
+										borderColor: 'primary.main',
+										bgcolor: 'action.hover',
+										color: 'primary.main',
+									}
+								}}
+							>
+								Help Guide
+							</Button>
+						</Stack>
 					}
 				/>
 
@@ -211,10 +255,12 @@ const LeadsPage: React.FC = () => {
 								source={sourceFilter}
 								ownerId={ownerFilter}
 								owners={owners}
+								staleOnly={staleOnly}
 								onStatusChange={handleStatusFilterChange}
 								onPriorityChange={handlePriorityFilterChange}
 								onSourceChange={handleSourceFilterChange}
 								onOwnerChange={handleOwnerFilterChange}
+								onStaleChange={handleStaleFilterChange}
 								onClear={handleClearFilters}
 							/>
 							<LeadsSourceBreakdown sourceStats={sourceStats} />
@@ -226,9 +272,10 @@ const LeadsPage: React.FC = () => {
 							<LeadsBulkActionBar
 								selectedCount={selectedIds.size}
 								owners={owners}
-								loading={bulkUpdateLoading}
+								loading={bulkUpdateLoading || bulkDeleteLoading}
 								onReassign={handleBulkReassign}
 								onChangeStatus={handleBulkStatusChange}
+								onDelete={handleBulkDeleteRequest}
 								onClear={handleClearSelection}
 							/>
 						)}
@@ -280,6 +327,17 @@ const LeadsPage: React.FC = () => {
 					onCloseDelete={() => setDeleteTarget(null)}
 					onConfirmDelete={handleConfirmDelete}
 					deleteLoading={deleteLoading}
+					bulkDeleteOpen={bulkDeleteOpen}
+					bulkDeleteCount={selectedIds.size}
+					onCloseBulkDelete={() => setBulkDeleteOpen(false)}
+					onConfirmBulkDelete={handleConfirmBulkDelete}
+					bulkDeleteLoading={bulkDeleteLoading}
+				/>
+
+				<LeadsImportDialog
+					open={importOpen}
+					onClose={() => setImportOpen(false)}
+					onImported={handleImportSuccess}
 				/>
 
 				<LeadsGuideDrawer

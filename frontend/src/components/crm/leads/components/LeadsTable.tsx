@@ -8,6 +8,7 @@ import PremiumTooltip from '../../../common/PremiumTooltip';
 import type { Lead } from '../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
 import { getCurrencySymbol } from '../../../../utils/currency';
+import { isLeadStale } from '../../../../utils/leadStaleness';
 
 interface LeadsTableProps {
 	leads: Lead[];
@@ -177,7 +178,28 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
 					</TableCell>
 				)}
 				<TableCell>
-					<Typography variant="body2" sx={{ fontWeight: 600 }}>{lead.title}</Typography>
+					<Stack direction="row" spacing={1} alignItems="center">
+						<Typography variant="body2" sx={{ fontWeight: 600 }}>{lead.title}</Typography>
+						{isLeadStale(lead) && (
+							<PremiumTooltip title="No activity logged in over 14 days" arrow placement="top">
+								<Chip
+									label="Stale"
+									size="small"
+									sx={{
+										fontSize: '0.65rem',
+										fontWeight: 700,
+										textTransform: 'uppercase',
+										letterSpacing: '0.04em',
+										borderRadius: '6px',
+										height: 18,
+										bgcolor: isDark ? 'rgba(239, 68, 68, 0.14)' : 'rgba(239, 68, 68, 0.08)',
+										color: '#ef4444',
+										border: '1px solid rgba(239, 68, 68, 0.25)',
+									}}
+								/>
+							</PremiumTooltip>
+						)}
+					</Stack>
 				</TableCell>
 				<TableCell><StatusBadge label={lead.status} status={lead.status} type="lead" /></TableCell>
 				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>

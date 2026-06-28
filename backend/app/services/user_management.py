@@ -6,14 +6,64 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
+from typing import Optional
+
 from app.models.user import User
 from app.repositories.user import UserRepository
 from app.repositories.organization import OrganizationRepository
 from app.repositories.plan import PlanRepository
+from app.repositories.crm import CRMLeadRepository
 from app.models.plan import PlanTier
+from app.models.notification import NotificationType
 from app.core.security import get_password_hash
 from app.middleware.exceptions import ConflictError, NotFoundError, BadRequestError
 from app.schemas.user_management import InviteUserRequest, UpdateUserRequest, BulkDeleteUsersRequest
+
+
+async def _reassign_or_block_owned_leads(
+    db: AsyncSession,
+    *,
+    current_user: User,
+    target: User,
+    reassign_to_user_id: Optional[int],
+) -> None:
+    """Prevent a deactivated/deleted user's leads from being silently orphaned.
+
+    If the target owns any active leads, the caller must supply reassign_to_user_id;
+    otherwise this raises ConflictError so the admin can pick a new owner explicitly.
+    """
+    from app.services.audit import AuditService
+    from app.services.notification import NotificationService
+
+    owned_leads, total_owned = await CRMLeadRepository.list_all(
+        db, owner_id=target.id, page=1, page_size=1000
+    )
+    if not total_owned:
+        return
+
+    if reassign_to_user_id is None:
+        raise ConflictError(
+            f"This user owns {total_owned} active lead(s). Provide reassign_to_user_id to proceed."
+        )
+
+    new_owner = await UserRepository.get_by_id(db, reassign_to_user_id)
+    if not new_owner or (not current_user.is_superuser and new_owner.organization_id != current_user.organization_id):
+        raise NotFoundError("reassign_to_user_id does not refer to a valid user in your organization.")
+
+    lead_ids = [lead.id for lead in owned_leads]
+    await CRMLeadRepository.bulk_update(db, lead_ids, owner_id=new_owner.id)
+    for lead in owned_leads:
+        await AuditService.record(
+            db, entity_type="lead", entity_id=lead.id, action="reassign",
+            changed_by_user_id=current_user.id, field_name="owner_id",
+            old_value=target.id, new_value=new_owner.id,
+        )
+    if new_owner.id != current_user.id:
+        await NotificationService.notify(
+            db, user_id=new_owner.id, type=NotificationType.LEAD_ASSIGNED,
+            title="Leads reassigned to you",
+            message=f"{total_owned} lead(s) previously owned by {target.full_name or target.email} were reassigned to you.",
+        )
 
 
 async def invite_user(
@@ -130,12 +180,15 @@ async def set_user_active(
     current_user: User,
     target_public_id,
     active: bool,
+    reassign_to_user_id: Optional[int] = None,
 ) -> User:
     """Deactivate or reactivate a user.
 
     Raises:
         NotFoundError: Target user doesn't exist or belongs to a different org.
         BadRequestError: Admin tried to deactivate their own account.
+        ConflictError: Deactivating would orphan leads the user owns and no
+            reassign_to_user_id was supplied.
     """
     target = await UserRepository.get_by_public_id(db, target_public_id)
     if not target:
@@ -145,6 +198,11 @@ async def set_user_active(
 
     if not active and target.id == current_user.id:
         raise BadRequestError("You cannot deactivate your own account.")
+
+    if not active:
+        await _reassign_or_block_owned_leads(
+            db, current_user=current_user, target=target, reassign_to_user_id=reassign_to_user_id
+        )
 
     updated = await UserRepository.set_active(db, target.id, active=active)
     await db.commit()
@@ -157,12 +215,15 @@ async def delete_org_user(
     *,
     current_user: User,
     target_public_id: uuid.UUID,
+    reassign_to_user_id: Optional[int] = None,
 ) -> User:
     """Delete a user.
 
     Raises:
         NotFoundError: Target user doesn't exist or belongs to a different org.
         BadRequestError: Admin tried to delete their own account.
+        ConflictError: Deleting would orphan leads the user owns and no
+            reassign_to_user_id was supplied.
     """
     target = await UserRepository.get_by_public_id(db, target_public_id)
     if not target:
@@ -172,6 +233,10 @@ async def delete_org_user(
 
     if target.id == current_user.id:
         raise BadRequestError("You cannot delete your own account.")
+
+    await _reassign_or_block_owned_leads(
+        db, current_user=current_user, target=target, reassign_to_user_id=reassign_to_user_id
+    )
 
     # Delete related refresh tokens first to prevent foreign key issues
     from app.models.refresh_token import RefreshToken

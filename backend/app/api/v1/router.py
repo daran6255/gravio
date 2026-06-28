@@ -36,3 +36,7 @@ router.include_router(users_router)
 # Gravit CRM Management      →  /api/v1/crm/...
 from app.api.v1.endpoints.crm import router as crm_router
 router.include_router(crm_router)
+
+# In-app notifications        →  /api/v1/notifications/...
+from app.api.v1.endpoints.notifications import router as notifications_router
+router.include_router(notifications_router)

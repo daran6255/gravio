@@ -1,6 +1,14 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import crmService from '../../services/crmService';
-import type { Lead, LeadCreate, LeadUpdate, LeadConvertRequest } from '../../models/crm/lead';
+import type {
+	Lead,
+	LeadCreate,
+	LeadCreateResponse,
+	LeadUpdate,
+	LeadConvertRequest,
+	LeadHistoryEntry,
+	LeadImportResponse,
+} from '../../models/crm/lead';
 import type { Deal, DealCreate, DealUpdate } from '../../models/crm/deal';
 import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../../models/crm/pipeline';
 import type { Company, CompanyCreate, CompanyUpdate } from '../../models/crm/company';
@@ -9,6 +17,11 @@ import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../../mo
 import type { CRMStats, CRMLeadStats } from '../../models/crm/crmStats';
 import type { CRMOwnerOption } from '../../models/crm/owner';
 import type { PaginatedResponse } from '../../models/common';
+
+/** Backend errors are shaped { success, error: { code, message, detail } } - not a top-level `detail`. */
+function extractErrorMessage(error: any, fallback: string): string {
+	return error?.response?.data?.error?.message || error?.response?.data?.detail || error?.message || fallback;
+}
 
 interface CrmState {
 	leads: Lead[];
@@ -78,8 +91,22 @@ interface CrmState {
 	bulkUpdateLoading: boolean;
 	bulkUpdateError: string | null;
 
+	bulkDeleteLoading: boolean;
+	bulkDeleteError: string | null;
+
 	convertLoading: boolean;
 	convertError: string | null;
+
+	leadHistory: LeadHistoryEntry[];
+	leadHistoryLoading: boolean;
+	leadHistoryError: string | null;
+
+	anonymizeLoading: boolean;
+	anonymizeError: string | null;
+
+	importLoading: boolean;
+	importError: string | null;
+	importResult: LeadImportResponse | null;
 }
 
 const initialState: CrmState = {
@@ -150,8 +177,22 @@ const initialState: CrmState = {
 	bulkUpdateLoading: false,
 	bulkUpdateError: null,
 
+	bulkDeleteLoading: false,
+	bulkDeleteError: null,
+
 	convertLoading: false,
 	convertError: null,
+
+	leadHistory: [],
+	leadHistoryLoading: false,
+	leadHistoryError: null,
+
+	anonymizeLoading: false,
+	anonymizeError: null,
+
+	importLoading: false,
+	importError: null,
+	importResult: null,
 };
 
 export const fetchLeads = createAsyncThunk(
@@ -165,13 +206,14 @@ export const fetchLeads = createAsyncThunk(
 			priority?: string;
 			source?: string;
 			ownerId?: number;
+			stale?: boolean;
 		} | undefined,
 		{ rejectWithValue }
 	) => {
 		try {
 			return await crmService.listLeads(params || {});
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to fetch leads');
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch leads'));
 		}
 	}
 );
@@ -182,7 +224,7 @@ export const createLead = createAsyncThunk(
 		try {
 			return await crmService.createLead(payload);
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to create lead');
+			return rejectWithValue(extractErrorMessage(error, 'Failed to create lead'));
 		}
 	}
 );
@@ -193,7 +235,10 @@ export const updateLead = createAsyncThunk(
 		try {
 			return await crmService.updateLead(publicId, payload);
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to update lead');
+			return rejectWithValue({
+				message: extractErrorMessage(error, 'Failed to update lead'),
+				status: error?.response?.status,
+			});
 		}
 	}
 );
@@ -205,7 +250,7 @@ export const deleteLead = createAsyncThunk(
 			await crmService.deleteLead(publicId);
 			return publicId;
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to delete lead');
+			return rejectWithValue(extractErrorMessage(error, 'Failed to delete lead'));
 		}
 	}
 );
@@ -228,7 +273,52 @@ export const bulkUpdateLeads = createAsyncThunk(
 		try {
 			return await crmService.bulkUpdateLeads(params.publicIds, { ownerId: params.ownerId, status: params.status });
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to update leads');
+			return rejectWithValue(extractErrorMessage(error, 'Failed to update leads'));
+		}
+	}
+);
+
+export const bulkDeleteLeads = createAsyncThunk(
+	'crm/bulkDeleteLeads',
+	async (publicIds: string[], { rejectWithValue }) => {
+		try {
+			await crmService.bulkDeleteLeads(publicIds);
+			return publicIds;
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to delete leads'));
+		}
+	}
+);
+
+export const fetchLeadHistory = createAsyncThunk(
+	'crm/fetchLeadHistory',
+	async (publicId: string, { rejectWithValue }) => {
+		try {
+			return await crmService.getLeadHistory(publicId);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch lead history'));
+		}
+	}
+);
+
+export const anonymizeLead = createAsyncThunk(
+	'crm/anonymizeLead',
+	async (publicId: string, { rejectWithValue }) => {
+		try {
+			return await crmService.anonymizeLead(publicId);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to anonymize lead'));
+		}
+	}
+);
+
+export const importLeadsCsv = createAsyncThunk(
+	'crm/importLeadsCsv',
+	async (file: File, { rejectWithValue }) => {
+		try {
+			return await crmService.importLeadsCsv(file);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to import leads'));
 		}
 	}
 );
@@ -560,6 +650,10 @@ const crmSlice = createSlice({
 			state.linkedContacts = [];
 			state.linkedDeals = [];
 		},
+		clearImportResult: (state) => {
+			state.importResult = null;
+			state.importError = null;
+		},
 	},
 	extraReducers: (builder) => {
 		builder
@@ -578,7 +672,7 @@ const crmSlice = createSlice({
 				state.leadsLoading = false;
 				state.leadsError = action.payload;
 			})
-			.addCase(createLead.fulfilled, (state, action: PayloadAction<Lead>) => {
+			.addCase(createLead.fulfilled, (state, action: PayloadAction<LeadCreateResponse>) => {
 				state.leads.unshift(action.payload);
 				state.leadsTotal += 1;
 			})
@@ -619,6 +713,57 @@ const crmSlice = createSlice({
 			.addCase(bulkUpdateLeads.rejected, (state, action: PayloadAction<any>) => {
 				state.bulkUpdateLoading = false;
 				state.bulkUpdateError = action.payload;
+			})
+			.addCase(bulkDeleteLeads.pending, (state) => {
+				state.bulkDeleteLoading = true;
+				state.bulkDeleteError = null;
+			})
+			.addCase(bulkDeleteLeads.fulfilled, (state, action: PayloadAction<string[]>) => {
+				state.bulkDeleteLoading = false;
+				state.leads = state.leads.filter((l) => !action.payload.includes(l.public_id));
+				state.leadsTotal = Math.max(0, state.leadsTotal - action.payload.length);
+			})
+			.addCase(bulkDeleteLeads.rejected, (state, action: PayloadAction<any>) => {
+				state.bulkDeleteLoading = false;
+				state.bulkDeleteError = action.payload;
+			})
+			.addCase(fetchLeadHistory.pending, (state) => {
+				state.leadHistoryLoading = true;
+				state.leadHistoryError = null;
+			})
+			.addCase(fetchLeadHistory.fulfilled, (state, action: PayloadAction<PaginatedResponse<LeadHistoryEntry>>) => {
+				state.leadHistoryLoading = false;
+				state.leadHistory = action.payload.items;
+			})
+			.addCase(fetchLeadHistory.rejected, (state, action: PayloadAction<any>) => {
+				state.leadHistoryLoading = false;
+				state.leadHistoryError = action.payload;
+			})
+			.addCase(anonymizeLead.pending, (state) => {
+				state.anonymizeLoading = true;
+				state.anonymizeError = null;
+			})
+			.addCase(anonymizeLead.fulfilled, (state, action: PayloadAction<Lead>) => {
+				state.anonymizeLoading = false;
+				const idx = state.leads.findIndex((l) => l.public_id === action.payload.public_id);
+				if (idx !== -1) state.leads[idx] = action.payload;
+			})
+			.addCase(anonymizeLead.rejected, (state, action: PayloadAction<any>) => {
+				state.anonymizeLoading = false;
+				state.anonymizeError = action.payload;
+			})
+			.addCase(importLeadsCsv.pending, (state) => {
+				state.importLoading = true;
+				state.importError = null;
+				state.importResult = null;
+			})
+			.addCase(importLeadsCsv.fulfilled, (state, action: PayloadAction<LeadImportResponse>) => {
+				state.importLoading = false;
+				state.importResult = action.payload;
+			})
+			.addCase(importLeadsCsv.rejected, (state, action: PayloadAction<any>) => {
+				state.importLoading = false;
+				state.importError = action.payload;
 			})
 			.addCase(fetchPipelines.pending, (state) => {
 				state.pipelinesLoading = true;
@@ -848,5 +993,5 @@ const crmSlice = createSlice({
 	},
 });
 
-export const { clearLeadsError, clearConvertError, clearActivities, clearLinkedRecords } = crmSlice.actions;
+export const { clearLeadsError, clearConvertError, clearActivities, clearLinkedRecords, clearImportResult } = crmSlice.actions;
 export default crmSlice.reducer;

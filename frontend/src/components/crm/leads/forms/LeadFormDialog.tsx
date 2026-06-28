@@ -22,6 +22,7 @@ import useToast from '../../../../hooks/useToast';
 import { getWorldCurrencies, getCurrencySymbol } from '../../../../utils/currency';
 import RichTextEditor from '../../../common/form/RichTextEditor';
 import PremiumTooltip from '../../../common/PremiumTooltip';
+import TagInput from '../../shared/TagInput';
 import { LEAD_SOURCES, LEAD_PRIORITIES } from '../constants';
 
 interface LeadFormDialogProps {
@@ -45,6 +46,7 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 	const [estimatedValue, setEstimatedValue] = useState<string>('');
 	const [currency, setCurrency] = useState('USD');
 	const [description, setDescription] = useState('');
+	const [tags, setTags] = useState<string[]>([]);
 	const [company, setCompany] = useState<Company | null>(null);
 	const [contact, setContact] = useState<Contact | null>(null);
 	const [submitting, setSubmitting] = useState(false);
@@ -65,6 +67,7 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 		setEstimatedValue(lead?.estimated_value != null ? String(lead.estimated_value) : '');
 		setCurrency(lead?.currency || 'USD');
 		setDescription(lead?.description || '');
+		setTags(lead?.tags || []);
 		setCompany(null);
 		setContact(null);
 		setError(null);
@@ -88,19 +91,34 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 				estimated_value: estimatedValue ? Number(estimatedValue) : undefined,
 				currency,
 				description: hasDescription ? description : undefined,
+				tags: tags.length ? tags : undefined,
 				company_id: company?.id,
 				contact_id: contact?.id,
 			};
 
-			const result = isEdit
-				? await dispatch(updateLead({ publicId: lead!.public_id, payload })).unwrap()
-				: await dispatch(createLead(payload)).unwrap();
-
-			toast.success(isEdit ? 'Lead updated' : 'Lead created');
-			onSuccess(result);
-			onClose();
+			if (isEdit) {
+				const result = await dispatch(
+					updateLead({ publicId: lead!.public_id, payload: { ...payload, version: lead!.version } })
+				).unwrap();
+				toast.success('Lead updated');
+				onSuccess(result);
+				onClose();
+			} else {
+				const result = await dispatch(createLead(payload)).unwrap();
+				toast.success('Lead created');
+				if (result.duplicate_warning) {
+					toast.warning(result.duplicate_warning);
+				}
+				onSuccess(result);
+				onClose();
+			}
 		} catch (err: any) {
-			setError(err || 'Failed to save lead');
+			if (err && typeof err === 'object' && err.status === 409) {
+				toast.error('This lead was changed by someone else. Refresh to see the latest version.');
+				setError(err.message);
+			} else {
+				setError((err && typeof err === 'object' ? err.message : err) || 'Failed to save lead');
+			}
 		} finally {
 			setSubmitting(false);
 		}
@@ -328,6 +346,13 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 					value={description}
 					onChange={setDescription}
 					placeholder="Add notes about this opportunity..."
+				/>
+
+				<TagInput
+					value={tags}
+					onChange={setTags}
+					label="Tags"
+					placeholder="e.g. q3-campaign, hot-lead — press Enter to add"
 				/>
 			</Box>
 		</BaseDialog>

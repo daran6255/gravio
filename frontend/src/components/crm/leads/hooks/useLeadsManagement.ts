@@ -1,14 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
-import { fetchLeads, fetchLeadStats, fetchStats, deleteLead, searchCompanyOptions, searchContactOptions, fetchOwners, bulkUpdateLeads } from '../../../../store/slices/crmSlice';
+import {
+	fetchLeads,
+	fetchLeadStats,
+	fetchStats,
+	deleteLead,
+	searchCompanyOptions,
+	searchContactOptions,
+	fetchOwners,
+	bulkUpdateLeads,
+	bulkDeleteLeads,
+} from '../../../../store/slices/crmSlice';
 import useToast from '../../../../hooks/useToast';
+import crmService from '../../../../services/crmService';
 import type { Lead, LeadStatus, LeadPriority, LeadSource } from '../../../../models/crm/lead';
 
 export const useLeadsManagement = () => {
 	const dispatch = useAppDispatch();
 	const toast = useToast();
-	const { leads, leadsTotal, leadsLoading, leadStats, stats, owners, bulkUpdateLoading } = useAppSelector((state) => state.crm);
+	const { leads, leadsTotal, leadsLoading, leadStats, stats, owners, bulkUpdateLoading, bulkDeleteLoading } = useAppSelector((state) => state.crm);
 	const { user } = useAppSelector((state) => state.auth);
 	const [searchParams] = useSearchParams();
 	const canBulkActions = user?.role === 'admin' || user?.role === 'manager';
@@ -22,6 +33,7 @@ export const useLeadsManagement = () => {
 	const [priorityFilter, setPriorityFilter] = useState<LeadPriority | ''>('');
 	const [sourceFilter, setSourceFilter] = useState<LeadSource | ''>('');
 	const [ownerFilter, setOwnerFilter] = useState<number | ''>('');
+	const [staleOnly, setStaleOnly] = useState(false);
 
 	const [formOpen, setFormOpen] = useState(false);
 	const [editingLead, setEditingLead] = useState<Lead | null>(null);
@@ -35,6 +47,10 @@ export const useLeadsManagement = () => {
 	const [deleteTarget, setDeleteTarget] = useState<Lead | null>(null);
 	const [deleteLoading, setDeleteLoading] = useState(false);
 
+	const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
+	const [importOpen, setImportOpen] = useState(false);
+
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
 	useEffect(() => {
@@ -46,8 +62,9 @@ export const useLeadsManagement = () => {
 			priority: priorityFilter || undefined,
 			source: sourceFilter || undefined,
 			ownerId: ownerFilter || undefined,
+			stale: staleOnly || undefined,
 		}));
-	}, [dispatch, page, rowsPerPage, searchTerm, statusFilter, priorityFilter, sourceFilter, ownerFilter, refreshKey]);
+	}, [dispatch, page, rowsPerPage, searchTerm, statusFilter, priorityFilter, sourceFilter, ownerFilter, staleOnly, refreshKey]);
 
 	useEffect(() => {
 		dispatch(fetchLeadStats());
@@ -103,11 +120,17 @@ export const useLeadsManagement = () => {
 		setPage(0);
 	};
 
+	const handleStaleFilterChange = (value: boolean) => {
+		setStaleOnly(value);
+		setPage(0);
+	};
+
 	const handleClearFilters = () => {
 		setStatusFilter('');
 		setPriorityFilter('');
 		setSourceFilter('');
 		setOwnerFilter('');
+		setStaleOnly(false);
 		setPage(0);
 	};
 
@@ -190,6 +213,40 @@ export const useLeadsManagement = () => {
 		}
 	};
 
+	const handleBulkDeleteRequest = () => setBulkDeleteOpen(true);
+
+	const handleConfirmBulkDelete = async () => {
+		try {
+			const count = selectedIds.size;
+			await dispatch(bulkDeleteLeads(Array.from(selectedIds))).unwrap();
+			toast.success(`Deleted ${count} lead(s)`);
+			handleClearSelection();
+			setBulkDeleteOpen(false);
+			dispatch(fetchLeadStats());
+		} catch (err: any) {
+			toast.error(err || 'Failed to delete leads');
+		}
+	};
+
+	const handleExport = async () => {
+		try {
+			await crmService.exportLeadsCsv({
+				status: statusFilter || undefined,
+				priority: priorityFilter || undefined,
+				source: sourceFilter || undefined,
+				ownerId: ownerFilter || undefined,
+				search: searchTerm || undefined,
+			});
+		} catch (err: any) {
+			toast.error('Failed to export leads');
+		}
+	};
+
+	const handleImportSuccess = () => {
+		refreshData();
+		dispatch(fetchLeadStats());
+	};
+
 	return {
 		leads,
 		leadsTotal,
@@ -209,10 +266,12 @@ export const useLeadsManagement = () => {
 		priorityFilter,
 		sourceFilter,
 		ownerFilter,
+		staleOnly,
 		handleStatusFilterChange,
 		handlePriorityFilterChange,
 		handleSourceFilterChange,
 		handleOwnerFilterChange,
+		handleStaleFilterChange,
 		handleClearFilters,
 
 		formOpen,
@@ -235,11 +294,21 @@ export const useLeadsManagement = () => {
 		owners,
 		selectedIds,
 		bulkUpdateLoading,
+		bulkDeleteLoading,
+		bulkDeleteOpen,
+		setBulkDeleteOpen,
 		handleToggleSelect,
 		handleSelectAll,
 		handleClearSelection,
 		handleBulkReassign,
 		handleBulkStatusChange,
+		handleBulkDeleteRequest,
+		handleConfirmBulkDelete,
+
+		importOpen,
+		setImportOpen,
+		handleExport,
+		handleImportSuccess,
 
 		handleCreateClick,
 		handleEdit,
