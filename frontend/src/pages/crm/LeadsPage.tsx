@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { Box, Container, Grid, Stack, Button, useTheme, Typography } from '@mui/material';
-import { HelpOutline, FileUploadOutlined, FileDownloadOutlined } from '@mui/icons-material';
+import { HelpOutline, FileUploadOutlined, FileDownloadOutlined, LockOutlined } from '@mui/icons-material';
 import PageHeader from '../../components/common/page-header';
+import { PremiumTooltip } from '../../components/common/PremiumTooltip';
+import { useAppSelector } from '../../store/hooks';
+import { isFreeTier } from '../../utils/plan';
 import {
 	LeadsTable,
 	LeadDetailDrawer,
@@ -85,6 +88,8 @@ const LeadsPage: React.FC = () => {
 
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const { user } = useAppSelector((state) => state.auth);
+	const locked = isFreeTier(user?.organization);
 	const [guideOpen, setGuideOpen] = useState(false);
 	const [showWelcome, setShowWelcome] = useState(() => {
 		if (typeof window === 'undefined') return false;
@@ -104,36 +109,52 @@ const LeadsPage: React.FC = () => {
 					subtitle="Capture, qualify, and convert your sales pipeline"
 					action={
 						<Stack direction="row" spacing={1.5}>
-							<Button
-								variant="outlined"
-								startIcon={<FileDownloadOutlined />}
-								onClick={handleExport}
-								sx={{
-									textTransform: 'none',
-									fontWeight: 700,
-									borderRadius: '8px',
-									borderColor: 'divider',
-									color: 'text.secondary',
-									'&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover', color: 'primary.main' }
-								}}
+							<PremiumTooltip
+								title={locked ? 'Upgrade to a paid plan to export leads as CSV' : ''}
+								arrow
 							>
-								Export
-							</Button>
-							<Button
-								variant="outlined"
-								startIcon={<FileUploadOutlined />}
-								onClick={() => setImportOpen(true)}
-								sx={{
-									textTransform: 'none',
-									fontWeight: 700,
-									borderRadius: '8px',
-									borderColor: 'divider',
-									color: 'text.secondary',
-									'&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover', color: 'primary.main' }
-								}}
+								<span>
+									<Button
+										variant="outlined"
+										startIcon={locked ? <LockOutlined /> : <FileDownloadOutlined />}
+										onClick={handleExport}
+										disabled={locked}
+										sx={{
+											textTransform: 'none',
+											fontWeight: 700,
+											borderRadius: '8px',
+											borderColor: 'divider',
+											color: 'text.secondary',
+											'&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover', color: 'primary.main' }
+										}}
+									>
+										Export
+									</Button>
+								</span>
+							</PremiumTooltip>
+							<PremiumTooltip
+								title={locked ? 'Upgrade to a paid plan to import leads from CSV' : ''}
+								arrow
 							>
-								Import
-							</Button>
+								<span>
+									<Button
+										variant="outlined"
+										startIcon={locked ? <LockOutlined /> : <FileUploadOutlined />}
+										onClick={() => setImportOpen(true)}
+										disabled={locked}
+										sx={{
+											textTransform: 'none',
+											fontWeight: 700,
+											borderRadius: '8px',
+											borderColor: 'divider',
+											color: 'text.secondary',
+											'&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover', color: 'primary.main' }
+										}}
+									>
+										Import
+									</Button>
+								</span>
+							</PremiumTooltip>
 							<Button
 								variant="outlined"
 								startIcon={<HelpOutline />}

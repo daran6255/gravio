@@ -11,6 +11,7 @@ from app.core.database import get_db
 from app.api.deps import require_roles, get_current_active_user
 from app.models.user import User, UserRole
 from app.services.crm import CRMService
+from app.services.plan_access import require_paid_plan
 from app.utils.file_validation import validate_upload
 from app.schemas.common import PaginatedResponse
 from app.schemas.crm import (
@@ -351,6 +352,7 @@ async def export_leads_endpoint(
     owner_id: Optional[int] = Query(None),
     search: Optional[str] = Query(None),
     current_user: User = Depends(require_crm_access),
+    _: User = Depends(require_paid_plan()),
     db: AsyncSession = Depends(get_db),
 ):
     from fastapi.responses import StreamingResponse
@@ -374,6 +376,7 @@ async def export_leads_endpoint(
 async def import_leads_endpoint(
     file: UploadFile = File(...),
     current_user: User = Depends(require_crm_access),
+    _: User = Depends(require_paid_plan()),
     db: AsyncSession = Depends(get_db),
 ) -> CRMLeadImportResponse:
     content = await file.read()

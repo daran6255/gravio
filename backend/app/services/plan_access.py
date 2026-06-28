@@ -90,6 +90,41 @@ def require_module(module: Module):
     return module_checker
 
 
+def require_paid_plan():
+    """Create a dependency that blocks organizations on the Free tier from a feature.
+
+    Trial orgs pass — they get full access during evaluation, same as `require_module`.
+    Superusers bypass the check. Orgs with no plan and no active trial (expired) are
+    blocked, same as a Free-tier org.
+
+    Example:
+        @router.get("/leads/export")
+        async def export_leads(
+            current_user: User = Depends(require_paid_plan()),
+        ):
+            ...
+    """
+    async def paid_plan_checker(
+        current_user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
+    ) -> User:
+        if current_user.is_superuser or current_user.organization_id is None:
+            return current_user
+
+        org = await db.get(Organization, current_user.organization_id)
+        if org.subscription_status == "trial":
+            return current_user
+
+        plan = await PlanRepository.get_by_id(db, org.plan_id) if org.plan_id else None
+        if plan is None or plan.tier == PlanTier.FREE:
+            raise ForbiddenError(
+                "This feature requires a paid plan. Please upgrade your subscription."
+            )
+        return current_user
+
+    return paid_plan_checker
+
+
 def _current_period_start(now: datetime) -> datetime:
     """First moment of the current calendar month (UTC).
 

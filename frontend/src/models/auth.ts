@@ -1,3 +1,11 @@
+export interface OrganizationPlan {
+	tier: 'free' | 'basic' | 'pro' | 'enterprise';
+	name: string;
+	enabled_modules: string[];
+	ai_monthly_limit: number;
+	user_limit?: number | null;
+}
+
 export interface Organization {
 	public_id: string;
 	name: string;
@@ -7,7 +15,7 @@ export interface Organization {
 	trial_started_at?: string;
 	trial_expires_at?: string;
 	plan_id?: number | null;
-	plan?: any;
+	plan?: OrganizationPlan | null;
 	user_count?: number;
 	user_limit?: number | null;
 	plan_name?: string;
