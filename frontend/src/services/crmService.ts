@@ -12,6 +12,7 @@ import type {
 	LeadImportResponse,
 } from '../models/crm/lead';
 import type { Deal, DealCreate, DealUpdate } from '../models/crm/deal';
+import type { DealTask, DealTaskCreate, DealTaskUpdate } from '../models/crm/dealTask';
 import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../models/crm/pipeline';
 import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../models/crm/crmActivity';
 import type { CRMStats, CRMLeadStats } from '../models/crm/crmStats';
@@ -304,6 +305,23 @@ const crmService = {
 		link.click();
 		link.remove();
 		window.URL.revokeObjectURL(downloadUrl);
+	},
+
+	// --- Deal Tasks ---
+	getDealTasks: async (dealPublicId: string): Promise<DealTask[]> => {
+		const response = await api.get<DealTask[]>(`/crm/deals/${dealPublicId}/tasks`);
+		return response.data;
+	},
+	createDealTask: async (dealPublicId: string, payload: DealTaskCreate): Promise<DealTask> => {
+		const response = await api.post<DealTask>(`/crm/deals/${dealPublicId}/tasks`, payload);
+		return response.data;
+	},
+	updateDealTask: async (taskPublicId: string, payload: DealTaskUpdate): Promise<DealTask> => {
+		const response = await api.patch<DealTask>(`/crm/deal-tasks/${taskPublicId}`, payload);
+		return response.data;
+	},
+	deleteDealTask: async (taskPublicId: string): Promise<void> => {
+		await api.delete(`/crm/deal-tasks/${taskPublicId}`);
 	},
 };
 

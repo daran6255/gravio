@@ -13,11 +13,13 @@ from app.models.crm import (
     CRMContact,
     CRMLead,
     CRMDeal,
+    CRMDealTask,
     CRMPipeline,
     CRMPipelineStage,
     CRMActivity,
     CRMFile,
     LeadStatus,
+    DealTaskStatus,
 )
 
 
@@ -558,3 +560,58 @@ class CRMFileRepository:
             .limit(page_size)
         )
         return list(result.scalars().all()), total
+
+
+class CRMDealTaskRepository:
+    @staticmethod
+    async def get_by_public_id(db: AsyncSession, public_id: uuid.UUID) -> Optional[CRMDealTask]:
+        result = await db.execute(select(CRMDealTask).where(CRMDealTask.public_id == public_id))
+        return result.scalars().first()
+
+    @staticmethod
+    async def list_by_deal(db: AsyncSession, *, deal_id: int) -> list[CRMDealTask]:
+        result = await db.execute(
+            select(CRMDealTask)
+            .where(CRMDealTask.deal_id == deal_id, CRMDealTask.is_deleted.is_(False))
+            .order_by(CRMDealTask.order.asc(), CRMDealTask.created_at.asc())
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def create(
+        db: AsyncSession,
+        *,
+        deal_id: int,
+        title: str,
+        task_type,
+        due_date=None,
+        notes=None,
+        assignee_id=None,
+        order: int = 0,
+    ) -> CRMDealTask:
+        task = CRMDealTask(
+            deal_id=deal_id,
+            title=title,
+            task_type=task_type,
+            due_date=due_date,
+            notes=notes,
+            assignee_id=assignee_id,
+            order=order,
+        )
+        db.add(task)
+        await db.flush()
+        await db.refresh(task)
+        return task
+
+    @staticmethod
+    async def update(db: AsyncSession, task: CRMDealTask, **kwargs) -> CRMDealTask:
+        for key, val in kwargs.items():
+            setattr(task, key, val)
+        await db.flush()
+        await db.refresh(task)
+        return task
+
+    @staticmethod
+    async def delete(db: AsyncSession, task: CRMDealTask) -> None:
+        task.soft_delete()
+        await db.flush()

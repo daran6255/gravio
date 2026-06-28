@@ -10,6 +10,7 @@ import type {
 	LeadImportResponse,
 } from '../../models/crm/lead';
 import type { Deal, DealCreate, DealUpdate } from '../../models/crm/deal';
+import type { DealTask, DealTaskCreate, DealTaskUpdate } from '../../models/crm/dealTask';
 import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../../models/crm/pipeline';
 import type { Company, CompanyCreate, CompanyUpdate } from '../../models/crm/company';
 import type { Contact, ContactCreate, ContactUpdate } from '../../models/crm/contact';
@@ -107,6 +108,10 @@ interface CrmState {
 	importLoading: boolean;
 	importError: string | null;
 	importResult: LeadImportResponse | null;
+
+	dealTasks: DealTask[];
+	dealTasksLoading: boolean;
+	dealTaskMutating: boolean;
 }
 
 const initialState: CrmState = {
@@ -193,6 +198,10 @@ const initialState: CrmState = {
 	importLoading: false,
 	importError: null,
 	importResult: null,
+
+	dealTasks: [],
+	dealTasksLoading: false,
+	dealTaskMutating: false,
 };
 
 export const fetchLeads = createAsyncThunk(
@@ -633,6 +642,51 @@ export const fetchOwners = createAsyncThunk(
 	}
 );
 
+export const fetchDealTasks = createAsyncThunk(
+	'crm/fetchDealTasks',
+	async (dealPublicId: string, { rejectWithValue }) => {
+		try {
+			return await crmService.getDealTasks(dealPublicId);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch deal tasks'));
+		}
+	}
+);
+
+export const createDealTask = createAsyncThunk(
+	'crm/createDealTask',
+	async ({ dealPublicId, payload }: { dealPublicId: string; payload: DealTaskCreate }, { rejectWithValue }) => {
+		try {
+			return await crmService.createDealTask(dealPublicId, payload);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to create task'));
+		}
+	}
+);
+
+export const updateDealTask = createAsyncThunk(
+	'crm/updateDealTask',
+	async ({ taskPublicId, payload }: { taskPublicId: string; payload: DealTaskUpdate }, { rejectWithValue }) => {
+		try {
+			return await crmService.updateDealTask(taskPublicId, payload);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to update task'));
+		}
+	}
+);
+
+export const deleteDealTask = createAsyncThunk(
+	'crm/deleteDealTask',
+	async (taskPublicId: string, { rejectWithValue }) => {
+		try {
+			await crmService.deleteDealTask(taskPublicId);
+			return taskPublicId;
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to delete task'));
+		}
+	}
+);
+
 const crmSlice = createSlice({
 	name: 'crm',
 	initialState,
@@ -989,6 +1043,33 @@ const crmSlice = createSlice({
 			})
 			.addCase(fetchOwners.rejected, (state) => {
 				state.ownersLoading = false;
+			})
+			.addCase(fetchDealTasks.pending, (state) => {
+				state.dealTasksLoading = true;
+			})
+			.addCase(fetchDealTasks.fulfilled, (state, action: PayloadAction<DealTask[]>) => {
+				state.dealTasksLoading = false;
+				state.dealTasks = action.payload;
+			})
+			.addCase(fetchDealTasks.rejected, (state) => {
+				state.dealTasksLoading = false;
+			})
+			.addCase(createDealTask.pending, (state) => { state.dealTaskMutating = true; })
+			.addCase(createDealTask.fulfilled, (state, action: PayloadAction<DealTask>) => {
+				state.dealTaskMutating = false;
+				state.dealTasks = [...state.dealTasks, action.payload];
+			})
+			.addCase(createDealTask.rejected, (state) => { state.dealTaskMutating = false; })
+			.addCase(updateDealTask.pending, (state) => { state.dealTaskMutating = true; })
+			.addCase(updateDealTask.fulfilled, (state, action: PayloadAction<DealTask>) => {
+				state.dealTaskMutating = false;
+				state.dealTasks = state.dealTasks.map((t) =>
+					t.public_id === action.payload.public_id ? action.payload : t
+				);
+			})
+			.addCase(updateDealTask.rejected, (state) => { state.dealTaskMutating = false; })
+			.addCase(deleteDealTask.fulfilled, (state, action: PayloadAction<string>) => {
+				state.dealTasks = state.dealTasks.filter((t) => t.public_id !== action.payload);
 			});
 	},
 });

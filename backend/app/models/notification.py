@@ -21,6 +21,10 @@ class NotificationType(str, enum.Enum):
     LEAD_REASSIGNED_AWAY = "lead_reassigned_away"
     LEAD_STATUS_CHANGED = "lead_status_changed"
     LEAD_STALE = "lead_stale"
+    DEAL_TASK_ASSIGNED = "deal_task_assigned"
+    DEAL_TASK_DUE_SOON = "deal_task_due_soon"
+    DEAL_TASK_OVERDUE = "deal_task_overdue"
+    DEAL_TASK_COMPLETED = "deal_task_completed"
 
 
 class Notification(BaseModel, TenantAwareMixin):

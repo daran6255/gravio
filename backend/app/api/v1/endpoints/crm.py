@@ -29,6 +29,9 @@ from app.schemas.crm import (
     CRMDealCreate,
     CRMDealUpdate,
     CRMDealResponse,
+    CRMDealTaskCreate,
+    CRMDealTaskUpdate,
+    CRMDealTaskResponse,
     CRMPipelineCreate,
     CRMPipelineResponse,
     CRMPipelineStagesUpdateRequest,
@@ -826,3 +829,62 @@ async def delete_file_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     await CRMService.delete_file(db, public_id)
+
+
+# --- Deal Tasks ---
+@router.get(
+    "/deals/{public_id}/tasks",
+    response_model=list[CRMDealTaskResponse],
+    summary="List tasks for a deal",
+)
+async def list_deal_tasks_endpoint(
+    public_id: uuid.UUID,
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> list[CRMDealTaskResponse]:
+    tasks = await CRMService.list_deal_tasks(db, public_id)
+    return [CRMDealTaskResponse.model_validate(t) for t in tasks]
+
+
+@router.post(
+    "/deals/{public_id}/tasks",
+    response_model=CRMDealTaskResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a task for a deal",
+)
+async def create_deal_task_endpoint(
+    public_id: uuid.UUID,
+    payload: CRMDealTaskCreate,
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> CRMDealTaskResponse:
+    task = await CRMService.create_deal_task(db, public_id, payload, current_user.id)
+    return CRMDealTaskResponse.model_validate(task)
+
+
+@router.patch(
+    "/deal-tasks/{task_public_id}",
+    response_model=CRMDealTaskResponse,
+    summary="Update a deal task",
+)
+async def update_deal_task_endpoint(
+    task_public_id: uuid.UUID,
+    payload: CRMDealTaskUpdate,
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> CRMDealTaskResponse:
+    task = await CRMService.update_deal_task(db, task_public_id, payload, current_user.id)
+    return CRMDealTaskResponse.model_validate(task)
+
+
+@router.delete(
+    "/deal-tasks/{task_public_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a deal task",
+)
+async def delete_deal_task_endpoint(
+    task_public_id: uuid.UUID,
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+):
+    await CRMService.delete_deal_task(db, task_public_id)

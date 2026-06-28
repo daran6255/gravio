@@ -62,6 +62,22 @@ class DealStatus(str, enum.Enum):
     ON_HOLD = "on_hold"
 
 
+class DealTaskStatus(str, enum.Enum):
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+
+
+class DealTaskType(str, enum.Enum):
+    DOCUMENT = "document"
+    MEETING = "meeting"
+    CALL = "call"
+    ACTION = "action"
+    REVIEW = "review"
+    OTHER = "other"
+
+
+
 class ActivityType(str, enum.Enum):
     NOTE = "note"
     CALL = "call"
@@ -288,6 +304,7 @@ class CRMDeal(BaseModel, TenantAwareMixin):
     pipeline: Mapped[CRMPipeline] = relationship("CRMPipeline")
     stage: Mapped[CRMPipelineStage] = relationship("CRMPipelineStage", back_populates="deals")
     owner: Mapped[Optional[User]] = relationship("User", foreign_keys=[owner_id])
+    tasks: Mapped[list["CRMDealTask"]] = relationship("CRMDealTask", back_populates="deal", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<CRMDeal(id={self.id}, title='{self.title}', value={self.value})>"
@@ -345,3 +362,40 @@ class CRMFile(BaseModel, TenantAwareMixin):
 
     def __repr__(self) -> str:
         return f"<CRMFile(id={self.id}, file_name='{self.file_name}', entity_type='{self.entity_type}', entity_id={self.entity_id})>"
+
+
+class CRMDealTask(BaseModel, TenantAwareMixin):
+    """A structured task/checklist item associated with a deal (e.g. MOU prep, doc collection)"""
+    __tablename__ = "crm_deal_tasks"
+
+    public_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, unique=True, index=True, nullable=False, default=uuid.uuid4
+    )
+    deal_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("crm_deals.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    task_type: Mapped[DealTaskType] = mapped_column(
+        Enum(DealTaskType, values_callable=lambda x: [e.value for e in x]),
+        default=DealTaskType.OTHER,
+        nullable=False,
+    )
+    status: Mapped[DealTaskStatus] = mapped_column(
+        Enum(DealTaskStatus, values_callable=lambda x: [e.value for e in x]),
+        default=DealTaskStatus.PENDING,
+        nullable=False,
+    )
+    due_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    assignee_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    # Relationships
+    deal: Mapped[CRMDeal] = relationship("CRMDeal", back_populates="tasks")
+    assignee: Mapped[Optional[User]] = relationship("User", foreign_keys=[assignee_id])
+
+    def __repr__(self) -> str:
+        return f"<CRMDealTask(id={self.id}, title='{self.title}', status='{self.status}')>"

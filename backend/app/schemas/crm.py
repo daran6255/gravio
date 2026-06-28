@@ -13,6 +13,8 @@ from app.models.crm import (
     LeadStatus,
     LeadPriority,
     DealStatus,
+    DealTaskStatus,
+    DealTaskType,
     ActivityType,
 )
 
@@ -287,6 +289,43 @@ class CRMDealResponse(CRMDealBase):
     public_id: uuid.UUID
     owner_id: Optional[int] = None
     lead_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+# --- Deal Task Schemas ---
+class CRMDealTaskCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    task_type: DealTaskType = DealTaskType.OTHER
+    due_date: Optional[date] = None
+    notes: Optional[str] = None
+    assignee_id: Optional[int] = None
+    order: int = 0
+
+
+class CRMDealTaskUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    task_type: Optional[DealTaskType] = None
+    status: Optional[DealTaskStatus] = None
+    due_date: Optional[date] = None
+    notes: Optional[str] = None
+    assignee_id: Optional[int] = None
+    order: Optional[int] = None
+
+
+class CRMDealTaskResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    public_id: uuid.UUID
+    deal_id: int
+    title: str
+    task_type: DealTaskType
+    status: DealTaskStatus
+    due_date: Optional[date] = None
+    notes: Optional[str] = None
+    assignee_id: Optional[int] = None
+    completed_at: Optional[datetime] = None
+    order: int
     created_at: datetime
     updated_at: datetime
 

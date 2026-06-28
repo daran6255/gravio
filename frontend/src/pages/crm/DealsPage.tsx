@@ -158,6 +158,9 @@ const DealsPage: React.FC = () => {
 					open={detailOpen}
 					onClose={() => setDetailOpen(false)}
 					deal={selectedDeal}
+					owners={owners}
+					onEdit={handleEditDeal}
+					onDelete={handleDeleteRequest}
 				/>
 
 				<DealsModals

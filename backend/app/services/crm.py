@@ -13,6 +13,7 @@ from app.models.crm import (
     CRMContact,
     CRMLead,
     CRMDeal,
+    CRMDealTask,
     CRMPipeline,
     CRMPipelineStage,
     CRMActivity,
@@ -20,6 +21,7 @@ from app.models.crm import (
     LeadStatus,
     LeadPriority,
     DealStatus,
+    DealTaskStatus,
     ActivityType,
 )
 from app.repositories.crm import (
@@ -30,6 +32,7 @@ from app.repositories.crm import (
     CRMPipelineRepository,
     CRMActivityRepository,
     CRMFileRepository,
+    CRMDealTaskRepository,
 )
 from app.schemas.crm import (
     CRMCompanyCreate,
@@ -41,6 +44,8 @@ from app.schemas.crm import (
     CRMLeadConvertRequest,
     CRMDealCreate,
     CRMDealUpdate,
+    CRMDealTaskCreate,
+    CRMDealTaskUpdate,
     CRMActivityCreate,
     CRMActivityUpdate,
     CRMActivityResponse,
@@ -1131,3 +1136,113 @@ class CRMService:
             page=page,
             page_size=page_size,
         )
+
+    # -------------------------------------------------------------------------
+    # Deal Tasks
+    # -------------------------------------------------------------------------
+
+    @staticmethod
+    async def list_deal_tasks(db: AsyncSession, deal_public_id: uuid.UUID) -> list[CRMDealTask]:
+        deal = await CRMDealRepository.get_by_public_id(db, deal_public_id)
+        if not deal:
+            raise NotFoundError("Deal not found")
+        return await CRMDealTaskRepository.list_by_deal(db, deal_id=deal.id)
+
+    @staticmethod
+    async def create_deal_task(
+        db: AsyncSession,
+        deal_public_id: uuid.UUID,
+        payload: CRMDealTaskCreate,
+        created_by_user_id: int,
+    ) -> CRMDealTask:
+        deal = await CRMDealRepository.get_by_public_id(db, deal_public_id)
+        if not deal:
+            raise NotFoundError("Deal not found")
+
+        task = await CRMDealTaskRepository.create(
+            db,
+            deal_id=deal.id,
+            title=payload.title,
+            task_type=payload.task_type,
+            due_date=payload.due_date,
+            notes=payload.notes,
+            assignee_id=payload.assignee_id,
+            order=payload.order,
+        )
+
+        # Notify assignee if different from creator
+        if payload.assignee_id and payload.assignee_id != created_by_user_id:
+            try:
+                await NotificationService.notify(
+                    db,
+                    user_id=payload.assignee_id,
+                    type=NotificationType.DEAL_TASK_ASSIGNED,
+                    title="You've been assigned a deal task",
+                    message=f"Task \"{payload.title}\" has been assigned to you for deal \"{deal.title}\".",
+                    entity_type="deal_task",
+                    entity_id=task.id,
+                )
+            except Exception:
+                pass  # Non-blocking
+
+        await db.commit()
+        await db.refresh(task)
+        return task
+
+    @staticmethod
+    async def update_deal_task(
+        db: AsyncSession,
+        task_public_id: uuid.UUID,
+        payload: CRMDealTaskUpdate,
+        updated_by_user_id: int,
+    ) -> CRMDealTask:
+        task = await CRMDealTaskRepository.get_by_public_id(db, task_public_id)
+        if not task or task.is_deleted:
+            raise NotFoundError("Task not found")
+
+        update_data = payload.model_dump(exclude_unset=True)
+
+        # Auto-set completed_at when status flips to completed
+        if update_data.get("status") == DealTaskStatus.COMPLETED and task.status != DealTaskStatus.COMPLETED:
+            update_data["completed_at"] = datetime.now(timezone.utc)
+        elif update_data.get("status") and update_data["status"] != DealTaskStatus.COMPLETED:
+            update_data["completed_at"] = None
+
+        task = await CRMDealTaskRepository.update(db, task, **update_data)
+
+        # Notifications
+        try:
+            if update_data.get("status") == DealTaskStatus.COMPLETED and task.assignee_id and task.assignee_id != updated_by_user_id:
+                await NotificationService.notify(
+                    db,
+                    user_id=task.assignee_id,
+                    type=NotificationType.DEAL_TASK_COMPLETED,
+                    title="Deal task completed",
+                    message=f"Task \"{task.title}\" has been marked as completed.",
+                    entity_type="deal_task",
+                    entity_id=task.id,
+                )
+            elif update_data.get("assignee_id") and update_data["assignee_id"] != updated_by_user_id:
+                await NotificationService.notify(
+                    db,
+                    user_id=update_data["assignee_id"],
+                    type=NotificationType.DEAL_TASK_ASSIGNED,
+                    title="You've been assigned a deal task",
+                    message=f"Task \"{task.title}\" has been assigned to you.",
+                    entity_type="deal_task",
+                    entity_id=task.id,
+                )
+        except Exception:
+            pass  # Non-blocking
+
+        await db.commit()
+        await db.refresh(task)
+        return task
+
+    @staticmethod
+    async def delete_deal_task(db: AsyncSession, task_public_id: uuid.UUID) -> None:
+        task = await CRMDealTaskRepository.get_by_public_id(db, task_public_id)
+        if not task or task.is_deleted:
+            raise NotFoundError("Task not found")
+        await CRMDealTaskRepository.delete(db, task)
+        await db.commit()
