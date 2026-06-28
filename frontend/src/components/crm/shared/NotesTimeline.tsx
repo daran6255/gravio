@@ -79,17 +79,23 @@ const formatDate = (iso: string) => {
 	}) + `, ${timeString}`;
 };
 
-const getOutcomeColor = (outcome: string): 'success' | 'info' | 'primary' | 'default' => {
+const getOutcomeColor = (outcome: string): 'success' | 'info' | 'primary' | 'warning' | 'error' | 'default' => {
 	switch (outcome) {
 		case 'Connected':
 		case 'Sent':
 		case 'Received':
+		case 'Completed':
 			return 'success';
 		case 'Opened':
 		case 'Read':
 			return 'info';
 		case 'Replied':
+		case 'Scheduled':
 			return 'primary';
+		case 'No Show':
+			return 'warning';
+		case 'Canceled':
+			return 'error';
 		default:
 			return 'default';
 	}
@@ -130,7 +136,7 @@ export const NotesTimeline: React.FC<NotesTimelineProps> = ({ activities, loadin
 			isCompleted: activity.is_completed,
 			actions: (
 				<>
-					{(activity.type === 'call' || activity.type === 'email') && activity.outcome && (
+					{(activity.type === 'call' || activity.type === 'email' || activity.type === 'meeting') && activity.outcome && (
 						<Chip
 							size="small"
 							label={activity.outcome}

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Box, TextField, Button, Stack, Divider, CircularProgress, ToggleButtonGroup, ToggleButton, Tabs, Tab, IconButton, Tooltip, MenuItem } from '@mui/material';
+import { Box, TextField, Button, Stack, Divider, CircularProgress, ToggleButtonGroup, ToggleButton, Tabs, Tab, IconButton, Tooltip } from '@mui/material';
 import { Notes, Call, Email, Groups, CheckCircleOutline, WhatsApp, AttachFile, AlternateEmail } from '@mui/icons-material';
 import { useAppDispatch } from '../../../store/hooks';
 import { createActivity } from '../../../store/slices/crmSlice';
 import type { CRMActivityType, CRMActivityEntityType } from '../../../models/crm/crmActivity';
 import useToast from '../../../hooks/useToast';
-import RichTextEditor from '../../common/form/RichTextEditor';
+import { NoteTab, CallTab, EmailTab, MeetingTab, TaskTab, WhatsAppTab } from './tabs';
 
 const TYPE_OPTIONS: { value: CRMActivityType; label: string; icon: React.ReactElement }[] = [
 	{ value: 'note', label: 'Note', icon: <Notes fontSize="small" /> },
@@ -28,8 +28,6 @@ const SAVE_LABEL: Record<CRMActivityType, string> = {
 	task: 'Log Task',
 	whatsapp: 'Log WhatsApp',
 };
-
-const NOTE_MAX_WORDS = 250;
 
 interface NotesComposerProps {
 	entityType: CRMActivityEntityType;
@@ -182,253 +180,65 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 					))}
 				</Tabs>
 
-				{type === 'note' ? (
-					<Box sx={{ mb: 1.5 }}>
-						<RichTextEditor
-							value={description}
-							onChange={setDescription}
-							placeholder="Write your note here..."
-							minHeight={90}
-							variant="simple"
-							maxWords={NOTE_MAX_WORDS}
-						/>
-					</Box>
-				) : type === 'call' ? (
-					<Box sx={{ mb: 1.5 }}>
-						<Stack direction="row" spacing={1} sx={{ mb: 1.5 }}>
-							<ToggleButtonGroup
-								value={direction}
-								exclusive
-								onChange={(_e, val) => val && setDirection(val)}
-								size="small"
-								sx={{
-									flexShrink: 0,
-									height: 36,
-									'& .MuiToggleButtonGroup-grouped': {
-										border: '1px solid',
-										borderColor: 'divider',
-										borderRadius: '8px !important',
-										textTransform: 'none',
-										px: 1.25,
-										fontSize: '0.78rem',
-										fontWeight: 600,
-									}
-								}}
-							>
-								<ToggleButton value="Outbound">Outbound</ToggleButton>
-								<ToggleButton value="Inbound">Inbound</ToggleButton>
-							</ToggleButtonGroup>
-
-							<TextField
-								select
-								value={outcome}
-								onChange={(e) => setOutcome(e.target.value)}
-								size="small"
-								sx={{
-									flexGrow: 1,
-									'& .MuiOutlinedInput-root': {
-										borderRadius: '8px',
-										height: 36,
-										fontSize: '0.78rem',
-									}
-								}}
-							>
-								<MenuItem value="Connected" sx={{ fontSize: '0.78rem' }}>Connected</MenuItem>
-								<MenuItem value="Busy" sx={{ fontSize: '0.78rem' }}>Busy</MenuItem>
-								<MenuItem value="No Answer" sx={{ fontSize: '0.78rem' }}>No Answer</MenuItem>
-								<MenuItem value="Left Voicemail" sx={{ fontSize: '0.78rem' }}>Left Voicemail</MenuItem>
-								<MenuItem value="Wrong Number" sx={{ fontSize: '0.78rem' }}>Wrong Number</MenuItem>
-							</TextField>
-						</Stack>
-
-						<TextField
-							variant="standard"
-							placeholder="Subject/Purpose (optional, e.g. Discuss onboarding)"
-							value={subject}
-							onChange={(e) => setSubject(e.target.value)}
-							fullWidth
-							InputProps={{ disableUnderline: true, style: { fontSize: '0.82rem' } }}
-							sx={{ mb: 1 }}
-						/>
-
-						<TextField
-							variant="outlined"
-							placeholder="Write call notes or record a summary..."
-							value={description}
-							onChange={(e) => setDescription(e.target.value)}
-							fullWidth
-							multiline
-							minRows={3}
-							sx={{
-								mb: 0.5,
-								'& .MuiOutlinedInput-root': {
-									borderRadius: '8px',
-									fontSize: '0.82rem',
-									p: 1.25,
-								}
-							}}
-						/>
-					</Box>
-				) : type === 'email' ? (
-					<Box sx={{ mb: 1.5 }}>
-						<Stack direction="row" spacing={1} sx={{ mb: 1.5 }}>
-							<ToggleButtonGroup
-								value={direction}
-								exclusive
-								onChange={(_e, val) => {
-									if (val) {
-										setDirection(val);
-										setOutcome(val === 'Sent' ? 'Sent' : 'Received');
-									}
-								}}
-								size="small"
-								sx={{
-									flexShrink: 0,
-									height: 36,
-									'& .MuiToggleButtonGroup-grouped': {
-										border: '1px solid',
-										borderColor: 'divider',
-										borderRadius: '8px !important',
-										textTransform: 'none',
-										px: 1.25,
-										fontSize: '0.78rem',
-										fontWeight: 600,
-									}
-								}}
-							>
-								<ToggleButton value="Sent">Sent</ToggleButton>
-								<ToggleButton value="Received">Received</ToggleButton>
-							</ToggleButtonGroup>
-
-							<TextField
-								select
-								value={outcome}
-								onChange={(e) => setOutcome(e.target.value)}
-								size="small"
-								sx={{
-									flexGrow: 1,
-									'& .MuiOutlinedInput-root': {
-										borderRadius: '8px',
-										height: 36,
-										fontSize: '0.78rem',
-									}
-								}}
-							>
-								{direction === 'Sent' ? [
-									<MenuItem key="Sent" value="Sent" sx={{ fontSize: '0.78rem' }}>Sent</MenuItem>,
-									<MenuItem key="Opened" value="Opened" sx={{ fontSize: '0.78rem' }}>Opened</MenuItem>,
-									<MenuItem key="Replied" value="Replied" sx={{ fontSize: '0.78rem' }}>Replied</MenuItem>
-								] : [
-									<MenuItem key="Received" value="Received" sx={{ fontSize: '0.78rem' }}>Received</MenuItem>,
-									<MenuItem key="Read" value="Read" sx={{ fontSize: '0.78rem' }}>Read</MenuItem>,
-									<MenuItem key="Replied" value="Replied" sx={{ fontSize: '0.78rem' }}>Replied</MenuItem>
-								]}
-							</TextField>
-						</Stack>
-
-						<TextField
-							variant="standard"
-							placeholder="Subject/Purpose (optional, e.g. Contract review)"
-							value={subject}
-							onChange={(e) => setSubject(e.target.value)}
-							fullWidth
-							InputProps={{ disableUnderline: true, style: { fontSize: '0.82rem' } }}
-							sx={{ mb: 1 }}
-						/>
-
-						<Box sx={{ mb: 0.5 }}>
-							<RichTextEditor
-								value={description}
-								onChange={setDescription}
-								placeholder="Write email body here..."
-								minHeight={90}
-								variant="simple"
-							/>
-						</Box>
-					</Box>
-				) : type === 'meeting' ? (
-					<Box sx={{ mb: 1.5 }}>
-						<Stack direction="row" spacing={1} sx={{ mb: 1.5 }}>
-							<ToggleButtonGroup
-								value={direction}
-								exclusive
-								onChange={(_e, val) => val && setDirection(val)}
-								size="small"
-								sx={{
-									flexShrink: 0,
-									height: 36,
-									'& .MuiToggleButtonGroup-grouped': {
-										border: '1px solid',
-										borderColor: 'divider',
-										borderRadius: '8px !important',
-										textTransform: 'none',
-										px: 1,
-										fontSize: '0.76rem',
-										fontWeight: 600,
-									}
-								}}
-							>
-								<ToggleButton value="Online">Online</ToggleButton>
-								<ToggleButton value="In-Person">In-Person</ToggleButton>
-								<ToggleButton value="Phone">Phone</ToggleButton>
-							</ToggleButtonGroup>
-
-							<TextField
-								select
-								value={outcome}
-								onChange={(e) => {
-									const val = e.target.value;
-									setOutcome(val);
-									setIsCompleted(val !== 'Scheduled');
-								}}
-								size="small"
-								sx={{
-									flexGrow: 1,
-									'& .MuiOutlinedInput-root': {
-										borderRadius: '8px',
-										height: 36,
-										fontSize: '0.78rem',
-									}
-								}}
-							>
-								<MenuItem value="Scheduled" sx={{ fontSize: '0.78rem' }}>Scheduled</MenuItem>
-								<MenuItem value="Completed" sx={{ fontSize: '0.78rem' }}>Completed</MenuItem>
-								<MenuItem value="No Show" sx={{ fontSize: '0.78rem' }}>No Show</MenuItem>
-								<MenuItem value="Canceled" sx={{ fontSize: '0.78rem' }}>Canceled</MenuItem>
-							</TextField>
-						</Stack>
-
-						<TextField
-							variant="standard"
-							placeholder="Meeting Subject (optional, e.g. Project onboarding)"
-							value={subject}
-							onChange={(e) => setSubject(e.target.value)}
-							fullWidth
-							InputProps={{ disableUnderline: true, style: { fontSize: '0.82rem' } }}
-							sx={{ mb: 1 }}
-						/>
-
-						<Box sx={{ mb: 0.5 }}>
-							<RichTextEditor
-								value={description}
-								onChange={setDescription}
-								placeholder="Write meeting agenda or notes..."
-								minHeight={90}
-								variant="simple"
-							/>
-						</Box>
-					</Box>
-				) : (
-					<TextField
-						variant="standard"
-						placeholder={type === 'task' ? 'What needs to be done?' : 'Type a note or record a summary...'}
-						value={subject}
-						onChange={(e) => setSubject(e.target.value)}
-						fullWidth
-						multiline
-						minRows={2}
-						InputProps={{ disableUnderline: true }}
-						sx={{ mb: 1 }}
+				{type === 'note' && (
+					<NoteTab description={description} setDescription={setDescription} compact={compact} />
+				)}
+				{type === 'call' && (
+					<CallTab
+						subject={subject}
+						setSubject={setSubject}
+						description={description}
+						setDescription={setDescription}
+						direction={direction}
+						setDirection={setDirection}
+						outcome={outcome}
+						setOutcome={setOutcome}
+						compact={compact}
+					/>
+				)}
+				{type === 'email' && (
+					<EmailTab
+						subject={subject}
+						setSubject={setSubject}
+						description={description}
+						setDescription={setDescription}
+						direction={direction}
+						setDirection={setDirection}
+						outcome={outcome}
+						setOutcome={setOutcome}
+						compact={compact}
+					/>
+				)}
+				{type === 'meeting' && (
+					<MeetingTab
+						subject={subject}
+						setSubject={setSubject}
+						description={description}
+						setDescription={setDescription}
+						direction={direction}
+						setDirection={setDirection}
+						outcome={outcome}
+						setOutcome={setOutcome}
+						setIsCompleted={setIsCompleted}
+						compact={compact}
+					/>
+				)}
+				{type === 'task' && (
+					<TaskTab
+						subject={subject}
+						setSubject={setSubject}
+						description={description}
+						setDescription={setDescription}
+						compact={compact}
+					/>
+				)}
+				{type === 'whatsapp' && (
+					<WhatsAppTab
+						subject={subject}
+						setSubject={setSubject}
+						description={description}
+						setDescription={setDescription}
+						compact={compact}
 					/>
 				)}
 
@@ -518,181 +328,67 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 				))}
 			</ToggleButtonGroup>
 
+			{type === 'note' && (
+				<NoteTab description={description} setDescription={setDescription} compact={compact} />
+			)}
 			{type === 'call' && (
-				<Stack direction="row" spacing={1.5} sx={{ mb: 1.5 }}>
-					<ToggleButtonGroup
-						value={direction}
-						exclusive
-						onChange={(_e, val) => val && setDirection(val)}
-						size="small"
-						sx={{
-							flexShrink: 0,
-							height: 40,
-							'& .MuiToggleButtonGroup-grouped': {
-								border: '1px solid',
-								borderColor: 'divider',
-								borderRadius: '8px !important',
-								textTransform: 'none',
-								px: 2,
-								fontWeight: 600,
-							}
-						}}
-					>
-						<ToggleButton value="Outbound">Outbound</ToggleButton>
-						<ToggleButton value="Inbound">Inbound</ToggleButton>
-					</ToggleButtonGroup>
-
-					<TextField
-						select
-						label="Call Outcome"
-						value={outcome}
-						onChange={(e) => setOutcome(e.target.value)}
-						size="small"
-						sx={{
-							flexGrow: 1,
-							'& .MuiOutlinedInput-root': {
-								borderRadius: '8px',
-								height: 40,
-							}
-						}}
-					>
-						<MenuItem value="Connected">Connected</MenuItem>
-						<MenuItem value="Busy">Busy</MenuItem>
-						<MenuItem value="No Answer">No Answer</MenuItem>
-						<MenuItem value="Left Voicemail">Left Voicemail</MenuItem>
-						<MenuItem value="Wrong Number">Wrong Number</MenuItem>
-					</TextField>
-				</Stack>
+				<CallTab
+					subject={subject}
+					setSubject={setSubject}
+					description={description}
+					setDescription={setDescription}
+					direction={direction}
+					setDirection={setDirection}
+					outcome={outcome}
+					setOutcome={setOutcome}
+					compact={compact}
+				/>
 			)}
-
 			{type === 'email' && (
-				<Stack direction="row" spacing={1.5} sx={{ mb: 1.5 }}>
-					<ToggleButtonGroup
-						value={direction}
-						exclusive
-						onChange={(_e, val) => {
-							if (val) {
-								setDirection(val);
-								setOutcome(val === 'Sent' ? 'Sent' : 'Received');
-							}
-						}}
-						size="small"
-						sx={{
-							flexShrink: 0,
-							height: 40,
-							'& .MuiToggleButtonGroup-grouped': {
-								border: '1px solid',
-								borderColor: 'divider',
-								borderRadius: '8px !important',
-								textTransform: 'none',
-								px: 2,
-								fontWeight: 600,
-							}
-						}}
-					>
-						<ToggleButton value="Sent">Sent</ToggleButton>
-						<ToggleButton value="Received">Received</ToggleButton>
-					</ToggleButtonGroup>
-
-					<TextField
-						select
-						label="Email Status"
-						value={outcome}
-						onChange={(e) => setOutcome(e.target.value)}
-						size="small"
-						sx={{
-							flexGrow: 1,
-							'& .MuiOutlinedInput-root': {
-								borderRadius: '8px',
-								height: 40,
-							}
-						}}
-					>
-						{direction === 'Sent' ? [
-							<MenuItem key="Sent" value="Sent">Sent</MenuItem>,
-							<MenuItem key="Opened" value="Opened">Opened</MenuItem>,
-							<MenuItem key="Replied" value="Replied">Replied</MenuItem>
-						] : [
-							<MenuItem key="Received" value="Received">Received</MenuItem>,
-							<MenuItem key="Read" value="Read">Read</MenuItem>,
-							<MenuItem key="Replied" value="Replied">Replied</MenuItem>
-						]}
-					</TextField>
-				</Stack>
+				<EmailTab
+					subject={subject}
+					setSubject={setSubject}
+					description={description}
+					setDescription={setDescription}
+					direction={direction}
+					setDirection={setDirection}
+					outcome={outcome}
+					setOutcome={setOutcome}
+					compact={compact}
+				/>
 			)}
-
 			{type === 'meeting' && (
-				<Stack direction="row" spacing={1.5} sx={{ mb: 1.5 }}>
-					<ToggleButtonGroup
-						value={direction}
-						exclusive
-						onChange={(_e, val) => val && setDirection(val)}
-						size="small"
-						sx={{
-							flexShrink: 0,
-							height: 40,
-							'& .MuiToggleButtonGroup-grouped': {
-								border: '1px solid',
-								borderColor: 'divider',
-								borderRadius: '8px !important',
-								textTransform: 'none',
-								px: 2,
-								fontWeight: 600,
-							}
-						}}
-					>
-						<ToggleButton value="Online">Online</ToggleButton>
-						<ToggleButton value="In-Person">In-Person</ToggleButton>
-						<ToggleButton value="Phone">Phone</ToggleButton>
-					</ToggleButtonGroup>
-
-					<TextField
-						select
-						label="Meeting Status"
-						value={outcome}
-						onChange={(e) => {
-							const val = e.target.value;
-							setOutcome(val);
-							setIsCompleted(val !== 'Scheduled');
-						}}
-						size="small"
-						sx={{
-							flexGrow: 1,
-							'& .MuiOutlinedInput-root': {
-								borderRadius: '8px',
-								height: 40,
-							}
-						}}
-					>
-						<MenuItem value="Scheduled">Scheduled</MenuItem>
-						<MenuItem value="Completed">Completed</MenuItem>
-						<MenuItem value="No Show">No Show</MenuItem>
-						<MenuItem value="Canceled">Canceled</MenuItem>
-					</TextField>
-				</Stack>
-			)}
-
-			{type !== 'note' && (
-				<TextField
-					placeholder={type === 'task' ? 'What needs to be done?' : type === 'call' ? 'Subject/Purpose (optional)' : type === 'email' ? 'Subject/Purpose (optional, e.g. Contract review)' : type === 'meeting' ? 'Subject/Purpose (optional, e.g. Project onboarding)' : 'Add a quick note...'}
-					value={subject}
-					onChange={(e) => setSubject(e.target.value)}
-					fullWidth
-					size="small"
-					sx={{ mb: 1.5 }}
+				<MeetingTab
+					subject={subject}
+					setSubject={setSubject}
+					description={description}
+					setDescription={setDescription}
+					direction={direction}
+					setDirection={setDirection}
+					outcome={outcome}
+					setOutcome={setOutcome}
+					setIsCompleted={setIsCompleted}
+					compact={compact}
 				/>
 			)}
-
-			<Box sx={{ mb: 1.5 }}>
-				<RichTextEditor
-					value={description}
-					onChange={setDescription}
-					placeholder={type === 'note' ? 'Write your note here...' : type === 'call' ? 'Write call notes or record a summary...' : type === 'email' ? 'Write email body here...' : type === 'meeting' ? 'Write meeting agenda or notes...' : 'Details (optional)'}
-					minHeight={100}
-					variant="simple"
-					maxWords={type === 'note' ? NOTE_MAX_WORDS : undefined}
+			{type === 'task' && (
+				<TaskTab
+					subject={subject}
+					setSubject={setSubject}
+					description={description}
+					setDescription={setDescription}
+					compact={compact}
 				/>
-			</Box>
+			)}
+			{type === 'whatsapp' && (
+				<WhatsAppTab
+					subject={subject}
+					setSubject={setSubject}
+					description={description}
+					setDescription={setDescription}
+					compact={compact}
+				/>
+			)}
 
 			<Stack direction="row" spacing={1.5} alignItems="center" justifyContent="space-between">
 				<Stack direction="row" spacing={1.5} alignItems="center">

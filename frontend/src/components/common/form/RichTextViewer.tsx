@@ -27,6 +27,11 @@ export const RichTextViewer: React.FC<RichTextViewerProps> = ({ html }) => {
 					ml: 0,
 					color: 'text.secondary',
 				},
+				...(theme.palette.mode === 'dark' && {
+					'& span[style*="color: rgb(0, 0, 0)"], & span[style*="color: rgb(34, 34, 34)"], & span[style*="color: black"], & [style*="color:#000"], & [style*="color:#000000"]': {
+						color: `${theme.palette.text.primary} !important`,
+					},
+				}),
 			}}
 			dangerouslySetInnerHTML={{ __html: clean }}
 		/>
