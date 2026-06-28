@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography, Stack, TextField, MenuItem, Button, useTheme, alpha } from '@mui/material';
-import { FilterAltOff } from '@mui/icons-material';
+import { FilterAltOff, HelpOutline } from '@mui/icons-material';
+import PremiumTooltip from '../../../common/PremiumTooltip';
 import { LEAD_SOURCES, LEAD_PRIORITIES } from '../constants';
 import type { LeadStatus, LeadSource, LeadPriority } from '../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
@@ -63,7 +64,12 @@ export const LeadsFilterPanel: React.FC<LeadsFilterPanelProps> = ({
 			}}
 		>
 			<Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-				<Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Filters</Typography>
+				<Box display="flex" alignItems="center" gap={0.5}>
+					<Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Filters</Typography>
+					<PremiumTooltip title="Filter your active pipeline by candidate status, priority levels, traffic channel, or lead assignment owner." arrow placement="right">
+						<HelpOutline sx={{ fontSize: 13, color: 'text.secondary', cursor: 'pointer', opacity: 0.7, '&:hover': { opacity: 1, color: 'primary.main' } }} />
+					</PremiumTooltip>
+				</Box>
 				{hasActiveFilters && (
 					<Button
 						size="small"

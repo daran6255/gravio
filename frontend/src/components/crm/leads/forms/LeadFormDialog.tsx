@@ -10,6 +10,7 @@ import {
 	CircularProgress,
 	Alert,
 } from '@mui/material';
+import { HelpOutline } from '@mui/icons-material';
 import { NumericFormat } from 'react-number-format';
 import BaseDialog from '../../../common/dialogbox/BaseDialog';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
@@ -20,6 +21,7 @@ import type { Contact } from '../../../../models/crm/contact';
 import useToast from '../../../../hooks/useToast';
 import { getWorldCurrencies, getCurrencySymbol } from '../../../../utils/currency';
 import RichTextEditor from '../../../common/form/RichTextEditor';
+import PremiumTooltip from '../../../common/PremiumTooltip';
 import { LEAD_SOURCES, LEAD_PRIORITIES } from '../constants';
 
 interface LeadFormDialogProps {
@@ -132,7 +134,14 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 				{error && <Alert severity="error">{error}</Alert>}
 
 				<TextField
-					label="Title"
+					label={
+						<Stack direction="row" alignItems="center" spacing={0.5}>
+							<span>Title</span>
+							<PremiumTooltip title="A descriptive name for this opportunity (e.g., website redesign or recruitment placement)." arrow placement="top">
+								<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
+							</PremiumTooltip>
+						</Stack>
+					}
 					value={title}
 					onChange={(e) => setTitle(e.target.value)}
 					onBlur={() => setTouched((t) => ({ ...t, title: true }))}
@@ -155,7 +164,14 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 					renderInput={(params) => (
 						<TextField
 							{...params}
-							label="Company"
+							label={
+								<Stack direction="row" alignItems="center" spacing={0.5}>
+									<span>Company</span>
+									<PremiumTooltip title="The business or organization this candidate/opportunity belongs to." arrow placement="top">
+										<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
+									</PremiumTooltip>
+								</Stack>
+							}
 							size="small"
 							InputProps={{
 								...params.InputProps,
@@ -181,7 +197,14 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 					renderInput={(params) => (
 						<TextField
 							{...params}
-							label="Contact"
+							label={
+								<Stack direction="row" alignItems="center" spacing={0.5}>
+									<span>Contact Person</span>
+									<PremiumTooltip title="The primary person/candidate linked to this lead." arrow placement="top">
+										<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
+									</PremiumTooltip>
+								</Stack>
+							}
 							size="small"
 							InputProps={{
 								...params.InputProps,
@@ -199,7 +222,14 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 				<Stack direction="row" spacing={2}>
 					<TextField
 						select
-						label="Source"
+						label={
+							<Stack direction="row" alignItems="center" spacing={0.5}>
+								<span>Source</span>
+								<PremiumTooltip title="Where this lead originated from (e.g., website, campaign, partner referral)." arrow placement="top">
+									<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
+								</PremiumTooltip>
+							</Stack>
+						}
 						value={source}
 						onChange={(e) => setSource(e.target.value as LeadSource)}
 						fullWidth
@@ -213,7 +243,14 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 
 					<TextField
 						select
-						label="Priority"
+						label={
+							<Stack direction="row" alignItems="center" spacing={0.5}>
+								<span>Priority</span>
+								<PremiumTooltip title="The urgency or interest tier for lead outbound follow-up (high, medium, low)." arrow placement="top">
+									<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
+								</PremiumTooltip>
+							</Stack>
+						}
 						value={priority}
 						onChange={(e) => setPriority(e.target.value as LeadPriority)}
 						fullWidth
@@ -228,7 +265,14 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 				<Stack direction="row" spacing={2}>
 					<NumericFormat
 						customInput={TextField}
-						label="Estimated Value"
+						label={
+							<Stack direction="row" alignItems="center" spacing={0.5}>
+								<span>Estimated Value</span>
+								<PremiumTooltip title="The expected budget size or deal value associated with this candidate." arrow placement="top">
+									<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
+								</PremiumTooltip>
+							</Stack>
+						}
 						value={estimatedValue}
 						onValueChange={(values) => setEstimatedValue(values.value)}
 						thousandSeparator
@@ -256,7 +300,14 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 						renderInput={(params) => (
 							<TextField
 								{...params}
-								label="Currency"
+								label={
+									<Stack direction="row" alignItems="center" spacing={0.5}>
+										<span>Currency</span>
+										<PremiumTooltip title="The monetary currency unit for value calculations." arrow placement="top">
+											<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
+										</PremiumTooltip>
+									</Stack>
+								}
 								size="small"
 								error={!!touched.currency && !!fieldErrors.currency}
 								helperText={touched.currency && fieldErrors.currency}
@@ -266,7 +317,14 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 				</Stack>
 
 				<RichTextEditor
-					label="Description"
+					label={
+						<Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.75 }}>
+							<span>Description</span>
+							<PremiumTooltip title="Optional summary details and notes about this candidate." arrow placement="top">
+								<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
+							</PremiumTooltip>
+						</Stack>
+					}
 					value={description}
 					onChange={setDescription}
 					placeholder="Add notes about this opportunity..."

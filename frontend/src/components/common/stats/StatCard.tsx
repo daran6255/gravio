@@ -1,5 +1,7 @@
 import React from 'react';
 import { Card, CardContent, Typography, Box, useTheme, alpha } from '@mui/material';
+import { HelpOutline } from '@mui/icons-material';
+import PremiumTooltip from '../PremiumTooltip';
 
 interface StatCardProps {
 	title: string;
@@ -7,6 +9,7 @@ interface StatCardProps {
 	subtitle?: string;
 	icon: React.ReactNode;
 	color?: string; // Theme-aware accent color, e.g., '#8B7CF6'
+	tooltip?: string;
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -14,7 +17,8 @@ export const StatCard: React.FC<StatCardProps> = ({
 	value,
 	subtitle,
 	icon,
-	color = '#1976d2'
+	color = '#1976d2',
+	tooltip
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
@@ -86,18 +90,25 @@ export const StatCard: React.FC<StatCardProps> = ({
 				}}
 			>
 				<Box>
-					<Typography 
-						variant="caption" 
-						sx={{ 
-							fontWeight: 700, 
-							letterSpacing: '0.08em',
-							color: 'text.secondary',
-							fontSize: '0.72rem',
-							textTransform: 'uppercase'
-						}}
-					>
-						{title}
-					</Typography>
+					<Box display="flex" alignItems="center" gap={0.5}>
+						<Typography 
+							variant="caption" 
+							sx={{ 
+								fontWeight: 700, 
+								letterSpacing: '0.08em',
+								color: 'text.secondary',
+								fontSize: '0.72rem',
+								textTransform: 'uppercase'
+							}}
+						>
+							{title}
+						</Typography>
+						{tooltip && (
+							<PremiumTooltip title={tooltip} arrow placement="top">
+								<HelpOutline sx={{ fontSize: 13, color: 'text.secondary', cursor: 'pointer', opacity: 0.7, '&:hover': { opacity: 1, color: 'primary.main' } }} />
+							</PremiumTooltip>
+						)}
+					</Box>
 					<Typography 
 						variant="h4" 
 						sx={{ 

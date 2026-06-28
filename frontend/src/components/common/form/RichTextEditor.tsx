@@ -4,7 +4,7 @@ import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
 interface RichTextEditorProps {
-	label?: string;
+	label?: React.ReactNode;
 	value: string;
 	onChange: (html: string) => void;
 	placeholder?: string;

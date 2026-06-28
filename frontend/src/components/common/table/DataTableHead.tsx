@@ -10,7 +10,7 @@ import {
 
 export interface ColumnDefinition<T> {
 	id: keyof T | 'actions';
-	label: string;
+	label: React.ReactNode;
 	sortable?: boolean;
 	align?: 'left' | 'right' | 'center';
 	width?: string | number;

@@ -16,6 +16,7 @@ export const LeadsStatsPanel: React.FC<LeadsStatsPanelProps> = ({ stats }) => {
 			subtitle: 'All leads in your pipeline',
 			icon: <Inbox sx={{ color: '#8B7CF6', fontSize: 26 }} />,
 			color: '#8B7CF6',
+			tooltip: 'The total number of candidate registrations captured in your CRM workspace.',
 		},
 		{
 			title: 'NEW LEADS',
@@ -23,6 +24,7 @@ export const LeadsStatsPanel: React.FC<LeadsStatsPanelProps> = ({ stats }) => {
 			subtitle: 'Not yet contacted',
 			icon: <MarkEmailRead sx={{ color: '#F59E0B', fontSize: 26 }} />,
 			color: '#F59E0B',
+			tooltip: 'Leads that have just registered and have not yet been contacted by an owner.',
 		},
 		{
 			title: 'QUALIFIED LEADS',
@@ -30,6 +32,7 @@ export const LeadsStatsPanel: React.FC<LeadsStatsPanelProps> = ({ stats }) => {
 			subtitle: 'Ready to convert',
 			icon: <Verified sx={{ color: '#10B981', fontSize: 26 }} />,
 			color: '#10B981',
+			tooltip: 'Leads marked as Qualified, indicating they are ready to be converted into active placement deals.',
 		},
 		{
 			title: 'CONVERSION RATE',
@@ -37,6 +40,7 @@ export const LeadsStatsPanel: React.FC<LeadsStatsPanelProps> = ({ stats }) => {
 			subtitle: `${stats?.converted_count ?? 0} converted to deals`,
 			icon: <SwapHoriz sx={{ color: '#4EA8FF', fontSize: 26 }} />,
 			color: '#4EA8FF',
+			tooltip: 'The percentage of total leads successfully qualified and converted into active deals.',
 		},
 	];
 

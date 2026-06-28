@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
 import { TableRow, TableCell, Typography, Stack, Checkbox } from '@mui/material';
-import { Visibility, Edit, SwapHoriz, DeleteOutline } from '@mui/icons-material';
+import { Visibility, Edit, SwapHoriz, DeleteOutline, HelpOutline } from '@mui/icons-material';
 import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../../common/table';
 import StatusBadge from '../../../common/badge/StatusBadge';
 import EnterpriseAvatar from '../../../common/avatar/Avatar';
+import PremiumTooltip from '../../../common/PremiumTooltip';
 import type { Lead } from '../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
 import { getCurrencySymbol } from '../../../../utils/currency';
@@ -61,12 +62,77 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
 	const ownerMap = useMemo(() => new Map(owners.map((o) => [o.id, o])), [owners]);
 
 	const columns: ColumnDefinition<Lead>[] = [
-		{ id: 'title', label: 'Lead' },
-		{ id: 'status', label: 'Status' },
-		{ id: 'owner_id', label: 'Owner', hideOnMobile: true },
-		{ id: 'priority', label: 'Priority', hideOnMobile: true },
-		{ id: 'source', label: 'Source', hideOnMobile: true },
-		{ id: 'estimated_value', label: 'Value', align: 'right', hideOnMobile: true },
+		{
+			id: 'title',
+			label: (
+				<Stack direction="row" alignItems="center" spacing={0.5} sx={{ display: 'inline-flex' }}>
+					<span>Lead</span>
+					<PremiumTooltip title="The name and primary details of the prospective recruit or candidate." arrow placement="top">
+						<HelpOutline sx={{ fontSize: 12, opacity: 0.7, cursor: 'pointer', '&:hover': { opacity: 1, color: 'primary.main' } }} />
+					</PremiumTooltip>
+				</Stack>
+			)
+		},
+		{
+			id: 'status',
+			label: (
+				<Stack direction="row" alignItems="center" spacing={0.5} sx={{ display: 'inline-flex' }}>
+					<span>Status</span>
+					<PremiumTooltip title="The candidate's current recruitment pipeline phase (New, Contacted, Qualified, Unqualified, Converted)." arrow placement="top">
+						<HelpOutline sx={{ fontSize: 12, opacity: 0.7, cursor: 'pointer', '&:hover': { opacity: 1, color: 'primary.main' } }} />
+					</PremiumTooltip>
+				</Stack>
+			)
+		},
+		{
+			id: 'owner_id',
+			label: (
+				<Stack direction="row" alignItems="center" spacing={0.5} sx={{ display: 'inline-flex' }}>
+					<span>Owner</span>
+					<PremiumTooltip title="The team member assigned to manage this lead and qualify them." arrow placement="top">
+						<HelpOutline sx={{ fontSize: 12, opacity: 0.7, cursor: 'pointer', '&:hover': { opacity: 1, color: 'primary.main' } }} />
+					</PremiumTooltip>
+				</Stack>
+			),
+			hideOnMobile: true
+		},
+		{
+			id: 'priority',
+			label: (
+				<Stack direction="row" alignItems="center" spacing={0.5} sx={{ display: 'inline-flex' }}>
+					<span>Priority</span>
+					<PremiumTooltip title="The relative urgency or interest level of the candidate (High, Medium, Low)." arrow placement="top">
+						<HelpOutline sx={{ fontSize: 12, opacity: 0.7, cursor: 'pointer', '&:hover': { opacity: 1, color: 'primary.main' } }} />
+					</PremiumTooltip>
+				</Stack>
+			),
+			hideOnMobile: true
+		},
+		{
+			id: 'source',
+			label: (
+				<Stack direction="row" alignItems="center" spacing={0.5} sx={{ display: 'inline-flex' }}>
+					<span>Source</span>
+					<PremiumTooltip title="The channel where the candidate came from (e.g. Website registration, referral, campaign)." arrow placement="top">
+						<HelpOutline sx={{ fontSize: 12, opacity: 0.7, cursor: 'pointer', '&:hover': { opacity: 1, color: 'primary.main' } }} />
+					</PremiumTooltip>
+				</Stack>
+			),
+			hideOnMobile: true
+		},
+		{
+			id: 'estimated_value',
+			label: (
+				<Stack direction="row" alignItems="center" spacing={0.5} sx={{ display: 'inline-flex' }}>
+					<span>Value</span>
+					<PremiumTooltip title="The estimated placement commission or value associated with this candidate pipeline." arrow placement="top">
+						<HelpOutline sx={{ fontSize: 12, opacity: 0.7, cursor: 'pointer', '&:hover': { opacity: 1, color: 'primary.main' } }} />
+					</PremiumTooltip>
+				</Stack>
+			),
+			align: 'right',
+			hideOnMobile: true
+		},
 		{ id: 'actions', label: '', align: 'right', width: 60 },
 	];
 

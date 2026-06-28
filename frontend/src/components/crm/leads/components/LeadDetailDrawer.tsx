@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Stack, IconButton, Tooltip, useTheme, alpha, Tabs, Tab, Grid, CircularProgress } from '@mui/material';
-import { Edit, DeleteOutline, Phone, Email, InsertDriveFileOutlined, KeyboardArrowDown, KeyboardArrowUp, CloudUploadOutlined, GetApp, PictureAsPdf, Image, Description, GridOn, InsertDriveFile } from '@mui/icons-material';
+import { Edit, DeleteOutline, Phone, Email, InsertDriveFileOutlined, KeyboardArrowDown, KeyboardArrowUp, CloudUploadOutlined, GetApp, PictureAsPdf, Image, Description, GridOn, InsertDriveFile, HelpOutline } from '@mui/icons-material';
 import DetailDrawer from '../../../common/drawer/DetailDrawer';
+import PremiumTooltip from '../../../common/PremiumTooltip';
 import { RichTextViewer } from '../../../common/form';
 import { NotesComposer, NotesTimeline } from '../../shared';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
@@ -313,7 +314,12 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 
 				{contact && (
 					<Box sx={fieldCardSx}>
-						<Typography sx={labelSx}>Contact</Typography>
+						<Box display="flex" alignItems="center" gap={0.5} sx={{ mb: 0.5 }}>
+							<Typography sx={{ ...labelSx, mb: 0 }}>Contact</Typography>
+							<PremiumTooltip title="The associated candidate contact info. Click expand button to view email/phone details, or use quick actions to call or email." arrow placement="right">
+								<HelpOutline sx={{ fontSize: 13, color: 'text.secondary', cursor: 'pointer', opacity: 0.7, '&:hover': { opacity: 1, color: 'primary.main' } }} />
+							</PremiumTooltip>
+						</Box>
 						<Stack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{ mt: 0.5 }}>
 							<Box sx={{ minWidth: 0, flex: 1 }}>
 								<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', mb: contactExpanded ? 0.75 : 0 }}>
@@ -409,7 +415,12 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 
 				{lead.description && (
 					<Box>
-						<Typography sx={sectionTitleSx}>Description</Typography>
+						<Box display="flex" alignItems="center" gap={0.5} sx={{ mb: 1.25 }}>
+							<Typography sx={{ ...sectionTitleSx, mb: 0 }}>Description</Typography>
+							<PremiumTooltip title="Primary overview or background details of the lead." arrow placement="right">
+								<HelpOutline sx={{ fontSize: 13, color: 'text.secondary', cursor: 'pointer', opacity: 0.7, '&:hover': { opacity: 1, color: 'primary.main' } }} />
+							</PremiumTooltip>
+						</Box>
 						<Box
 							sx={{
 								...fieldCardSx,
@@ -423,7 +434,12 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 				)}
 
 				<Box>
-					<Typography sx={sectionTitleSx}>Notes</Typography>
+					<Box display="flex" alignItems="center" gap={0.5} sx={{ mb: 1.25 }}>
+						<Typography sx={{ ...sectionTitleSx, mb: 0 }}>Notes</Typography>
+						<PremiumTooltip title="Log communication activities for this lead. Notes, calls, emails, and meetings logged here will populate the Timeline." arrow placement="right">
+							<HelpOutline sx={{ fontSize: 13, color: 'text.secondary', cursor: 'pointer', opacity: 0.7, '&:hover': { opacity: 1, color: 'primary.main' } }} />
+						</PremiumTooltip>
+					</Box>
 					<Box
 						sx={{
 							...fieldCardSx,
@@ -443,7 +459,13 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 				</Box>
 			</Box>
 
-			<Box sx={{ display: tab === 1 ? 'flex' : 'none', flexDirection: 'column', overflowY: 'auto', flex: 1 }}>
+			<Box sx={{ display: tab === 1 ? 'flex' : 'none', flexDirection: 'column', overflowY: 'auto', flex: 1, p: 2.5 }}>
+				<Box display="flex" alignItems="center" gap={0.5} sx={{ mb: 2 }}>
+					<Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Activity History</Typography>
+					<PremiumTooltip title="Timeline trace of logged phone calls, emails, notes, tasks, and meetings. Helps keep your sales outreach history transparent." arrow placement="right">
+						<HelpOutline sx={{ fontSize: 13, color: 'text.secondary', cursor: 'pointer', opacity: 0.7, '&:hover': { opacity: 1, color: 'primary.main' } }} />
+					</PremiumTooltip>
+				</Box>
 				<NotesTimeline activities={activities} loading={activitiesLoading} />
 			</Box>
 
@@ -456,6 +478,12 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 					overflowY: 'auto',
 				}}
 			>
+				<Box display="flex" alignItems="center" gap={0.5} sx={{ mb: 2 }}>
+					<Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Candidate Attachments</Typography>
+					<PremiumTooltip title="Securely upload, store, and download resumes, certificates, and profiles. Scoped strictly under your organization tenant ID and uploader user credentials." arrow placement="right">
+						<HelpOutline sx={{ fontSize: 13, color: 'text.secondary', cursor: 'pointer', opacity: 0.7, '&:hover': { opacity: 1, color: 'primary.main' } }} />
+					</PremiumTooltip>
+				</Box>
 				{/* Dotted Upload Card */}
 				<Box
 					sx={{

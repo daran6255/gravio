@@ -1,5 +1,7 @@
 import React from 'react';
 import { Box, Typography, Stack, useTheme } from '@mui/material';
+import { HelpOutline } from '@mui/icons-material';
+import PremiumTooltip from '../../../common/PremiumTooltip';
 import type { SourceStats } from '../../../../models/crm/crmStats';
 
 interface LeadsSourceBreakdownProps {
@@ -22,7 +24,12 @@ export const LeadsSourceBreakdown: React.FC<LeadsSourceBreakdownProps> = ({ sour
 				p: 2.5,
 			}}
 		>
-			<Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2 }}>Leads by Source</Typography>
+			<Box display="flex" alignItems="center" gap={0.5} sx={{ mb: 2 }}>
+				<Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Leads by Source</Typography>
+				<PremiumTooltip title="The acquisition channel from which candidates registered (e.g. Website, Referral, campaigns)." arrow placement="right">
+					<HelpOutline sx={{ fontSize: 13, color: 'text.secondary', cursor: 'pointer', opacity: 0.7, '&:hover': { opacity: 1, color: 'primary.main' } }} />
+				</PremiumTooltip>
+			</Box>
 
 			{sorted.length === 0 ? (
 				<Typography variant="caption" color="text.secondary">No leads yet</Typography>
