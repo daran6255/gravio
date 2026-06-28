@@ -358,7 +358,7 @@ export const updatePipelineStages = createAsyncThunk(
 
 export const fetchDeals = createAsyncThunk(
 	'crm/fetchDeals',
-	async (params: { pipelineId?: number; search?: string } | undefined, { rejectWithValue }) => {
+	async (params: { pipelineId?: number; search?: string; ownerId?: number } | undefined, { rejectWithValue }) => {
 		try {
 			return await crmService.listDeals({ ...params, pageSize: 200 });
 		} catch (error: any) {

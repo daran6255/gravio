@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
-import { fetchPipelines, fetchDeals, updateDeal, deleteDeal, searchCompanyOptions, searchContactOptions } from '../../../../store/slices/crmSlice';
+import { fetchPipelines, fetchDeals, updateDeal, deleteDeal, searchCompanyOptions, searchContactOptions, fetchOwners } from '../../../../store/slices/crmSlice';
 import useToast from '../../../../hooks/useToast';
 import type { Deal } from '../../../../models/crm/deal';
 import type { PipelineStage } from '../../../../models/crm/pipeline';
@@ -13,6 +13,12 @@ export const useDealsKanban = () => {
 
 	const [activePipelineId, setActivePipelineId] = useState<number | null>(null);
 	const [refreshKey, setRefreshKey] = useState(0);
+
+	const [searchTerm, setSearchTerm] = useState('');
+	const [ownerFilter, setOwnerFilter] = useState<number | ''>('');
+
+	const [formOpen, setFormOpen] = useState(false);
+	const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
 
 	const [detailOpen, setDetailOpen] = useState(false);
 	const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
@@ -30,6 +36,7 @@ export const useDealsKanban = () => {
 		dispatch(fetchPipelines());
 		dispatch(searchCompanyOptions(undefined));
 		dispatch(searchContactOptions(undefined));
+		dispatch(fetchOwners());
 	}, [dispatch, refreshKey]);
 
 	useEffect(() => {
@@ -40,9 +47,13 @@ export const useDealsKanban = () => {
 
 	useEffect(() => {
 		if (activePipelineId !== null) {
-			dispatch(fetchDeals({ pipelineId: activePipelineId }));
+			dispatch(fetchDeals({
+				pipelineId: activePipelineId,
+				search: searchTerm || undefined,
+				ownerId: ownerFilter || undefined,
+			}));
 		}
-	}, [dispatch, activePipelineId, refreshKey]);
+	}, [dispatch, activePipelineId, searchTerm, ownerFilter, refreshKey]);
 
 	const activePipeline = useMemo(
 		() => pipelines.find((p) => p.id === activePipelineId),
@@ -51,14 +62,19 @@ export const useDealsKanban = () => {
 
 	const refreshData = useCallback(() => setRefreshKey((k) => k + 1), []);
 
+	const handleCreateClick = () => {
+		setEditingDeal(null);
+		setFormOpen(true);
+	};
+
 	const handleViewDeal = (deal: Deal) => {
 		setSelectedDeal(deal);
 		setDetailOpen(true);
 	};
 
 	const handleEditDeal = (deal: Deal) => {
-		setSelectedDeal(deal);
-		setDetailOpen(true);
+		setEditingDeal(deal);
+		setFormOpen(true);
 	};
 
 	const handleDeleteRequest = (deal: Deal) => setDeleteTarget(deal);
@@ -91,6 +107,10 @@ export const useDealsKanban = () => {
 		}
 	};
 
+	const handleFormSuccess = () => {
+		refreshData();
+	};
+
 	return {
 		pipelines,
 		pipelinesLoading,
@@ -101,6 +121,16 @@ export const useDealsKanban = () => {
 		dealsLoading,
 		canManagePipeline,
 		refreshData,
+
+		searchTerm,
+		setSearchTerm,
+		ownerFilter,
+		setOwnerFilter,
+
+		formOpen,
+		setFormOpen,
+		editingDeal,
+		handleCreateClick,
 
 		detailOpen,
 		setDetailOpen,
@@ -121,5 +151,8 @@ export const useDealsKanban = () => {
 		handleDeleteRequest,
 		handleConfirmDelete,
 		handleMoveDeal,
+		handleFormSuccess,
 	};
 };
+
+export default useDealsKanban;

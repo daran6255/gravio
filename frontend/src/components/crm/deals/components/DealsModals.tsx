@@ -1,5 +1,5 @@
 import React from 'react';
-import { WonLostDialog, StageManagementDialog } from '../forms';
+import { WonLostDialog, StageManagementDialog, DealFormDialog } from '../forms';
 import { ConfirmationDialog } from '../../../common/dialogbox';
 import type { Deal } from '../../../../models/crm/deal';
 import type { Pipeline, PipelineStage } from '../../../../models/crm/pipeline';
@@ -16,6 +16,12 @@ interface DealsModalsProps {
 	onCloseDelete: () => void;
 	onConfirmDelete: () => void;
 	deleteLoading: boolean;
+
+	formOpen: boolean;
+	onCloseForm: () => void;
+	editingDeal: Deal | null;
+	activePipelineId: number | null;
+	onFormSuccess: (deal: Deal) => void;
 }
 
 export const DealsModals: React.FC<DealsModalsProps> = ({
@@ -28,9 +34,22 @@ export const DealsModals: React.FC<DealsModalsProps> = ({
 	onCloseDelete,
 	onConfirmDelete,
 	deleteLoading,
+	formOpen,
+	onCloseForm,
+	editingDeal,
+	activePipelineId,
+	onFormSuccess,
 }) => {
 	return (
 		<>
+			<DealFormDialog
+				open={formOpen}
+				onClose={onCloseForm}
+				deal={editingDeal}
+				activePipelineId={activePipelineId}
+				onSuccess={onFormSuccess}
+			/>
+
 			<WonLostDialog
 				open={!!pendingMove}
 				onClose={onClosePendingMove}
