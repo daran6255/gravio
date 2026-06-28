@@ -40,17 +40,43 @@ interface NotesComposerProps {
 }
 
 export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entityId, onCreated, variant = 'standard' }) => {
+	const getLocalDateTimeString = () => {
+		const now = new Date();
+		const offset = now.getTimezoneOffset();
+		const localDate = new Date(now.getTime() - offset * 60 * 1000);
+		return localDate.toISOString().slice(0, 16);
+	};
+
 	const dispatch = useAppDispatch();
 	const toast = useToast();
 	const [type, setType] = useState<CRMActivityType>('note');
 	const [subject, setSubject] = useState('');
 	const [description, setDescription] = useState('');
-	const [dueDate, setDueDate] = useState('');
+	const [dueDate, setDueDate] = useState(getLocalDateTimeString());
 	const [isCompleted, setIsCompleted] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
 	const [direction, setDirection] = useState<string>('Outbound');
 	const [outcome, setOutcome] = useState('Connected');
 	const compact = variant === 'compact';
+
+	const getDateLabel = () => {
+		if (type === 'task') return 'Due Date';
+		if (isCompleted) {
+			switch (type) {
+				case 'call': return 'Call Time';
+				case 'email': return 'Email Time';
+				case 'meeting': return 'Meeting Time';
+				default: return 'Occurrence Time';
+			}
+		} else {
+			switch (type) {
+				case 'call': return 'Scheduled Call / Follow-up';
+				case 'email': return 'Scheduled Send Time';
+				case 'meeting': return 'Scheduled Meeting Time';
+				default: return 'Due Date';
+			}
+		}
+	};
 
 	const getPlainText = (htmlStr: string) => {
 		if (typeof document === 'undefined') return '';
@@ -104,7 +130,7 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 			})).unwrap();
 			setSubject('');
 			setDescription('');
-			setDueDate('');
+			setDueDate(getLocalDateTimeString());
 			setIsCompleted(false);
 			setDirection(type === 'email' ? 'Sent' : type === 'meeting' ? 'Online' : 'Outbound');
 			setOutcome(type === 'email' ? 'Sent' : type === 'meeting' ? 'Scheduled' : 'Connected');
@@ -406,10 +432,10 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 					/>
 				)}
 
-				{(type === 'task' || type === 'meeting' || type === 'call') && (
+				{(type === 'task' || type === 'meeting' || type === 'call' || type === 'email') && (
 					<TextField
 						type="datetime-local"
-						label={type === 'call' ? 'Call Time' : 'Due'}
+						label={getDateLabel()}
 						value={dueDate}
 						onChange={(e) => setDueDate(e.target.value)}
 						size="small"
@@ -673,7 +699,7 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 					{(type === 'task' || type === 'meeting' || type === 'call' || type === 'email') && (
 						<TextField
 							type="datetime-local"
-							label={type === 'call' ? 'Call Time' : type === 'email' ? 'Email Time' : type === 'meeting' ? 'Meeting Time' : 'Due'}
+							label={getDateLabel()}
 							value={dueDate}
 							onChange={(e) => setDueDate(e.target.value)}
 							size="small"
