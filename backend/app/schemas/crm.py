@@ -357,3 +357,18 @@ class CRMSearchResponse(BaseModel):
     contacts: list[CRMContactResponse]
     leads: list[CRMLeadResponse]
     deals: list[CRMDealResponse]
+
+
+# --- File/Attachment Schemas ---
+class CRMFileResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    public_id: uuid.UUID
+    file_name: str
+    file_size: int
+    mime_type: str
+    entity_type: str
+    entity_id: int
+    owner_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime

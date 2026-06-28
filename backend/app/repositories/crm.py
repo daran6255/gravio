@@ -16,6 +16,7 @@ from app.models.crm import (
     CRMPipeline,
     CRMPipelineStage,
     CRMActivity,
+    CRMFile,
     LeadStatus,
 )
 
@@ -446,6 +447,78 @@ class CRMActivityRepository:
             select(CRMActivity)
             .where(*conditions)
             .order_by(CRMActivity.due_date.asc().nulls_last(), CRMActivity.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        return list(result.scalars().all()), total
+
+
+class CRMFileRepository:
+    @staticmethod
+    async def get_by_id(db: AsyncSession, file_id: int) -> Optional[CRMFile]:
+        return await db.get(CRMFile, file_id)
+
+    @staticmethod
+    async def get_by_public_id(db: AsyncSession, public_id: uuid.UUID) -> Optional[CRMFile]:
+        result = await db.execute(select(CRMFile).where(CRMFile.public_id == public_id))
+        return result.scalars().first()
+
+    @staticmethod
+    async def create(
+        db: AsyncSession,
+        *,
+        file_name: str,
+        file_path: str,
+        file_size: int,
+        mime_type: str,
+        entity_type: str,
+        entity_id: int,
+        owner_id: Optional[int] = None,
+        **kwargs
+    ) -> CRMFile:
+        crm_file = CRMFile(
+            file_name=file_name,
+            file_path=file_path,
+            file_size=file_size,
+            mime_type=mime_type,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            owner_id=owner_id,
+            **kwargs
+        )
+        db.add(crm_file)
+        await db.flush()
+        return crm_file
+
+    @staticmethod
+    async def delete(db: AsyncSession, crm_file: CRMFile) -> None:
+        crm_file.soft_delete()
+        await db.flush()
+
+    @staticmethod
+    async def list_by_entity(
+        db: AsyncSession,
+        *,
+        entity_type: str,
+        entity_id: int,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> tuple[list[CRMFile], int]:
+        conditions = [
+            CRMFile.is_deleted.is_(False),
+            CRMFile.entity_type == entity_type,
+            CRMFile.entity_id == entity_id,
+        ]
+
+        count_result = await db.execute(
+            select(func.count()).select_from(CRMFile).where(*conditions)
+        )
+        total = count_result.scalar_one()
+
+        result = await db.execute(
+            select(CRMFile)
+            .where(*conditions)
+            .order_by(CRMFile.created_at.desc())
             .offset((page - 1) * page_size)
             .limit(page_size)
         )

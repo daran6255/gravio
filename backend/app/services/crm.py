@@ -16,6 +16,7 @@ from app.models.crm import (
     CRMPipeline,
     CRMPipelineStage,
     CRMActivity,
+    CRMFile,
     LeadStatus,
     DealStatus,
     ActivityType,
@@ -27,6 +28,7 @@ from app.repositories.crm import (
     CRMDealRepository,
     CRMPipelineRepository,
     CRMActivityRepository,
+    CRMFileRepository,
 )
 from app.schemas.crm import (
     CRMCompanyCreate,
@@ -41,6 +43,7 @@ from app.schemas.crm import (
     CRMActivityCreate,
     CRMActivityUpdate,
     CRMActivityResponse,
+    CRMFileResponse,
     CRMPipelineCreate,
     CRMPipelineStageUpsert,
     CRMStatsResponse,
@@ -704,3 +707,84 @@ class CRMService:
             "leads": leads,
             "deals": deals,
         }
+
+    # --- File Management ---
+    @staticmethod
+    async def create_file(
+        db: AsyncSession,
+        *,
+        file_name: str,
+        file_path: str,
+        file_size: int,
+        mime_type: str,
+        entity_type: str,
+        entity_id: int,
+        owner_id: Optional[int] = None,
+    ) -> CRMFile:
+        # First check that the target entity exists
+        if entity_type == "lead":
+            entity = await CRMLeadRepository.get_by_id(db, entity_id)
+        elif entity_type == "deal":
+            entity = await CRMDealRepository.get_by_id(db, entity_id)
+        elif entity_type == "company":
+            entity = await CRMCompanyRepository.get_by_id(db, entity_id)
+        elif entity_type == "contact":
+            entity = await CRMContactRepository.get_by_id(db, entity_id)
+        else:
+            raise BadRequestError(f"Invalid entity type: {entity_type}")
+
+        if not entity:
+            raise NotFoundError(f"{entity_type.capitalize()} with ID {entity_id} not found")
+
+        return await CRMFileRepository.create(
+            db,
+            file_name=file_name,
+            file_path=file_path,
+            file_size=file_size,
+            mime_type=mime_type,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            owner_id=owner_id,
+        )
+
+    @staticmethod
+    async def get_file(db: AsyncSession, public_id: uuid.UUID) -> CRMFile:
+        crm_file = await CRMFileRepository.get_by_public_id(db, public_id)
+        if not crm_file:
+            raise NotFoundError("File not found")
+        return crm_file
+
+    @staticmethod
+    async def delete_file(db: AsyncSession, public_id: uuid.UUID) -> None:
+        crm_file = await CRMFileRepository.get_by_public_id(db, public_id)
+        if not crm_file:
+            raise NotFoundError("File not found")
+        
+        # Hard delete / remove from disk if required
+        import os
+        if os.path.exists(crm_file.file_path):
+            try:
+                os.remove(crm_file.file_path)
+            except Exception as e:
+                # Log error but proceed with database deletion
+                from loguru import logger
+                logger.error(f"Failed to remove file from disk: {e}")
+                
+        await CRMFileRepository.delete(db, crm_file)
+
+    @staticmethod
+    async def list_files(
+        db: AsyncSession,
+        *,
+        entity_type: str,
+        entity_id: int,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> tuple[list[CRMFile], int]:
+        return await CRMFileRepository.list_by_entity(
+            db,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            page=page,
+            page_size=page_size,
+        )

@@ -8,6 +8,7 @@ import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../models/cr
 import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../models/crm/crmActivity';
 import type { CRMStats, CRMLeadStats } from '../models/crm/crmStats';
 import type { CRMOwnerOption } from '../models/crm/owner';
+import type { CRMFile } from '../models/crm/crmFile';
 
 const crmService = {
 	// --- Companies ---
@@ -217,6 +218,41 @@ const crmService = {
 	listOwners: async (): Promise<CRMOwnerOption[]> => {
 		const response = await api.get<CRMOwnerOption[]>('/crm/owners');
 		return response.data;
+	},
+
+	// --- Files / Attachments ---
+	listFiles: async (entityType: string, entityId: number, page = 1, pageSize = 50): Promise<PaginatedResponse<CRMFile>> => {
+		const response = await api.get<PaginatedResponse<CRMFile>>('/crm/files', {
+			params: { entity_type: entityType, entity_id: entityId, page, page_size: pageSize },
+		});
+		return response.data;
+	},
+	uploadFile: async (entityType: string, entityId: number, file: File): Promise<CRMFile> => {
+		const formData = new FormData();
+		formData.append('entity_type', entityType);
+		formData.append('entity_id', String(entityId));
+		formData.append('file', file);
+		const response = await api.post<CRMFile>('/crm/files/upload', formData, {
+			headers: { 'Content-Type': 'multipart/form-data' },
+		});
+		return response.data;
+	},
+	deleteFile: async (publicId: string): Promise<void> => {
+		await api.delete(`/crm/files/${publicId}`);
+	},
+	downloadFile: async (publicId: string, fileName: string): Promise<void> => {
+		const response = await api.get(`/crm/files/${publicId}/download`, {
+			responseType: 'blob',
+		});
+		const blob = new Blob([response.data], { type: response.headers['content-type'] });
+		const downloadUrl = window.URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = downloadUrl;
+		link.download = fileName;
+		document.body.appendChild(link);
+		link.click();
+		link.remove();
+		window.URL.revokeObjectURL(downloadUrl);
 	},
 };
 

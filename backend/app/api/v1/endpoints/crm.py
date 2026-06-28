@@ -3,7 +3,8 @@
 import uuid
 from datetime import datetime
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, status, UploadFile, File, Form
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -31,6 +32,7 @@ from app.schemas.crm import (
     CRMActivityCreate,
     CRMActivityUpdate,
     CRMActivityResponse,
+    CRMFileResponse,
     CRMStatsResponse,
     CRMLeadStatsResponse,
     CRMOwnerOption,
@@ -602,3 +604,120 @@ async def list_activities_endpoint(
         page=page,
         page_size=page_size,
     )
+
+
+# --- File Management ---
+@router.post(
+    "/files/upload",
+    response_model=CRMFileResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload a file and attach it to a CRM entity",
+)
+async def upload_file_endpoint(
+    entity_type: str = Form(...),
+    entity_id: int = Form(...),
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> CRMFileResponse:
+    import os
+    import uuid
+    
+    # Create parent directory with tenant and user isolation
+    org_id = current_user.organization_id
+    user_id = current_user.id
+    
+    # Base upload dir
+    upload_dir = os.path.join("uploads", f"org_{org_id}", f"user_{user_id}")
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Generate a unique local filename to avoid collisions
+    file_uuid = uuid.uuid4()
+    safe_filename = f"{file_uuid}_{file.filename}"
+    file_path = os.path.join(upload_dir, safe_filename)
+    
+    # Write file contents
+    content = await file.read()
+    with open(file_path, "wb") as f:
+        f.write(content)
+        
+    file_size = len(content)
+    
+    # Register file record in the database
+    try:
+        crm_file = await CRMService.create_file(
+            db,
+            file_name=file.filename,
+            file_path=file_path,
+            file_size=file_size,
+            mime_type=file.content_type or "application/octet-stream",
+            entity_type=entity_type,
+            entity_id=entity_id,
+            owner_id=current_user.id,
+        )
+        return CRMFileResponse.model_validate(crm_file)
+    except Exception as e:
+        # Clean up file on disk if db write fails
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        raise e
+
+
+@router.get(
+    "/files",
+    response_model=PaginatedResponse[CRMFileResponse],
+    summary="List files attached to a CRM entity",
+)
+async def list_files_endpoint(
+    entity_type: str = Query(...),
+    entity_id: int = Query(...),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> PaginatedResponse[CRMFileResponse]:
+    items, total = await CRMService.list_files(
+        db, entity_type=entity_type, entity_id=entity_id, page=page, page_size=page_size
+    )
+    return PaginatedResponse[CRMFileResponse](
+        items=[CRMFileResponse.model_validate(i) for i in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get(
+    "/files/{public_id}/download",
+    summary="Download a file attachment",
+)
+async def download_file_endpoint(
+    public_id: uuid.UUID,
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+):
+    crm_file = await CRMService.get_file(db, public_id)
+    
+    import os
+    if not os.path.exists(crm_file.file_path):
+        from app.middleware.exceptions import NotFoundError
+        raise NotFoundError("Physical file not found on server storage")
+        
+    return FileResponse(
+        path=crm_file.file_path,
+        filename=crm_file.file_name,
+        media_type=crm_file.mime_type,
+    )
+
+
+@router.delete(
+    "/files/{public_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a file attachment",
+)
+async def delete_file_endpoint(
+    public_id: uuid.UUID,
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+):
+    await CRMService.delete_file(db, public_id)

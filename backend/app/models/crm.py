@@ -317,3 +317,27 @@ class CRMActivity(BaseModel, TenantAwareMixin):
 
     def __repr__(self) -> str:
         return f"<CRMActivity(id={self.id}, type='{self.type}', subject='{self.subject}')>"
+
+
+class CRMFile(BaseModel, TenantAwareMixin):
+    """An uploaded attachment associated with a CRM entity (lead, deal, company, contact)"""
+    __tablename__ = "crm_files"
+    
+    public_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, unique=True, index=True, nullable=False, default=uuid.uuid4
+    )
+    file_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    file_path: Mapped[str] = mapped_column(String(512), nullable=False)
+    file_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    entity_type: Mapped[str] = mapped_column(String(50), nullable=False)  # "lead", "deal", "company", "contact"
+    entity_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    owner_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+
+    # Relationships
+    owner: Mapped[Optional[User]] = relationship("User", foreign_keys=[owner_id])
+
+    def __repr__(self) -> str:
+        return f"<CRMFile(id={self.id}, file_name='{self.file_name}', entity_type='{self.entity_type}', entity_id={self.entity_id})>"
