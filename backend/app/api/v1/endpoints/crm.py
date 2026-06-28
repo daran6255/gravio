@@ -604,7 +604,7 @@ async def list_deals_endpoint(
     company_id: Optional[int] = Query(None),
     contact_id: Optional[int] = Query(None),
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=250),
     search: Optional[str] = Query(None),
     current_user: User = Depends(require_crm_access),
     db: AsyncSession = Depends(get_db),
