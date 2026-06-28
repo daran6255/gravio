@@ -743,7 +743,14 @@ class CRMService:
     # --- Pipeline CRUD ---
     @staticmethod
     async def list_pipelines(db: AsyncSession) -> list[CRMPipeline]:
-        return await CRMPipelineRepository.list_all(db)
+        pipelines = await CRMPipelineRepository.list_all(db)
+        if not pipelines:
+            from app.core.context import tenant_context
+            org_id = tenant_context.get()
+            if org_id is not None:
+                await CRMService.seed_default_pipeline(db, org_id)
+                pipelines = await CRMPipelineRepository.list_all(db)
+        return pipelines
 
     @staticmethod
     async def create_pipeline(db: AsyncSession, payload: CRMPipelineCreate) -> CRMPipeline:
