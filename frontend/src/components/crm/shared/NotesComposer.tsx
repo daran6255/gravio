@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, TextField, Button, Stack, Divider, CircularProgress, ToggleButtonGroup, ToggleButton, Tabs, Tab, IconButton, Tooltip } from '@mui/material';
+import { Box, TextField, Button, Stack, Divider, CircularProgress, ToggleButtonGroup, ToggleButton, Tabs, Tab, IconButton, Tooltip, MenuItem } from '@mui/material';
 import { Notes, Call, Email, Groups, CheckCircleOutline, WhatsApp, AttachFile, AlternateEmail } from '@mui/icons-material';
 import { useAppDispatch } from '../../../store/hooks';
 import { createActivity } from '../../../store/slices/crmSlice';
@@ -48,6 +48,8 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 	const [dueDate, setDueDate] = useState('');
 	const [isCompleted, setIsCompleted] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
+	const [direction, setDirection] = useState<'Outbound' | 'Inbound'>('Outbound');
+	const [outcome, setOutcome] = useState('Connected');
 	const compact = variant === 'compact';
 
 	const getPlainText = (htmlStr: string) => {
@@ -60,7 +62,9 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 	const hasDescriptionContent = getPlainText(description).length > 0;
 	const isButtonDisabled = type === 'note'
 		? !hasDescriptionContent
-		: !subject.trim();
+		: type === 'call'
+			? false // Call subject is auto-generated if empty, details optional
+			: !subject.trim();
 
 	const handleSubmit = async () => {
 		let finalSubject = '';
@@ -72,6 +76,8 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 			} else {
 				finalSubject = plainText || 'Note';
 			}
+		} else if (type === 'call') {
+			finalSubject = subject.trim() || `${direction} Call - ${outcome}`;
 		} else {
 			finalSubject = subject.trim();
 		}
@@ -83,16 +89,20 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 			await dispatch(createActivity({
 				type,
 				subject: finalSubject,
-				description: hasDescriptionContent ? description : undefined,
+				description: (type === 'call' ? description.trim() : hasDescriptionContent ? description : undefined),
 				entity_type: entityType,
 				entity_id: entityId,
 				due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
 				is_completed: type !== 'note' ? isCompleted : undefined,
+				outcome: type === 'call' ? outcome : undefined,
+				custom_fields: type === 'call' ? { direction } : undefined,
 			})).unwrap();
 			setSubject('');
 			setDescription('');
 			setDueDate('');
 			setIsCompleted(false);
+			setDirection('Outbound');
+			setOutcome('Connected');
 			toast.success('Activity logged');
 			onCreated?.();
 		} catch (err: any) {
@@ -111,7 +121,9 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 						setType(value);
 						setSubject('');
 						setDescription('');
-						setIsCompleted(false);
+						setIsCompleted(value === 'call');
+						setDirection('Outbound');
+						setOutcome('Connected');
 					}}
 					variant="scrollable"
 					scrollButtons={false}
@@ -150,6 +162,82 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 							maxWords={NOTE_MAX_WORDS}
 						/>
 					</Box>
+				) : type === 'call' ? (
+					<Box sx={{ mb: 1.5 }}>
+						<Stack direction="row" spacing={1} sx={{ mb: 1.5 }}>
+							<ToggleButtonGroup
+								value={direction}
+								exclusive
+								onChange={(_e, val) => val && setDirection(val)}
+								size="small"
+								sx={{
+									flexShrink: 0,
+									height: 36,
+									'& .MuiToggleButtonGroup-grouped': {
+										border: '1px solid',
+										borderColor: 'divider',
+										borderRadius: '8px !important',
+										textTransform: 'none',
+										px: 1.25,
+										fontSize: '0.78rem',
+										fontWeight: 600,
+									}
+								}}
+							>
+								<ToggleButton value="Outbound">Outbound</ToggleButton>
+								<ToggleButton value="Inbound">Inbound</ToggleButton>
+							</ToggleButtonGroup>
+
+							<TextField
+								select
+								value={outcome}
+								onChange={(e) => setOutcome(e.target.value)}
+								size="small"
+								sx={{
+									flexGrow: 1,
+									'& .MuiOutlinedInput-root': {
+										borderRadius: '8px',
+										height: 36,
+										fontSize: '0.78rem',
+									}
+								}}
+							>
+								<MenuItem value="Connected" sx={{ fontSize: '0.78rem' }}>Connected</MenuItem>
+								<MenuItem value="Busy" sx={{ fontSize: '0.78rem' }}>Busy</MenuItem>
+								<MenuItem value="No Answer" sx={{ fontSize: '0.78rem' }}>No Answer</MenuItem>
+								<MenuItem value="Left Voicemail" sx={{ fontSize: '0.78rem' }}>Left Voicemail</MenuItem>
+								<MenuItem value="Wrong Number" sx={{ fontSize: '0.78rem' }}>Wrong Number</MenuItem>
+							</TextField>
+						</Stack>
+
+						<TextField
+							variant="standard"
+							placeholder="Subject/Purpose (optional, e.g. Discuss onboarding)"
+							value={subject}
+							onChange={(e) => setSubject(e.target.value)}
+							fullWidth
+							InputProps={{ disableUnderline: true, style: { fontSize: '0.82rem' } }}
+							sx={{ mb: 1 }}
+						/>
+
+						<TextField
+							variant="outlined"
+							placeholder="Write call notes or record a summary..."
+							value={description}
+							onChange={(e) => setDescription(e.target.value)}
+							fullWidth
+							multiline
+							minRows={3}
+							sx={{
+								mb: 0.5,
+								'& .MuiOutlinedInput-root': {
+									borderRadius: '8px',
+									fontSize: '0.82rem',
+									p: 1.25,
+								}
+							}}
+						/>
+					</Box>
 				) : (
 					<TextField
 						variant="standard"
@@ -167,7 +255,7 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 				{(type === 'task' || type === 'meeting' || type === 'call') && (
 					<TextField
 						type="datetime-local"
-						label="Due"
+						label={type === 'call' ? 'Call Time' : 'Due'}
 						value={dueDate}
 						onChange={(e) => setDueDate(e.target.value)}
 						size="small"
@@ -234,7 +322,9 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 						setType(value);
 						setSubject('');
 						setDescription('');
-						setIsCompleted(false);
+						setIsCompleted(value === 'call');
+						setDirection('Outbound');
+						setOutcome('Connected');
 					}
 				}}
 				size="small"
@@ -248,9 +338,56 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 				))}
 			</ToggleButtonGroup>
 
+			{type === 'call' && (
+				<Stack direction="row" spacing={1.5} sx={{ mb: 1.5 }}>
+					<ToggleButtonGroup
+						value={direction}
+						exclusive
+						onChange={(_e, val) => val && setDirection(val)}
+						size="small"
+						sx={{
+							flexShrink: 0,
+							height: 40,
+							'& .MuiToggleButtonGroup-grouped': {
+								border: '1px solid',
+								borderColor: 'divider',
+								borderRadius: '8px !important',
+								textTransform: 'none',
+								px: 2,
+								fontWeight: 600,
+							}
+						}}
+					>
+						<ToggleButton value="Outbound">Outbound</ToggleButton>
+						<ToggleButton value="Inbound">Inbound</ToggleButton>
+					</ToggleButtonGroup>
+
+					<TextField
+						select
+						label="Call Outcome"
+						value={outcome}
+						onChange={(e) => setOutcome(e.target.value)}
+						size="small"
+						sx={{
+							flexGrow: 1,
+							'& .MuiOutlinedInput-root': {
+								borderRadius: '8px',
+								height: 40,
+							}
+						}}
+					>
+						<MenuItem value="Connected">Connected</MenuItem>
+						<MenuItem value="Busy">Busy</MenuItem>
+						<MenuItem value="No Answer">No Answer</MenuItem>
+						<MenuItem value="Left Voicemail">Left Voicemail</MenuItem>
+						<MenuItem value="Wrong Number">Wrong Number</MenuItem>
+					</TextField>
+				</Stack>
+			)}
+
 			{type !== 'note' && (
 				<TextField
-					placeholder={type === 'task' ? 'What needs to be done?' : 'Add a quick note...'}
+					placeholder={type === 'task' ? 'What needs to be done?' : type === 'call' ? 'Subject/Purpose (optional)' : 'Add a quick note...'}
 					value={subject}
 					onChange={(e) => setSubject(e.target.value)}
 					fullWidth
@@ -263,7 +400,7 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 				<RichTextEditor
 					value={description}
 					onChange={setDescription}
-					placeholder={type === 'note' ? 'Write your note here...' : 'Details (optional)'}
+					placeholder={type === 'note' ? 'Write your note here...' : type === 'call' ? 'Write call notes or record a summary...' : 'Details (optional)'}
 					minHeight={100}
 					variant="simple"
 					maxWords={type === 'note' ? NOTE_MAX_WORDS : undefined}
@@ -275,7 +412,7 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 					{(type === 'task' || type === 'meeting' || type === 'call') && (
 						<TextField
 							type="datetime-local"
-							label="Due"
+							label={type === 'call' ? 'Call Time' : 'Due'}
 							value={dueDate}
 							onChange={(e) => setDueDate(e.target.value)}
 							size="small"

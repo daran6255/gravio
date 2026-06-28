@@ -97,9 +97,13 @@ export const NotesTimeline: React.FC<NotesTimelineProps> = ({ activities, loadin
 		const tone = TONES[activity.type] || TONES.note;
 		const titlePrefix = PREFIXES[activity.type] || 'Logged Activity';
 
+		// For notes, the subject is just an auto-truncated copy of the description, so showing
+		// both would repeat the same text twice — only non-note types have a distinct subject.
+		const title = activity.type === 'note' ? titlePrefix : `${titlePrefix}: ${activity.subject}`;
+
 		return {
 			id: activity.public_id,
-			title: `${titlePrefix}: ${activity.subject}`,
+			title,
 			subtitle,
 			description: activity.description ? <RichTextViewer html={activity.description} /> : undefined,
 			timestamp: formatDate(activity.created_at),
@@ -110,6 +114,15 @@ export const NotesTimeline: React.FC<NotesTimelineProps> = ({ activities, loadin
 			isCompleted: activity.is_completed,
 			actions: (
 				<>
+					{activity.type === 'call' && activity.outcome && (
+						<Chip
+							size="small"
+							label={activity.outcome}
+							color={activity.outcome === 'Connected' ? 'success' : 'default'}
+							variant="outlined"
+							sx={{ fontWeight: 600, height: 24 }}
+						/>
+					)}
 					{activity.type !== 'note' && (
 						<Chip
 							size="small"

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Stack, IconButton, Tooltip, useTheme, alpha, Tabs, Tab, Grid } from '@mui/material';
-import { Edit, DeleteOutline, Phone, Email, InsertDriveFileOutlined } from '@mui/icons-material';
+import { Edit, DeleteOutline, Phone, Email, InsertDriveFileOutlined, KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import DetailDrawer from '../../../common/drawer/DetailDrawer';
 import { RichTextViewer } from '../../../common/form';
 import { NotesComposer, NotesTimeline } from '../../shared';
@@ -32,10 +32,12 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 	const isDark = theme.palette.mode === 'dark';
 	const [tab, setTab] = useState(0);
 	const [prevLeadId, setPrevLeadId] = useState(lead?.id);
+	const [contactExpanded, setContactExpanded] = useState(false);
 
 	if (lead?.id !== prevLeadId) {
 		setPrevLeadId(lead?.id);
 		setTab(0);
+		setContactExpanded(false);
 	}
 
 	const { activities, activitiesLoading } = useAppSelector((state) => state.crm);
@@ -252,35 +254,94 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 				{contact && (
 					<Box sx={fieldCardSx}>
 						<Typography sx={labelSx}>Contact</Typography>
-						<Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 0.5 }}>
-							<Typography variant="body2" noWrap sx={{ fontWeight: 700, color: 'text.primary' }}>
-								{contact.first_name} {contact.last_name || ''}
-							</Typography>
-							<Stack direction="row" spacing={0.25}>
-								{(contact.phone || contact.mobile) && (
-									<Tooltip title="Call">
-										<IconButton
-											size="small"
-											component="a"
-											href={`tel:${contact.phone || contact.mobile}`}
-											sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
-										>
-											<Phone sx={{ fontSize: 17 }} />
-										</IconButton>
-									</Tooltip>
+						<Stack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{ mt: 0.5 }}>
+							<Box sx={{ minWidth: 0, flex: 1 }}>
+								<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', mb: contactExpanded ? 0.75 : 0 }}>
+									{contact.first_name} {contact.last_name || ''}
+								</Typography>
+								{contactExpanded && (
+									<Stack spacing={0.75}>
+										{contact.email && (
+											<Stack
+												direction="row"
+												spacing={0.75}
+												alignItems="center"
+												component="a"
+												href={`mailto:${contact.email}`}
+												sx={{
+													textDecoration: 'none',
+													color: 'text.secondary',
+													width: 'fit-content',
+													'&:hover': { color: 'primary.main' }
+												}}
+											>
+												<Email sx={{ fontSize: 14, color: 'text.disabled' }} />
+												<Typography variant="caption" sx={{ color: 'inherit', fontWeight: 500 }}>
+													{contact.email}
+												</Typography>
+											</Stack>
+										)}
+										{(contact.phone || contact.mobile) && (
+											<Stack
+												direction="row"
+												spacing={0.75}
+												alignItems="center"
+												component="a"
+												href={`tel:${contact.phone || contact.mobile}`}
+												sx={{
+													textDecoration: 'none',
+													color: 'text.secondary',
+													width: 'fit-content',
+													'&:hover': { color: 'primary.main' }
+												}}
+											>
+												<Phone sx={{ fontSize: 14, color: 'text.disabled' }} />
+												<Typography variant="caption" sx={{ color: 'inherit', fontWeight: 500 }}>
+													{contact.phone || contact.mobile}
+												</Typography>
+											</Stack>
+										)}
+									</Stack>
 								)}
-								{contact.email && (
-									<Tooltip title="Email">
-										<IconButton
-											size="small"
-											component="a"
-											href={`mailto:${contact.email}`}
-											sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
-										>
-											<Email sx={{ fontSize: 17 }} />
-										</IconButton>
-									</Tooltip>
+							</Box>
+							<Stack direction="row" spacing={0.25} sx={{ alignSelf: contactExpanded ? 'flex-start' : 'center', mt: contactExpanded ? -0.25 : 0 }}>
+								{!contactExpanded && (
+									<>
+										{(contact.phone || contact.mobile) && (
+											<Tooltip title="Call">
+												<IconButton
+													size="small"
+													component="a"
+													href={`tel:${contact.phone || contact.mobile}`}
+													sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+												>
+													<Phone sx={{ fontSize: 17 }} />
+												</IconButton>
+											</Tooltip>
+										)}
+										{contact.email && (
+											<Tooltip title="Email">
+												<IconButton
+													size="small"
+													component="a"
+													href={`mailto:${contact.email}`}
+													sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+												>
+													<Email sx={{ fontSize: 17 }} />
+												</IconButton>
+											</Tooltip>
+										)}
+									</>
 								)}
+								<Tooltip title={contactExpanded ? "Collapse Details" : "Expand Details"}>
+									<IconButton
+										size="small"
+										onClick={() => setContactExpanded(!contactExpanded)}
+										sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+									>
+										{contactExpanded ? <KeyboardArrowUp sx={{ fontSize: 18 }} /> : <KeyboardArrowDown sx={{ fontSize: 18 }} />}
+									</IconButton>
+								</Tooltip>
 							</Stack>
 						</Stack>
 					</Box>
