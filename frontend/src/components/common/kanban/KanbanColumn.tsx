@@ -23,6 +23,8 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, label, color, co
 				display: 'flex',
 				flexDirection: 'column',
 				width,
+				height: 'calc(100vh - 280px)',
+				minHeight: 480,
 				flexShrink: 0,
 				borderRadius: '16px',
 				border: '1px solid',
