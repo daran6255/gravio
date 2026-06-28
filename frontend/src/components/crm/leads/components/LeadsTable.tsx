@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { TableRow, TableCell, Typography, Stack, Checkbox } from '@mui/material';
+import { TableRow, TableCell, Typography, Stack, Checkbox, Chip, useTheme } from '@mui/material';
 import { Visibility, Edit, SwapHoriz, DeleteOutline, HelpOutline } from '@mui/icons-material';
 import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../../common/table';
 import StatusBadge from '../../../common/badge/StatusBadge';
@@ -59,6 +59,8 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
 	onToggleSelect,
 	onSelectAll,
 }) => {
+	const theme = useTheme();
+	const isDark = theme.palette.mode === 'dark';
 	const ownerMap = useMemo(() => new Map(owners.map((o) => [o.id, o])), [owners]);
 
 	const columns: ColumnDefinition<Lead>[] = [
@@ -185,7 +187,21 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
 							<Typography variant="body2" noWrap sx={{ maxWidth: 140 }}>{ownerName}</Typography>
 						</Stack>
 					) : (
-						<Typography variant="body2" color="text.secondary">Unassigned</Typography>
+						<Chip
+							label="Unassigned"
+							size="small"
+							sx={{
+								fontSize: '0.68rem',
+								fontWeight: 700,
+								textTransform: 'uppercase',
+								letterSpacing: '0.04em',
+								borderRadius: '6px',
+								height: 20,
+								bgcolor: isDark ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.08)',
+								color: '#f59e0b',
+								border: '1px solid rgba(245, 158, 11, 0.25)',
+							}}
+						/>
 					)}
 				</TableCell>
 				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' }, textTransform: 'capitalize' }}>{lead.priority}</TableCell>

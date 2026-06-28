@@ -212,18 +212,27 @@ class CRMLeadRepository:
             conditions.append(CRMLead.source == source)
         if owner_id:
             conditions.append(CRMLead.owner_id == owner_id)
-        if search:
-            conditions.append(CRMLead.title.ilike(f"%{search}%"))
 
-        count_result = await db.execute(
-            select(func.count()).select_from(CRMLead).where(*conditions)
-        )
+        base_query = select(CRMLead).where(*conditions)
+        count_query = select(func.count()).select_from(CRMLead).where(*conditions)
+
+        if search:
+            search_cond = or_(
+                CRMLead.title.ilike(f"%{search}%"),
+                CRMContact.first_name.ilike(f"%{search}%"),
+                CRMContact.last_name.ilike(f"%{search}%"),
+                CRMContact.email.ilike(f"%{search}%"),
+                CRMContact.phone.ilike(f"%{search}%"),
+                CRMContact.mobile.ilike(f"%{search}%"),
+            )
+            base_query = base_query.outerjoin(CRMLead.contact).where(search_cond)
+            count_query = count_query.outerjoin(CRMLead.contact).where(search_cond)
+
+        count_result = await db.execute(count_query)
         total = count_result.scalar_one()
 
         result = await db.execute(
-            select(CRMLead)
-            .where(*conditions)
-            .order_by(CRMLead.id.desc())
+            base_query.order_by(CRMLead.id.desc())
             .offset((page - 1) * page_size)
             .limit(page_size)
         )

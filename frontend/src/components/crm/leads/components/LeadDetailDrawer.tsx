@@ -37,6 +37,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 	const [tab, setTab] = useState(0);
 	const [prevLeadId, setPrevLeadId] = useState(lead?.id);
 	const [contactExpanded, setContactExpanded] = useState(false);
+	const [composerType, setComposerType] = useState<string>('note');
 
 	const toast = useToast();
 	const [files, setFiles] = useState<CRMFile[]>([]);
@@ -48,6 +49,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 		setTab(0);
 		setContactExpanded(false);
 		setFiles([]);
+		setComposerType('note');
 	}
 
 	const { activities, activitiesLoading } = useAppSelector((state) => state.crm);
@@ -334,6 +336,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 												alignItems="center"
 												component="a"
 												href={`mailto:${contact.email}`}
+												onClick={() => { setTab(0); setComposerType('email'); }}
 												sx={{
 													textDecoration: 'none',
 													color: 'text.secondary',
@@ -354,6 +357,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 												alignItems="center"
 												component="a"
 												href={`tel:${contact.phone || contact.mobile}`}
+												onClick={() => { setTab(0); setComposerType('call'); }}
 												sx={{
 													textDecoration: 'none',
 													color: 'text.secondary',
@@ -379,6 +383,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 													size="small"
 													component="a"
 													href={`tel:${contact.phone || contact.mobile}`}
+													onClick={() => { setTab(0); setComposerType('call'); }}
 													sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
 												>
 													<Phone sx={{ fontSize: 17 }} />
@@ -391,6 +396,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 													size="small"
 													component="a"
 													href={`mailto:${contact.email}`}
+													onClick={() => { setTab(0); setComposerType('email'); }}
 													sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
 												>
 													<Email sx={{ fontSize: 17 }} />
@@ -449,10 +455,15 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 					>
 						<Box sx={{ p: 1.5 }}>
 							<NotesComposer
+								key={`${lead.id}-${composerType}`}
 								entityType="lead"
 								entityId={lead.id}
 								variant="compact"
-								onCreated={() => dispatch(fetchEntityActivities({ entityType: 'lead', entityId: lead.id }))}
+								defaultType={composerType as any}
+								onCreated={() => {
+									setComposerType('note');
+									dispatch(fetchEntityActivities({ entityType: 'lead', entityId: lead.id }));
+								}}
 							/>
 						</Box>
 					</Box>

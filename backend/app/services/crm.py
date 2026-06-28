@@ -314,6 +314,38 @@ class CRMService:
             deal_id=deal.id,
         )
 
+        # Clone lead attachments to Deal and Contact
+        from app.repositories.crm import CRMFileRepository
+        lead_files, _ = await CRMFileRepository.list_by_entity(
+            db, entity_type="lead", entity_id=lead.id, page=1, page_size=100
+        )
+        for f in lead_files:
+            # Clone to deal
+            await CRMFileRepository.create(
+                db,
+                file_name=f.file_name,
+                file_path=f.file_path,
+                mime_type=f.mime_type,
+                file_size=f.file_size,
+                entity_type="deal",
+                entity_id=deal.id,
+                uploaded_by=f.uploaded_by,
+                org_id=f.org_id,
+            )
+            # Clone to contact
+            if lead.contact_id:
+                await CRMFileRepository.create(
+                    db,
+                    file_name=f.file_name,
+                    file_path=f.file_path,
+                    mime_type=f.mime_type,
+                    file_size=f.file_size,
+                    entity_type="contact",
+                    entity_id=lead.contact_id,
+                    uploaded_by=f.uploaded_by,
+                    org_id=f.org_id,
+                )
+
         return deal
 
     # --- Deal CRUD ---

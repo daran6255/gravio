@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, TextField, Button, Stack, Divider, CircularProgress, ToggleButtonGroup, ToggleButton, Tabs, Tab, IconButton, Tooltip } from '@mui/material';
 import { Notes, Call, Email, Groups, CheckCircleOutline, WhatsApp, AttachFile, AlternateEmail } from '@mui/icons-material';
 import { useAppDispatch } from '../../../store/hooks';
@@ -35,9 +35,10 @@ interface NotesComposerProps {
 	onCreated?: () => void;
 	/** 'compact' renders an underlined-tab type selector and a single note field, for use in tighter detail panels. */
 	variant?: 'standard' | 'compact';
+	defaultType?: CRMActivityType;
 }
 
-export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entityId, onCreated, variant = 'standard' }) => {
+export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entityId, onCreated, variant = 'standard', defaultType }) => {
 	const getLocalDateTimeString = () => {
 		const now = new Date();
 		const offset = now.getTimezoneOffset();
@@ -47,7 +48,7 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 
 	const dispatch = useAppDispatch();
 	const toast = useToast();
-	const [type, setType] = useState<CRMActivityType>('note');
+	const [type, setType] = useState<CRMActivityType>(defaultType || 'note');
 	const [subject, setSubject] = useState('');
 	const [description, setDescription] = useState('');
 	const [dueDate, setDueDate] = useState(getLocalDateTimeString());
@@ -56,6 +57,33 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 	const [direction, setDirection] = useState<string>('Outbound');
 	const [outcome, setOutcome] = useState('Connected');
 	const compact = variant === 'compact';
+
+	// Auto-draft preservation
+	useEffect(() => {
+		const key = `crm_composer_draft_${entityType}_${entityId}_${type}`;
+		const saved = sessionStorage.getItem(key);
+		if (saved) {
+			try {
+				const { subject: s, description: d } = JSON.parse(saved);
+				setSubject(s || '');
+				setDescription(d || '');
+			} catch (e) {
+				// ignore parse errors
+			}
+		} else {
+			setSubject('');
+			setDescription('');
+		}
+	}, [entityType, entityId, type]);
+
+	useEffect(() => {
+		const key = `crm_composer_draft_${entityType}_${entityId}_${type}`;
+		if (subject || description) {
+			sessionStorage.setItem(key, JSON.stringify({ subject, description }));
+		} else {
+			sessionStorage.removeItem(key);
+		}
+	}, [entityType, entityId, type, subject, description]);
 
 	const getDateLabel = () => {
 		if (type === 'task') return 'Due Date';
