@@ -3,6 +3,7 @@ import { ColorModeProvider } from './theme/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { Provider } from 'react-redux';
 import { SnackbarProvider } from 'notistack';
+import { CustomSuccessToast, CustomErrorToast, CustomWarningToast, CustomInfoToast } from './components/common/toast/CustomToast';
 import { store } from './store/store';
 import { BrowserRouter as Router } from 'react-router-dom';
 import AppRouter from './router/AppRouter';
@@ -15,7 +16,16 @@ function App() {
     <Provider store={store}>
       <ColorModeProvider>
         <CssBaseline />
-        <SnackbarProvider maxSnack={3}>
+        <SnackbarProvider
+          maxSnack={3}
+          Components={{
+            success: CustomSuccessToast,
+            error: CustomErrorToast,
+            warning: CustomWarningToast,
+            info: CustomInfoToast,
+            default: CustomInfoToast,
+          }}
+        >
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <Router>
               <AuthProvider>
