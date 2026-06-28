@@ -291,7 +291,33 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 							if (value !== null) setIsCompleted(value);
 						}}
 						size="small"
-						sx={{ mb: 1.5, '& .MuiToggleButtonGroup-grouped': { border: '1px solid', borderColor: 'divider', borderRadius: '8px !important', textTransform: 'none', px: 1.25 } }}
+						sx={{
+							mb: 1.5,
+							gap: 1,
+							'& .MuiToggleButtonGroup-grouped': {
+								border: '1px solid !important',
+								borderColor: 'divider',
+								borderRadius: '8px !important',
+								marginLeft: '0px !important',
+								textTransform: 'none',
+								px: 2,
+								fontWeight: 600,
+								color: 'text.secondary',
+								backgroundColor: 'background.paper',
+								transition: 'all 0.2s ease',
+								'&.Mui-selected': {
+									backgroundColor: 'primary.main',
+									color: '#ffffff',
+									borderColor: 'primary.main',
+									'&:hover': {
+										backgroundColor: 'primary.dark',
+									}
+								},
+								'&:hover': {
+									backgroundColor: 'action.hover',
+								}
+							}
+						}}
 					>
 						<ToggleButton value={false}>Pending</ToggleButton>
 						<ToggleButton value={true}>Completed</ToggleButton>

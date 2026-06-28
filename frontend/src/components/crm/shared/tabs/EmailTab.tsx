@@ -43,14 +43,30 @@ export const EmailTab: React.FC<EmailTabProps> = ({
 					sx={{
 						flexShrink: 0,
 						height: compact ? 36 : 40,
+						gap: 1,
 						'& .MuiToggleButtonGroup-grouped': {
-							border: '1px solid',
+							border: '1px solid !important',
 							borderColor: 'divider',
 							borderRadius: '8px !important',
+							marginLeft: '0px !important',
 							textTransform: 'none',
-							px: compact ? 1.25 : 2,
+							px: compact ? 1.5 : 2,
 							fontSize: compact ? '0.78rem' : '0.875rem',
 							fontWeight: 600,
+							color: 'text.secondary',
+							backgroundColor: 'background.paper',
+							transition: 'all 0.2s ease',
+							'&.Mui-selected': {
+								backgroundColor: 'primary.main',
+								color: '#ffffff',
+								borderColor: 'primary.main',
+								'&:hover': {
+									backgroundColor: 'primary.dark',
+								}
+							},
+							'&:hover': {
+								backgroundColor: 'action.hover',
+							}
 						}
 					}}
 				>
