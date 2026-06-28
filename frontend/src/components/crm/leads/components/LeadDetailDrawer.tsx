@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Stack, IconButton, Tooltip, useTheme, alpha, Tabs, Tab, Grid, CircularProgress, Chip } from '@mui/material';
+import { Box, Typography, Stack, IconButton, Tooltip, useTheme, alpha, Tabs, Tab, Grid, CircularProgress, Chip, Alert } from '@mui/material';
 import { Edit, DeleteOutline, Phone, Email, InsertDriveFileOutlined, KeyboardArrowDown, KeyboardArrowUp, CloudUploadOutlined, GetApp, PictureAsPdf, Image, Description, GridOn, InsertDriveFile, HelpOutline, PersonOff, History as HistoryIcon } from '@mui/icons-material';
 import DetailDrawer from '../../../common/drawer/DetailDrawer';
 import PremiumTooltip from '../../../common/PremiumTooltip';
+import StatusBadge from '../../../common/badge/StatusBadge';
 import { ConfirmationDialog } from '../../../common/dialogbox';
 import { RichTextViewer } from '../../../common/form';
 import { NotesComposer, NotesTimeline } from '../../shared';
@@ -217,26 +218,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 			}
 			headerExtra={
 				<Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
-					<Box
-						sx={{
-							display: 'inline-flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-							px: 1.5,
-							height: 24,
-							borderRadius: '6px',
-							bgcolor: 'primary.main',
-							color: '#ffffff',
-							fontSize: '0.65rem',
-							fontWeight: 800,
-							letterSpacing: '0.06em',
-							textTransform: 'uppercase',
-							lineHeight: 1,
-							boxSizing: 'border-box',
-						}}
-					>
-						{lead.status} Lead
-					</Box>
+					<StatusBadge label={`${lead.status} Lead`} status={lead.status} type="lead" />
 					<Box
 						sx={{
 							display: 'inline-flex',
@@ -331,6 +313,18 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 			</Tabs>
 
 			<Box sx={{ display: tab === 0 ? 'flex' : 'none', flexDirection: 'column', gap: 2, overflowY: 'auto', flex: 1 }}>
+				{lead.status === 'converted' && (
+					<Alert 
+						severity="success" 
+						sx={{ 
+							borderRadius: '12px', 
+							fontWeight: 600,
+							'& .MuiAlert-icon': { color: 'success.main' }
+						}}
+					>
+						This lead has been successfully converted into an active placement deal.
+					</Alert>
+				)}
 
 				{(company || lead.estimated_value != null) && (
 					<Grid container spacing={1.5}>
