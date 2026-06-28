@@ -13,9 +13,25 @@ interface DealCardProps {
 	onDelete: (deal: Deal) => void;
 }
 
+const getCurrencySymbol = (currency?: string): string => {
+	const map: Record<string, string> = {
+		USD: '$',
+		EUR: '€',
+		INR: '₹',
+		GBP: '£',
+		JPY: '¥',
+		AUD: 'A$',
+		CAD: 'C$',
+		CNY: '¥',
+		SGD: 'S$',
+	};
+	return currency ? (map[currency.toUpperCase()] || '') : '';
+};
+
 const formatValue = (value?: number, currency?: string) => {
 	if (value == null) return null;
-	return `${value.toLocaleString()} ${currency || ''}`.trim();
+	const symbol = getCurrencySymbol(currency);
+	return `${symbol} ${value.toLocaleString()} ${currency || ''}`.trim();
 };
 
 export const DealCard: React.FC<DealCardProps> = ({ deal, companyName, onView, onEdit, onDelete }) => {

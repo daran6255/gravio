@@ -30,11 +30,27 @@ interface DealDetailDrawerProps {
 	onDelete?: (deal: Deal) => void;
 }
 
+const getCurrencySymbol = (currency?: string): string => {
+	const map: Record<string, string> = {
+		USD: '$',
+		EUR: '€',
+		INR: '₹',
+		GBP: '£',
+		JPY: '¥',
+		AUD: 'A$',
+		CAD: 'C$',
+		CNY: '¥',
+		SGD: 'S$',
+	};
+	return currency ? (map[currency.toUpperCase()] || '') : '';
+};
+
 const formatValue = (value: number, currency: string) => {
 	try {
 		return new Intl.NumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: 0 }).format(value);
 	} catch {
-		return `${currency} ${value.toLocaleString()}`;
+		const symbol = getCurrencySymbol(currency);
+		return `${symbol} ${value.toLocaleString()} ${currency}`.trim();
 	}
 };
 
@@ -61,10 +77,18 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 		setTab(0);
 		setFiles([]);
 		if (deal) {
-			setValue(deal.value != null ? String(deal.value) : '');
+			setValue(deal.value != null ? Number(deal.value).toLocaleString() : '');
 			setCloseDate(deal.close_date || '');
 		}
 	}
+
+	const handleChangeValue = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const raw = e.target.value.replace(/[^0-9.]/g, '');
+		const parts = raw.split('.');
+		const integerPart = parts[0] ? Number(parts[0]).toLocaleString() : '';
+		const decimalPart = parts[1] !== undefined ? '.' + parts[1].slice(0, 2) : '';
+		setValue(integerPart + decimalPart);
+	};
 
 	const { activities, activitiesLoading, companyOptions, contactOptions, pipelines } = useAppSelector((state) => state.crm);
 
@@ -121,9 +145,9 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 
 	const handleSaveValue = () => {
 		if (!deal) return;
-		const numeric = value ? Number(value) : undefined;
-		if (numeric !== deal.value) {
-			dispatch(updateDeal({ publicId: deal.public_id, payload: { value: numeric } }));
+		const parsed = value ? Number(value.replace(/,/g, '')) : undefined;
+		if (parsed !== deal.value) {
+			dispatch(updateDeal({ publicId: deal.public_id, payload: { value: parsed } }));
 		}
 	};
 
@@ -312,13 +336,13 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 							<Stack direction="row" spacing={2} sx={{ mt: 1 }}>
 								<TextField
 									label="Deal Value"
-									type="number"
 									value={value}
-									onChange={(e) => setValue(e.target.value)}
+									onChange={handleChangeValue}
 									onBlur={handleSaveValue}
 									size="small"
 									fullWidth
 									InputProps={{
+										startAdornment: <InputAdornment position="start">{getCurrencySymbol(deal.currency)}</InputAdornment>,
 										endAdornment: <InputAdornment position="end">{deal.currency}</InputAdornment>,
 									}}
 								/>

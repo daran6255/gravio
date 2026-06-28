@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
-import { DndContext, DragOverlay, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
+import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import KanbanColumn from './KanbanColumn';
 
 export interface KanbanColumnDef {
@@ -35,6 +35,14 @@ export function KanbanBoard<T>({
 	columnWidth,
 }: KanbanBoardProps<T>) {
 	const [activeItem, setActiveItem] = useState<T | null>(null);
+
+	const sensors = useSensors(
+		useSensor(PointerSensor, {
+			activationConstraint: {
+				distance: 5,
+			},
+		})
+	);
 
 	const handleDragStart = (event: DragStartEvent) => {
 		setActiveItem((event.active.data.current?.item as T) ?? null);
@@ -71,7 +79,7 @@ export function KanbanBoard<T>({
 	const itemsByColumn = (columnId: string | number) => items.filter((item) => getItemColumnId(item) === columnId);
 
 	return (
-		<DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+		<DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
 			<Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 2 }}>
 				{columns.map((column) => {
 					const columnItems = itemsByColumn(column.id);
