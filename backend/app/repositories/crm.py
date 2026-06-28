@@ -274,7 +274,9 @@ class CRMDealRepository:
 
     @staticmethod
     async def get_by_public_id(db: AsyncSession, public_id: uuid.UUID) -> Optional[CRMDeal]:
-        result = await db.execute(select(CRMDeal).where(CRMDeal.public_id == public_id))
+        result = await db.execute(
+            select(CRMDeal).options(selectinload(CRMDeal.tasks)).where(CRMDeal.public_id == public_id)
+        )
         return result.scalars().first()
 
     @staticmethod
@@ -291,6 +293,7 @@ class CRMDealRepository:
                 setattr(deal, key, val)
         await db.flush()
         await db.refresh(deal)
+        await db.refresh(deal, attribute_names=["tasks"])
         return deal
 
     @staticmethod
@@ -335,6 +338,7 @@ class CRMDealRepository:
 
         result = await db.execute(
             select(CRMDeal)
+            .options(selectinload(CRMDeal.tasks))
             .where(*conditions)
             .order_by(CRMDeal.id.desc())
             .offset((page - 1) * page_size)

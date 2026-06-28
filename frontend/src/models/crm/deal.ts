@@ -21,6 +21,10 @@ export interface Deal {
 	custom_fields?: Record<string, any>;
 	created_at: string;
 	updated_at: string;
+	/** Only populated by the deals list endpoint (kanban board); 0 elsewhere. */
+	task_count?: number;
+	completed_task_count?: number;
+	in_progress_task_count?: number;
 }
 
 /** Matches backend's CRMDealCreate. */

@@ -3,7 +3,8 @@
 import uuid
 from datetime import datetime, date
 from typing import Any, Optional
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+from sqlalchemy import inspect as sa_inspect
 
 from app.core.currencies import is_valid_currency
 from app.models.crm import (
@@ -291,6 +292,22 @@ class CRMDealResponse(CRMDealBase):
     lead_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
+    task_count: int = 0
+    completed_task_count: int = 0
+    in_progress_task_count: int = 0
+
+    @model_validator(mode="before")
+    @classmethod
+    def _attach_task_counts(cls, data: Any) -> Any:
+        # Only computed when `.tasks` was eagerly loaded (e.g. selectinload in list_all);
+        # touching the relationship otherwise would trigger a lazy load and crash async sessions.
+        if isinstance(data, dict) or "tasks" in sa_inspect(data).unloaded:
+            return data
+        tasks = data.tasks
+        data.task_count = len(tasks)
+        data.completed_task_count = sum(1 for t in tasks if t.status == DealTaskStatus.COMPLETED)
+        data.in_progress_task_count = sum(1 for t in tasks if t.status == DealTaskStatus.IN_PROGRESS)
+        return data
 
 
 # --- Deal Task Schemas ---

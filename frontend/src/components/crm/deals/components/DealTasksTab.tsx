@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
 	Box, Typography, Stack, Chip, LinearProgress, TextField, MenuItem,
 	Button, IconButton, Tooltip, CircularProgress, useTheme, alpha,
-	Collapse,
+	Collapse, Menu,
 } from '@mui/material';
 import {
 	CheckCircle, RadioButtonUnchecked, Delete, Add, ExpandMore, ExpandLess,
@@ -89,6 +89,31 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 	const [newDueDate, setNewDueDate] = useState('');
 	const [newAssignee, setNewAssignee] = useState<number | ''>('');
 	const [newNotes, setNewNotes] = useState('');
+
+	// Popover menu for changing status
+	const [statusMenuAnchor, setStatusMenuAnchor] = useState<null | HTMLElement>(null);
+	const [activeMenuTask, setActiveMenuTask] = useState<DealTask | null>(null);
+
+	const handleStatusClick = (event: React.MouseEvent<HTMLDivElement>, task: DealTask) => {
+		setStatusMenuAnchor(event.currentTarget);
+		setActiveMenuTask(task);
+	};
+
+	const handleStatusClose = () => {
+		setStatusMenuAnchor(null);
+		setActiveMenuTask(null);
+	};
+
+	const handleStatusSelect = async (status: DealTaskStatus) => {
+		if (activeMenuTask) {
+			try {
+				await dispatch(updateDealTask({ taskPublicId: activeMenuTask.public_id, payload: { status } })).unwrap();
+			} catch {
+				toast.error('Failed to update status');
+			}
+		}
+		handleStatusClose();
+	};
 
 	const completedCount = dealTasks.filter((t) => t.status === 'completed').length;
 	const totalCount = dealTasks.length;
@@ -410,13 +435,40 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 													}}
 												/>
 											)}
-											{task.status === 'in_progress' && !isCompleted && (
-												<Chip
-													label="In Progress"
-													size="small"
-													sx={{ height: 18, fontSize: '0.62rem', fontWeight: 700, bgcolor: alpha('#FF9800', 0.12), color: '#FF9800', '& .MuiChip-label': { px: 0.75 } }}
-												/>
-											)}
+											<Chip
+												label={task.status === 'completed' ? 'Completed' : task.status === 'in_progress' ? 'In Progress' : 'Yet to Start'}
+												size="small"
+												onClick={(e) => handleStatusClick(e, task)}
+												sx={{
+													height: 20,
+													fontSize: '0.65rem',
+													fontWeight: 700,
+													cursor: 'pointer',
+													bgcolor: task.status === 'completed'
+														? alpha(theme.palette.success.main, isDark ? 0.18 : 0.1)
+														: task.status === 'in_progress'
+															? alpha('#FF9800', isDark ? 0.18 : 0.1)
+															: alpha(theme.palette.text.secondary, isDark ? 0.18 : 0.1),
+													color: task.status === 'completed'
+														? theme.palette.success.main
+														: task.status === 'in_progress'
+															? '#FF9800'
+															: theme.palette.text.secondary,
+													border: '1px solid',
+													borderColor: task.status === 'completed'
+														? alpha(theme.palette.success.main, 0.3)
+														: task.status === 'in_progress'
+															? alpha('#FF9800', 0.3)
+															: alpha(theme.palette.text.secondary, 0.3),
+													'&:hover': {
+														bgcolor: task.status === 'completed'
+															? alpha(theme.palette.success.main, 0.25)
+															: task.status === 'in_progress'
+																? alpha('#FF9800', 0.25)
+																: alpha(theme.palette.text.secondary, 0.2),
+													}
+												}}
+											/>
 										</Stack>
 										<Stack direction="row" spacing={1.5} sx={{ mt: 0.6 }} flexWrap="wrap" useFlexGap>
 											{task.due_date && (
@@ -461,6 +513,23 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 					})}
 				</Stack>
 			)}
+			<Menu
+				anchorEl={statusMenuAnchor}
+				open={Boolean(statusMenuAnchor)}
+				onClose={handleStatusClose}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+				transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+			>
+				<MenuItem onClick={() => handleStatusSelect('pending')} sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
+					Yet to Start (Pending)
+				</MenuItem>
+				<MenuItem onClick={() => handleStatusSelect('in_progress')} sx={{ fontSize: '0.8rem', fontWeight: 600, color: '#FF9800' }}>
+					In Progress
+				</MenuItem>
+				<MenuItem onClick={() => handleStatusSelect('completed')} sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'success.main' }}>
+					Completed
+				</MenuItem>
+			</Menu>
 		</Box>
 	);
 };
