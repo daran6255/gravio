@@ -36,9 +36,12 @@ const STATUS_FILTERS: { value: DealTaskStatus | 'all' | 'overdue'; label: string
 	{ value: 'all', label: 'All' },
 	{ value: 'pending', label: 'Pending' },
 	{ value: 'in_progress', label: 'In Progress' },
+	{ value: 'blocked', label: 'Blocked' },
 	{ value: 'overdue', label: 'Overdue' },
 	{ value: 'completed', label: 'Completed' },
 ];
+
+const BLOCKED_COLOR = '#9C27B0';
 
 const getTaskTypeIcon = (type: DealTaskType) => {
 	const s = { sx: { fontSize: 14 } };
@@ -386,7 +389,7 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 									overflow: 'hidden',
 									transition: 'box-shadow 0.2s',
 									'&:hover': { boxShadow: theme.shadows[2] },
-									borderLeft: '3px solid ' + (isCompleted ? theme.palette.success.main : overdue ? theme.palette.error.main : typeColor),
+									borderLeft: '3px solid ' + (isCompleted ? theme.palette.success.main : task.status === 'blocked' ? BLOCKED_COLOR : overdue ? theme.palette.error.main : typeColor),
 								}}
 							>
 								<Stack direction="row" alignItems="flex-start" spacing={1} sx={{ p: 1.5 }}>
@@ -436,7 +439,12 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 												/>
 											)}
 											<Chip
-												label={task.status === 'completed' ? 'Completed' : task.status === 'in_progress' ? 'In Progress' : 'Yet to Start'}
+												label={
+													task.status === 'completed' ? 'Completed'
+														: task.status === 'in_progress' ? 'In Progress'
+															: task.status === 'blocked' ? 'Blocked'
+																: 'Yet to Start'
+												}
 												size="small"
 												onClick={(e) => handleStatusClick(e, task)}
 												sx={{
@@ -448,24 +456,32 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 														? alpha(theme.palette.success.main, isDark ? 0.18 : 0.1)
 														: task.status === 'in_progress'
 															? alpha('#FF9800', isDark ? 0.18 : 0.1)
-															: alpha(theme.palette.text.secondary, isDark ? 0.18 : 0.1),
+															: task.status === 'blocked'
+																? alpha(BLOCKED_COLOR, isDark ? 0.18 : 0.1)
+																: alpha(theme.palette.text.secondary, isDark ? 0.18 : 0.1),
 													color: task.status === 'completed'
 														? theme.palette.success.main
 														: task.status === 'in_progress'
 															? '#FF9800'
-															: theme.palette.text.secondary,
+															: task.status === 'blocked'
+																? BLOCKED_COLOR
+																: theme.palette.text.secondary,
 													border: '1px solid',
 													borderColor: task.status === 'completed'
 														? alpha(theme.palette.success.main, 0.3)
 														: task.status === 'in_progress'
 															? alpha('#FF9800', 0.3)
-															: alpha(theme.palette.text.secondary, 0.3),
+															: task.status === 'blocked'
+																? alpha(BLOCKED_COLOR, 0.3)
+																: alpha(theme.palette.text.secondary, 0.3),
 													'&:hover': {
 														bgcolor: task.status === 'completed'
 															? alpha(theme.palette.success.main, 0.25)
 															: task.status === 'in_progress'
 																? alpha('#FF9800', 0.25)
-																: alpha(theme.palette.text.secondary, 0.2),
+																: task.status === 'blocked'
+																	? alpha(BLOCKED_COLOR, 0.25)
+																	: alpha(theme.palette.text.secondary, 0.2),
 													}
 												}}
 											/>
@@ -525,6 +541,9 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 				</MenuItem>
 				<MenuItem onClick={() => handleStatusSelect('in_progress')} sx={{ fontSize: '0.8rem', fontWeight: 600, color: '#FF9800' }}>
 					In Progress
+				</MenuItem>
+				<MenuItem onClick={() => handleStatusSelect('blocked')} sx={{ fontSize: '0.8rem', fontWeight: 600, color: BLOCKED_COLOR }}>
+					Blocked
 				</MenuItem>
 				<MenuItem onClick={() => handleStatusSelect('completed')} sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'success.main' }}>
 					Completed

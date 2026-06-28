@@ -1,4 +1,4 @@
-﻿export type DealTaskStatus = 'pending' | 'in_progress' | 'completed';
+﻿export type DealTaskStatus = 'pending' | 'in_progress' | 'blocked' | 'completed';
 export type DealTaskType = 'document' | 'meeting' | 'call' | 'action' | 'review' | 'other';
 
 export interface DealTask {
