@@ -79,6 +79,22 @@ const formatDate = (iso: string) => {
 	}) + `, ${timeString}`;
 };
 
+const getOutcomeColor = (outcome: string): 'success' | 'info' | 'primary' | 'default' => {
+	switch (outcome) {
+		case 'Connected':
+		case 'Sent':
+		case 'Received':
+			return 'success';
+		case 'Opened':
+		case 'Read':
+			return 'info';
+		case 'Replied':
+			return 'primary';
+		default:
+			return 'default';
+	}
+};
+
 interface NotesTimelineProps {
 	activities: CRMActivity[];
 	loading?: boolean;
@@ -114,11 +130,11 @@ export const NotesTimeline: React.FC<NotesTimelineProps> = ({ activities, loadin
 			isCompleted: activity.is_completed,
 			actions: (
 				<>
-					{activity.type === 'call' && activity.outcome && (
+					{(activity.type === 'call' || activity.type === 'email') && activity.outcome && (
 						<Chip
 							size="small"
 							label={activity.outcome}
-							color={activity.outcome === 'Connected' ? 'success' : 'default'}
+							color={getOutcomeColor(activity.outcome)}
 							variant="outlined"
 							sx={{ fontWeight: 600, height: 24 }}
 						/>
