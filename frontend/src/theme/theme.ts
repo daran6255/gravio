@@ -1,5 +1,5 @@
 import { createTheme, type Theme } from '@mui/material/styles';
-import './smoothScroll';
+// import './smoothScroll';
 
 declare module '@mui/material/styles' {
 	interface TypographyVariants {
