@@ -16,6 +16,8 @@ export const RichTextViewer: React.FC<RichTextViewerProps> = ({ html }) => {
 				color: 'text.secondary',
 				fontSize: '0.875rem',
 				lineHeight: 1.57,
+				wordBreak: 'break-word',
+				overflowWrap: 'break-word',
 				'& p': { m: 0, mb: 1 },
 				'& p:last-child': { mb: 0 },
 				'& ul, & ol': { pl: 3, mb: 1 },

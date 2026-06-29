@@ -1,20 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import {
-	Box, Typography, Stack, IconButton, Tooltip, useTheme, alpha,
-	Grid, TextField, InputAdornment, Button, Chip
-} from '@mui/material';
-import {
-	Business, Person, LocalOffer, Payments, TrendingUp, Launch, InfoOutlined, ContentCopy
-} from '@mui/icons-material';
+import React, { useState } from 'react';
+import { Box, Typography, Stack, IconButton, Tooltip, useTheme, alpha, Grid, Chip, Alert, Button } from '@mui/material';
+import { Business, Person, LocalOffer, Payments, TrendingUp, Launch, Phone, Email, HelpOutline } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
-import { updateDeal } from '../../../../../store/slices/crmSlice';
-import useToast from '../../../../../hooks/useToast';
+import { fetchEntityActivities } from '../../../../../store/slices/crmSlice';
 import { RichTextViewer } from '../../../../common/form';
-import type { Deal } from '../../../../../models/crm/deal';
+import PremiumTooltip from '../../../../common/PremiumTooltip';
+import { NotesComposer } from '../../../shared';
+import type { Lead } from '../../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
 
-interface DealDetailsTabProps {
-	deal: Deal;
+interface LeadOverviewTabProps {
+	lead: Lead;
 	owners: CRMOwnerOption[];
 }
 
@@ -39,48 +35,18 @@ const formatValue = (value: number, currency: string) => {
 	return symbol ? `${symbol}${formattedNum}` : formattedNum;
 };
 
-export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) => {
+export const LeadOverviewTab: React.FC<LeadOverviewTabProps> = ({ lead, owners }) => {
 	const dispatch = useAppDispatch();
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
-	const toast = useToast();
 
 	const { companyOptions, contactOptions } = useAppSelector((state) => state.crm);
+	const [composerType, setComposerType] = useState<string>('note');
 
-	const [value, setValue] = useState(deal.value != null ? Number(deal.value).toLocaleString() : '');
-	const [closeDate, setCloseDate] = useState(deal.close_date || '');
-
-	useEffect(() => {
-		setValue(deal.value != null ? Number(deal.value).toLocaleString() : '');
-		setCloseDate(deal.close_date || '');
-	}, [deal.value, deal.close_date, deal.id]);
-
-	const handleChangeValue = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const raw = e.target.value.replace(/[^0-9.]/g, '');
-		const parts = raw.split('.');
-		const integerPart = parts[0] ? Number(parts[0]).toLocaleString() : '';
-		const decimalPart = parts[1] !== undefined ? '.' + parts[1].slice(0, 2) : '';
-		setValue(integerPart + decimalPart);
-	};
-
-	const handleSaveValue = () => {
-		const parsed = value ? Number(value.replace(/,/g, '')) : undefined;
-		if (parsed !== deal.value) {
-			dispatch(updateDeal({ publicId: deal.public_id, payload: { value: parsed } }));
-		}
-	};
-
-	const handleSaveCloseDate = () => {
-		if (closeDate !== (deal.close_date || '')) {
-			dispatch(updateDeal({ publicId: deal.public_id, payload: { close_date: closeDate || undefined } }));
-		}
-	};
-
-	const company = companyOptions.find((c) => c.id === deal.company_id);
-	const contact = contactOptions.find((c) => c.id === deal.contact_id);
-	const owner = deal.owner_id != null ? owners.find((o) => o.id === deal.owner_id) : undefined;
-	const displayId = `DL-${String(deal.id).padStart(5, '0')}`;
-	const description = deal.custom_fields?.description;
+	const company = companyOptions.find((c) => c.id === lead.company_id);
+	const contact = contactOptions.find((c) => c.id === lead.contact_id);
+	const owner = lead.owner_id != null ? owners.find((o) => o.id === lead.owner_id) : undefined;
+	const displayId = `LD-${String(lead.id).padStart(5, '0')}`;
 
 	const fieldCardSx = {
 		borderRadius: '12px',
@@ -111,18 +77,31 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 
 	return (
 		<Stack spacing={2.5}>
-			{/* Deal Financials Cards */}
+			{lead.status === 'converted' && (
+				<Alert 
+					severity="success" 
+					sx={{ 
+						borderRadius: '12px', 
+						fontWeight: 600,
+						'& .MuiAlert-icon': { color: 'success.main' }
+					}}
+				>
+					This lead has been successfully converted into an active placement deal.
+				</Alert>
+			)}
+
+			{/* Financial & Priority Cards */}
 			<Grid container spacing={2}>
 				<Grid size={{ xs: 6 }}>
 					<Box sx={{ ...fieldCardSx, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: '4px solid', borderLeftColor: 'primary.main' }}>
 						<Box>
-							<Typography variant="caption" sx={labelSx}>Deal Value</Typography>
+							<Typography variant="caption" sx={labelSx}>Est. Value</Typography>
 							<Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ mt: 0.5 }}>
 								<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
-									{deal.value != null ? formatValue(deal.value, deal.currency) : '—'}
+									{lead.estimated_value != null ? formatValue(lead.estimated_value, lead.currency) : '—'}
 								</Typography>
 								<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-									{deal.currency}
+									{lead.currency}
 								</Typography>
 							</Stack>
 						</Box>
@@ -132,14 +111,14 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 					</Box>
 				</Grid>
 				<Grid size={{ xs: 6 }}>
-					<Box sx={{ ...fieldCardSx, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: '4px solid', borderLeftColor: 'success.main' }}>
+					<Box sx={{ ...fieldCardSx, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: '4px solid', borderLeftColor: 'warning.main' }}>
 						<Box>
-							<Typography variant="caption" sx={labelSx}>Win Probability</Typography>
-							<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em', mt: 0.5 }}>
-								{deal.probability}%
+							<Typography variant="caption" sx={labelSx}>Priority</Typography>
+							<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em', mt: 0.5, textTransform: 'capitalize' }}>
+								{lead.priority}
 							</Typography>
 						</Box>
-						<Box sx={{ bgcolor: alpha(theme.palette.success.main, 0.08), p: 1, borderRadius: '50%', color: 'success.main', display: 'flex' }}>
+						<Box sx={{ bgcolor: alpha(theme.palette.warning.main, 0.08), p: 1, borderRadius: '50%', color: 'warning.main', display: 'flex' }}>
 							<TrendingUp sx={{ fontSize: 20 }} />
 						</Box>
 					</Box>
@@ -149,56 +128,22 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 			{/* Description Section */}
 			<Box sx={fieldCardSx}>
 				<Typography variant="caption" sx={{ ...sectionTitleSx, display: 'block', mb: 1 }}>Description</Typography>
-				{description ? (
+				{lead.description ? (
 					<Box 
 						sx={{ 
 							maxHeight: 150,
 							overflowY: 'auto',
 							wordBreak: 'break-word',
 							overflowWrap: 'break-word'
-						}} 
+						}}
 					>
-						<RichTextViewer html={description} />
+						<RichTextViewer html={lead.description} />
 					</Box>
 				) : (
 					<Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic' }}>
 						No description provided. Click Edit to add details.
 					</Typography>
 				)}
-			</Box>
-
-			{/* Quick Updates Section */}
-			<Box sx={fieldCardSx}>
-				<Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 1.5 }}>
-					<Typography variant="caption" sx={sectionTitleSx}>Quick Updates</Typography>
-					<Tooltip title="Changes auto-save when you click away (blur)">
-						<InfoOutlined sx={{ fontSize: 13, color: 'text.secondary', cursor: 'help' }} />
-					</Tooltip>
-				</Stack>
-				<Stack direction="row" spacing={2}>
-					<TextField
-						label="Deal Value"
-						value={value}
-						onChange={handleChangeValue}
-						onBlur={handleSaveValue}
-						size="small"
-						fullWidth
-						InputProps={{
-							startAdornment: <InputAdornment position="start">{getCurrencySymbol(deal.currency)}</InputAdornment>,
-							endAdornment: <InputAdornment position="end">{deal.currency}</InputAdornment>,
-						}}
-					/>
-					<TextField
-						label="Close Date"
-						type="date"
-						value={closeDate}
-						onChange={(e) => setCloseDate(e.target.value)}
-						onBlur={handleSaveCloseDate}
-						size="small"
-						fullWidth
-						InputLabelProps={{ shrink: true }}
-					/>
-				</Stack>
 			</Box>
 
 			{/* Associated Entities Section */}
@@ -304,7 +249,7 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 									}}>
 										{((contact.first_name?.[0] || '') + (contact.last_name?.[0] || '')).toUpperCase()}
 									</Box>
-									<Box sx={{ minWidth: 0 }}>
+									<Box sx={{ minWidth: 0, flex: 1 }}>
 										<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }} noWrap>
 											{contact.first_name} {contact.last_name || ''}
 										</Typography>
@@ -314,25 +259,41 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 											</Typography>
 										)}
 										
-										{contact.email && (
-											<Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
-												<Tooltip title={`Copy email: ${contact.email}`}>
-													<IconButton 
-														size="small" 
-														onClick={() => {
-															navigator.clipboard.writeText(contact.email || '');
-															toast.success('Email copied to clipboard');
-														}}
-														sx={{ p: 0.1, color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
-													>
-														<ContentCopy sx={{ fontSize: 11 }} />
-													</IconButton>
-												</Tooltip>
-												<Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }} noWrap>
-													{contact.email}
-												</Typography>
-											</Stack>
-										)}
+										{/* Email & Phone click triggers */}
+										<Stack spacing={0.5} sx={{ mt: 0.5 }}>
+											{contact.email && (
+												<Stack direction="row" spacing={0.5} alignItems="center" sx={{ overflow: 'hidden' }}>
+													<Tooltip title={`Call email composer`}>
+														<IconButton 
+															size="small" 
+															onClick={() => setComposerType('email')}
+															sx={{ p: 0.1, color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+														>
+															<Email sx={{ fontSize: 11 }} />
+														</IconButton>
+													</Tooltip>
+													<Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }} noWrap>
+														{contact.email}
+													</Typography>
+												</Stack>
+											)}
+											{(contact.phone || contact.mobile) && (
+												<Stack direction="row" spacing={0.5} alignItems="center" sx={{ overflow: 'hidden' }}>
+													<Tooltip title={`Call phone logger`}>
+														<IconButton 
+															size="small" 
+															onClick={() => setComposerType('call')}
+															sx={{ p: 0.1, color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+														>
+															<Phone sx={{ fontSize: 11 }} />
+														</IconButton>
+													</Tooltip>
+													<Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }} noWrap>
+														{contact.phone || contact.mobile}
+													</Typography>
+												</Stack>
+											)}
+										</Stack>
 									</Box>
 								</Box>
 							) : (
@@ -358,17 +319,17 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 					<Grid size={{ xs: 6 }}>
 						<Typography variant="caption" sx={labelSx}>Created On</Typography>
 						<Typography variant="body2" sx={{ fontWeight: 600 }}>
-							{new Date(deal.created_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+							{new Date(lead.created_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}
 						</Typography>
 					</Grid>
 					<Grid size={{ xs: 6 }}>
 						<Typography variant="caption" sx={labelSx}>Last Updated</Typography>
 						<Typography variant="body2" sx={{ fontWeight: 600 }}>
-							{new Date(deal.updated_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+							{new Date(lead.updated_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}
 						</Typography>
 					</Grid>
 					<Grid size={{ xs: 6 }}>
-						<Typography variant="caption" sx={labelSx}>Deal ID</Typography>
+						<Typography variant="caption" sx={labelSx}>Lead ID</Typography>
 						<Typography variant="body2" sx={{ fontWeight: 600, fontFamily: 'monospace' }}>
 							{displayId}
 						</Typography>
@@ -377,26 +338,41 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 			</Box>
 
 			{/* Tags */}
-			{deal.tags && deal.tags.length > 0 && (
+			{lead.tags && lead.tags.length > 0 && (
 				<Box sx={fieldCardSx}>
 					<Typography variant="caption" sx={labelSx}>Tags</Typography>
 					<Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
-						{deal.tags.map((t) => (
+						{lead.tags.map((t) => (
 							<Chip key={t} label={t} size="small" icon={<LocalOffer style={{ fontSize: 12 }} />} />
 						))}
 					</Stack>
 				</Box>
 			)}
 
-			{/* Lost Reason banner */}
-			{deal.status === 'lost' && deal.lost_reason && (
-				<Box sx={{ ...fieldCardSx, borderColor: theme.palette.error.main, bgcolor: alpha(theme.palette.error.main, 0.04) }}>
-					<Typography variant="caption" sx={{ ...labelSx, color: 'error.main' }}>Reason for loss</Typography>
-					<Typography variant="body2" sx={{ fontWeight: 600, color: 'error.main' }}>
-						{deal.lost_reason}
-					</Typography>
+			{/* Notes Composer Section */}
+			<Box>
+				<Box display="flex" alignItems="center" gap={0.5} sx={{ mb: 1.25 }}>
+					<Typography sx={{ ...sectionTitleSx, mb: 0 }}>Log Activity</Typography>
+					<PremiumTooltip title="Log communication activities for this lead. Notes, calls, and emails logged here will populate the Timeline." arrow placement="right">
+						<HelpOutline sx={{ fontSize: 13, color: 'text.secondary', cursor: 'pointer', opacity: 0.7, '&:hover': { opacity: 1, color: 'primary.main' } }} />
+					</PremiumTooltip>
 				</Box>
-			)}
+				<Box sx={{ ...fieldCardSx, p: 0, overflow: 'hidden' }}>
+					<Box sx={{ p: 1.5 }}>
+						<NotesComposer
+							key={`${lead.id}-${composerType}`}
+							entityType="lead"
+							entityId={lead.id}
+							variant="compact"
+							defaultType={composerType as any}
+							onCreated={() => {
+								setComposerType('note');
+								dispatch(fetchEntityActivities({ entityType: 'lead', entityId: lead.id }));
+							}}
+						/>
+					</Box>
+				</Box>
+			</Box>
 		</Stack>
 	);
 };
