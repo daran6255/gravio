@@ -16,11 +16,8 @@ import {
 	alpha
 } from '@mui/material';
 import { Close, FilterAltOutlined } from '@mui/icons-material';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import DatePicker from '../form/DatePicker';
 import Autocomplete from '@mui/material/Autocomplete';
-import dayjs from 'dayjs';
 import { awsStyles } from '../../../theme/theme';
 
 // Types for filter configuration
@@ -239,21 +236,12 @@ const FilterDrawer: React.FC<FilterDrawerProps> = ({
 			case 'date':
 				return (
 					<Box sx={{ p: 1.5 }}>
-						<LocalizationProvider dateAdapter={AdapterDayjs}>
-							<DatePicker
-								label={field.label}
-								format="DD/MMM/YYYY"
-								value={activeFilters[field.key] ? dayjs(activeFilters[field.key]) : null}
-								onChange={(newValue) => onFilterChange(field.key, newValue ? newValue.format('YYYY-MM-DD') : null)}
-								slotProps={{
-									textField: {
-										size: 'small',
-										fullWidth: true,
-										sx: inputSx
-									}
-								}}
-							/>
-						</LocalizationProvider>
+						<DatePicker
+							label={field.label}
+							value={activeFilters[field.key] || null}
+							onChange={(newValue) => onFilterChange(field.key, newValue || null)}
+							textFieldProps={{ sx: inputSx }}
+						/>
 					</Box>
 				);
 			default:

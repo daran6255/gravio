@@ -9,7 +9,7 @@ import {
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
 import { updateDeal } from '../../../../../store/slices/crmSlice';
 import useToast from '../../../../../hooks/useToast';
-import { RichTextViewer } from '../../../../common/form';
+import { RichTextViewer, DatePicker } from '../../../../common/form';
 import type { Deal } from '../../../../../models/crm/deal';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
 
@@ -70,9 +70,10 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 		}
 	};
 
-	const handleSaveCloseDate = () => {
-		if (closeDate !== (deal.close_date || '')) {
-			dispatch(updateDeal({ publicId: deal.public_id, payload: { close_date: closeDate || undefined } }));
+	const handleCloseDateChange = (newValue: string) => {
+		setCloseDate(newValue);
+		if (newValue !== (deal.close_date || '')) {
+			dispatch(updateDeal({ publicId: deal.public_id, payload: { close_date: newValue || undefined } }));
 		}
 	};
 
@@ -175,29 +176,28 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 						<InfoOutlined sx={{ fontSize: 13, color: 'text.secondary', cursor: 'help' }} />
 					</Tooltip>
 				</Stack>
-				<Stack direction="row" spacing={2}>
-					<TextField
-						label="Deal Value"
-						value={value}
-						onChange={handleChangeValue}
-						onBlur={handleSaveValue}
-						size="small"
-						fullWidth
-						InputProps={{
-							startAdornment: <InputAdornment position="start">{getCurrencySymbol(deal.currency)}</InputAdornment>,
-							endAdornment: <InputAdornment position="end">{deal.currency}</InputAdornment>,
-						}}
-					/>
-					<TextField
-						label="Close Date"
-						type="date"
-						value={closeDate}
-						onChange={(e) => setCloseDate(e.target.value)}
-						onBlur={handleSaveCloseDate}
-						size="small"
-						fullWidth
-						InputLabelProps={{ shrink: true }}
-					/>
+				<Stack direction="row" spacing={2} sx={{ width: '100%' }}>
+					<Box sx={{ flex: 1 }}>
+						<TextField
+							label="Deal Value"
+							value={value}
+							onChange={handleChangeValue}
+							onBlur={handleSaveValue}
+							size="small"
+							fullWidth
+							InputProps={{
+								startAdornment: <InputAdornment position="start">{getCurrencySymbol(deal.currency)}</InputAdornment>,
+								endAdornment: <InputAdornment position="end">{deal.currency}</InputAdornment>,
+							}}
+						/>
+					</Box>
+					<Box sx={{ flex: 1 }}>
+						<DatePicker
+							label="Close Date"
+							value={closeDate}
+							onChange={handleCloseDateChange}
+						/>
+					</Box>
 				</Stack>
 			</Box>
 

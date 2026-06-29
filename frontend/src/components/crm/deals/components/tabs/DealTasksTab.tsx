@@ -9,10 +9,7 @@ import {
 	Assignment, Description, Groups, Call, RateReview, FactCheck,
 	Schedule, WarningAmber,
 } from '@mui/icons-material';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import dayjs from 'dayjs';
+import { DatePicker } from '../../../../common/form';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
 import { createDealTask, updateDealTask, deleteDealTask } from '../../../../../store/slices/crmSlice';
 import useToast from '../../../../../hooks/useToast';
@@ -301,20 +298,11 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 									<MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
 								))}
 							</TextField>
-							<LocalizationProvider dateAdapter={AdapterDayjs}>
-								<DatePicker
-									label="Due Date"
-									format="DD/MMM/YYYY"
-									value={newDueDate ? dayjs(newDueDate) : null}
-									onChange={(newValue) => setNewDueDate(newValue ? newValue.format('YYYY-MM-DD') : '')}
-									slotProps={{
-										textField: {
-											size: 'small',
-											fullWidth: true,
-										}
-									}}
-								/>
-							</LocalizationProvider>
+							<DatePicker
+								label="Due Date"
+								value={newDueDate}
+								onChange={(newValue) => setNewDueDate(newValue)}
+							/>
 						</Stack>
 						<TextField
 							select
