@@ -11,7 +11,7 @@ import type { CRMOwnerOption } from '../../../../models/crm/owner';
 
 // Import refactored tab components
 import { DealDetailsTab } from './tabs/DealDetailsTab';
-import { DealTasksTab } from './tabs/DealTasksTab';
+import DealTasksTab from './tabs/DealTasksTab';
 import { DealAttachmentsTab } from './tabs/DealAttachmentsTab';
 import { DealNotesTab } from './tabs/DealNotesTab';
 
@@ -47,9 +47,10 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 		}
 	}, [open, dispatch]);
 
+	const { pipelines } = useAppSelector((state) => state.crm);
+
 	if (!deal) return null;
 
-	const { pipelines } = useAppSelector((state) => state.crm);
 	const pipeline = pipelines.find((p) => p.id === deal.pipeline_id);
 	const stage = pipeline?.stages.find((s) => s.id === deal.stage_id);
 	const displayId = `DL-${String(deal.id).padStart(5, '0')}`;

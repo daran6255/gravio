@@ -328,98 +328,96 @@ export const OrgDetailDrawer: React.FC<OrgDetailDrawerProps> = ({
 					</Box>
 
 					{/* Actions Context Menu */}
-					<Menu
-						anchorEl={menuAnchor}
-						open={Boolean(menuAnchor)}
-						onClose={handleMenuClose}
-						PaperProps={{
-							sx: {
-								borderRadius: '12px',
-								minWidth: 160,
-								border: `1px solid ${theme.palette.divider}`,
-								background: isDark ? 'rgba(20, 24, 34, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-								backdropFilter: 'blur(10px)',
-								boxShadow: isDark 
-									? '0 10px 30px rgba(0,0,0,0.4)' 
-									: '0 10px 30px rgba(139, 124, 246, 0.08)',
-								'& .MuiMenuItem-root': {
-									fontSize: '0.85rem',
-									fontWeight: 600,
-									py: 1,
-									px: 2,
-									display: 'flex',
-									alignItems: 'center',
-									gap: 1.5,
-									transition: 'all 0.15s ease',
-									'&:hover': {
-										bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(139, 124, 246, 0.04)',
+					{menuUser && (
+						<Menu
+							anchorEl={menuAnchor}
+							open={Boolean(menuAnchor)}
+							onClose={handleMenuClose}
+							PaperProps={{
+								sx: {
+									borderRadius: '12px',
+									minWidth: 160,
+									border: `1px solid ${theme.palette.divider}`,
+									background: isDark ? 'rgba(20, 24, 34, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+									backdropFilter: 'blur(10px)',
+									boxShadow: isDark 
+										? '0 10px 30px rgba(0,0,0,0.4)' 
+										: '0 10px 30px rgba(139, 124, 246, 0.08)',
+									'& .MuiMenuItem-root': {
+										fontSize: '0.85rem',
+										fontWeight: 600,
+										py: 1,
+										px: 2,
+										display: 'flex',
+										alignItems: 'center',
+										gap: 1.5,
+										transition: 'all 0.15s ease',
+										'&:hover': {
+											bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(139, 124, 246, 0.04)',
+										}
 									}
 								}
-							}
-						}}
-						anchorOrigin={{
-							vertical: 'bottom',
-							horizontal: 'right',
-						}}
-						transformOrigin={{
-							vertical: 'top',
-							horizontal: 'right',
-						}}
-					>
-						{menuUser && (
-							<>
-								<MenuItem onClick={() => { onUserAction(menuUser, 'edit'); handleMenuClose(); }}>
+							}}
+							anchorOrigin={{
+								vertical: 'bottom',
+								horizontal: 'right',
+							}}
+							transformOrigin={{
+								vertical: 'top',
+								horizontal: 'right',
+							}}
+						>
+							<MenuItem onClick={() => { onUserAction(menuUser, 'edit'); handleMenuClose(); }}>
+								<ListItemIcon sx={{ minWidth: 'auto', color: 'primary.main' }}>
+									<EditOutlined fontSize="small" />
+								</ListItemIcon>
+								<ListItemText primary="Edit User" />
+							</MenuItem>
+
+							{!menuUser.is_verified && menuUser.is_active && (
+								<MenuItem onClick={() => { onUserAction(menuUser, 'resendInvite'); handleMenuClose(); }}>
 									<ListItemIcon sx={{ minWidth: 'auto', color: 'primary.main' }}>
-										<EditOutlined fontSize="small" />
+										<MailOutline fontSize="small" />
 									</ListItemIcon>
-									<ListItemText primary="Edit User" />
+									<ListItemText primary="Resend Invite" />
 								</MenuItem>
+							)}
 
-								{!menuUser.is_verified && menuUser.is_active && (
-									<MenuItem onClick={() => { onUserAction(menuUser, 'resendInvite'); handleMenuClose(); }}>
-										<ListItemIcon sx={{ minWidth: 'auto', color: 'primary.main' }}>
-											<MailOutline fontSize="small" />
-										</ListItemIcon>
-										<ListItemText primary="Resend Invite" />
-									</MenuItem>
-								)}
-
-								{menuUser.is_verified && menuUser.is_active && (
-									<MenuItem onClick={() => { onUserAction(menuUser, 'sendPasswordReset'); handleMenuClose(); }}>
-										<ListItemIcon sx={{ minWidth: 'auto', color: 'primary.main' }}>
-											<LockOutlined fontSize="small" />
-										</ListItemIcon>
-										<ListItemText primary="Send Password Reset" />
-									</MenuItem>
-								)}
-
-								<MenuItem 
-									onClick={() => { 
-										onUserAction(menuUser, menuUser.is_active ? 'deactivate' : 'reactivate'); 
-										handleMenuClose(); 
-									}}
-									sx={{ color: menuUser.is_active ? 'warning.main' : 'success.main' }}
-								>
-									<ListItemIcon sx={{ minWidth: 'auto', color: menuUser.is_active ? 'warning.main' : 'success.main' }}>
-										{menuUser.is_active ? <Block fontSize="small" /> : <CheckCircleOutline fontSize="small" />}
+							{menuUser.is_verified && menuUser.is_active && (
+								<MenuItem onClick={() => { onUserAction(menuUser, 'sendPasswordReset'); handleMenuClose(); }}>
+									<ListItemIcon sx={{ minWidth: 'auto', color: 'primary.main' }}>
+										<LockOutlined fontSize="small" />
 									</ListItemIcon>
-									<ListItemText primary={menuUser.is_active ? 'Deactivate' : 'Reactivate'} />
+									<ListItemText primary="Send Password Reset" />
 								</MenuItem>
+							)}
 
-								<Divider sx={{ my: 0.5, opacity: 0.5 }} />
+							<MenuItem 
+								onClick={() => { 
+									onUserAction(menuUser, menuUser.is_active ? 'deactivate' : 'reactivate'); 
+									handleMenuClose(); 
+								}}
+								sx={{ color: menuUser.is_active ? 'warning.main' : 'success.main' }}
+							>
+								<ListItemIcon sx={{ minWidth: 'auto', color: menuUser.is_active ? 'warning.main' : 'success.main' }}>
+									{menuUser.is_active ? <Block fontSize="small" /> : <CheckCircleOutline fontSize="small" />}
+								</ListItemIcon>
+								<ListItemText primary={menuUser.is_active ? 'Deactivate' : 'Reactivate'} />
+							</MenuItem>
 
-								<MenuItem 
-									onClick={() => { onUserAction(menuUser, 'delete'); handleMenuClose(); }}
-									sx={{ color: 'error.main' }}
-								>
-									<ListItemIcon sx={{ minWidth: 'auto', color: 'error.main' }}>
-										<DeleteOutline fontSize="small" />
-									</ListItemIcon>
-									<ListItemText primary="Delete User" />
-								</MenuItem>
-							</>
-						)}
-					</Menu>
+							<Divider sx={{ my: 0.5, opacity: 0.5 }} />
+
+							<MenuItem 
+								onClick={() => { onUserAction(menuUser, 'delete'); handleMenuClose(); }}
+								sx={{ color: 'error.main' }}
+							>
+								<ListItemIcon sx={{ minWidth: 'auto', color: 'error.main' }}>
+									<DeleteOutline fontSize="small" />
+								</ListItemIcon>
+								<ListItemText primary="Delete User" />
+							</MenuItem>
+						</Menu>
+					)}
 				</>
 			)}
 		</DetailDrawer>

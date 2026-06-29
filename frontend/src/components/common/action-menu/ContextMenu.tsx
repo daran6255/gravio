@@ -93,11 +93,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
 					}
 				}}
 			>
-				{actions.map((action, index) => {
+				{actions.flatMap((action, index) => {
 					const color = action.color || theme.palette.text.secondary;
 					const item = (
 						<MenuItem
-							key={index}
+							key={`item-${index}`}
 							onClick={() => {
 								if (action.disabled) return;
 								action.onClick();
@@ -144,18 +144,23 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
 						</MenuItem>
 					);
 
-					return (
-						<React.Fragment key={index}>
-							{action.divider && (
-								<Box sx={{ my: 0.5, mx: 1, borderTop: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }} />
-							)}
-							{action.disabled && action.tooltip ? (
-								<Tooltip title={action.tooltip} placement="left" arrow>
-									<span>{item}</span>
-								</Tooltip>
-							) : item}
-						</React.Fragment>
-					);
+					const renderedItem = action.disabled && action.tooltip ? (
+						<Tooltip key={`tooltip-${index}`} title={action.tooltip} placement="left" arrow>
+							<span>{item}</span>
+						</Tooltip>
+					) : item;
+
+					if (action.divider) {
+						return [
+							<Box 
+								key={`divider-${index}`} 
+								sx={{ my: 0.5, mx: 1, borderTop: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }} 
+							/>,
+							renderedItem
+						];
+					}
+
+					return [renderedItem];
 				})}
 			</Menu>
 		</>

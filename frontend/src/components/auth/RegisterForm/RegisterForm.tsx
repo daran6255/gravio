@@ -360,12 +360,12 @@ const RegisterForm: React.FC = () => {
 							<svg width="24" height="24" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
 								<defs>
 									<linearGradient id="lum-reg-icon" x1="0" y1="0" x2="1" y2="1">
-										<stop offset="0" stop-color="#8B7CF6"/>
-										<stop offset="1" stop-color="#4EA8FF"/>
+										<stop offset="0" stopColor="#8B7CF6"/>
+										<stop offset="1" stopColor="#4EA8FF"/>
 									</linearGradient>
 								</defs>
 								<g transform="translate(90,90) scale(0.92)">
-									<path d="M 36 -54 A 65 65 0 1 0 65 12 L 18 12" fill="none" stroke="url(#lum-reg-icon)" stroke-width="13" stroke-linecap="round"/>
+									<path d="M 36 -54 A 65 65 0 1 0 65 12 L 18 12" fill="none" stroke="url(#lum-reg-icon)" strokeWidth="13" strokeLinecap="round"/>
 									<circle cx="58" cy="-66" r="10" fill="#4EA8FF"/>
 								</g>
 							</svg>

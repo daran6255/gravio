@@ -25,7 +25,19 @@ interface CustomToastProps extends CustomContentProps {
 }
 
 const CustomToast = forwardRef<HTMLDivElement, CustomToastProps>(
-  ({ id, message, variant, ...other }, ref) => {
+  ({ 
+    id, 
+    message, 
+    variant, 
+    anchorOrigin, 
+    persist, 
+    autoHideDuration, 
+    hideIconVariant, 
+    iconVariant,
+    style,
+    className,
+    ...other 
+  }, ref) => {
     const theme = useTheme();
     const { closeSnackbar } = useSnackbar();
 
@@ -59,7 +71,7 @@ const CustomToast = forwardRef<HTMLDivElement, CustomToastProps>(
     const { color, Icon } = config;
 
     return (
-      <StyledSnackbarContent ref={ref} role="alert" {...other}>
+      <StyledSnackbarContent ref={ref} role="alert" style={style} className={className} {...other}>
         <Paper
           elevation={0}
           sx={{
