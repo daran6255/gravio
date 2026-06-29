@@ -39,6 +39,7 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 				'& .MuiDrawer-paper': {
 					width: { xs: '100%', sm: width },
 					boxSizing: 'border-box',
+					overscrollBehavior: 'contain',
 					p: disablePadding ? 0 : { xs: 2.5, sm: 3.5 },
 					borderLeft: '1px solid',
 					borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',

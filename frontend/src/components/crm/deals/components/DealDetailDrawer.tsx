@@ -194,7 +194,7 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 			</Tabs>
 
 			{/* Scrollable drawer body */}
-			<Box sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+			<Box sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 2.5, overscrollBehavior: 'contain' }}>
 				{tab === 0 && <DealDetailsTab deal={deal} owners={owners} />}
 				{tab === 1 && <DealTasksTab deal={deal} />}
 				{tab === 2 && <DealAttachmentsTab deal={deal} />}
