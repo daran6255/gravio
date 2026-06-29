@@ -19,7 +19,7 @@ export interface KanbanBoardProps<T> {
 	onMoveItem?: (item: T, targetColumn: KanbanColumnDef) => void;
 	loading?: boolean;
 	emptyMessage?: string;
-	columnWidth?: number;
+	columnWidth?: number | string;
 }
 
 export function KanbanBoard<T>({

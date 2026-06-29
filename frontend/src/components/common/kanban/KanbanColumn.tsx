@@ -8,7 +8,7 @@ export interface KanbanColumnProps {
 	color?: string;
 	count?: number;
 	footer?: React.ReactNode;
-	width?: number;
+	width?: number | string;
 	children: React.ReactNode;
 }
 
@@ -22,7 +22,9 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, label, color, co
 			sx={{
 				display: 'flex',
 				flexDirection: 'column',
-				width,
+				width: '100%',
+				minWidth: width,
+				flex: 1,
 				height: 'calc(100vh - 430px)',
 				minHeight: 380,
 				flexShrink: 0,

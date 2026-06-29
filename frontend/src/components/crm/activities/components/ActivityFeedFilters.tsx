@@ -15,6 +15,7 @@ interface ActivityFeedFiltersProps {
 	onDateFromChange: (value: string) => void;
 	dateTo: string;
 	onDateToChange: (value: string) => void;
+	hideType?: boolean;
 }
 
 export const ActivityFeedFilters: React.FC<ActivityFeedFiltersProps> = ({
@@ -27,23 +28,26 @@ export const ActivityFeedFilters: React.FC<ActivityFeedFiltersProps> = ({
 	onDateFromChange,
 	dateTo,
 	onDateToChange,
+	hideType = false,
 }) => {
 	return (
 		<Box sx={{ p: 2, mb: 2, borderRadius: '14px', border: '1px solid', borderColor: 'divider' }}>
 			<Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-				<TextField
-					select
-					label="Type"
-					value={type}
-					onChange={(e) => onTypeChange(e.target.value)}
-					size="small"
-					sx={{ minWidth: 140 }}
-				>
-					<MenuItem value="">All Types</MenuItem>
-					{TYPE_OPTIONS.map((t) => (
-						<MenuItem key={t} value={t} sx={{ textTransform: 'capitalize' }}>{t}</MenuItem>
-					))}
-				</TextField>
+				{!hideType && (
+					<TextField
+						select
+						label="Type"
+						value={type}
+						onChange={(e) => onTypeChange(e.target.value)}
+						size="small"
+						sx={{ minWidth: 140 }}
+					>
+						<MenuItem value="">All Types</MenuItem>
+						{TYPE_OPTIONS.map((t) => (
+							<MenuItem key={t} value={t} sx={{ textTransform: 'capitalize' }}>{t}</MenuItem>
+						))}
+					</TextField>
+				)}
 
 				<TextField
 					select

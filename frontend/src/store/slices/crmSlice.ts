@@ -122,6 +122,10 @@ interface CrmState {
 	dealTasks: DealTask[];
 	dealTasksLoading: boolean;
 	dealTaskMutating: boolean;
+
+	allDealTasks: (DealTask & { deal_title?: string; deal_public_id?: string })[];
+	allDealTasksLoading: boolean;
+	allDealTasksError: string | null;
 }
 
 const initialState: CrmState = {
@@ -222,6 +226,10 @@ const initialState: CrmState = {
 	dealTasks: [],
 	dealTasksLoading: false,
 	dealTaskMutating: false,
+
+	allDealTasks: [],
+	allDealTasksLoading: false,
+	allDealTasksError: null,
 };
 
 export const fetchLeads = createAsyncThunk(
@@ -751,6 +759,26 @@ export const deleteDealTask = createAsyncThunk(
 	}
 );
 
+export const fetchAllDealTasks = createAsyncThunk(
+	'crm/fetchAllDealTasks',
+	async (deals: Deal[], { rejectWithValue }) => {
+		try {
+			const tasksPromises = deals.map(async (deal) => {
+				const tasks = await crmService.getDealTasks(deal.public_id);
+				return tasks.map((t) => ({
+					...t,
+					deal_title: deal.title,
+					deal_public_id: deal.public_id,
+				}));
+			});
+			const results = await Promise.all(tasksPromises);
+			return results.flat();
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch all deal tasks'));
+		}
+	}
+);
+
 const crmSlice = createSlice({
 	name: 'crm',
 	initialState,
@@ -1171,10 +1199,26 @@ const crmSlice = createSlice({
 				state.dealTasks = state.dealTasks.map((t) =>
 					t.public_id === action.payload.public_id ? action.payload : t
 				);
+				state.allDealTasks = state.allDealTasks.map((t) =>
+					t.public_id === action.payload.public_id ? { ...t, ...action.payload } : t
+				);
 			})
 			.addCase(updateDealTask.rejected, (state) => { state.dealTaskMutating = false; })
 			.addCase(deleteDealTask.fulfilled, (state, action: PayloadAction<string>) => {
 				state.dealTasks = state.dealTasks.filter((t) => t.public_id !== action.payload);
+				state.allDealTasks = state.allDealTasks.filter((t) => t.public_id !== action.payload);
+			})
+			.addCase(fetchAllDealTasks.pending, (state) => {
+				state.allDealTasksLoading = true;
+				state.allDealTasksError = null;
+			})
+			.addCase(fetchAllDealTasks.fulfilled, (state, action: PayloadAction<(DealTask & { deal_title?: string; deal_public_id?: string })[]>) => {
+				state.allDealTasksLoading = false;
+				state.allDealTasks = action.payload;
+			})
+			.addCase(fetchAllDealTasks.rejected, (state, action: PayloadAction<any>) => {
+				state.allDealTasksLoading = false;
+				state.allDealTasksError = action.payload;
 			});
 	},
 });
