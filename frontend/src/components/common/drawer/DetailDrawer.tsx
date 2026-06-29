@@ -1,6 +1,7 @@
 import React from 'react';
 import { Drawer, Box, Typography, IconButton, Divider, useTheme } from '@mui/material';
 import { Close } from '@mui/icons-material';
+import { useScrollLock } from '../../../hooks/useScrollLock';
 
 interface DetailDrawerProps {
 	open: boolean;
@@ -29,6 +30,8 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+
+	useScrollLock(open, 'MuiDrawer-paper');
 
 	return (
 		<Drawer
