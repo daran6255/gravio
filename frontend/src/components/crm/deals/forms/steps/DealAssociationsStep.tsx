@@ -44,7 +44,7 @@ export const DealAssociationsStep: React.FC<DealAssociationsStepProps> = ({
 				value={contact}
 				onChange={(_e, val) => setContact(val)}
 				loading={contactOptions.length === 0}
-				onInputChange={(_e, val) => dispatch(searchContactOptions(val ? { search: val } : undefined))}
+				onInputChange={(_e, val) => dispatch(searchContactOptions({ search: val || undefined, companyId: company?.id }))}
 				fullWidth
 				renderInput={(params) => (
 					<TextField {...params} label="Linked Contact" placeholder="Type to search contacts..." />

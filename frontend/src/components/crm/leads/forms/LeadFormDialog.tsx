@@ -39,6 +39,7 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [touched, setTouched] = useState<{ title?: boolean; currency?: boolean }>({});
+	const [hasInitialized, setHasInitialized] = useState(false);
 
 	const fieldErrors = {
 		title: title.trim() ? '' : 'Title is required',
@@ -47,21 +48,49 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 	const isValid = !fieldErrors.title && !fieldErrors.currency;
 
 	useEffect(() => {
-		if (!open) return;
-		setTitle(lead?.title || '');
-		setSource(lead?.source || '');
-		setPriority(lead?.priority || 'medium');
-		setEstimatedValue(lead?.estimated_value != null ? String(lead.estimated_value) : '');
-		setCurrency(lead?.currency || 'USD');
-		setDescription(lead?.description || '');
-		setTags(lead?.tags || []);
-		setCompany(null);
-		setContact(null);
-		setError(null);
-		setTouched({});
-		dispatch(searchCompanyOptions(undefined));
-		dispatch(searchContactOptions(undefined));
+		if (open) {
+			dispatch(searchCompanyOptions(undefined));
+			dispatch(searchContactOptions(lead?.company_id ? { companyId: lead.company_id } : undefined));
+		} else {
+			setHasInitialized(false);
+		}
 	}, [open, lead, dispatch]);
+
+	useEffect(() => {
+		if (!open) return;
+		if (!hasInitialized) {
+			setTitle(lead?.title || '');
+			setSource(lead?.source || '');
+			setPriority(lead?.priority || 'medium');
+			setEstimatedValue(lead?.estimated_value != null ? String(lead.estimated_value) : '');
+			setCurrency(lead?.currency || 'USD');
+			setDescription(lead?.description || '');
+			setTags(lead?.tags || []);
+
+			const comp = companyOptions.find((c) => c.id === lead?.company_id);
+			const cont = contactOptions.find((c) => c.id === lead?.contact_id);
+			setCompany(comp || null);
+			setContact(cont || null);
+			setError(null);
+			setTouched({});
+
+			if (lead) {
+				if (companyOptions.length > 0 || contactOptions.length > 0) {
+					setHasInitialized(true);
+				}
+			} else {
+				setHasInitialized(true);
+			}
+		}
+	}, [open, lead, companyOptions, contactOptions, hasInitialized]);
+
+	const handleCompanyChange = (newCompany: Company | null) => {
+		setCompany(newCompany);
+		dispatch(searchContactOptions(newCompany ? { companyId: newCompany.id } : undefined));
+		if (contact && newCompany && contact.company_id !== newCompany.id) {
+			setContact(null);
+		}
+	};
 
 	const handleSave = async () => {
 		setTouched({ title: true, currency: true });
@@ -155,7 +184,7 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 			content: (
 				<LeadAssociationsStep
 					company={company}
-					setCompany={setCompany}
+					setCompany={handleCompanyChange}
 					companyOptions={companyOptions}
 					companyOptionsLoading={companyOptionsLoading}
 					contact={contact}
