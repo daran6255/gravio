@@ -3,16 +3,15 @@ import {
 	Box,
 	TextField,
 	MenuItem,
-	Button,
 	Stack,
 	Autocomplete,
 	InputAdornment,
 	CircularProgress,
-	Alert,
+	Dialog,
 } from '@mui/material';
 import { HelpOutline } from '@mui/icons-material';
 import { NumericFormat } from 'react-number-format';
-import BaseDialog from '../../../common/dialogbox/BaseDialog';
+import { EnterpriseForm, type FormStep } from '../../../common/form';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { createLead, updateLead, searchCompanyOptions, searchContactOptions } from '../../../../store/slices/crmSlice';
 import type { Lead, LeadSource, LeadPriority } from '../../../../models/crm/lead';
@@ -124,238 +123,239 @@ export const LeadFormDialog: React.FC<LeadFormDialogProps> = ({ open, onClose, l
 		}
 	};
 
-	return (
-		<BaseDialog
-			open={open}
-			onClose={onClose}
-			title={isEdit ? 'Edit Lead' : 'New Lead'}
-			subtitle={isEdit ? lead?.title : 'Capture a new sales opportunity'}
-			maxWidth="sm"
-			loading={submitting}
-			actions={
-				<>
-					<Button onClick={onClose} disabled={submitting} sx={{ textTransform: 'none', fontWeight: 600 }}>
-						Cancel
-					</Button>
-					<Button
-						variant="contained"
-						onClick={handleSave}
-						disabled={submitting || !isValid}
-						sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px', px: 3 }}
-					>
-						{submitting ? <CircularProgress size={20} color="inherit" /> : isEdit ? 'Save Changes' : 'Create Lead'}
-					</Button>
-				</>
-			}
-		>
-			<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-				{error && <Alert severity="error">{error}</Alert>}
-
-				<TextField
-					label={
-						<Stack direction="row" alignItems="center" spacing={0.5}>
-							<span>Title</span>
-							<PremiumTooltip title="A descriptive name for this opportunity (e.g., website redesign or recruitment placement)." arrow placement="top">
-								<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
-							</PremiumTooltip>
-						</Stack>
-					}
-					value={title}
-					onChange={(e) => setTitle(e.target.value)}
-					onBlur={() => setTouched((t) => ({ ...t, title: true }))}
-					error={!!touched.title && !!fieldErrors.title}
-					helperText={touched.title && fieldErrors.title}
-					required
-					fullWidth
-					size="small"
-					placeholder="e.g. Website redesign for Acme"
-				/>
-
-				<Autocomplete
-					options={companyOptions}
-					getOptionLabel={(o) => o.name}
-					loading={companyOptionsLoading}
-					value={company}
-					onChange={(_e, value) => setCompany(value)}
-					onInputChange={(_e, value) => dispatch(searchCompanyOptions(value || undefined))}
-					isOptionEqualToValue={(o, v) => o.id === v.id}
-					renderInput={(params) => (
-						<TextField
-							{...params}
-							label={
-								<Stack direction="row" alignItems="center" spacing={0.5}>
-									<span>Company</span>
-									<PremiumTooltip title="The business or organization this candidate/opportunity belongs to." arrow placement="top">
-										<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
-									</PremiumTooltip>
-								</Stack>
-							}
-							size="small"
-							InputProps={{
-								...params.InputProps,
-								endAdornment: (
-									<>
-										{companyOptionsLoading && <CircularProgress color="inherit" size={16} />}
-										{params.InputProps.endAdornment}
-									</>
-								),
-							}}
-						/>
-					)}
-				/>
-
-				<Autocomplete
-					options={contactOptions}
-					getOptionLabel={(o) => `${o.first_name} ${o.last_name || ''}`.trim()}
-					loading={contactOptionsLoading}
-					value={contact}
-					onChange={(_e, value) => setContact(value)}
-					onInputChange={(_e, value) => dispatch(searchContactOptions({ search: value || undefined, companyId: company?.id }))}
-					isOptionEqualToValue={(o, v) => o.id === v.id}
-					renderInput={(params) => (
-						<TextField
-							{...params}
-							label={
-								<Stack direction="row" alignItems="center" spacing={0.5}>
-									<span>Contact Person</span>
-									<PremiumTooltip title="The primary person/candidate linked to this lead." arrow placement="top">
-										<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
-									</PremiumTooltip>
-								</Stack>
-							}
-							size="small"
-							InputProps={{
-								...params.InputProps,
-								endAdornment: (
-									<>
-										{contactOptionsLoading && <CircularProgress color="inherit" size={16} />}
-										{params.InputProps.endAdornment}
-									</>
-								),
-							}}
-						/>
-					)}
-				/>
-
-				<Stack direction="row" spacing={2}>
+	const steps: FormStep[] = [
+		{
+			label: 'Lead Information',
+			content: (
+				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 					<TextField
-						select
 						label={
 							<Stack direction="row" alignItems="center" spacing={0.5}>
-								<span>Source</span>
-								<PremiumTooltip title="Where this lead originated from (e.g., website, campaign, partner referral)." arrow placement="top">
+								<span>Title</span>
+								<PremiumTooltip title="A descriptive name for this opportunity (e.g., website redesign or recruitment placement)." arrow placement="top">
 									<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
 								</PremiumTooltip>
 							</Stack>
 						}
-						value={source}
-						onChange={(e) => setSource(e.target.value as LeadSource)}
+						value={title}
+						onChange={(e) => setTitle(e.target.value)}
+						onBlur={() => setTouched((t) => ({ ...t, title: true }))}
+						error={!!touched.title && !!fieldErrors.title}
+						helperText={touched.title && fieldErrors.title}
+						required
 						fullWidth
 						size="small"
-					>
-						<MenuItem value="">—</MenuItem>
-						{LEAD_SOURCES.map((s) => (
-							<MenuItem key={s} value={s} sx={{ textTransform: 'capitalize' }}>{s.replace('_', ' ')}</MenuItem>
-						))}
-					</TextField>
-
-					<TextField
-						select
-						label={
-							<Stack direction="row" alignItems="center" spacing={0.5}>
-								<span>Priority</span>
-								<PremiumTooltip title="The urgency or interest tier for lead outbound follow-up (high, medium, low)." arrow placement="top">
-									<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
-								</PremiumTooltip>
-							</Stack>
-						}
-						value={priority}
-						onChange={(e) => setPriority(e.target.value as LeadPriority)}
-						fullWidth
-						size="small"
-					>
-						{LEAD_PRIORITIES.map((p) => (
-							<MenuItem key={p} value={p} sx={{ textTransform: 'capitalize' }}>{p}</MenuItem>
-						))}
-					</TextField>
-				</Stack>
-
-				<Stack direction="row" spacing={2}>
-					<NumericFormat
-						customInput={TextField}
-						label={
-							<Stack direction="row" alignItems="center" spacing={0.5}>
-								<span>Estimated Value</span>
-								<PremiumTooltip title="The expected budget size or deal value associated with this candidate." arrow placement="top">
-									<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
-								</PremiumTooltip>
-							</Stack>
-						}
-						value={estimatedValue}
-						onValueChange={(values) => setEstimatedValue(values.value)}
-						thousandSeparator
-						decimalScale={2}
-						allowNegative={false}
-						fullWidth
-						size="small"
-						InputProps={{
-							startAdornment: <InputAdornment position="start">{getCurrencySymbol(currency)}</InputAdornment>,
-						}}
+						placeholder="e.g. Website redesign for Acme"
 					/>
+
 					<Autocomplete
-						options={currencies}
-						getOptionLabel={(o) => `${o.code} — ${o.name}`}
-						value={currencies.find((c) => c.code === currency) || null}
-						onChange={(_e, value) => setCurrency(value?.code || '')}
-						onBlur={() => setTouched((t) => ({ ...t, currency: true }))}
-						isOptionEqualToValue={(o, v) => o.code === v.code}
-						fullWidth
-						renderOption={(props, option) => (
-							<Box component="li" {...props} key={option.code}>
-								{option.symbol} {option.code} — {option.name}
-							</Box>
-						)}
+						options={companyOptions}
+						getOptionLabel={(o) => o.name}
+						loading={companyOptionsLoading}
+						value={company}
+						onChange={(_e, value) => setCompany(value)}
+						onInputChange={(_e, value) => dispatch(searchCompanyOptions(value || undefined))}
+						isOptionEqualToValue={(o, v) => o.id === v.id}
 						renderInput={(params) => (
 							<TextField
 								{...params}
 								label={
 									<Stack direction="row" alignItems="center" spacing={0.5}>
-										<span>Currency</span>
-										<PremiumTooltip title="The monetary currency unit for value calculations." arrow placement="top">
+										<span>Company</span>
+										<PremiumTooltip title="The organization linked to this opportunity." arrow placement="top">
 											<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
 										</PremiumTooltip>
 									</Stack>
 								}
 								size="small"
-								error={!!touched.currency && !!fieldErrors.currency}
-								helperText={touched.currency && fieldErrors.currency}
+								InputProps={{
+									...params.InputProps,
+									endAdornment: (
+										<>
+											{companyOptionsLoading && <CircularProgress color="inherit" size={16} />}
+											{params.InputProps.endAdornment}
+										</>
+									),
+								}}
 							/>
 						)}
 					/>
-				</Stack>
 
-				<RichTextEditor
-					label={
-						<Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.75 }}>
-							<span>Description</span>
-							<PremiumTooltip title="Optional summary details and notes about this candidate." arrow placement="top">
-								<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
-							</PremiumTooltip>
-						</Stack>
-					}
-					value={description}
-					onChange={setDescription}
-					placeholder="Add notes about this opportunity..."
-				/>
+					<Autocomplete
+						options={contactOptions}
+						getOptionLabel={(o) => `${o.first_name} ${o.last_name || ''}`.trim()}
+						loading={contactOptionsLoading}
+						value={contact}
+						onChange={(_e, value) => setContact(value)}
+						onInputChange={(_e, value) => dispatch(searchContactOptions({ search: value || undefined, companyId: company?.id }))}
+						isOptionEqualToValue={(o, v) => o.id === v.id}
+						renderInput={(params) => (
+							<TextField
+								{...params}
+								label={
+									<Stack direction="row" alignItems="center" spacing={0.5}>
+										<span>Contact Person</span>
+										<PremiumTooltip title="The primary person/candidate linked to this lead." arrow placement="top">
+											<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
+										</PremiumTooltip>
+									</Stack>
+								}
+								size="small"
+								InputProps={{
+									...params.InputProps,
+									endAdornment: (
+										<>
+											{contactOptionsLoading && <CircularProgress color="inherit" size={16} />}
+											{params.InputProps.endAdornment}
+										</>
+									),
+								}}
+							/>
+						)}
+					/>
 
-				<TagInput
-					value={tags}
-					onChange={setTags}
-					label="Tags"
-					placeholder="e.g. q3-campaign, hot-lead — press Enter to add"
-				/>
-			</Box>
-		</BaseDialog>
+					<Stack direction="row" spacing={2}>
+						<TextField
+							select
+							label={
+								<Stack direction="row" alignItems="center" spacing={0.5}>
+									<span>Source</span>
+									<PremiumTooltip title="Where this lead originated from (e.g., website, campaign, partner referral)." arrow placement="top">
+										<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
+									</PremiumTooltip>
+								</Stack>
+							}
+							value={source}
+							onChange={(e) => setSource(e.target.value as LeadSource)}
+							fullWidth
+							size="small"
+						>
+							<MenuItem value="">—</MenuItem>
+							{LEAD_SOURCES.map((s) => (
+								<MenuItem key={s} value={s} sx={{ textTransform: 'capitalize' }}>{s.replace('_', ' ')}</MenuItem>
+							))}
+						</TextField>
+
+						<TextField
+							select
+							label={
+								<Stack direction="row" alignItems="center" spacing={0.5}>
+									<span>Priority</span>
+									<PremiumTooltip title="The urgency or interest tier for lead outbound follow-up (high, medium, low)." arrow placement="top">
+										<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
+									</PremiumTooltip>
+								</Stack>
+							}
+							value={priority}
+							onChange={(e) => setPriority(e.target.value as LeadPriority)}
+							fullWidth
+							size="small"
+						>
+							{LEAD_PRIORITIES.map((p) => (
+								<MenuItem key={p} value={p} sx={{ textTransform: 'capitalize' }}>{p}</MenuItem>
+							))}
+						</TextField>
+					</Stack>
+
+					<Stack direction="row" spacing={2}>
+						<NumericFormat
+							customInput={TextField}
+							label={
+								<Stack direction="row" alignItems="center" spacing={0.5}>
+									<span>Estimated Value</span>
+									<PremiumTooltip title="The expected budget size or deal value associated with this candidate." arrow placement="top">
+										<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
+									</PremiumTooltip>
+								</Stack>
+							}
+							value={estimatedValue}
+							onValueChange={(values) => setEstimatedValue(values.value)}
+							thousandSeparator
+							decimalScale={2}
+							allowNegative={false}
+							fullWidth
+							size="small"
+							InputProps={{
+								startAdornment: <InputAdornment position="start">{getCurrencySymbol(currency)}</InputAdornment>,
+							}}
+						/>
+						<Autocomplete
+							options={currencies}
+							getOptionLabel={(o) => `${o.code} — ${o.name}`}
+							value={currencies.find((c) => c.code === currency) || null}
+							onChange={(_e, value) => setCurrency(value?.code || '')}
+							onBlur={() => setTouched((t) => ({ ...t, currency: true }))}
+							isOptionEqualToValue={(o, v) => o.code === v.code}
+							fullWidth
+							renderOption={(props, option) => (
+								<Box component="li" {...props} key={option.code}>
+									{option.symbol} {option.code} — {option.name}
+								</Box>
+							)}
+							renderInput={(params) => (
+								<TextField
+									{...params}
+									label={
+										<Stack direction="row" alignItems="center" spacing={0.5}>
+											<span>Currency</span>
+											<PremiumTooltip title="The monetary currency unit for value calculations." arrow placement="top">
+												<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
+											</PremiumTooltip>
+										</Stack>
+									}
+									size="small"
+									error={!!touched.currency && !!fieldErrors.currency}
+									helperText={touched.currency && fieldErrors.currency}
+								/>
+							)}
+						/>
+					</Stack>
+
+					<RichTextEditor
+						label={
+							<Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.75 }}>
+								<span>Description</span>
+								<PremiumTooltip title="Optional summary details and notes about this candidate." arrow placement="top">
+									<HelpOutline sx={{ fontSize: 13, opacity: 0.6 }} />
+								</PremiumTooltip>
+							</Stack>
+						}
+						value={description}
+						onChange={setDescription}
+						placeholder="Add notes about this opportunity..."
+					/>
+
+					<TagInput
+						value={tags}
+						onChange={setTags}
+						label="Tags"
+						placeholder="e.g. q3-campaign, hot-lead — press Enter to add"
+					/>
+				</Box>
+			)
+		}
+	];
+
+	return (
+		<Dialog
+			open={open}
+			onClose={onClose}
+			maxWidth="sm"
+			fullWidth
+			PaperProps={{ sx: { borderRadius: 0, boxShadow: 'none', bgcolor: 'transparent' } }}
+		>
+			<EnterpriseForm
+				title={isEdit ? 'Edit Lead' : 'New Lead'}
+				subtitle={isEdit ? lead?.title : 'Capture a new sales opportunity'}
+				mode={isEdit ? 'edit' : 'create'}
+				steps={steps}
+				onSave={handleSave}
+				onCancel={onClose}
+				isSubmitting={submitting}
+				saveButtonText={isEdit ? 'Save Changes' : 'Create Lead'}
+				error={error}
+			/>
+		</Dialog>
 	);
 };
 
