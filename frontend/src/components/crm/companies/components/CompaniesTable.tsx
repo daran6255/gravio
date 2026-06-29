@@ -1,5 +1,5 @@
 import React from 'react';
-import { TableRow, TableCell, Typography, Stack } from '@mui/material';
+import { TableRow, TableCell, Typography, Stack, Checkbox } from '@mui/material';
 import { Visibility, Edit, DeleteOutline } from '@mui/icons-material';
 import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../../common/table';
 import StatusBadge from '../../../common/badge/StatusBadge';
@@ -20,6 +20,10 @@ interface CompaniesTableProps {
 	onRowClick: (company: Company) => void;
 	onEdit: (company: Company) => void;
 	onDelete: (company: Company) => void;
+	selectable?: boolean;
+	selectedIds?: Set<string>;
+	onToggleSelect?: (publicId: string) => void;
+	onSelectAll?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export const CompaniesTable: React.FC<CompaniesTableProps> = ({
@@ -37,6 +41,10 @@ export const CompaniesTable: React.FC<CompaniesTableProps> = ({
 	onRowClick,
 	onEdit,
 	onDelete,
+	selectable,
+	selectedIds,
+	onToggleSelect,
+	onSelectAll,
 }) => {
 	const columns: ColumnDefinition<Company>[] = [
 		{ id: 'name', label: 'Company' },
@@ -66,6 +74,15 @@ export const CompaniesTable: React.FC<CompaniesTableProps> = ({
 				onClick={() => onRowClick(company)}
 				sx={{ cursor: 'pointer' }}
 			>
+				{selectable && (
+					<TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+						<Checkbox
+							size="small"
+							checked={selectedIds?.has(company.public_id) ?? false}
+							onChange={() => onToggleSelect?.(company.public_id)}
+						/>
+					</TableCell>
+				)}
 				<TableCell>
 					<Typography variant="body2" sx={{ fontWeight: 600 }}>{company.name}</Typography>
 				</TableCell>
@@ -100,6 +117,8 @@ export const CompaniesTable: React.FC<CompaniesTableProps> = ({
 			canCreate
 			renderRow={renderRow}
 			emptyMessage="No companies yet. Add your first company to get started."
+			numSelected={selectable ? selectedIds?.size : undefined}
+			onSelectAllClick={selectable ? onSelectAll : undefined}
 		/>
 	);
 };

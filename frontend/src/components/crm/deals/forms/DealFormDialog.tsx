@@ -64,57 +64,81 @@ export const DealFormDialog: React.FC<DealFormDialogProps> = ({ open, onClose, d
 
 	const isValid = !fieldErrors.title && !fieldErrors.pipelineId && !fieldErrors.stageId;
 
+	const [hasInitialized, setHasInitialized] = useState(false);
+
+	useEffect(() => {
+		if (open) {
+			dispatch(searchCompanyOptions(undefined));
+			dispatch(searchContactOptions(deal?.company_id ? { companyId: deal.company_id } : undefined));
+			dispatch(fetchOwners());
+		} else {
+			setHasInitialized(false);
+		}
+	}, [open, deal, dispatch]);
+
 	useEffect(() => {
 		if (!open) return;
-		dispatch(searchCompanyOptions(undefined));
-		dispatch(searchContactOptions(undefined));
-		dispatch(fetchOwners());
+		if (!hasInitialized) {
+			if (deal) {
+				setTitle(deal.title);
+				setValue(deal.value != null ? String(deal.value) : '');
+				setCurrency(deal.currency || 'USD');
+				setCloseDate(deal.close_date ? deal.close_date.split('T')[0] : '');
+				setOwnerId(deal.owner_id || '');
+				setPipelineId(deal.pipeline_id || '');
+				setStageId(deal.stage_id || '');
+				setStatus(deal.status || 'open');
+				setLostReason(deal.lost_reason || '');
+				setDescription(deal.custom_fields?.description || '');
+				setTags(deal.tags || []);
 
-		if (deal) {
-			setTitle(deal.title);
-			setValue(deal.value != null ? String(deal.value) : '');
-			setCurrency(deal.currency || 'USD');
-			setCloseDate(deal.close_date ? deal.close_date.split('T')[0] : '');
-			setOwnerId(deal.owner_id || '');
-			setPipelineId(deal.pipeline_id || '');
-			setStageId(deal.stage_id || '');
-			setStatus(deal.status || 'open');
-			setLostReason(deal.lost_reason || '');
-			setDescription(deal.custom_fields?.description || '');
-			setTags(deal.tags || []);
-			// Resolve company/contact options if loaded
-			const comp = companyOptions.find((c) => c.id === deal.company_id);
-			if (comp) setCompany(comp);
-			else setCompany(null);
+				const comp = companyOptions.find((c) => c.id === deal.company_id);
+				setCompany(comp || null);
 
-			const cont = contactOptions.find((c) => c.id === deal.contact_id);
-			if (cont) setContact(cont);
-			else setContact(null);
-		} else {
-			setTitle('');
-			setValue('');
-			setCurrency('USD');
-			setCloseDate('');
-			setOwnerId('');
-			setPipelineId(activePipelineId || '');
-			setStatus('open');
-			setLostReason('');
-			setDescription('');
-			setTags([]);
-			setCompany(null);
-			setContact(null);
-
-			const activePipe = pipelines.find((p) => p.id === activePipelineId) || pipelines[0];
-			if (activePipe) {
-				setPipelineId(activePipe.id);
-				if (activePipe.stages?.length) setStageId(activePipe.stages[0].id);
+				const cont = contactOptions.find((c) => c.id === deal.contact_id);
+				setContact(cont || null);
 			} else {
-				setStageId('');
+				setTitle('');
+				setValue('');
+				setCurrency('USD');
+				setCloseDate('');
+				setOwnerId('');
+				setPipelineId(activePipelineId || '');
+				setStatus('open');
+				setLostReason('');
+				setDescription('');
+				setTags([]);
+				setCompany(null);
+				setContact(null);
+
+				const activePipe = pipelines.find((p) => p.id === activePipelineId) || pipelines[0];
+				if (activePipe) {
+					setPipelineId(activePipe.id);
+					if (activePipe.stages?.length) setStageId(activePipe.stages[0].id);
+				} else {
+					setStageId('');
+				}
+			}
+			setError(null);
+			setTouched({});
+
+			if (deal) {
+				if (companyOptions.length > 0 || contactOptions.length > 0) {
+					setHasInitialized(true);
+				}
+			} else {
+				setHasInitialized(true);
 			}
 		}
-		setError(null);
-		setTouched({});
-	}, [open, deal, activePipelineId, pipelines, dispatch]);
+	}, [open, deal, companyOptions, contactOptions, activePipelineId, pipelines, hasInitialized]);
+
+	const handleCompanyChange = (newCompany: Company | null) => {
+		setCompany(newCompany);
+		dispatch(searchContactOptions(newCompany ? { companyId: newCompany.id } : undefined));
+		if (contact && newCompany && contact.company_id !== newCompany.id) {
+			setContact(null);
+		}
+	};
 
 	// Auto select first stage of a newly selected pipeline
 	useEffect(() => {
@@ -220,7 +244,7 @@ export const DealFormDialog: React.FC<DealFormDialogProps> = ({ open, onClose, d
 			content: (
 				<DealAssociationsStep
 					company={company}
-					setCompany={setCompany}
+					setCompany={handleCompanyChange}
 					companyOptions={companyOptions}
 					contact={contact}
 					setContact={setContact}

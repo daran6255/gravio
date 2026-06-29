@@ -1,5 +1,5 @@
 import { createTheme, type Theme } from '@mui/material/styles';
-// import './smoothScroll';
+import './smoothScroll';
 
 declare module '@mui/material/styles' {
 	interface TypographyVariants {
@@ -208,6 +208,24 @@ export const getThemeByMode = (mode: 'light' | 'dark'): Theme => {
 			},
 			MuiCssBaseline: {
 				styleOverrides: {
+					html: {
+						scrollbarColor: isDark ? "#4a5568 transparent" : "#d5dbdb transparent",
+						scrollbarWidth: 'thin',
+						"&::-webkit-scrollbar": {
+							width: '4px',
+							height: '4px',
+						},
+						"&::-webkit-scrollbar-track": {
+							background: 'transparent',
+						},
+						"&::-webkit-scrollbar-thumb": {
+							background: isDark ? "#4a5568" : "#d5dbdb",
+							borderRadius: '10px',
+						},
+						"&::-webkit-scrollbar-thumb:hover": {
+							background: isDark ? "#718096" : "#aab7b7",
+						},
+					},
 					body: {
 						"&, & *": {
 							scrollbarColor: isDark ? "#4a5568 transparent" : "#d5dbdb transparent",

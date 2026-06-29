@@ -1,6 +1,6 @@
 import api from './api';
 import type { PaginatedResponse } from '../models/common';
-import type { Company, CompanyCreate, CompanyUpdate } from '../models/crm/company';
+import type { Company, CompanyCreate, CompanyUpdate, CompanyStatus, CompanySize } from '../models/crm/company';
 import type { Contact, ContactCreate, ContactUpdate } from '../models/crm/contact';
 import type {
 	Lead,
@@ -15,15 +15,24 @@ import type { Deal, DealCreate, DealUpdate } from '../models/crm/deal';
 import type { DealTask, DealTaskCreate, DealTaskUpdate } from '../models/crm/dealTask';
 import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../models/crm/pipeline';
 import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../models/crm/crmActivity';
-import type { CRMStats, CRMLeadStats } from '../models/crm/crmStats';
+import type { CRMStats, CRMLeadStats, CRMCompanyStats } from '../models/crm/crmStats';
 import type { CRMOwnerOption } from '../models/crm/owner';
 import type { CRMFile } from '../models/crm/crmFile';
 
 const crmService = {
 	// --- Companies ---
-	listCompanies: async (page = 1, pageSize = 20, search?: string): Promise<PaginatedResponse<Company>> => {
+	listCompanies: async (params: {
+		page?: number;
+		pageSize?: number;
+		search?: string;
+		status?: CompanyStatus | string;
+		industry?: string;
+		size?: CompanySize | string;
+		ownerId?: number;
+	} = {}): Promise<PaginatedResponse<Company>> => {
+		const { page = 1, pageSize = 20, search, status, industry, size, ownerId } = params;
 		const response = await api.get<PaginatedResponse<Company>>('/crm/companies', {
-			params: { page, page_size: pageSize, search },
+			params: { page, page_size: pageSize, search, status, industry, size, owner_id: ownerId },
 		});
 		return response.data;
 	},
@@ -41,6 +50,24 @@ const crmService = {
 	},
 	deleteCompany: async (publicId: string): Promise<void> => {
 		await api.delete(`/crm/companies/${publicId}`);
+	},
+	getCompanyStats: async (): Promise<CRMCompanyStats> => {
+		const response = await api.get<CRMCompanyStats>('/crm/companies/stats');
+		return response.data;
+	},
+	bulkUpdateCompanies: async (publicIds: string[], updates: { ownerId?: number; status?: string }): Promise<Company[]> => {
+		const response = await api.patch<Company[]>('/crm/companies/bulk', {
+			public_ids: publicIds,
+			owner_id: updates.ownerId,
+			status: updates.status,
+		});
+		return response.data;
+	},
+	bulkDeleteCompanies: async (publicIds: string[]): Promise<number> => {
+		const response = await api.post<{ deleted_count: number }>('/crm/companies/bulk-delete', {
+			public_ids: publicIds,
+		});
+		return response.data.deleted_count;
 	},
 
 	// --- Contacts ---

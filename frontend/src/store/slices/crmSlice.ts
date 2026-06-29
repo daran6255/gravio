@@ -15,7 +15,7 @@ import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../../models
 import type { Company, CompanyCreate, CompanyUpdate } from '../../models/crm/company';
 import type { Contact, ContactCreate, ContactUpdate } from '../../models/crm/contact';
 import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../../models/crm/crmActivity';
-import type { CRMStats, CRMLeadStats } from '../../models/crm/crmStats';
+import type { CRMStats, CRMLeadStats, CRMCompanyStats } from '../../models/crm/crmStats';
 import type { CRMOwnerOption } from '../../models/crm/owner';
 import type { PaginatedResponse } from '../../models/common';
 
@@ -51,6 +51,16 @@ interface CrmState {
 	companiesPageSize: number;
 	companiesLoading: boolean;
 	companiesError: string | null;
+
+	companyStats: CRMCompanyStats | null;
+	companyStatsLoading: boolean;
+	companyStatsError: string | null;
+
+	companiesBulkUpdateLoading: boolean;
+	companiesBulkUpdateError: string | null;
+
+	companiesBulkDeleteLoading: boolean;
+	companiesBulkDeleteError: string | null;
 
 	contacts: Contact[];
 	contactsTotal: number;
@@ -141,6 +151,16 @@ const initialState: CrmState = {
 	companiesPageSize: 20,
 	companiesLoading: false,
 	companiesError: null,
+
+	companyStats: null,
+	companyStatsLoading: false,
+	companyStatsError: null,
+
+	companiesBulkUpdateLoading: false,
+	companiesBulkUpdateError: null,
+
+	companiesBulkDeleteLoading: false,
+	companiesBulkDeleteError: null,
 
 	contacts: [],
 	contactsTotal: 0,
@@ -414,7 +434,7 @@ export const searchCompanyOptions = createAsyncThunk(
 	'crm/searchCompanyOptions',
 	async (search: string | undefined, { rejectWithValue }) => {
 		try {
-			const result = await crmService.listCompanies(1, 20, search);
+			const result = await crmService.listCompanies({ page: 1, pageSize: 20, search });
 			return result.items;
 		} catch (error: any) {
 			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to search companies');
@@ -436,12 +456,56 @@ export const searchContactOptions = createAsyncThunk(
 
 export const fetchCompanies = createAsyncThunk(
 	'crm/fetchCompanies',
-	async (params: { page?: number; pageSize?: number; search?: string } | undefined, { rejectWithValue }) => {
+	async (
+		params: {
+			page?: number;
+			pageSize?: number;
+			search?: string;
+			status?: string;
+			industry?: string;
+			size?: string;
+			ownerId?: number;
+		} | undefined,
+		{ rejectWithValue }
+	) => {
 		try {
-			const { page = 1, pageSize = 20, search } = params || {};
-			return await crmService.listCompanies(page, pageSize, search);
+			return await crmService.listCompanies(params || {});
 		} catch (error: any) {
 			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to fetch companies');
+		}
+	}
+);
+
+export const fetchCompanyStats = createAsyncThunk(
+	'crm/fetchCompanyStats',
+	async (_: void | undefined, { rejectWithValue }) => {
+		try {
+			return await crmService.getCompanyStats();
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch company stats'));
+		}
+	}
+);
+
+export const bulkUpdateCompanies = createAsyncThunk(
+	'crm/bulkUpdateCompanies',
+	async (params: { publicIds: string[]; ownerId?: number; status?: string }, { rejectWithValue }) => {
+		try {
+			return await crmService.bulkUpdateCompanies(params.publicIds, { ownerId: params.ownerId, status: params.status });
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to update companies'));
+		}
+	}
+);
+
+export const bulkDeleteCompanies = createAsyncThunk(
+	'crm/bulkDeleteCompanies',
+	async (publicIds: string[], { rejectWithValue }) => {
+		try {
+			await crmService.bulkDeleteCompanies(publicIds);
+			return publicIds;
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to delete companies'));
 		}
 	}
 );
@@ -902,6 +966,47 @@ const crmSlice = createSlice({
 			.addCase(deleteCompany.fulfilled, (state, action: PayloadAction<string>) => {
 				state.companies = state.companies.filter((c) => c.public_id !== action.payload);
 				state.companiesTotal = Math.max(0, state.companiesTotal - 1);
+			})
+			.addCase(fetchCompanyStats.pending, (state) => {
+				state.companyStatsLoading = true;
+				state.companyStatsError = null;
+			})
+			.addCase(fetchCompanyStats.fulfilled, (state, action: PayloadAction<CRMCompanyStats>) => {
+				state.companyStatsLoading = false;
+				state.companyStats = action.payload;
+			})
+			.addCase(fetchCompanyStats.rejected, (state, action: PayloadAction<any>) => {
+				state.companyStatsLoading = false;
+				state.companyStatsError = action.payload;
+			})
+			.addCase(bulkUpdateCompanies.pending, (state) => {
+				state.companiesBulkUpdateLoading = true;
+				state.companiesBulkUpdateError = null;
+			})
+			.addCase(bulkUpdateCompanies.fulfilled, (state, action: PayloadAction<Company[]>) => {
+				state.companiesBulkUpdateLoading = false;
+				for (const updated of action.payload) {
+					const idx = state.companies.findIndex((c) => c.public_id === updated.public_id);
+					if (idx !== -1) state.companies[idx] = updated;
+				}
+			})
+			.addCase(bulkUpdateCompanies.rejected, (state, action: PayloadAction<any>) => {
+				state.companiesBulkUpdateLoading = false;
+				state.companiesBulkUpdateError = action.payload;
+			})
+			.addCase(bulkDeleteCompanies.pending, (state) => {
+				state.companiesBulkDeleteLoading = true;
+				state.companiesBulkDeleteError = null;
+			})
+			.addCase(bulkDeleteCompanies.fulfilled, (state, action: PayloadAction<string[]>) => {
+				state.companiesBulkDeleteLoading = false;
+				const deleted = new Set(action.payload);
+				state.companies = state.companies.filter((c) => !deleted.has(c.public_id));
+				state.companiesTotal = Math.max(0, state.companiesTotal - deleted.size);
+			})
+			.addCase(bulkDeleteCompanies.rejected, (state, action: PayloadAction<any>) => {
+				state.companiesBulkDeleteLoading = false;
+				state.companiesBulkDeleteError = action.payload;
 			})
 			.addCase(fetchContacts.pending, (state) => {
 				state.contactsLoading = true;

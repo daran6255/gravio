@@ -20,6 +20,7 @@ from app.models.crm import (
     CRMFile,
     LeadStatus,
     LeadPriority,
+    CompanyStatus,
     DealStatus,
     DealTaskStatus,
     ActivityType,
@@ -54,8 +55,10 @@ from app.schemas.crm import (
     CRMPipelineStageUpsert,
     CRMStatsResponse,
     CRMLeadStatsResponse,
+    CRMCompanyStatsResponse,
     StageStats,
     SourceStats,
+    IndustryStats,
 )
 from app.models.user import User, UserRole
 from app.models.organization import Organization
@@ -147,9 +150,93 @@ class CRMService:
 
     @staticmethod
     async def list_companies(
-        db: AsyncSession, page: int, page_size: int, search: Optional[str] = None
+        db: AsyncSession,
+        page: int,
+        page_size: int,
+        search: Optional[str] = None,
+        *,
+        status: Optional[str] = None,
+        industry: Optional[str] = None,
+        size: Optional[str] = None,
+        owner_id: Optional[int] = None,
     ) -> tuple[list[CRMCompany], int]:
-        return await CRMCompanyRepository.list_all(db, page=page, page_size=page_size, search=search)
+        return await CRMCompanyRepository.list_all(
+            db, page=page, page_size=page_size, search=search,
+            status=status, industry=industry, size=size, owner_id=owner_id,
+        )
+
+    @staticmethod
+    async def get_company_stats(db: AsyncSession) -> CRMCompanyStatsResponse:
+        status_counts_result = await db.execute(
+            select(CRMCompany.status, func.count(CRMCompany.id))
+            .where(CRMCompany.is_deleted.is_(False))
+            .group_by(CRMCompany.status)
+        )
+        counts = {row[0]: row[1] for row in status_counts_result.all()}
+        total_companies = sum(counts.values())
+
+        industry_result = await db.execute(
+            select(CRMCompany.industry, func.count(CRMCompany.id))
+            .where(CRMCompany.is_deleted.is_(False), CRMCompany.industry.is_not(None))
+            .group_by(CRMCompany.industry)
+            .order_by(func.count(CRMCompany.id).desc())
+            .limit(8)
+        )
+        by_industry = [IndustryStats(industry=row[0], count=row[1]) for row in industry_result.all()]
+
+        open_deals_result = await db.execute(
+            select(func.count(func.distinct(CRMDeal.company_id)), func.coalesce(func.sum(CRMDeal.value), 0))
+            .where(
+                CRMDeal.is_deleted.is_(False),
+                CRMDeal.status == DealStatus.OPEN,
+                CRMDeal.company_id.is_not(None),
+            )
+        )
+        companies_with_open_deals, total_open_pipeline_value = open_deals_result.one()
+
+        return CRMCompanyStatsResponse(
+            total_companies=total_companies,
+            prospect_count=counts.get(CompanyStatus.PROSPECT, 0),
+            customer_count=counts.get(CompanyStatus.CUSTOMER, 0),
+            churned_count=counts.get(CompanyStatus.CHURNED, 0),
+            partner_count=counts.get(CompanyStatus.PARTNER, 0),
+            by_industry=by_industry,
+            companies_with_open_deals=companies_with_open_deals,
+            total_open_pipeline_value=float(total_open_pipeline_value),
+        )
+
+    @staticmethod
+    async def bulk_update_companies(
+        db: AsyncSession, public_ids: list[uuid.UUID], owner_id: Optional[int], status: Optional[str],
+    ) -> list[CRMCompany]:
+        if owner_id is None and status is None:
+            raise BadRequestError("Provide at least one of owner_id or status to update")
+
+        result = await db.execute(
+            select(CRMCompany.id).where(CRMCompany.public_id.in_(public_ids), CRMCompany.is_deleted.is_(False))
+        )
+        company_ids = [row[0] for row in result.all()]
+        if len(company_ids) != len(set(public_ids)):
+            raise NotFoundError("One or more companies not found")
+
+        updates: dict[str, Any] = {}
+        if owner_id is not None:
+            updates["owner_id"] = owner_id
+        if status is not None:
+            updates["status"] = status
+
+        return await CRMCompanyRepository.bulk_update(db, company_ids, **updates)
+
+    @staticmethod
+    async def bulk_delete_companies(db: AsyncSession, public_ids: list[uuid.UUID]) -> int:
+        result = await db.execute(
+            select(CRMCompany.id).where(CRMCompany.public_id.in_(public_ids), CRMCompany.is_deleted.is_(False))
+        )
+        company_ids = [row[0] for row in result.all()]
+        if len(company_ids) != len(set(public_ids)):
+            raise NotFoundError("One or more companies not found")
+
+        return await CRMCompanyRepository.bulk_delete(db, company_ids)
 
     # --- Contact CRUD ---
     @staticmethod

@@ -41,9 +41,12 @@ from app.schemas.crm import (
     CRMFileResponse,
     CRMStatsResponse,
     CRMLeadStatsResponse,
+    CRMCompanyStatsResponse,
     CRMOwnerOption,
     CRMBulkLeadUpdateRequest,
     CRMBulkLeadDeleteRequest,
+    CRMBulkCompanyUpdateRequest,
+    CRMBulkCompanyDeleteRequest,
     CRMLeadImportResponse,
     AuditLogResponse,
     CRMSearchResponse,
@@ -174,6 +177,45 @@ async def create_company_endpoint(
 
 
 @router.get(
+    "/companies/stats",
+    response_model=CRMCompanyStatsResponse,
+    summary="Get company counts by status/industry and open pipeline value, for the companies list page",
+)
+async def get_company_stats_endpoint(
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> CRMCompanyStatsResponse:
+    return await CRMService.get_company_stats(db)
+
+
+@router.patch(
+    "/companies/bulk",
+    response_model=list[CRMCompanyResponse],
+    summary="Bulk reassign owner and/or change status on multiple companies",
+)
+async def bulk_update_companies_endpoint(
+    payload: CRMBulkCompanyUpdateRequest,
+    current_user: User = Depends(require_pipeline_management),
+    db: AsyncSession = Depends(get_db),
+) -> list[CRMCompanyResponse]:
+    companies = await CRMService.bulk_update_companies(db, payload.public_ids, payload.owner_id, payload.status)
+    return [CRMCompanyResponse.model_validate(c) for c in companies]
+
+
+@router.post(
+    "/companies/bulk-delete",
+    summary="Bulk delete multiple companies",
+)
+async def bulk_delete_companies_endpoint(
+    payload: CRMBulkCompanyDeleteRequest,
+    current_user: User = Depends(require_pipeline_management),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    deleted_count = await CRMService.bulk_delete_companies(db, payload.public_ids)
+    return {"deleted_count": deleted_count}
+
+
+@router.get(
     "/companies/{public_id}",
     response_model=CRMCompanyResponse,
     summary="Get company details",
@@ -221,13 +263,20 @@ async def delete_company_endpoint(
     summary="List companies",
 )
 async def list_companies_endpoint(
+    status: Optional[str] = Query(None),
+    industry: Optional[str] = Query(None),
+    size: Optional[str] = Query(None),
+    owner_id: Optional[int] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     search: Optional[str] = Query(None),
     current_user: User = Depends(require_crm_access),
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[CRMCompanyResponse]:
-    items, total = await CRMService.list_companies(db, page, page_size, search)
+    items, total = await CRMService.list_companies(
+        db, page, page_size, search,
+        status=status, industry=industry, size=size, owner_id=owner_id,
+    )
     return PaginatedResponse[CRMCompanyResponse](
         items=[CRMCompanyResponse.model_validate(i) for i in items],
         total=total,

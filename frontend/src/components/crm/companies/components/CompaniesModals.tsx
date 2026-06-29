@@ -13,6 +13,12 @@ interface CompaniesModalsProps {
 	onCloseDelete: () => void;
 	onConfirmDelete: () => void;
 	deleteLoading: boolean;
+
+	bulkDeleteOpen: boolean;
+	bulkDeleteCount: number;
+	onCloseBulkDelete: () => void;
+	onConfirmBulkDelete: () => void;
+	bulkDeleteLoading: boolean;
 }
 
 export const CompaniesModals: React.FC<CompaniesModalsProps> = ({
@@ -24,6 +30,11 @@ export const CompaniesModals: React.FC<CompaniesModalsProps> = ({
 	onCloseDelete,
 	onConfirmDelete,
 	deleteLoading,
+	bulkDeleteOpen,
+	bulkDeleteCount,
+	onCloseBulkDelete,
+	onConfirmBulkDelete,
+	bulkDeleteLoading,
 }) => {
 	return (
 		<>
@@ -44,6 +55,18 @@ export const CompaniesModals: React.FC<CompaniesModalsProps> = ({
 				confirmLabel="Delete"
 				severity="error"
 				loading={deleteLoading}
+			/>
+
+			<ConfirmationDialog
+				open={bulkDeleteOpen}
+				onClose={onCloseBulkDelete}
+				onConfirm={onConfirmBulkDelete}
+				title="Delete Companies"
+				subtitle="Permanently delete multiple companies"
+				message={`Are you sure you want to delete ${bulkDeleteCount} selected company(ies)? This action cannot be undone.`}
+				confirmLabel="Delete"
+				severity="error"
+				loading={bulkDeleteLoading}
 			/>
 		</>
 	);

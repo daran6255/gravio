@@ -123,6 +123,32 @@ class CRMCompanyResponse(CRMCompanyBase):
     updated_at: datetime
 
 
+class IndustryStats(BaseModel):
+    industry: str
+    count: int
+
+
+class CRMCompanyStatsResponse(BaseModel):
+    total_companies: int
+    prospect_count: int
+    customer_count: int
+    churned_count: int
+    partner_count: int
+    by_industry: list[IndustryStats]
+    companies_with_open_deals: int
+    total_open_pipeline_value: float
+
+
+class CRMBulkCompanyUpdateRequest(BaseModel):
+    public_ids: list[uuid.UUID] = Field(..., min_length=1)
+    owner_id: Optional[int] = None
+    status: Optional[CompanyStatus] = None
+
+
+class CRMBulkCompanyDeleteRequest(BaseModel):
+    public_ids: list[uuid.UUID] = Field(..., min_length=1)
+
+
 # --- Contact Schemas ---
 class CRMContactBase(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100)

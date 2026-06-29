@@ -58,11 +58,23 @@ class CRMCompanyRepository:
     async def list_all(
         db: AsyncSession,
         *,
+        status: Optional[str] = None,
+        industry: Optional[str] = None,
+        size: Optional[str] = None,
+        owner_id: Optional[int] = None,
         page: int = 1,
         page_size: int = 20,
         search: Optional[str] = None,
     ) -> tuple[list[CRMCompany], int]:
         conditions = [CRMCompany.is_deleted.is_(False)]
+        if status:
+            conditions.append(CRMCompany.status == status)
+        if industry:
+            conditions.append(CRMCompany.industry == industry)
+        if size:
+            conditions.append(CRMCompany.size == size)
+        if owner_id:
+            conditions.append(CRMCompany.owner_id == owner_id)
         if search:
             conditions.append(CRMCompany.name.ilike(f"%{search}%"))
 
@@ -79,6 +91,31 @@ class CRMCompanyRepository:
             .limit(page_size)
         )
         return list(result.scalars().all()), total
+
+    @staticmethod
+    async def bulk_update(db: AsyncSession, company_ids: list[int], **kwargs) -> list[CRMCompany]:
+        result = await db.execute(
+            select(CRMCompany).where(CRMCompany.id.in_(company_ids), CRMCompany.is_deleted.is_(False))
+        )
+        companies = list(result.scalars().all())
+        for company in companies:
+            for key, val in kwargs.items():
+                setattr(company, key, val)
+        await db.flush()
+        for company in companies:
+            await db.refresh(company)
+        return companies
+
+    @staticmethod
+    async def bulk_delete(db: AsyncSession, company_ids: list[int]) -> int:
+        result = await db.execute(
+            select(CRMCompany).where(CRMCompany.id.in_(company_ids), CRMCompany.is_deleted.is_(False))
+        )
+        companies = list(result.scalars().all())
+        for company in companies:
+            company.soft_delete()
+        await db.flush()
+        return len(companies)
 
 
 class CRMContactRepository:

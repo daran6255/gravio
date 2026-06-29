@@ -1,5 +1,10 @@
 import { useEffect } from 'react';
 
+// Global scroll lock counter and styles to prevent overlapping overrides.
+let activeScrollLocks = 0;
+let prevBodyOverflow = '';
+let prevHtmlOverflow = '';
+
 /**
  * A custom hook to lock body/HTML scroll and prevent scroll chaining at boundary containers.
  * @param open - Boolean flag indicating if scroll lock should be active.
@@ -9,11 +14,14 @@ export const useScrollLock = (open: boolean, containerSelectorClass: string = 'M
 	useEffect(() => {
 		if (!open) return;
 
-		const prevBodyOverflow = document.body.style.overflow;
-		const prevHtmlOverflow = document.documentElement.style.overflow;
-		
-		document.body.style.overflow = 'hidden';
-		document.documentElement.style.overflow = 'hidden';
+		activeScrollLocks++;
+		if (activeScrollLocks === 1) {
+			prevBodyOverflow = document.body.style.overflow || '';
+			prevHtmlOverflow = document.documentElement.style.overflow || '';
+			
+			document.body.style.overflow = 'hidden';
+			document.documentElement.style.overflow = 'hidden';
+		}
 
 		let touchStartY = 0;
 
@@ -77,8 +85,12 @@ export const useScrollLock = (open: boolean, containerSelectorClass: string = 'M
 		window.addEventListener('touchmove', preventDefault, { passive: false });
 
 		return () => {
-			document.body.style.overflow = prevBodyOverflow;
-			document.documentElement.style.overflow = prevHtmlOverflow;
+			activeScrollLocks--;
+			if (activeScrollLocks <= 0) {
+				document.body.style.overflow = prevBodyOverflow;
+				document.documentElement.style.overflow = prevHtmlOverflow;
+				activeScrollLocks = 0;
+			}
 			window.removeEventListener('wheel', preventDefault);
 			window.removeEventListener('touchstart', handleTouchStart);
 			window.removeEventListener('touchmove', preventDefault);

@@ -33,3 +33,20 @@ export interface CRMLeadStats {
 	converted_count: number;
 	conversion_rate: number;
 }
+
+export interface IndustryStats {
+	industry: string;
+	count: number;
+}
+
+/** Matches backend's CRMCompanyStatsResponse exactly. */
+export interface CRMCompanyStats {
+	total_companies: number;
+	prospect_count: number;
+	customer_count: number;
+	churned_count: number;
+	partner_count: number;
+	by_industry: IndustryStats[];
+	companies_with_open_deals: number;
+	total_open_pipeline_value: number;
+}
