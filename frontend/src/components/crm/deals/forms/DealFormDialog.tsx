@@ -234,7 +234,7 @@ export const DealFormDialog: React.FC<DealFormDialogProps> = ({ open, onClose, d
 		<Dialog
 			open={open}
 			onClose={onClose}
-			maxWidth="md"
+			maxWidth="sm"
 			fullWidth
 			PaperProps={{ sx: { borderRadius: 0, boxShadow: 'none', bgcolor: 'transparent' } }}
 		>
