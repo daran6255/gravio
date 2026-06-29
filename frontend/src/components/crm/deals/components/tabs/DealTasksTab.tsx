@@ -13,11 +13,11 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
-import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
-import { createDealTask, updateDealTask, deleteDealTask } from '../../../../store/slices/crmSlice';
-import useToast from '../../../../hooks/useToast';
-import type { Deal } from '../../../../models/crm/deal';
-import type { DealTask, DealTaskStatus, DealTaskType } from '../../../../models/crm/dealTask';
+import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
+import { createDealTask, updateDealTask, deleteDealTask } from '../../../../../store/slices/crmSlice';
+import useToast from '../../../../../hooks/useToast';
+import type { Deal } from '../../../../../models/crm/deal';
+import type { DealTask, DealTaskStatus, DealTaskType } from '../../../../../models/crm/dealTask';
 
 interface DealTasksTabProps {
 	deal: Deal;
