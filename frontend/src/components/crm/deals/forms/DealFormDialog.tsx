@@ -1,26 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-	Box,
-	TextField,
-	MenuItem,
-	Stack,
-	Autocomplete,
-	InputAdornment,
 	Dialog,
 } from '@mui/material';
-import { HelpOutline } from '@mui/icons-material';
-import { NumericFormat } from 'react-number-format';
-import { EnterpriseForm, type FormStep, DatePicker } from '../../../common/form';
+import { EnterpriseForm, type FormStep } from '../../../common/form';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { createDeal, updateDeal, searchCompanyOptions, searchContactOptions, fetchOwners } from '../../../../store/slices/crmSlice';
 import type { Deal, DealStatus } from '../../../../models/crm/deal';
 import type { Company } from '../../../../models/crm/company';
 import type { Contact } from '../../../../models/crm/contact';
 import useToast from '../../../../hooks/useToast';
-import { getWorldCurrencies, getCurrencySymbol } from '../../../../utils/currency';
-import RichTextEditor from '../../../common/form/RichTextEditor';
-import PremiumTooltip from '../../../common/PremiumTooltip';
-import TagInput from '../../shared/TagInput';
+import { getWorldCurrencies } from '../../../../utils/currency';
+import { DealDetailsStep, DealValueDescriptionStep, DealAssociationsStep } from './steps';
 
 interface DealFormDialogProps {
 	open: boolean;
@@ -180,188 +170,62 @@ export const DealFormDialog: React.FC<DealFormDialogProps> = ({ open, onClose, d
 
 	const steps: FormStep[] = [
 		{
-			label: 'Deal Information',
+			label: 'Deal Details',
+			description: 'Basic information, pipeline progress, owner, and status',
 			content: (
-				<Stack spacing={2.5} sx={{ mt: 1 }}>
-					<TextField
-						label="Deal Title"
-						required
-						fullWidth
-						value={title}
-						onChange={(e) => setTitle(e.target.value)}
-						error={touched.title && !!fieldErrors.title}
-						helperText={touched.title && fieldErrors.title}
-						slotProps={{ htmlInput: { maxLength: 255 } }}
-					/>
-
-					<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-						<NumericFormat
-							customInput={TextField}
-							label="Deal Value"
-							fullWidth
-							value={value}
-							onValueChange={(values) => setValue(values.value)}
-							thousandSeparator
-							decimalScale={2}
-							allowNegative={false}
-							slotProps={{
-								input: {
-									startAdornment: (
-										<InputAdornment position="start">
-											{getCurrencySymbol(currency)}
-										</InputAdornment>
-									),
-								},
-							}}
-						/>
-
-						<TextField
-							select
-							label="Currency"
-							value={currency}
-							onChange={(e) => setCurrency(e.target.value)}
-							sx={{ minWidth: 120 }}
-						>
-							{currencies.map((c) => (
-								<MenuItem key={c.code} value={c.code}>
-									{c.code} ({c.symbol})
-								</MenuItem>
-							))}
-						</TextField>
-					</Stack>
-
-					<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-						<TextField
-							select
-							label="Pipeline"
-							required
-							fullWidth
-							value={pipelineId}
-							onChange={(e) => setPipelineId(Number(e.target.value))}
-							error={touched.pipelineId && !!fieldErrors.pipelineId}
-							helperText={touched.pipelineId && fieldErrors.pipelineId}
-						>
-							{pipelines.map((p) => (
-								<MenuItem key={p.id} value={p.id}>
-									{p.name}
-								</MenuItem>
-							))}
-						</TextField>
-
-						<TextField
-							select
-							label="Stage"
-							required
-							fullWidth
-							value={stageId}
-							onChange={(e) => setStageId(Number(e.target.value))}
-							error={touched.stageId && !!fieldErrors.stageId}
-							helperText={touched.stageId && fieldErrors.stageId}
-							disabled={!pipelineId}
-						>
-							{selectedPipeline?.stages?.map((s) => (
-								<MenuItem key={s.id} value={s.id}>
-									{s.name} ({s.probability}%)
-								</MenuItem>
-							))}
-						</TextField>
-					</Stack>
-
-					<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-						<TextField
-							select
-							label="Owner"
-							fullWidth
-							value={ownerId}
-							onChange={(e) => setOwnerId(e.target.value ? Number(e.target.value) : '')}
-						>
-							<MenuItem value="">Unassigned</MenuItem>
-							{owners.map((o) => (
-								<MenuItem key={o.id} value={o.id}>
-									{o.full_name || o.email}
-								</MenuItem>
-							))}
-						</TextField>
-
-						<DatePicker
-							label="Expected Close Date"
-							value={closeDate}
-							onChange={setCloseDate}
-						/>
-					</Stack>
-
-					<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-						<TextField
-							select
-							label="Status"
-							fullWidth
-							value={status}
-							onChange={(e) => setStatus(e.target.value as DealStatus)}
-						>
-							{DEAL_STATUSES.map((s) => (
-								<MenuItem key={s.value} value={s.value}>
-									{s.label}
-								</MenuItem>
-							))}
-						</TextField>
-
-						{status === 'lost' && (
-							<TextField
-								label="Lost Reason"
-								fullWidth
-								required
-								value={lostReason}
-								onChange={(e) => setLostReason(e.target.value)}
-								slotProps={{ htmlInput: { maxLength: 500 } }}
-							/>
-						)}
-					</Stack>
-
-					<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-						<Autocomplete
-							options={companyOptions}
-							getOptionLabel={(option) => option.name}
-							value={company}
-							onChange={(_e, val) => setCompany(val)}
-							loading={companyOptions.length === 0}
-							onInputChange={(_e, val) => dispatch(searchCompanyOptions(val || undefined))}
-							fullWidth
-							renderInput={(params) => (
-								<TextField {...params} label="Linked Company" placeholder="Type to search companies..." />
-							)}
-						/>
-
-						<Autocomplete
-							options={contactOptions}
-							getOptionLabel={(option) => `${option.first_name} ${option.last_name || ''}`}
-							value={contact}
-							onChange={(_e, val) => setContact(val)}
-							loading={contactOptions.length === 0}
-							onInputChange={(_e, val) => dispatch(searchContactOptions(val ? { search: val } : undefined))}
-							fullWidth
-							renderInput={(params) => (
-								<TextField {...params} label="Linked Contact" placeholder="Type to search contacts..." />
-							)}
-						/>
-					</Stack>
-
-					<Box>
-						<Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 1 }}>
-							<Box component="span" sx={{ fontSize: '0.85rem', fontWeight: 600, color: 'text.secondary' }}>
-								Description
-							</Box>
-							<PremiumTooltip title="Detailed details regarding deal qualifications, custom requirements, or sales logs." arrow placement="right">
-								<HelpOutline sx={{ fontSize: 14, color: 'text.secondary', opacity: 0.7, cursor: 'pointer' }} />
-							</PremiumTooltip>
-						</Stack>
-						<RichTextEditor value={description} onChange={setDescription} minHeight={140} />
-					</Box>
-
-					<Box>
-						<Box sx={{ mb: 1, fontSize: '0.85rem', fontWeight: 600, color: 'text.secondary' }}>Tags</Box>
-						<TagInput value={tags} onChange={setTags} placeholder="Add tag and press Enter..." />
-					</Box>
-				</Stack>
+				<DealDetailsStep
+					title={title}
+					setTitle={setTitle}
+					pipelineId={pipelineId}
+					setPipelineId={setPipelineId}
+					pipelines={pipelines}
+					stageId={stageId}
+					setStageId={setStageId}
+					selectedPipeline={selectedPipeline}
+					ownerId={ownerId}
+					setOwnerId={setOwnerId}
+					owners={owners}
+					closeDate={closeDate}
+					setCloseDate={setCloseDate}
+					status={status}
+					setStatus={setStatus}
+					lostReason={lostReason}
+					setLostReason={setLostReason}
+					touched={touched}
+					fieldErrors={fieldErrors}
+					DEAL_STATUSES={DEAL_STATUSES}
+				/>
+			)
+		},
+		{
+			label: 'Value & Description',
+			description: 'Financial values and description details',
+			content: (
+				<DealValueDescriptionStep
+					value={value}
+					setValue={setValue}
+					currency={currency}
+					setCurrency={setCurrency}
+					currencies={currencies}
+					description={description}
+					setDescription={setDescription}
+					tags={tags}
+					setTags={setTags}
+				/>
+			)
+		},
+		{
+			label: 'Associations',
+			description: 'Link organization and candidate connections',
+			content: (
+				<DealAssociationsStep
+					company={company}
+					setCompany={setCompany}
+					companyOptions={companyOptions}
+					contact={contact}
+					setContact={setContact}
+					contactOptions={contactOptions}
+				/>
 			)
 		}
 	];
