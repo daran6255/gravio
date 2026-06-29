@@ -1,5 +1,5 @@
 import React from 'react';
-import { ContactFormDrawer } from '../forms';
+import { ContactFormDialog } from '../forms';
 import { ConfirmationDialog } from '../../../common/dialogbox';
 import type { Contact } from '../../../../models/crm/contact';
 
@@ -27,7 +27,7 @@ export const ContactsModals: React.FC<ContactsModalsProps> = ({
 }) => {
 	return (
 		<>
-			<ContactFormDrawer
+			<ContactFormDialog
 				open={formOpen}
 				onClose={onCloseForm}
 				contact={editingContact}
