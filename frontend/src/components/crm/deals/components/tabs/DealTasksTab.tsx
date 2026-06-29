@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
 	Box, Typography, Stack, Chip, LinearProgress, TextField, MenuItem,
 	Button, IconButton, Tooltip, CircularProgress, useTheme, alpha,
@@ -11,7 +11,7 @@ import {
 } from '@mui/icons-material';
 import { DatePicker } from '../../../../common/form';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
-import { createDealTask, updateDealTask, deleteDealTask } from '../../../../../store/slices/crmSlice';
+import { fetchDealTasks, createDealTask, updateDealTask, deleteDealTask } from '../../../../../store/slices/crmSlice';
 import useToast from '../../../../../hooks/useToast';
 import type { Deal } from '../../../../../models/crm/deal';
 import type { DealTask, DealTaskStatus, DealTaskType } from '../../../../../models/crm/dealTask';
@@ -80,6 +80,10 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 	const isDark = theme.palette.mode === 'dark';
 	const toast = useToast();
 	const { dealTasks, dealTasksLoading, dealTaskMutating, owners } = useAppSelector((s) => s.crm);
+
+	useEffect(() => {
+		dispatch(fetchDealTasks(deal.public_id));
+	}, [dispatch, deal.public_id]);
 
 	const [statusFilter, setStatusFilter] = useState<DealTaskStatus | 'all' | 'overdue'>('all');
 	const [expandedId, setExpandedId] = useState<string | null>(null);
