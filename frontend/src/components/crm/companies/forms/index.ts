@@ -1,1 +1,1 @@
-export * from './CompanyFormDrawer';
+export * from './CompanyFormDialog';

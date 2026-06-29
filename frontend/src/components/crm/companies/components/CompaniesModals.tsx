@@ -1,5 +1,5 @@
 import React from 'react';
-import { CompanyFormDrawer } from '../forms';
+import { CompanyFormDialog } from '../forms';
 import { ConfirmationDialog } from '../../../common/dialogbox';
 import type { Company } from '../../../../models/crm/company';
 
@@ -38,7 +38,7 @@ export const CompaniesModals: React.FC<CompaniesModalsProps> = ({
 }) => {
 	return (
 		<>
-			<CompanyFormDrawer
+			<CompanyFormDialog
 				open={formOpen}
 				onClose={onCloseForm}
 				company={editingCompany}
