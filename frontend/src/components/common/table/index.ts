@@ -10,3 +10,5 @@ export type { DataTableProps } from './DataTable';
 export type { ColumnDefinition } from './DataTableHead';
 export type { DataTableHeaderProps } from './DataTableHeader';
 export type { TableMenuAction } from './DataTableActions';
+export { default as TableView } from './TableView';
+export type { TableColumnDef, TableViewProps } from './TableView';

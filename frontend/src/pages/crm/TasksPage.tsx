@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Container, ToggleButtonGroup, ToggleButton } from '@mui/material';
-import { ViewWeek, ViewList } from '@mui/icons-material';
+import { ViewWeek, ViewList, TableChart } from '@mui/icons-material';
 import PageHeader from '../../components/common/page-header';
-import { ActivityFeedFilters, TaskKanbanBoard, TaskList, TasksStatsPanel, useActivityFeed } from '../../components/crm';
+import { ActivityFeedFilters, TaskKanbanBoard, TaskList, TaskTable, TasksStatsPanel, useActivityFeed } from '../../components/crm';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchDeals, fetchAllDealTasks } from '../../store/slices/crmSlice';
 
@@ -23,7 +23,7 @@ const TasksPage: React.FC = () => {
 	} = useActivityFeed();
 
 	const { deals, allDealTasks, allDealTasksLoading } = useAppSelector((state) => state.crm);
-	const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
+	const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'table'>('kanban');
 
 	// Load all deals on mount
 	useEffect(() => {
@@ -104,6 +104,10 @@ const TasksPage: React.FC = () => {
 								<ViewList sx={{ mr: 1, fontSize: 16 }} />
 								List
 							</ToggleButton>
+							<ToggleButton value="table" aria-label="Table View">
+								<TableChart sx={{ mr: 1, fontSize: 16 }} />
+								Table
+							</ToggleButton>
 						</ToggleButtonGroup>
 					}
 				/>
@@ -129,11 +133,16 @@ const TasksPage: React.FC = () => {
 						loading={allDealTasksLoading}
 						owners={owners}
 					/>
-				) : (
+				) : viewMode === 'list' ? (
 					<TaskList
 						tasks={filteredTasks}
 						loading={allDealTasksLoading}
 						owners={owners}
+					/>
+				) : (
+					<TaskTable
+						tasks={filteredTasks}
+						loading={allDealTasksLoading}
 					/>
 				)}
 			</Container>

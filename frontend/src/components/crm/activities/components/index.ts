@@ -3,3 +3,4 @@ export * from './ActivityFeedList';
 export * from './TaskKanbanBoard';
 export * from './TaskList';
 export * from './TasksStatsPanel';
+export * from './TaskTable';
