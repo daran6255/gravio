@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Container, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import { ViewWeek, ViewList } from '@mui/icons-material';
 import PageHeader from '../../components/common/page-header';
-import { ActivityFeedFilters, TaskKanbanBoard, TaskList, useActivityFeed } from '../../components/crm';
+import { ActivityFeedFilters, TaskKanbanBoard, TaskList, TasksStatsPanel, useActivityFeed } from '../../components/crm';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchDeals, fetchAllDealTasks } from '../../store/slices/crmSlice';
 
@@ -108,6 +108,8 @@ const TasksPage: React.FC = () => {
 					}
 				/>
 
+				<TasksStatsPanel tasks={allDealTasks} />
+
 				<ActivityFeedFilters
 					type="" // Type selection not needed as these are all tasks
 					onTypeChange={() => {}}
@@ -125,11 +127,13 @@ const TasksPage: React.FC = () => {
 					<TaskKanbanBoard
 						tasks={filteredTasks}
 						loading={allDealTasksLoading}
+						owners={owners}
 					/>
 				) : (
 					<TaskList
 						tasks={filteredTasks}
 						loading={allDealTasksLoading}
+						owners={owners}
 					/>
 				)}
 			</Container>

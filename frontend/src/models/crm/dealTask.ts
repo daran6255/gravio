@@ -1,5 +1,6 @@
-﻿export type DealTaskStatus = 'pending' | 'in_progress' | 'blocked' | 'completed';
+export type DealTaskStatus = 'pending' | 'in_progress' | 'blocked' | 'completed';
 export type DealTaskType = 'document' | 'meeting' | 'call' | 'action' | 'review' | 'other';
+export type DealTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface DealTask {
 	id: number;
@@ -8,6 +9,7 @@ export interface DealTask {
 	title: string;
 	task_type: DealTaskType;
 	status: DealTaskStatus;
+	priority: DealTaskPriority;
 	due_date?: string;
 	notes?: string;
 	assignee_id?: number;
@@ -20,6 +22,7 @@ export interface DealTask {
 export interface DealTaskCreate {
 	title: string;
 	task_type?: DealTaskType;
+	priority?: DealTaskPriority;
 	due_date?: string;
 	notes?: string;
 	assignee_id?: number;
@@ -30,6 +33,7 @@ export interface DealTaskUpdate {
 	title?: string;
 	task_type?: DealTaskType;
 	status?: DealTaskStatus;
+	priority?: DealTaskPriority;
 	due_date?: string;
 	notes?: string;
 	assignee_id?: number;

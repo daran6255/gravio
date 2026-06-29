@@ -1254,6 +1254,7 @@ class CRMService:
             due_date=payload.due_date,
             notes=payload.notes,
             assignee_id=payload.assignee_id,
+            priority=payload.priority,
             order=payload.order,
         )
 

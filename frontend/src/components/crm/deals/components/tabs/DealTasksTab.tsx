@@ -14,7 +14,7 @@ import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
 import { fetchDealTasks, createDealTask, updateDealTask, deleteDealTask } from '../../../../../store/slices/crmSlice';
 import useToast from '../../../../../hooks/useToast';
 import type { Deal } from '../../../../../models/crm/deal';
-import type { DealTask, DealTaskStatus, DealTaskType } from '../../../../../models/crm/dealTask';
+import type { DealTask, DealTaskStatus, DealTaskType, DealTaskPriority } from '../../../../../models/crm/dealTask';
 
 interface DealTasksTabProps {
 	deal: Deal;
@@ -64,6 +64,16 @@ const getTaskTypeColor = (type: DealTaskType): string => {
 	return map[type];
 };
 
+const getPriorityColor = (priority: DealTaskPriority): string => {
+	const map: Record<DealTaskPriority, string> = {
+		low: '#4CAF50',
+		medium: '#2196F3',
+		high: '#FF9800',
+		urgent: '#F44336',
+	};
+	return map[priority] || '#9E9E9E';
+};
+
 const isOverdue = (task: DealTask): boolean => {
 	if (!task.due_date || task.status === 'completed') return false;
 	return new Date(task.due_date) < new Date();
@@ -90,6 +100,7 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 	const [addOpen, setAddOpen] = useState(false);
 	const [newTitle, setNewTitle] = useState('');
 	const [newType, setNewType] = useState<DealTaskType>('document');
+	const [newPriority, setNewPriority] = useState<DealTaskPriority>('medium');
 	const [newDueDate, setNewDueDate] = useState('');
 	const [newAssignee, setNewAssignee] = useState<number | ''>('');
 	const [newNotes, setNewNotes] = useState('');
@@ -155,6 +166,7 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 				payload: {
 					title: newTitle.trim(),
 					task_type: newType,
+					priority: newPriority,
 					due_date: newDueDate || undefined,
 					assignee_id: newAssignee || undefined,
 					notes: newNotes.trim() || undefined,
@@ -163,6 +175,7 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 			toast.success('Task added');
 			setNewTitle('');
 			setNewType('document');
+			setNewPriority('medium');
 			setNewDueDate('');
 			setNewAssignee('');
 			setNewNotes('');
@@ -302,6 +315,19 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 									<MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
 								))}
 							</TextField>
+							<TextField
+								select
+								label="Priority"
+								value={newPriority}
+								onChange={(e) => setNewPriority(e.target.value as DealTaskPriority)}
+								size="small"
+								sx={{ minWidth: 120 }}
+							>
+								<MenuItem value="low">Low</MenuItem>
+								<MenuItem value="medium">Medium</MenuItem>
+								<MenuItem value="high">High</MenuItem>
+								<MenuItem value="urgent">Urgent</MenuItem>
+							</TextField>
 							<DatePicker
 								label="Due Date"
 								value={newDueDate}
@@ -411,6 +437,19 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 													color: typeColor,
 													border: '1px solid ' + alpha(typeColor, 0.3),
 													'& .MuiChip-icon': { color: typeColor, fontSize: 12 },
+													'& .MuiChip-label': { px: 0.75 },
+												}}
+											/>
+											<Chip
+												label={`${task.priority} Priority`}
+												size="small"
+												sx={{
+													height: 20,
+													fontSize: '0.65rem',
+													fontWeight: 700,
+													bgcolor: alpha(getPriorityColor(task.priority), isDark ? 0.18 : 0.1),
+													color: getPriorityColor(task.priority),
+													border: '1px solid ' + alpha(getPriorityColor(task.priority), 0.3),
 													'& .MuiChip-label': { px: 0.75 },
 												}}
 											/>

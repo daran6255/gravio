@@ -343,6 +343,7 @@ class CRMDealTaskCreate(BaseModel):
     due_date: Optional[date] = None
     notes: Optional[str] = None
     assignee_id: Optional[int] = None
+    priority: LeadPriority = LeadPriority.MEDIUM
     order: int = 0
 
 
@@ -353,6 +354,7 @@ class CRMDealTaskUpdate(BaseModel):
     due_date: Optional[date] = None
     notes: Optional[str] = None
     assignee_id: Optional[int] = None
+    priority: Optional[LeadPriority] = None
     order: Optional[int] = None
 
 
@@ -364,6 +366,7 @@ class CRMDealTaskResponse(BaseModel):
     title: str
     task_type: DealTaskType
     status: DealTaskStatus
+    priority: LeadPriority
     due_date: Optional[date] = None
     notes: Optional[str] = None
     assignee_id: Optional[int] = None

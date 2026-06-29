@@ -392,6 +392,11 @@ class CRMDealTask(BaseModel, TenantAwareMixin):
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    priority: Mapped[LeadPriority] = mapped_column(
+        Enum(LeadPriority, values_callable=lambda x: [e.value for e in x]),
+        default=LeadPriority.MEDIUM,
+        nullable=False,
+    )
     order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     # Relationships
