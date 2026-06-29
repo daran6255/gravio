@@ -4,7 +4,8 @@ import {
 	Tabs, Tab, Grid, CircularProgress, Chip, TextField, InputAdornment, Button
 } from '@mui/material';
 import {
-	Edit, DeleteOutline, Business, Person, CalendarToday, LocalOffer
+	Edit, DeleteOutline, Business, Person, CalendarToday, LocalOffer,
+	Payments, TrendingUp, Launch, InfoOutlined, ContentCopy
 } from '@mui/icons-material';
 import DetailDrawer from '../../../common/drawer/DetailDrawer';
 import StatusBadge from '../../../common/badge/StatusBadge';
@@ -12,7 +13,8 @@ import { NotesComposer, NotesTimeline } from '../../shared';
 import { DealTasksTab } from './DealTasksTab';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import {
-	fetchEntityActivities, clearActivities, updateDeal, fetchDealTasks
+	fetchEntityActivities, clearActivities, updateDeal, fetchDealTasks,
+	searchCompanyOptions, searchContactOptions
 } from '../../../../store/slices/crmSlice';
 import useToast from '../../../../hooks/useToast';
 import crmService from '../../../../services/crmService';
@@ -69,18 +71,21 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 	const [uploading, setUploading] = useState(false);
 
 	// Editable field states
-	const [value, setValue] = useState('');
-	const [closeDate, setCloseDate] = useState('');
+	const [value, setValue] = useState(deal?.value != null ? Number(deal.value).toLocaleString() : '');
+	const [closeDate, setCloseDate] = useState(deal?.close_date || '');
 
 	if (deal?.id !== prevDealId) {
 		setPrevDealId(deal?.id);
 		setTab(0);
 		setFiles([]);
+	}
+
+	useEffect(() => {
 		if (deal) {
 			setValue(deal.value != null ? Number(deal.value).toLocaleString() : '');
 			setCloseDate(deal.close_date || '');
 		}
-	}
+	}, [deal?.value, deal?.close_date, deal?.id]);
 
 	const handleChangeValue = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const raw = e.target.value.replace(/[^0-9.]/g, '');
@@ -178,7 +183,24 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 		}
 	}, [open, deal, dispatch]);
 
+	useEffect(() => {
+		if (open) {
+			dispatch(searchCompanyOptions(undefined));
+			dispatch(searchContactOptions(undefined));
+		}
+	}, [open, dispatch]);
+
 	if (!deal) return null;
+
+	const handleStageChange = async (targetStageId: number) => {
+		try {
+			await dispatch(updateDeal({ publicId: deal.public_id, payload: { stage_id: targetStageId } })).unwrap();
+			const targetStage = pipeline?.stages.find((s) => s.id === targetStageId);
+			toast.success(targetStage?.is_won_stage ? 'Deal marked as Won 🎉' : `Moved to ${targetStage?.name}`);
+		} catch (err: any) {
+			toast.error(err || 'Failed to update stage');
+		}
+	};
 
 	const company = companyOptions.find((c) => c.id === deal.company_id);
 	const contact = contactOptions.find((c) => c.id === deal.contact_id);
@@ -186,6 +208,7 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 	const pipeline = pipelines.find((p) => p.id === deal.pipeline_id);
 	const stage = pipeline?.stages.find((s) => s.id === deal.stage_id);
 	const displayId = `DL-${String(deal.id).padStart(5, '0')}`;
+	const description = deal.custom_fields?.description;
 
 	const fieldCardSx = {
 		borderRadius: '12px',
@@ -193,6 +216,7 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 		borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',
 		bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
 		p: 1.75,
+		boxShadow: isDark ? '0px 4px 20px rgba(0,0,0,0.15)' : '0px 4px 20px rgba(0,0,0,0.02)',
 	};
 
 	const labelSx = {
@@ -211,7 +235,6 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 		textTransform: 'uppercase' as const,
 		letterSpacing: '0.08em',
 		color: 'text.primary',
-		mb: 1.25,
 	};
 
 	return (
@@ -220,6 +243,7 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 			onClose={onClose}
 			title={deal.title}
 			width={600}
+			disablePadding={true}
 			headerExtra={<StatusBadge label={deal.status} status={deal.status} type="deal" />}
 			headerActions={
 				<Stack direction="row" spacing={1} sx={{ mr: 1 }}>
@@ -259,22 +283,66 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 				</Stack>
 			}
 		>
-			{/* Sub-header info */}
-			<Stack direction="row" spacing={1.5} alignItems="center" sx={{ px: 3, py: 1.5, borderBottom: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.01)' }}>
-				<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', px: 1, py: 0.3, borderRadius: '4px' }}>
-					{displayId}
-				</Typography>
-				{pipeline && (
-					<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-						Pipeline: <strong style={{ color: theme.palette.text.primary }}>{pipeline.name}</strong>
-					</Typography>
-				)}
-				{stage && (
-					<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-						Stage: <strong style={{ color: theme.palette.text.primary }}>{stage.name}</strong>
-					</Typography>
-				)}
-			</Stack>
+			{/* Visual Stage Progress Stepper Bar */}
+			{pipeline && (
+				<Box sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.01)' }}>
+					<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.25 }}>
+						<Stack direction="row" alignItems="center" spacing={1}>
+							<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', px: 1, py: 0.3, borderRadius: '4px' }}>
+								{displayId}
+							</Typography>
+							<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+								Pipeline: <strong style={{ color: theme.palette.text.primary }}>{pipeline.name}</strong>
+							</Typography>
+						</Stack>
+						{stage && (
+							<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+								Stage: <strong style={{ color: theme.palette.primary.main }}>{stage.name} ({deal.probability}%)</strong>
+							</Typography>
+						)}
+					</Stack>
+					<Stack direction="row" spacing={0.5} sx={{ width: '100%' }}>
+						{pipeline.stages.map((s) => {
+							const isCurrent = s.id === deal.stage_id;
+							const isCompleted = stage ? s.order < stage.order : false;
+							const isWon = s.is_won_stage;
+							const isLost = s.is_lost_stage;
+
+							let bg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+							let hoverBg = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
+							
+							if (isCurrent) {
+								bg = isLost ? theme.palette.error.main : (isWon ? theme.palette.success.main : theme.palette.primary.main);
+								hoverBg = bg;
+							} else if (isCompleted) {
+								bg = alpha(theme.palette.primary.main, 0.4);
+								hoverBg = alpha(theme.palette.primary.main, 0.6);
+							}
+
+							return (
+								<Tooltip key={s.id} title={`${s.name} (${s.probability}%)`}>
+									<Box
+										onClick={() => handleStageChange(s.id)}
+										sx={{
+											flex: 1,
+											height: 8,
+											borderRadius: '4px',
+											bgcolor: bg,
+											cursor: 'pointer',
+											transition: 'all 0.2s',
+											transform: isCurrent ? 'scaleY(1.2)' : 'none',
+											'&:hover': {
+												bgcolor: hoverBg,
+												transform: 'scaleY(1.4)'
+											}
+										}}
+									/>
+								</Tooltip>
+							);
+						})}
+					</Stack>
+				</Box>
+			)}
 
 			{/* Tabs Navigation */}
 			<Tabs
@@ -299,7 +367,7 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 			</Tabs>
 
 			{/* Scrollable drawer body */}
-			<Box sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+			<Box sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 				
 				{/* TAB 0: DETAILS */}
 				{tab === 0 && (
@@ -308,32 +376,70 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 						{/* Deal Financials Cards */}
 						<Grid container spacing={2}>
 							<Grid size={{ xs: 6 }}>
-								<Box sx={{ ...fieldCardSx, p: 2 }}>
-									<Typography variant="caption" sx={labelSx}>Deal Value</Typography>
-									<Stack direction="row" alignItems="baseline" spacing={0.5}>
-										<Typography variant="h6" sx={{ fontWeight: 800 }}>
-											{deal.value != null ? formatValue(deal.value, deal.currency) : '—'}
-										</Typography>
-										<Typography variant="caption" color="text.secondary">
-											{deal.currency}
-										</Typography>
-									</Stack>
+								<Box sx={{ ...fieldCardSx, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: '4px solid', borderLeftColor: 'primary.main' }}>
+									<Box>
+										<Typography variant="caption" sx={labelSx}>Deal Value</Typography>
+										<Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ mt: 0.5 }}>
+											<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
+												{deal.value != null ? formatValue(deal.value, deal.currency) : '—'}
+											</Typography>
+											<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+												{deal.currency}
+											</Typography>
+										</Stack>
+									</Box>
+									<Box sx={{ bgcolor: alpha(theme.palette.primary.main, 0.08), p: 1, borderRadius: '50%', color: 'primary.main', display: 'flex' }}>
+										<Payments sx={{ fontSize: 20 }} />
+									</Box>
 								</Box>
 							</Grid>
 							<Grid size={{ xs: 6 }}>
-								<Box sx={{ ...fieldCardSx, p: 2 }}>
-									<Typography variant="caption" sx={labelSx}>Win Probability</Typography>
-									<Typography variant="h6" sx={{ fontWeight: 800 }}>
-										{deal.probability}%
-									</Typography>
+								<Box sx={{ ...fieldCardSx, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: '4px solid', borderLeftColor: 'success.main' }}>
+									<Box>
+										<Typography variant="caption" sx={labelSx}>Win Probability</Typography>
+										<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em', mt: 0.5 }}>
+											{deal.probability}%
+										</Typography>
+									</Box>
+									<Box sx={{ bgcolor: alpha(theme.palette.success.main, 0.08), p: 1, borderRadius: '50%', color: 'success.main', display: 'flex' }}>
+										<TrendingUp sx={{ fontSize: 20 }} />
+									</Box>
 								</Box>
 							</Grid>
 						</Grid>
 
-						{/* Editable Fields Section */}
+						{/* Description Section */}
 						<Box sx={fieldCardSx}>
-							<Typography variant="caption" sx={sectionTitleSx}>Quick Updates</Typography>
-							<Stack direction="row" spacing={2} sx={{ mt: 1 }}>
+							<Typography variant="caption" sx={{ ...sectionTitleSx, display: 'block', mb: 1 }}>Description</Typography>
+							{description ? (
+								<Box 
+									sx={{ 
+										fontSize: '0.85rem', 
+										color: 'text.secondary',
+										lineHeight: 1.6,
+										'& p': { m: 0, mb: 1 },
+										'& p:last-child': { mb: 0 },
+										maxHeight: 150,
+										overflowY: 'auto'
+									}} 
+									dangerouslySetInnerHTML={{ __html: description }} 
+								/>
+							) : (
+								<Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic' }}>
+									No description provided. Click Edit to add details.
+								</Typography>
+							)}
+						</Box>
+
+						{/* Quick Updates Section */}
+						<Box sx={fieldCardSx}>
+							<Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 1.5 }}>
+								<Typography variant="caption" sx={sectionTitleSx}>Quick Updates</Typography>
+								<Tooltip title="Changes auto-save when you click away (blur)">
+									<InfoOutlined sx={{ fontSize: 13, color: 'text.secondary', cursor: 'help' }} />
+								</Tooltip>
+							</Stack>
+							<Stack direction="row" spacing={2}>
 								<TextField
 									label="Deal Value"
 									value={value}
@@ -359,44 +465,176 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 							</Stack>
 						</Box>
 
-						{/* Primary Info Fields */}
+						{/* Associated Entities Section */}
 						<Box sx={fieldCardSx}>
-							<Typography variant="caption" sx={sectionTitleSx}>Deal details</Typography>
-							<Grid container spacing={2.5} sx={{ mt: 0.5 }}>
+							<Typography variant="caption" sx={{ ...sectionTitleSx, display: 'block', mb: 1.5 }}>Associations</Typography>
+							<Grid container spacing={2}>
+								{/* Company Card */}
 								<Grid size={{ xs: 12, sm: 6 }}>
-									<Typography variant="caption" sx={labelSx}>Company</Typography>
-									{company ? (
+									<Box sx={{
+										p: 1.5,
+										borderRadius: '8px',
+										border: '1px solid',
+										borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+										bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.01)',
+										height: '100%',
+										display: 'flex',
+										flexDirection: 'column',
+										gap: 1
+									}}>
 										<Stack direction="row" spacing={1} alignItems="center">
-											<Business fontSize="small" sx={{ color: 'text.secondary' }} />
-											<Typography variant="body2" sx={{ fontWeight: 600 }}>{company.name}</Typography>
-										</Stack>
-									) : (
-										<Typography variant="body2" color="text.disabled">No company linked</Typography>
-									)}
-								</Grid>
-								<Grid size={{ xs: 12, sm: 6 }}>
-									<Typography variant="caption" sx={labelSx}>Contact Person</Typography>
-									{contact ? (
-										<Stack direction="row" spacing={1} alignItems="center">
-											<Person fontSize="small" sx={{ color: 'text.secondary' }} />
-											<Typography variant="body2" sx={{ fontWeight: 600 }}>
-												{contact.first_name} {contact.last_name || ''}
+											<Business color="primary" fontSize="small" sx={{ opacity: 0.8 }} />
+											<Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', color: 'text.secondary', letterSpacing: '0.05em' }}>
+												Company
 											</Typography>
 										</Stack>
-									) : (
-										<Typography variant="body2" color="text.disabled">No contact linked</Typography>
-									)}
+										
+										{company ? (
+											<Box>
+												<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', mb: 0.25 }}>
+													{company.name}
+												</Typography>
+												{company.industry && (
+													<Typography variant="caption" color="text.secondary" display="block">
+														{company.industry}
+													</Typography>
+												)}
+												{company.website && (
+													<Button
+														href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
+														target="_blank"
+														rel="noopener noreferrer"
+														variant="text"
+														size="small"
+														endIcon={<Launch sx={{ fontSize: 10 }} />}
+														sx={{ 
+															p: 0, 
+															mt: 0.5, 
+															justifyContent: 'flex-start',
+															textTransform: 'none', 
+															fontSize: '0.72rem',
+															fontWeight: 600,
+															color: 'primary.main',
+															minWidth: 0,
+															'&:hover': { bgcolor: 'transparent', textDecoration: 'underline' }
+														}}
+													>
+														Visit website
+													</Button>
+												)}
+											</Box>
+										) : (
+											<Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic', mt: 0.5 }}>
+												No company linked
+											</Typography>
+										)}
+									</Box>
 								</Grid>
+
+								{/* Contact Card */}
 								<Grid size={{ xs: 12, sm: 6 }}>
+									<Box sx={{
+										p: 1.5,
+										borderRadius: '8px',
+										border: '1px solid',
+										borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+										bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.01)',
+										height: '100%',
+										display: 'flex',
+										flexDirection: 'column',
+										gap: 1
+									}}>
+										<Stack direction="row" spacing={1} alignItems="center">
+											<Person color="primary" fontSize="small" sx={{ opacity: 0.8 }} />
+											<Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', color: 'text.secondary', letterSpacing: '0.05em' }}>
+												Contact Person
+											</Typography>
+										</Stack>
+										
+										{contact ? (
+											<Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+												<Box sx={{ 
+													width: 28, 
+													height: 28, 
+													borderRadius: '50%', 
+													bgcolor: alpha(theme.palette.primary.main, 0.1),
+													color: 'primary.main',
+													display: 'flex',
+													alignItems: 'center',
+													justifyContent: 'center',
+													fontWeight: 700,
+													fontSize: '0.75rem',
+													flexShrink: 0
+												}}>
+													{((contact.first_name?.[0] || '') + (contact.last_name?.[0] || '')).toUpperCase()}
+												</Box>
+												<Box sx={{ minWidth: 0 }}>
+													<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }} noWrap>
+														{contact.first_name} {contact.last_name || ''}
+													</Typography>
+													{contact.job_title && (
+														<Typography variant="caption" color="text.secondary" display="block" noWrap>
+															{contact.job_title}
+														</Typography>
+													)}
+													
+													{contact.email && (
+														<Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
+															<Tooltip title={`Copy email: ${contact.email}`}>
+																<IconButton 
+																	size="small" 
+																	onClick={() => {
+																		navigator.clipboard.writeText(contact.email || '');
+																		toast.success('Email copied to clipboard');
+																	}}
+																	sx={{ p: 0.1, color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+																>
+																	<ContentCopy sx={{ fontSize: 11 }} />
+																</IconButton>
+															</Tooltip>
+															<Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }} noWrap>
+																{contact.email}
+															</Typography>
+														</Stack>
+													)}
+												</Box>
+											</Box>
+										) : (
+											<Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic', mt: 0.5 }}>
+												No contact linked
+											</Typography>
+										)}
+									</Box>
+								</Grid>
+							</Grid>
+						</Box>
+
+						{/* System Info Fields */}
+						<Box sx={fieldCardSx}>
+							<Typography variant="caption" sx={{ ...sectionTitleSx, display: 'block', mb: 1.5 }}>System Details</Typography>
+							<Grid container spacing={2}>
+								<Grid size={{ xs: 6 }}>
 									<Typography variant="caption" sx={labelSx}>Owner</Typography>
 									<Typography variant="body2" sx={{ fontWeight: 600 }}>
 										{owner ? (owner.full_name || owner.email) : 'Unassigned'}
 									</Typography>
 								</Grid>
-								<Grid size={{ xs: 12, sm: 6 }}>
+								<Grid size={{ xs: 6 }}>
 									<Typography variant="caption" sx={labelSx}>Created On</Typography>
 									<Typography variant="body2" sx={{ fontWeight: 600 }}>
 										{new Date(deal.created_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+									</Typography>
+								</Grid>
+								<Grid size={{ xs: 6 }}>
+									<Typography variant="caption" sx={labelSx}>Last Updated</Typography>
+									<Typography variant="body2" sx={{ fontWeight: 600 }}>
+										{new Date(deal.updated_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+									</Typography>
+								</Grid>
+								<Grid size={{ xs: 6 }}>
+									<Typography variant="caption" sx={labelSx}>Deal ID</Typography>
+									<Typography variant="body2" sx={{ fontWeight: 600, fontFamily: 'monospace' }}>
+										{displayId}
 									</Typography>
 								</Grid>
 							</Grid>

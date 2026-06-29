@@ -12,6 +12,7 @@ interface DetailDrawerProps {
 	headerActions?: React.ReactNode;
 	hideDivider?: boolean;
 	children?: React.ReactNode;
+	disablePadding?: boolean;
 }
 
 export const DetailDrawer: React.FC<DetailDrawerProps> = ({
@@ -23,7 +24,8 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 	headerExtra,
 	headerActions,
 	hideDivider,
-	children
+	children,
+	disablePadding = false
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
@@ -37,7 +39,7 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 				'& .MuiDrawer-paper': {
 					width: { xs: '100%', sm: width },
 					boxSizing: 'border-box',
-					p: { xs: 2.5, sm: 3.5 },
+					p: disablePadding ? 0 : { xs: 2.5, sm: 3.5 },
 					borderLeft: '1px solid',
 					borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
 					bgcolor: 'background.default',
@@ -51,7 +53,16 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 		>
 			<Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 				{/* Drawer Header */}
-				<Box display="flex" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
+				<Box
+					display="flex"
+					justifyContent="space-between"
+					alignItems="flex-start"
+					sx={{
+						mb: disablePadding ? 1.5 : 2,
+						px: disablePadding ? { xs: 2.5, sm: 3.5 } : 0,
+						pt: disablePadding ? { xs: 2.5, sm: 3.5 } : 0
+					}}
+				>
 					<Box sx={{ pr: 2 }}>
 						{typeof title === 'string' ? (
 							<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em', color: 'text.primary' }}>
@@ -86,10 +97,14 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 				</Box>
 
 				{/* Header Extra Actions (e.g. badges, status tags) */}
-				{headerExtra && <Box sx={{ mb: 2.5 }}>{headerExtra}</Box>}
+				{headerExtra && (
+					<Box sx={{ mb: disablePadding ? 2 : 2.5, px: disablePadding ? { xs: 2.5, sm: 3.5 } : 0 }}>
+						{headerExtra}
+					</Box>
+				)}
 
 				{!hideDivider && (
-					<Divider sx={{ mb: 2.5, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
+					<Divider sx={{ mb: disablePadding ? 0 : 2.5, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
 				)}
 
 				{/* Drawer Content */}
