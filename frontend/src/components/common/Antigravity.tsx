@@ -1,4 +1,4 @@
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 
@@ -26,21 +26,20 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
   magnetRadius = 12,
   ringRadius = 10,
   waveSpeed = 0.5,
-  waveAmplitude = 1.2,
-  particleSize = 0.8,
-  lerpSpeed = 0.08,
+  waveAmplitude = 0.8,
+  particleSize = 0.10,
+  lerpSpeed = 0.04,
   colorStart = '#7D8CF3', // Periwinkle blue
   colorEnd = '#537CDE',   // Deeper indigo blue
   autoAnimate = true,
   particleVariance = 1.2,
-  rotationSpeed = 0.05,
+  rotationSpeed = 0.010,
   depthFactor = 1.2,
   pulseSpeed = 2.5,
   particleShape = 'capsule',
   fieldStrength = 8
 }) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
-  const { viewport } = useThree();
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
   // Memoized color structures to avoid GC allocation inside useFrame loop
@@ -68,16 +67,21 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
 
   const particles = useMemo(() => {
     const temp = [];
-    const width = viewport.width || 100;
-    const height = viewport.height || 100;
 
     for (let i = 0; i < count; i++) {
       const t = Math.random() * 1000;
       const speed = 0.01 + Math.random() / 150;
 
-      const x = (Math.random() - 0.5) * width;
-      const y = (Math.random() - 0.5) * height;
-      const z = (Math.random() - 0.5) * 20;
+      // Radial/spherical placement so particles form a halo cloud around the
+      // origin from the start, rather than being scattered across the whole viewport.
+      const phi = Math.random() * Math.PI * 2;
+      const costheta = Math.random() * 2 - 1;
+      const theta = Math.acos(costheta);
+      const r = magnetRadius * (0.2 + Math.random() * 1.1);
+
+      const x = r * Math.sin(theta) * Math.cos(phi);
+      const y = r * Math.sin(theta) * Math.sin(phi);
+      const z = r * Math.cos(theta);
 
       const randomRadiusOffset = (Math.random() - 0.5) * 2;
 
@@ -97,7 +101,7 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
       });
     }
     return temp;
-  }, [count, viewport.width, viewport.height]);
+  }, [count, magnetRadius]);
 
   useFrame(state => {
     const mesh = meshRef.current;
@@ -116,10 +120,12 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
     let destY = (m.y * v.height) / 2;
 
     // Auto animate movement if the user hasn't moved the mouse recently
+    // Slow, contained drift rather than a fast sweep across the whole viewport,
+    // so the formation reads as a gently floating cloud instead of an orbiting ring.
     if (autoAnimate && Date.now() - lastMouseMoveTime.current > 2000) {
       const time = state.clock.getElapsedTime();
-      destX = Math.sin(time * 0.4) * (v.width / 4);
-      destY = Math.cos(time * 0.4 * 2) * (v.height / 4);
+      destX = Math.sin(time * 0.08) * (v.width / 10);
+      destY = Math.cos(time * 0.05) * (v.height / 10);
     }
 
     const smoothFactor = 0.05;

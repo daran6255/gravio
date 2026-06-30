@@ -44,9 +44,9 @@ const AntigravityBackground: React.FC<AntigravityBackgroundProps> = ({
         particleSize={particleSize}
         particleShape={particleShape}
         autoAnimate={true}
-        lerpSpeed={0.055}
-        waveSpeed={0.4}
-        waveAmplitude={1.4}
+        lerpSpeed={0.04}
+        waveSpeed={0.3}
+        waveAmplitude={0.6}
       />
     </Box>
   );
