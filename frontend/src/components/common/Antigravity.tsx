@@ -22,15 +22,15 @@ interface AntigravityProps {
 }
 
 const AntigravityInner: React.FC<AntigravityProps> = ({
-  count = 350,
+  count = 1250,
   magnetRadius = 12,
   ringRadius = 10,
   waveSpeed = 0.5,
   waveAmplitude = 1.2,
   particleSize = 0.8,
   lerpSpeed = 0.08,
-  colorStart = '#8B7CF6', // Logo Purple
-  colorEnd = '#4EA8FF',   // Logo Blue
+  colorStart = '#7D8CF3', // Periwinkle blue
+  colorEnd = '#537CDE',   // Deeper indigo blue
   autoAnimate = true,
   particleVariance = 1.2,
   rotationSpeed = 0.05,
@@ -42,6 +42,11 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const { viewport } = useThree();
   const dummy = useMemo(() => new THREE.Object3D(), []);
+
+  // Memoized color structures to avoid GC allocation inside useFrame loop
+  const tempColor = useMemo(() => new THREE.Color(), []);
+  const cStart = useMemo(() => new THREE.Color(colorStart), [colorStart]);
+  const cEnd = useMemo(() => new THREE.Color(colorEnd), [colorEnd]);
 
   const lastMousePos = useRef({ x: 0, y: 0 });
   const lastMouseMoveTime = useRef(0);
@@ -67,7 +72,7 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
     const height = viewport.height || 100;
 
     for (let i = 0; i < count; i++) {
-      const t = Math.random() * 100;
+      const t = Math.random() * 1000;
       const speed = 0.01 + Math.random() / 150;
 
       const x = (Math.random() - 0.5) * width;
@@ -75,11 +80,6 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
       const z = (Math.random() - 0.5) * 20;
 
       const randomRadiusOffset = (Math.random() - 0.5) * 2;
-
-      // Create a gradient color blend per particle (Purple to Blue)
-      const ratio = i / count;
-      const pColor = new THREE.Color();
-      pColor.lerpColors(new THREE.Color(colorStart), new THREE.Color(colorEnd), ratio);
 
       temp.push({
         t,
@@ -93,12 +93,11 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
         vx: 0,
         vy: 0,
         vz: 0,
-        randomRadiusOffset,
-        color: pColor
+        randomRadiusOffset
       });
     }
     return temp;
-  }, [count, viewport.width, viewport.height, colorStart, colorEnd]);
+  }, [count, viewport.width, viewport.height]);
 
   useFrame(state => {
     const mesh = meshRef.current;
@@ -184,7 +183,12 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
       dummy.updateMatrix();
 
       mesh.setMatrixAt(i, dummy.matrix);
-      mesh.setColorAt(i, particle.color);
+
+      // Dynamically calculate color based on the current Y coordinate (cy)
+      const height = v.height || 20;
+      const yRatio = Math.max(0, Math.min(1, (particle.cy + height / 2) / height));
+      tempColor.lerpColors(cEnd, cStart, yRatio); // cEnd (deep indigo) at bottom, cStart (periwinkle) at top
+      mesh.setColorAt(i, tempColor);
     });
 
     mesh.instanceMatrix.needsUpdate = true;
@@ -206,7 +210,7 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
 
 const Antigravity: React.FC<AntigravityProps> = props => {
   return (
-    <Canvas camera={{ position: [0, 0, 50], fov: 35 }}>
+    <Canvas camera={{ position: [0, 0, 40], fov: 35 }}>
       <AntigravityInner {...props} />
     </Canvas>
   );
