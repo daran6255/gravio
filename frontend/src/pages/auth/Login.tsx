@@ -13,6 +13,7 @@ import { loginUser, clearError } from '../../store/slices/authSlice';
 import LoginForm from '../../components/auth/LoginForm';
 import AuthNavbar from '../../components/layout/AuthNavbar';
 import AuthFooter from '../../components/layout/AuthFooter';
+import AntigravityBackground from '../../components/common/AntigravityBackground';
 
 const Login: React.FC = () => {
 	const dispatch = useAppDispatch();
@@ -59,6 +60,7 @@ const Login: React.FC = () => {
 				overflow: 'hidden',
 			}}
 		>
+			<AntigravityBackground />
 			{/* Top Navigation Bar */}
 			<AuthNavbar />
 

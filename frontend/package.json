@@ -20,6 +20,7 @@
     "@mui/material": "^7.3.6",
     "@mui/x-charts": "^8.22.0",
     "@mui/x-date-pickers": "^8.27.2",
+    "@react-three/fiber": "^9.6.1",
     "@reduxjs/toolkit": "^2.11.1",
     "axios": "^1.13.2",
     "country-state-city": "^3.2.1",
@@ -41,6 +42,7 @@
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.10.1",
     "remark-gfm": "^4.0.1",
+    "three": "^0.185.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
@@ -49,6 +51,7 @@
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.185.0",
     "@vitejs/plugin-react": "^5.1.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
