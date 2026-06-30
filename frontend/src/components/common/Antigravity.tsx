@@ -27,7 +27,7 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
   ringRadius = 10,
   waveSpeed = 0.5,
   waveAmplitude = 1.2,
-  particleSize = 1.6,
+  particleSize = 0.8,
   lerpSpeed = 0.08,
   colorStart = '#8B7CF6', // Logo Purple
   colorEnd = '#4EA8FF',   // Logo Blue
@@ -195,10 +195,10 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
 
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
-      {particleShape === 'capsule' && <capsuleGeometry args={[0.08, 0.35, 4, 8]} />}
-      {particleShape === 'sphere' && <sphereGeometry args={[0.18, 16, 16]} />}
-      {particleShape === 'box' && <boxGeometry args={[0.25, 0.25, 0.25]} />}
-      {particleShape === 'tetrahedron' && <tetrahedronGeometry args={[0.25]} />}
+      {particleShape === 'capsule' && <capsuleGeometry args={[0.04, 0.18, 4, 8]} />}
+      {particleShape === 'sphere' && <sphereGeometry args={[0.09, 16, 16]} />}
+      {particleShape === 'box' && <boxGeometry args={[0.12, 0.12, 0.12]} />}
+      {particleShape === 'tetrahedron' && <tetrahedronGeometry args={[0.12]} />}
       <meshBasicMaterial color="#ffffff" />
     </instancedMesh>
   );

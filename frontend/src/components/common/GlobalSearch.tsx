@@ -283,7 +283,7 @@ const GlobalSearch: React.FC = () => {
 										</Box>
 										{catResults.map((action) => {
 											const resultIndex = filteredResults.indexOf(action);
-											const Icon = action.icon;
+											const Icon = action.icon as React.ComponentType<{ sx?: any }>;
 											return (
 												<ListItem key={action.id} disablePadding role="option" aria-selected={selectedIndex === resultIndex} id={`search-option-${resultIndex}`}>
 													<ListItemButton
