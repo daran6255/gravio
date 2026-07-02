@@ -261,6 +261,7 @@ class CRMLeadResponse(CRMLeadBase):
     updated_at: datetime
     display_value: Optional[float] = None
     display_currency: Optional[str] = None
+    display_rate: Optional[float] = None
 
 
 class CRMLeadCreateResponse(CRMLeadResponse):
@@ -328,6 +329,7 @@ class CRMDealResponse(CRMDealBase):
     in_progress_task_count: int = 0
     display_value: Optional[float] = None
     display_currency: Optional[str] = None
+    display_rate: Optional[float] = None
 
     @model_validator(mode="before")
     @classmethod

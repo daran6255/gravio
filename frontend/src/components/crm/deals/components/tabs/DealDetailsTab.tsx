@@ -14,7 +14,7 @@ import { RichTextViewer, DatePicker } from '../../../../common/form';
 import { SetReminderDialog } from '../../../shared';
 import useDateTime from '../../../../../hooks/useDateTime';
 import { formatReminderTime } from '../../../../../utils/reminders';
-import { getCurrencySymbol, formatMoney } from '../../../../../utils/currency';
+import { getCurrencySymbol, formatMoney, formatRate } from '../../../../../utils/currency';
 import type { Deal } from '../../../../../models/crm/deal';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
 
@@ -112,20 +112,33 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 					<Box sx={{ ...fieldCardSx, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: '4px solid', borderLeftColor: 'primary.main' }}>
 						<Box>
 							<Typography variant="caption" sx={labelSx}>Deal Value</Typography>
-							<Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ mt: 0.5 }}>
-								<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
-									{deal.value != null ? formatValue(deal.value, deal.currency) : '—'}
-								</Typography>
-								<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-									{deal.currency}
-								</Typography>
-							</Stack>
-							{deal.display_value != null && deal.display_currency && (
-								<Tooltip title={`Today's converted value, as of ${formatDate(new Date())}`} arrow>
-									<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-										≈ {formatMoney(deal.display_value, deal.display_currency)}
+							{deal.display_value != null && deal.display_currency ? (
+								<>
+									<Tooltip title={`Converted using the exchange rate on ${formatDate(deal.created_at)}`} arrow>
+										<Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ mt: 0.5 }}>
+											<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
+												{formatMoney(deal.display_value, deal.display_currency)}
+											</Typography>
+											<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+												{deal.display_currency}
+											</Typography>
+										</Stack>
+									</Tooltip>
+									{deal.display_rate != null && (
+										<Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.25, fontSize: '0.68rem' }}>
+											{formatRate(deal.currency, deal.display_currency, deal.display_rate)}
+										</Typography>
+									)}
+								</>
+							) : (
+								<Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ mt: 0.5 }}>
+									<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
+										{deal.value != null ? formatValue(deal.value, deal.currency) : '—'}
 									</Typography>
-								</Tooltip>
+									<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+										{deal.currency}
+									</Typography>
+								</Stack>
 							)}
 						</Box>
 						<Box sx={{ bgcolor: alpha(theme.palette.primary.main, 0.08), p: 1, borderRadius: '50%', color: 'primary.main', display: 'flex' }}>

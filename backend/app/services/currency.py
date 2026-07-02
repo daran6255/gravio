@@ -1,6 +1,5 @@
 """Currency conversion for display purposes — converts a Deal/Lead's own recorded value into
-a viewer's preferred currency using today's exchange rate, so the displayed figure always
-reflects what the record would be worth right now.
+a viewer's preferred currency using the exchange rate on the day the record was created.
 
 This never mutates the record's actual recorded value/currency; it only attaches transient
 `display_value`/`display_currency` attributes that the response schema picks up (mirrors
@@ -15,29 +14,41 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.currency_rate import CurrencyRateRepository
 
-FRANKFURTER_BASE_URL = "https://api.frankfurter.dev/v1"
+# fawazahmed0/currency-api — free, keyless, full ISO 4217 coverage (including e.g. BHD/KWD/AED,
+# which the ECB-only Frankfurter API doesn't publish) with historical data by date. Two mirrors
+# are tried in order since the jsdelivr CDN occasionally rate-limits.
+CURRENCY_API_URLS = [
+    "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@{date}/v1/currencies/{from_currency}.json",
+    "https://{date}.currency-api.pages.dev/v1/currencies/{from_currency}.json",
+]
 
 
 class CurrencyConversionService:
     @staticmethod
     async def _fetch_rate_from_api(*, from_currency: str, to_currency: str, on_date: date) -> Optional[Decimal]:
-        try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.get(
-                    f"{FRANKFURTER_BASE_URL}/{on_date.isoformat()}",
-                    params={"base": from_currency, "symbols": to_currency},
-                )
-                if not resp.is_success:
-                    logger.warning(f"Currency rate lookup failed ({from_currency}->{to_currency} on {on_date}): {resp.status_code}")
-                    return None
-                data = resp.json()
-                raw_rate = data.get("rates", {}).get(to_currency)
-                if raw_rate is None:
-                    return None
-                return Decimal(str(raw_rate))
-        except (httpx.HTTPError, InvalidOperation, ValueError) as exc:
-            logger.warning(f"Currency rate lookup errored ({from_currency}->{to_currency} on {on_date}): {exc}")
-            return None
+        from_lower = from_currency.lower()
+        to_lower = to_currency.lower()
+        date_str = on_date.isoformat()
+
+        for url_template in CURRENCY_API_URLS:
+            url = url_template.format(date=date_str, from_currency=from_lower)
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    resp = await client.get(url)
+                    if not resp.is_success:
+                        logger.warning(f"Currency rate lookup failed ({from_currency}->{to_currency} on {on_date}) via {url}: {resp.status_code}")
+                        continue
+                    data = resp.json()
+                    raw_rate = data.get(from_lower, {}).get(to_lower)
+                    if raw_rate is None:
+                        logger.warning(f"Currency rate lookup missing pair ({from_currency}->{to_currency} on {on_date}) via {url}")
+                        continue
+                    return Decimal(str(raw_rate))
+            except (httpx.HTTPError, InvalidOperation, ValueError) as exc:
+                logger.warning(f"Currency rate lookup errored ({from_currency}->{to_currency} on {on_date}) via {url}: {exc}")
+                continue
+
+        return None
 
     @staticmethod
     async def get_rate(db: AsyncSession, *, from_currency: str, to_currency: str, on_date: date) -> Optional[Decimal]:
@@ -65,11 +76,12 @@ class CurrencyConversionService:
         currency_field: str,
         user_currency: Optional[str],
     ) -> None:
-        """Sets transient `display_value`/`display_currency` on `obj` in place. No-ops (leaves
-        both None) when there's nothing to convert — unset preference, no recorded value, or the
-        record is already in the viewer's preferred currency."""
+        """Sets transient `display_value`/`display_currency`/`display_rate` on `obj` in place.
+        No-ops (leaves all None) when there's nothing to convert — unset preference, no recorded
+        value, or the record is already in the viewer's preferred currency."""
         obj.display_value = None
         obj.display_currency = None
+        obj.display_rate = None
 
         if not user_currency:
             return
@@ -79,14 +91,18 @@ class CurrencyConversionService:
         if not record_currency or record_value is None or record_currency == user_currency:
             return
 
+        created_at = getattr(obj, "created_at", None)
+        on_date = created_at.date() if created_at else date.today()
+
         rate = await CurrencyConversionService.get_rate(
-            db, from_currency=record_currency, to_currency=user_currency, on_date=date.today(),
+            db, from_currency=record_currency, to_currency=user_currency, on_date=on_date,
         )
         if rate is None:
             return
 
         obj.display_value = round(float(Decimal(str(record_value)) * rate), 2)
         obj.display_currency = user_currency
+        obj.display_rate = float(rate)
 
     @staticmethod
     async def attach_display_values(

@@ -4,7 +4,7 @@ import { KanbanCard } from '../../../common/kanban';
 import { DataTableActions, type TableMenuAction } from '../../../common/table';
 import { Visibility, Edit, DeleteOutline } from '@mui/icons-material';
 import type { Deal } from '../../../../models/crm/deal';
-import { formatMoney } from '../../../../utils/currency';
+import { formatMoney, formatRate } from '../../../../utils/currency';
 import useDateTime from '../../../../hooks/useDateTime';
 
 interface DealCardProps {
@@ -98,7 +98,10 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, companyName, onView, o
 						</Typography>
 					)}
 					{deal.display_value != null && deal.display_currency && (
-						<Tooltip title={`Today's converted value, as of ${formatDate(new Date())}`} arrow>
+						<Tooltip
+							title={`Converted using the exchange rate on ${formatDate(deal.created_at)}${deal.display_rate != null ? ` (${formatRate(deal.currency, deal.display_currency, deal.display_rate)})` : ''}`}
+							arrow
+						>
 							<Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', display: 'block' }}>
 								≈ {formatMoney(deal.display_value, deal.display_currency)}
 							</Typography>

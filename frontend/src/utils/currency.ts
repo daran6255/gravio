@@ -43,3 +43,8 @@ export const getCurrencySymbol = (code?: string): string => {
 export const formatMoney = (value: number, currencyCode?: string): string => {
 	return new Intl.NumberFormat(undefined, { style: 'currency', currency: currencyCode || 'USD' }).format(value);
 };
+
+/** Formats an exchange rate as "1 FROM = X.XXXX TO", e.g. "1 USD = 94.4000 INR". */
+export const formatRate = (fromCurrency: string, toCurrency: string, rate: number): string => {
+	return `1 ${fromCurrency} = ${rate.toFixed(4)} ${toCurrency}`;
+};

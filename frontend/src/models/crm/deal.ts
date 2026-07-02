@@ -29,6 +29,7 @@ export interface Deal {
 	 * currency — the value converted using the exchange rate on `created_at`'s date. */
 	display_value?: number;
 	display_currency?: string;
+	display_rate?: number;
 }
 
 /** Matches backend's CRMDealCreate. */

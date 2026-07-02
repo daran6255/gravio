@@ -8,7 +8,7 @@ import PremiumTooltip from '../../../common/PremiumTooltip';
 import useDateTime from '../../../../hooks/useDateTime';
 import type { Lead } from '../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
-import { formatMoney } from '../../../../utils/currency';
+import { formatMoney, formatRate } from '../../../../utils/currency';
 import { isLeadStale } from '../../../../utils/leadStaleness';
 
 interface LeadsTableProps {
@@ -234,7 +234,10 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
 				</TableCell>
 				<TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>
 					{lead.display_value != null && lead.display_currency ? (
-						<Tooltip title={`≈ ${formatMoney(lead.display_value, lead.display_currency)} — today's converted value, as of ${formatDate(new Date())}`} arrow>
+						<Tooltip
+							title={`≈ ${formatMoney(lead.display_value, lead.display_currency)} — converted using the exchange rate on ${formatDate(lead.created_at)}${lead.display_rate != null ? ` (${formatRate(lead.currency, lead.display_currency, lead.display_rate)})` : ''}`}
+							arrow
+						>
 							<span>{formatCurrency(lead.estimated_value, lead.currency)}</span>
 						</Tooltip>
 					) : (

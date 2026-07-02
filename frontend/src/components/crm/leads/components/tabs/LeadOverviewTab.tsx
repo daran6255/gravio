@@ -5,7 +5,7 @@ import { useAppSelector } from '../../../../../store/hooks';
 import { RichTextViewer } from '../../../../common/form';
 import useToast from '../../../../../hooks/useToast';
 import useDateTime from '../../../../../hooks/useDateTime';
-import { formatMoney } from '../../../../../utils/currency';
+import { formatMoney, formatRate } from '../../../../../utils/currency';
 import type { Lead } from '../../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
 
@@ -86,11 +86,16 @@ export const LeadOverviewTab: React.FC<LeadOverviewTabProps> = ({ lead, owners }
 								</Typography>
 							</Stack>
 							{lead.display_value != null && lead.display_currency && (
-								<Tooltip title={`Today's converted value, as of ${formatDate(new Date())}`} arrow>
+								<Tooltip title={`Converted using the exchange rate on ${formatDate(lead.created_at)}`} arrow>
 									<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
 										≈ {formatMoney(lead.display_value, lead.display_currency)}
 									</Typography>
 								</Tooltip>
+							)}
+							{lead.display_rate != null && lead.display_currency && (
+								<Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.25, fontSize: '0.68rem' }}>
+									{formatRate(lead.currency, lead.display_currency, lead.display_rate)}
+								</Typography>
 							)}
 						</Box>
 						<Box sx={{ bgcolor: alpha(theme.palette.primary.main, 0.08), p: 1, borderRadius: '50%', color: 'primary.main', display: 'flex' }}>
