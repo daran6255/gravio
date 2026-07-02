@@ -14,6 +14,7 @@ from app.models.crm import (
     CRMLead,
     CRMDeal,
     CRMDealTask,
+    CRMLeadTask,
     CRMPipeline,
     CRMPipelineStage,
     CRMActivity,
@@ -662,5 +663,67 @@ class CRMDealTaskRepository:
 
     @staticmethod
     async def delete(db: AsyncSession, task: CRMDealTask) -> None:
+        task.soft_delete()
+        await db.flush()
+
+
+class CRMLeadTaskRepository:
+    @staticmethod
+    async def get_by_id(db: AsyncSession, task_id: int) -> Optional[CRMLeadTask]:
+        result = await db.execute(select(CRMLeadTask).where(CRMLeadTask.id == task_id))
+        return result.scalars().first()
+
+    @staticmethod
+    async def get_by_public_id(db: AsyncSession, public_id: uuid.UUID) -> Optional[CRMLeadTask]:
+        result = await db.execute(select(CRMLeadTask).where(CRMLeadTask.public_id == public_id))
+        return result.scalars().first()
+
+    @staticmethod
+    async def list_by_lead(db: AsyncSession, *, lead_id: int) -> list[CRMLeadTask]:
+        result = await db.execute(
+            select(CRMLeadTask)
+            .where(CRMLeadTask.lead_id == lead_id, CRMLeadTask.is_deleted.is_(False))
+            .order_by(CRMLeadTask.order.asc(), CRMLeadTask.created_at.asc())
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def create(
+        db: AsyncSession,
+        *,
+        lead_id: int,
+        title: str,
+        task_type,
+        due_date=None,
+        notes=None,
+        assignee_id=None,
+        priority=LeadPriority.MEDIUM,
+        order: int = 0,
+    ) -> CRMLeadTask:
+        task = CRMLeadTask(
+            lead_id=lead_id,
+            title=title,
+            task_type=task_type,
+            due_date=due_date,
+            notes=notes,
+            assignee_id=assignee_id,
+            priority=priority,
+            order=order,
+        )
+        db.add(task)
+        await db.flush()
+        await db.refresh(task)
+        return task
+
+    @staticmethod
+    async def update(db: AsyncSession, task: CRMLeadTask, **kwargs) -> CRMLeadTask:
+        for key, val in kwargs.items():
+            setattr(task, key, val)
+        await db.flush()
+        await db.refresh(task)
+        return task
+
+    @staticmethod
+    async def delete(db: AsyncSession, task: CRMLeadTask) -> None:
         task.soft_delete()
         await db.flush()

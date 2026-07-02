@@ -14,6 +14,7 @@ from app.models.crm import (
     CRMLead,
     CRMDeal,
     CRMDealTask,
+    CRMLeadTask,
     CRMPipeline,
     CRMPipelineStage,
     CRMActivity,
@@ -34,6 +35,7 @@ from app.repositories.crm import (
     CRMActivityRepository,
     CRMFileRepository,
     CRMDealTaskRepository,
+    CRMLeadTaskRepository,
 )
 from app.schemas.crm import (
     CRMCompanyCreate,
@@ -47,6 +49,8 @@ from app.schemas.crm import (
     CRMDealUpdate,
     CRMDealTaskCreate,
     CRMDealTaskUpdate,
+    CRMLeadTaskCreate,
+    CRMLeadTaskUpdate,
     CRMActivityCreate,
     CRMActivityUpdate,
     CRMActivityResponse,
@@ -1333,4 +1337,115 @@ class CRMService:
         if not task or task.is_deleted:
             raise NotFoundError("Task not found")
         await CRMDealTaskRepository.delete(db, task)
+        await db.commit()
+
+    # -------------------------------------------------------------------------
+    # Lead Tasks (mirrors Deal Tasks exactly)
+    # -------------------------------------------------------------------------
+
+    @staticmethod
+    async def list_lead_tasks(db: AsyncSession, lead_public_id: uuid.UUID) -> list[CRMLeadTask]:
+        lead = await CRMLeadRepository.get_by_public_id(db, lead_public_id)
+        if not lead:
+            raise NotFoundError("Lead not found")
+        return await CRMLeadTaskRepository.list_by_lead(db, lead_id=lead.id)
+
+    @staticmethod
+    async def create_lead_task(
+        db: AsyncSession,
+        lead_public_id: uuid.UUID,
+        payload: CRMLeadTaskCreate,
+        created_by_user_id: int,
+    ) -> CRMLeadTask:
+        lead = await CRMLeadRepository.get_by_public_id(db, lead_public_id)
+        if not lead:
+            raise NotFoundError("Lead not found")
+
+        task = await CRMLeadTaskRepository.create(
+            db,
+            lead_id=lead.id,
+            title=payload.title,
+            task_type=payload.task_type,
+            due_date=payload.due_date,
+            notes=payload.notes,
+            assignee_id=payload.assignee_id,
+            priority=payload.priority,
+            order=payload.order,
+        )
+
+        # Notify assignee if different from creator
+        if payload.assignee_id and payload.assignee_id != created_by_user_id:
+            try:
+                await NotificationService.notify(
+                    db,
+                    user_id=payload.assignee_id,
+                    type=NotificationType.LEAD_TASK_ASSIGNED,
+                    title="You've been assigned a lead task",
+                    message=f"Task \"{payload.title}\" has been assigned to you for lead \"{lead.title}\".",
+                    entity_type="lead_task",
+                    entity_id=task.id,
+                )
+            except Exception:
+                pass  # Non-blocking
+
+        await db.commit()
+        await db.refresh(task)
+        return task
+
+    @staticmethod
+    async def update_lead_task(
+        db: AsyncSession,
+        task_public_id: uuid.UUID,
+        payload: CRMLeadTaskUpdate,
+        updated_by_user_id: int,
+    ) -> CRMLeadTask:
+        task = await CRMLeadTaskRepository.get_by_public_id(db, task_public_id)
+        if not task or task.is_deleted:
+            raise NotFoundError("Task not found")
+
+        update_data = payload.model_dump(exclude_unset=True)
+
+        # Auto-set completed_at when status flips to completed
+        if update_data.get("status") == DealTaskStatus.COMPLETED and task.status != DealTaskStatus.COMPLETED:
+            update_data["completed_at"] = datetime.now(timezone.utc)
+        elif update_data.get("status") and update_data["status"] != DealTaskStatus.COMPLETED:
+            update_data["completed_at"] = None
+
+        task = await CRMLeadTaskRepository.update(db, task, **update_data)
+
+        # Notifications
+        try:
+            if update_data.get("status") == DealTaskStatus.COMPLETED and task.assignee_id and task.assignee_id != updated_by_user_id:
+                await NotificationService.notify(
+                    db,
+                    user_id=task.assignee_id,
+                    type=NotificationType.LEAD_TASK_COMPLETED,
+                    title="Lead task completed",
+                    message=f"Task \"{task.title}\" has been marked as completed.",
+                    entity_type="lead_task",
+                    entity_id=task.id,
+                )
+            elif update_data.get("assignee_id") and update_data["assignee_id"] != updated_by_user_id:
+                await NotificationService.notify(
+                    db,
+                    user_id=update_data["assignee_id"],
+                    type=NotificationType.LEAD_TASK_ASSIGNED,
+                    title="You've been assigned a lead task",
+                    message=f"Task \"{task.title}\" has been assigned to you.",
+                    entity_type="lead_task",
+                    entity_id=task.id,
+                )
+        except Exception:
+            pass  # Non-blocking
+
+        await db.commit()
+        await db.refresh(task)
+        return task
+
+    @staticmethod
+    async def delete_lead_task(db: AsyncSession, task_public_id: uuid.UUID) -> None:
+        task = await CRMLeadTaskRepository.get_by_public_id(db, task_public_id)
+        if not task or task.is_deleted:
+            raise NotFoundError("Task not found")
+        await CRMLeadTaskRepository.delete(db, task)
         await db.commit()

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography, Stack, useTheme, alpha } from '@mui/material';
 import { History } from '@mui/icons-material';
+import { ButtonDialog } from '../../../../common/dialogbox';
 import { NotesComposer, NotesTimeline } from '../../../shared';
 import { fetchEntityActivities } from '../../../../../store/slices/crmSlice';
 import { useAppDispatch } from '../../../../../store/hooks';
@@ -41,15 +42,6 @@ export const CompanyNotesTab: React.FC<CompanyNotesTabProps> = ({ company, activ
 
 	return (
 		<Stack spacing={2.5}>
-			<Box sx={getFieldCardSx('primary.main')}>
-				<Typography variant="caption" sx={{ ...sectionTitleSx, mb: 1.5, display: 'block' }}>Log Activity</Typography>
-				<NotesComposer
-					entityType="company"
-					entityId={company.id}
-					onCreated={() => dispatch(fetchEntityActivities({ entityType: 'company', entityId: company.id }))}
-				/>
-			</Box>
-
 			<Box sx={getFieldCardSx('secondary.main')}>
 				<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
 					<Stack direction="row" spacing={1} alignItems="center">
@@ -57,20 +49,37 @@ export const CompanyNotesTab: React.FC<CompanyNotesTabProps> = ({ company, activ
 							<History sx={{ fontSize: 15 }} />
 						</Box>
 						<Typography variant="caption" sx={sectionTitleSx}>Activity History</Typography>
+						<Box
+							sx={{
+								px: 1,
+								py: 0.25,
+								borderRadius: '999px',
+								bgcolor: alpha(theme.palette.secondary.main, isDark ? 0.18 : 0.1),
+								color: 'secondary.main',
+								fontSize: '0.68rem',
+								fontWeight: 700,
+							}}
+						>
+							{activities.length} logged
+						</Box>
 					</Stack>
-					<Box
-						sx={{
-							px: 1,
-							py: 0.25,
-							borderRadius: '999px',
-							bgcolor: alpha(theme.palette.secondary.main, isDark ? 0.18 : 0.1),
-							color: 'secondary.main',
-							fontSize: '0.68rem',
-							fontWeight: 700,
-						}}
+					<ButtonDialog
+						buttonLabel="Add Activity"
+						title="Log Activity"
+						subtitle="Notes, calls, and emails logged here will populate the Timeline."
+						maxWidth="sm"
 					>
-						{activities.length} logged
-					</Box>
+						{({ close }) => (
+							<NotesComposer
+								entityType="company"
+								entityId={company.id}
+								onCreated={() => {
+									dispatch(fetchEntityActivities({ entityType: 'company', entityId: company.id }));
+									close();
+								}}
+							/>
+						)}
+					</ButtonDialog>
 				</Stack>
 				<NotesTimeline activities={activities} loading={activitiesLoading} />
 			</Box>

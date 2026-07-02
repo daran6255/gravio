@@ -45,12 +45,17 @@ const EnterpriseAvatar: React.FC<EnterpriseAvatarProps> = ({ name, size = 40, sx
 	};
 
 	const color = stringToColor(name);
-	
+
 	return (
 		<MuiAvatar
 			{...props}
 			sx={{
 				bgcolor: color,
+				// MUI's Avatar only auto-contrasts text against its *default* background —
+				// once we override bgcolor via sx, the text color must be computed explicitly,
+				// otherwise it falls back to theme.palette.background.default (dark in dark
+				// mode), making initials unreadable against these fixed palette colors.
+				color: theme.palette.getContrastText(color),
 				width: size,
 				height: size,
 				fontSize: `${size * 0.4}px`,

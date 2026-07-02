@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Box, Typography, Stack, IconButton, Tooltip, useTheme, alpha, Grid, Chip, Alert, Button } from '@mui/material';
-import { Business, Person, LocalOffer, Payments, TrendingUp, Launch, Phone, Email, HelpOutline } from '@mui/icons-material';
-import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
-import { fetchEntityActivities } from '../../../../../store/slices/crmSlice';
+import { Business, Person, LocalOffer, Payments, TrendingUp, Launch, Phone, ContentCopy } from '@mui/icons-material';
+import { useAppSelector } from '../../../../../store/hooks';
 import { RichTextViewer } from '../../../../common/form';
-import PremiumTooltip from '../../../../common/PremiumTooltip';
-import { NotesComposer } from '../../../shared';
+import useToast from '../../../../../hooks/useToast';
 import type { Lead } from '../../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
 
@@ -36,12 +34,11 @@ const formatValue = (value: number, currency: string) => {
 };
 
 export const LeadOverviewTab: React.FC<LeadOverviewTabProps> = ({ lead, owners }) => {
-	const dispatch = useAppDispatch();
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const toast = useToast();
 
 	const { companyOptions, contactOptions } = useAppSelector((state) => state.crm);
-	const [composerType, setComposerType] = useState<string>('note');
 
 	const company = companyOptions.find((c) => c.id === lead.company_id);
 	const contact = contactOptions.find((c) => c.id === lead.contact_id);
@@ -259,17 +256,20 @@ export const LeadOverviewTab: React.FC<LeadOverviewTabProps> = ({ lead, owners }
 											</Typography>
 										)}
 										
-										{/* Email & Phone click triggers */}
+										{/* Email & Phone */}
 										<Stack spacing={0.5} sx={{ mt: 0.5 }}>
 											{contact.email && (
 												<Stack direction="row" spacing={0.5} alignItems="center" sx={{ overflow: 'hidden' }}>
-													<Tooltip title={`Call email composer`}>
-														<IconButton 
-															size="small" 
-															onClick={() => setComposerType('email')}
+													<Tooltip title="Copy email">
+														<IconButton
+															size="small"
+															onClick={() => {
+																navigator.clipboard.writeText(contact.email || '');
+																toast.success('Email copied to clipboard');
+															}}
 															sx={{ p: 0.1, color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
 														>
-															<Email sx={{ fontSize: 11 }} />
+															<ContentCopy sx={{ fontSize: 11 }} />
 														</IconButton>
 													</Tooltip>
 													<Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }} noWrap>
@@ -279,15 +279,7 @@ export const LeadOverviewTab: React.FC<LeadOverviewTabProps> = ({ lead, owners }
 											)}
 											{(contact.phone || contact.mobile) && (
 												<Stack direction="row" spacing={0.5} alignItems="center" sx={{ overflow: 'hidden' }}>
-													<Tooltip title={`Call phone logger`}>
-														<IconButton 
-															size="small" 
-															onClick={() => setComposerType('call')}
-															sx={{ p: 0.1, color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
-														>
-															<Phone sx={{ fontSize: 11 }} />
-														</IconButton>
-													</Tooltip>
+													<Phone sx={{ fontSize: 11, color: 'text.secondary' }} />
 													<Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }} noWrap>
 														{contact.phone || contact.mobile}
 													</Typography>
@@ -348,31 +340,6 @@ export const LeadOverviewTab: React.FC<LeadOverviewTabProps> = ({ lead, owners }
 					</Stack>
 				</Box>
 			)}
-
-			{/* Notes Composer Section */}
-			<Box>
-				<Box display="flex" alignItems="center" gap={0.5} sx={{ mb: 1.25 }}>
-					<Typography sx={{ ...sectionTitleSx, mb: 0 }}>Log Activity</Typography>
-					<PremiumTooltip title="Log communication activities for this lead. Notes, calls, and emails logged here will populate the Timeline." arrow placement="right">
-						<HelpOutline sx={{ fontSize: 13, color: 'text.secondary', cursor: 'pointer', opacity: 0.7, '&:hover': { opacity: 1, color: 'primary.main' } }} />
-					</PremiumTooltip>
-				</Box>
-				<Box sx={{ ...fieldCardSx, p: 0, overflow: 'hidden' }}>
-					<Box sx={{ p: 1.5 }}>
-						<NotesComposer
-							key={`${lead.id}-${composerType}`}
-							entityType="lead"
-							entityId={lead.id}
-							variant="compact"
-							defaultType={composerType as any}
-							onCreated={() => {
-								setComposerType('note');
-								dispatch(fetchEntityActivities({ entityType: 'lead', entityId: lead.id }));
-							}}
-						/>
-					</Box>
-				</Box>
-			</Box>
 		</Stack>
 	);
 };

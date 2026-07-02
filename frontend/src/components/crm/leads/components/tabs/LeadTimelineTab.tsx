@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Stack, Typography } from '@mui/material';
 import { HelpOutline } from '@mui/icons-material';
 import PremiumTooltip from '../../../../common/PremiumTooltip';
-import { NotesTimeline } from '../../../shared';
+import { ButtonDialog } from '../../../../common/dialogbox';
+import { NotesComposer, NotesTimeline } from '../../../shared';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
 import { fetchEntityActivities, clearActivities } from '../../../../../store/slices/crmSlice';
 import type { Lead } from '../../../../../models/crm/lead';
@@ -24,15 +25,45 @@ export const LeadTimelineTab: React.FC<LeadTimelineTabProps> = ({ lead }) => {
 		};
 	}, [lead.id, dispatch]);
 
+	const sectionTitleSx = {
+		fontWeight: 800,
+		fontSize: '0.7rem',
+		textTransform: 'uppercase' as const,
+		letterSpacing: '0.08em',
+		color: 'text.primary',
+	};
+
 	return (
-		<Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-			<Box display="flex" alignItems="center" gap={0.5} sx={{ mb: 2 }}>
-				<Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Activity History</Typography>
-				<PremiumTooltip title="Timeline trace of logged phone calls, emails, notes, tasks, and meetings. Helps keep your sales outreach history transparent." arrow placement="right">
-					<HelpOutline sx={{ fontSize: 13, color: 'text.secondary', cursor: 'pointer', opacity: 0.7, '&:hover': { opacity: 1, color: 'primary.main' } }} />
-				</PremiumTooltip>
+		<Stack spacing={2.5}>
+			{/* Activity History Section */}
+			<Box>
+				<Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 1.25 }}>
+					<Box display="flex" alignItems="center" gap={0.5}>
+						<Typography sx={sectionTitleSx}>Activity History</Typography>
+						<PremiumTooltip title="Timeline trace of logged phone calls, emails, notes, tasks, and meetings. Helps keep your sales outreach history transparent." arrow placement="right">
+							<HelpOutline sx={{ fontSize: 13, color: 'text.secondary', cursor: 'pointer', opacity: 0.7, '&:hover': { opacity: 1, color: 'primary.main' } }} />
+						</PremiumTooltip>
+					</Box>
+					<ButtonDialog
+						buttonLabel="Add Activity"
+						title="Log Activity"
+						subtitle="Notes, calls, and emails logged here will populate the Timeline."
+						maxWidth="sm"
+					>
+						{({ close }) => (
+							<NotesComposer
+								entityType="lead"
+								entityId={lead.id}
+								onCreated={() => {
+									dispatch(fetchEntityActivities({ entityType: 'lead', entityId: lead.id }));
+									close();
+								}}
+							/>
+						)}
+					</ButtonDialog>
+				</Box>
+				<NotesTimeline activities={activities} loading={activitiesLoading} />
 			</Box>
-			<NotesTimeline activities={activities} loading={activitiesLoading} />
-		</Box>
+		</Stack>
 	);
 };

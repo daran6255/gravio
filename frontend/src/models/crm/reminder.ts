@@ -1,4 +1,4 @@
-export type ReminderEntityType = 'lead' | 'deal' | 'deal_task' | 'activity';
+export type ReminderEntityType = 'lead' | 'deal' | 'deal_task' | 'lead_task' | 'activity';
 export type ReminderStatus = 'pending' | 'sent' | 'cancelled';
 
 export interface Reminder {

@@ -50,3 +50,14 @@ export interface ExportDialogProps extends Omit<BaseDialogProps, 'children' | 'a
 	title?: string;
 	recordCount?: number;
 }
+
+/** A self-contained "Add X" button that opens a BaseDialog on click. The dialog
+ * content is provided as a render-prop so it can close itself (e.g. after a
+ * successful submit) via the `close` helper, without the parent needing to
+ * manage the open/closed state. */
+export interface ButtonDialogProps extends Omit<BaseDialogProps, 'open' | 'onClose' | 'children' | 'actions'> {
+	buttonLabel: string;
+	buttonIcon?: ReactNode;
+	buttonVariant?: 'contained' | 'outlined' | 'text';
+	children: (helpers: { close: () => void }) => ReactNode;
+}

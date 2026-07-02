@@ -256,6 +256,7 @@ class CRMLead(BaseModel, TenantAwareMixin):
     company: Mapped[Optional[CRMCompany]] = relationship("CRMCompany", back_populates="leads")
     owner: Mapped[Optional[User]] = relationship("User", foreign_keys=[owner_id])
     deal: Mapped[Optional[CRMDeal]] = relationship("CRMDeal", foreign_keys=[deal_id])
+    tasks: Mapped[list["CRMLeadTask"]] = relationship("CRMLeadTask", back_populates="lead", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<CRMLead(id={self.id}, title='{self.title}', status='{self.status}')>"
@@ -405,3 +406,49 @@ class CRMDealTask(BaseModel, TenantAwareMixin):
 
     def __repr__(self) -> str:
         return f"<CRMDealTask(id={self.id}, title='{self.title}', status='{self.status}')>"
+
+
+class CRMLeadTask(BaseModel, TenantAwareMixin):
+    """A structured task/checklist item associated with a lead (e.g. follow-up call, qualification doc).
+
+    Mirrors CRMDealTask exactly (same enums, same field shape) — reuses DealTaskType/DealTaskStatus
+    rather than duplicating near-identical enums, since Postgres enum types aren't tied to one table.
+    """
+    __tablename__ = "crm_lead_tasks"
+
+    public_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, unique=True, index=True, nullable=False, default=uuid.uuid4
+    )
+    lead_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("crm_leads.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    task_type: Mapped[DealTaskType] = mapped_column(
+        Enum(DealTaskType, values_callable=lambda x: [e.value for e in x]),
+        default=DealTaskType.OTHER,
+        nullable=False,
+    )
+    status: Mapped[DealTaskStatus] = mapped_column(
+        Enum(DealTaskStatus, values_callable=lambda x: [e.value for e in x]),
+        default=DealTaskStatus.PENDING,
+        nullable=False,
+    )
+    due_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    assignee_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    priority: Mapped[LeadPriority] = mapped_column(
+        Enum(LeadPriority, values_callable=lambda x: [e.value for e in x]),
+        default=LeadPriority.MEDIUM,
+        nullable=False,
+    )
+    order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    # Relationships
+    lead: Mapped[CRMLead] = relationship("CRMLead", back_populates="tasks")
+    assignee: Mapped[Optional[User]] = relationship("User", foreign_keys=[assignee_id])
+
+    def __repr__(self) -> str:
+        return f"<CRMLeadTask(id={self.id}, title='{self.title}', status='{self.status}')>"

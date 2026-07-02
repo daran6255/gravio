@@ -33,6 +33,9 @@ from app.schemas.crm import (
     CRMDealTaskCreate,
     CRMDealTaskUpdate,
     CRMDealTaskResponse,
+    CRMLeadTaskCreate,
+    CRMLeadTaskUpdate,
+    CRMLeadTaskResponse,
     CRMReminderCreate,
     CRMReminderUpdate,
     CRMReminderResponse,
@@ -941,6 +944,65 @@ async def delete_deal_task_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     await CRMService.delete_deal_task(db, task_public_id)
+
+
+# --- Lead Tasks ---
+@router.get(
+    "/leads/{public_id}/tasks",
+    response_model=list[CRMLeadTaskResponse],
+    summary="List tasks for a lead",
+)
+async def list_lead_tasks_endpoint(
+    public_id: uuid.UUID,
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> list[CRMLeadTaskResponse]:
+    tasks = await CRMService.list_lead_tasks(db, public_id)
+    return [CRMLeadTaskResponse.model_validate(t) for t in tasks]
+
+
+@router.post(
+    "/leads/{public_id}/tasks",
+    response_model=CRMLeadTaskResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a task for a lead",
+)
+async def create_lead_task_endpoint(
+    public_id: uuid.UUID,
+    payload: CRMLeadTaskCreate,
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> CRMLeadTaskResponse:
+    task = await CRMService.create_lead_task(db, public_id, payload, current_user.id)
+    return CRMLeadTaskResponse.model_validate(task)
+
+
+@router.patch(
+    "/lead-tasks/{task_public_id}",
+    response_model=CRMLeadTaskResponse,
+    summary="Update a lead task",
+)
+async def update_lead_task_endpoint(
+    task_public_id: uuid.UUID,
+    payload: CRMLeadTaskUpdate,
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> CRMLeadTaskResponse:
+    task = await CRMService.update_lead_task(db, task_public_id, payload, current_user.id)
+    return CRMLeadTaskResponse.model_validate(task)
+
+
+@router.delete(
+    "/lead-tasks/{task_public_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a lead task",
+)
+async def delete_lead_task_endpoint(
+    task_public_id: uuid.UUID,
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+):
+    await CRMService.delete_lead_task(db, task_public_id)
 
 
 # --- Reminders ---

@@ -20,7 +20,7 @@ from app.models.crm import (
 )
 from app.models.reminder import ReminderStatus
 
-REMINDER_ENTITY_TYPES = ("lead", "deal", "deal_task", "activity")
+REMINDER_ENTITY_TYPES = ("lead", "deal", "deal_task", "lead_task", "activity")
 
 
 # --- Tag Schemas ---
@@ -366,6 +366,46 @@ class CRMDealTaskResponse(BaseModel):
     id: int
     public_id: uuid.UUID
     deal_id: int
+    title: str
+    task_type: DealTaskType
+    status: DealTaskStatus
+    priority: LeadPriority
+    due_date: Optional[date] = None
+    notes: Optional[str] = None
+    assignee_id: Optional[int] = None
+    completed_at: Optional[datetime] = None
+    order: int
+    created_at: datetime
+    updated_at: datetime
+
+
+# --- Lead Task Schemas (mirrors Deal Task exactly) ---
+class CRMLeadTaskCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    task_type: DealTaskType = DealTaskType.OTHER
+    due_date: Optional[date] = None
+    notes: Optional[str] = None
+    assignee_id: Optional[int] = None
+    priority: LeadPriority = LeadPriority.MEDIUM
+    order: int = 0
+
+
+class CRMLeadTaskUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    task_type: Optional[DealTaskType] = None
+    status: Optional[DealTaskStatus] = None
+    due_date: Optional[date] = None
+    notes: Optional[str] = None
+    assignee_id: Optional[int] = None
+    priority: Optional[LeadPriority] = None
+    order: Optional[int] = None
+
+
+class CRMLeadTaskResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    public_id: uuid.UUID
+    lead_id: int
     title: str
     task_type: DealTaskType
     status: DealTaskStatus

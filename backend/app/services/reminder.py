@@ -8,6 +8,7 @@ from app.repositories.crm import (
     CRMLeadRepository,
     CRMDealRepository,
     CRMDealTaskRepository,
+    CRMLeadTaskRepository,
     CRMActivityRepository,
 )
 from app.schemas.crm import CRMReminderCreate, CRMReminderUpdate
@@ -22,6 +23,8 @@ async def _verify_entity_exists(db: AsyncSession, entity_type: str, entity_id: i
         ent = await CRMDealRepository.get_by_id(db, entity_id)
     elif entity_type == "deal_task":
         ent = await CRMDealTaskRepository.get_by_id(db, entity_id)
+    elif entity_type == "lead_task":
+        ent = await CRMLeadTaskRepository.get_by_id(db, entity_id)
     elif entity_type == "activity":
         ent = await CRMActivityRepository.get_by_id(db, entity_id)
     else:

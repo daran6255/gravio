@@ -13,6 +13,7 @@ import type {
 } from '../models/crm/lead';
 import type { Deal, DealCreate, DealUpdate } from '../models/crm/deal';
 import type { DealTask, DealTaskCreate, DealTaskUpdate } from '../models/crm/dealTask';
+import type { LeadTask, LeadTaskCreate, LeadTaskUpdate } from '../models/crm/leadTask';
 import type { Reminder, ReminderCreate, ReminderUpdate, ReminderEntityType } from '../models/crm/reminder';
 import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../models/crm/pipeline';
 import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../models/crm/crmActivity';
@@ -350,6 +351,23 @@ const crmService = {
 	},
 	deleteDealTask: async (taskPublicId: string): Promise<void> => {
 		await api.delete(`/crm/deal-tasks/${taskPublicId}`);
+	},
+
+	// --- Lead Tasks ---
+	getLeadTasks: async (leadPublicId: string): Promise<LeadTask[]> => {
+		const response = await api.get<LeadTask[]>(`/crm/leads/${leadPublicId}/tasks`);
+		return response.data;
+	},
+	createLeadTask: async (leadPublicId: string, payload: LeadTaskCreate): Promise<LeadTask> => {
+		const response = await api.post<LeadTask>(`/crm/leads/${leadPublicId}/tasks`, payload);
+		return response.data;
+	},
+	updateLeadTask: async (taskPublicId: string, payload: LeadTaskUpdate): Promise<LeadTask> => {
+		const response = await api.patch<LeadTask>(`/crm/lead-tasks/${taskPublicId}`, payload);
+		return response.data;
+	},
+	deleteLeadTask: async (taskPublicId: string): Promise<void> => {
+		await api.delete(`/crm/lead-tasks/${taskPublicId}`);
 	},
 
 	// --- Reminders ---

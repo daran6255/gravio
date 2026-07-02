@@ -14,6 +14,7 @@ import type { CRMOwnerOption } from '../../../../models/crm/owner';
 
 // Import refactored lead tabs
 import { LeadOverviewTab } from './tabs/LeadOverviewTab';
+import { LeadTasksTab } from './tabs/LeadTasksTab';
 import { LeadTimelineTab } from './tabs/LeadTimelineTab';
 import { LeadFilesTab } from './tabs/LeadFilesTab';
 import { LeadHistoryTab } from './tabs/LeadHistoryTab';
@@ -273,6 +274,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 				}}
 			>
 				<Tab label="Overview" />
+				<Tab label="Tasks" />
 				<Tab label="Activities" />
 				<Tab label="Files" />
 				<Tab label="History" />
@@ -281,9 +283,10 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 			{/* Scrollable drawer body */}
 			<Box sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 2.5, overscrollBehavior: 'contain' }}>
 				{tab === 0 && <LeadOverviewTab lead={lead} owners={owners} />}
-				{tab === 1 && <LeadTimelineTab lead={lead} />}
-				{tab === 2 && <LeadFilesTab lead={lead} />}
-				{tab === 3 && <LeadHistoryTab lead={lead} owners={owners} />}
+				{tab === 1 && <LeadTasksTab lead={lead} />}
+				{tab === 2 && <LeadTimelineTab lead={lead} />}
+				{tab === 3 && <LeadFilesTab lead={lead} />}
+				{tab === 4 && <LeadHistoryTab lead={lead} owners={owners} />}
 			</Box>
 
 			<ConfirmationDialog

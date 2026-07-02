@@ -11,6 +11,7 @@ import type {
 } from '../../models/crm/lead';
 import type { Deal, DealCreate, DealUpdate } from '../../models/crm/deal';
 import type { DealTask, DealTaskCreate, DealTaskUpdate } from '../../models/crm/dealTask';
+import type { LeadTask, LeadTaskCreate, LeadTaskUpdate } from '../../models/crm/leadTask';
 import type { Reminder, ReminderCreate, ReminderUpdate, ReminderEntityType } from '../../models/crm/reminder';
 import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../../models/crm/pipeline';
 import type { Company, CompanyCreate, CompanyUpdate } from '../../models/crm/company';
@@ -134,6 +135,10 @@ interface CrmState {
 	allDealTasks: (DealTask & { deal_title?: string; deal_public_id?: string })[];
 	allDealTasksLoading: boolean;
 	allDealTasksError: string | null;
+
+	leadTasks: LeadTask[];
+	leadTasksLoading: boolean;
+	leadTaskMutating: boolean;
 }
 
 const initialState: CrmState = {
@@ -245,6 +250,10 @@ const initialState: CrmState = {
 	allDealTasks: [],
 	allDealTasksLoading: false,
 	allDealTasksError: null,
+
+	leadTasks: [],
+	leadTasksLoading: false,
+	leadTaskMutating: false,
 };
 
 export const fetchLeads = createAsyncThunk(
@@ -774,6 +783,51 @@ export const deleteDealTask = createAsyncThunk(
 	}
 );
 
+export const fetchLeadTasks = createAsyncThunk(
+	'crm/fetchLeadTasks',
+	async (leadPublicId: string, { rejectWithValue }) => {
+		try {
+			return await crmService.getLeadTasks(leadPublicId);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch lead tasks'));
+		}
+	}
+);
+
+export const createLeadTask = createAsyncThunk(
+	'crm/createLeadTask',
+	async ({ leadPublicId, payload }: { leadPublicId: string; payload: LeadTaskCreate }, { rejectWithValue }) => {
+		try {
+			return await crmService.createLeadTask(leadPublicId, payload);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to create task'));
+		}
+	}
+);
+
+export const updateLeadTask = createAsyncThunk(
+	'crm/updateLeadTask',
+	async ({ taskPublicId, payload }: { taskPublicId: string; payload: LeadTaskUpdate }, { rejectWithValue }) => {
+		try {
+			return await crmService.updateLeadTask(taskPublicId, payload);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to update task'));
+		}
+	}
+);
+
+export const deleteLeadTask = createAsyncThunk(
+	'crm/deleteLeadTask',
+	async (taskPublicId: string, { rejectWithValue }) => {
+		try {
+			await crmService.deleteLeadTask(taskPublicId);
+			return taskPublicId;
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to delete task'));
+		}
+	}
+);
+
 export const fetchReminders = createAsyncThunk(
 	'crm/fetchReminders',
 	async ({ entityType, entityId }: { entityType: ReminderEntityType; entityId: number }, { rejectWithValue }) => {
@@ -1284,6 +1338,33 @@ const crmSlice = createSlice({
 			.addCase(deleteDealTask.fulfilled, (state, action: PayloadAction<string>) => {
 				state.dealTasks = state.dealTasks.filter((t) => t.public_id !== action.payload);
 				state.allDealTasks = state.allDealTasks.filter((t) => t.public_id !== action.payload);
+			})
+			.addCase(fetchLeadTasks.pending, (state) => {
+				state.leadTasksLoading = true;
+			})
+			.addCase(fetchLeadTasks.fulfilled, (state, action: PayloadAction<LeadTask[]>) => {
+				state.leadTasksLoading = false;
+				state.leadTasks = action.payload;
+			})
+			.addCase(fetchLeadTasks.rejected, (state) => {
+				state.leadTasksLoading = false;
+			})
+			.addCase(createLeadTask.pending, (state) => { state.leadTaskMutating = true; })
+			.addCase(createLeadTask.fulfilled, (state, action: PayloadAction<LeadTask>) => {
+				state.leadTaskMutating = false;
+				state.leadTasks = [...state.leadTasks, action.payload];
+			})
+			.addCase(createLeadTask.rejected, (state) => { state.leadTaskMutating = false; })
+			.addCase(updateLeadTask.pending, (state) => { state.leadTaskMutating = true; })
+			.addCase(updateLeadTask.fulfilled, (state, action: PayloadAction<LeadTask>) => {
+				state.leadTaskMutating = false;
+				state.leadTasks = state.leadTasks.map((t) =>
+					t.public_id === action.payload.public_id ? action.payload : t
+				);
+			})
+			.addCase(updateLeadTask.rejected, (state) => { state.leadTaskMutating = false; })
+			.addCase(deleteLeadTask.fulfilled, (state, action: PayloadAction<string>) => {
+				state.leadTasks = state.leadTasks.filter((t) => t.public_id !== action.payload);
 			})
 			.addCase(fetchReminders.pending, (state) => {
 				state.remindersLoading = true;
