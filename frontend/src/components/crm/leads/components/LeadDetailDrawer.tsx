@@ -157,15 +157,17 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 							<Edit fontSize="small" />
 						</IconButton>
 					</Tooltip>
-					<Tooltip title="Set Reminder">
-						<IconButton
-							size="small"
-							onClick={() => setReminderOpen(true)}
-							sx={{ border: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', '&:hover': { color: 'warning.main' } }}
-						>
-							<NotificationsActiveOutlined fontSize="small" />
-						</IconButton>
-					</Tooltip>
+					{lead.status !== 'converted' && (
+						<Tooltip title="Set Reminder">
+							<IconButton
+								size="small"
+								onClick={() => setReminderOpen(true)}
+								sx={{ border: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', '&:hover': { color: 'warning.main' } }}
+							>
+								<NotificationsActiveOutlined fontSize="small" />
+							</IconButton>
+						</Tooltip>
+					)}
 					<Tooltip title="Delete Lead">
 						<IconButton
 							size="small"

@@ -11,6 +11,7 @@ from app.repositories.crm import (
     CRMLeadTaskRepository,
     CRMActivityRepository,
 )
+from app.models.crm import LeadStatus
 from app.schemas.crm import CRMReminderCreate, CRMReminderUpdate
 from app.middleware.exceptions import NotFoundError, BadRequestError, ForbiddenError
 
@@ -19,6 +20,8 @@ async def _verify_entity_exists(db: AsyncSession, entity_type: str, entity_id: i
     """Mirrors CRMService.create_activity's target-entity validation."""
     if entity_type == "lead":
         ent = await CRMLeadRepository.get_by_id(db, entity_id)
+        if ent and not ent.is_deleted and ent.status == LeadStatus.CONVERTED:
+            raise BadRequestError("Lead has been converted — set reminders on its tasks instead")
     elif entity_type == "deal":
         ent = await CRMDealRepository.get_by_id(db, entity_id)
     elif entity_type == "deal_task":
