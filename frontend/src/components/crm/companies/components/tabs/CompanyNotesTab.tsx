@@ -1,7 +1,6 @@
-import React from 'react';
-import { Box, Typography, Stack, useTheme, alpha } from '@mui/material';
-import { History } from '@mui/icons-material';
-import { ButtonDialog } from '../../../../common/dialogbox';
+import React, { useState } from 'react';
+import { Box, Typography, Stack, Button, useTheme, alpha } from '@mui/material';
+import { History, Add, Close } from '@mui/icons-material';
 import { NotesComposer, NotesTimeline } from '../../../shared';
 import { fetchEntityActivities } from '../../../../../store/slices/crmSlice';
 import { useAppDispatch } from '../../../../../store/hooks';
@@ -18,6 +17,7 @@ export const CompanyNotesTab: React.FC<CompanyNotesTabProps> = ({ company, activ
 	const dispatch = useAppDispatch();
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const [addOpen, setAddOpen] = useState(false);
 
 	const getFieldCardSx = (accentColor?: string) => ({
 		borderRadius: '12px',
@@ -43,7 +43,7 @@ export const CompanyNotesTab: React.FC<CompanyNotesTabProps> = ({ company, activ
 	return (
 		<Stack spacing={2.5}>
 			<Box sx={getFieldCardSx('secondary.main')}>
-				<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+				<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
 					<Stack direction="row" spacing={1} alignItems="center">
 						<Box sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.08), p: 0.6, borderRadius: '50%', color: 'secondary.main', display: 'flex' }}>
 							<History sx={{ fontSize: 15 }} />
@@ -63,24 +63,42 @@ export const CompanyNotesTab: React.FC<CompanyNotesTabProps> = ({ company, activ
 							{activities.length} logged
 						</Box>
 					</Stack>
-					<ButtonDialog
-						buttonLabel="Add Activity"
-						title="Log Activity"
-						subtitle="Notes, calls, and emails logged here will populate the Timeline."
-						maxWidth="sm"
+					<Button
+						startIcon={addOpen ? <Close /> : <Add />}
+						onClick={() => setAddOpen((v) => !v)}
+						variant={addOpen ? 'outlined' : 'contained'}
+						size="small"
+						sx={{
+							borderRadius: '8px',
+							textTransform: 'none',
+							fontWeight: 700,
+							py: 0.5,
+							px: 1.5,
+							fontSize: '0.75rem',
+							flexShrink: 0,
+							...(!addOpen && {
+								background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
+								boxShadow: '0 2px 8px rgba(139, 124, 246, 0.25)',
+							}),
+						}}
 					>
-						{({ close }) => (
-							<NotesComposer
-								entityType="company"
-								entityId={company.id}
-								onCreated={() => {
-									dispatch(fetchEntityActivities({ entityType: 'company', entityId: company.id }));
-									close();
-								}}
-							/>
-						)}
-					</ButtonDialog>
+						{addOpen ? 'Cancel' : 'Add Activity'}
+					</Button>
 				</Stack>
+
+				{addOpen && (
+					<Box sx={{ mb: 2 }}>
+						<NotesComposer
+							entityType="company"
+							entityId={company.id}
+							onCreated={() => {
+								dispatch(fetchEntityActivities({ entityType: 'company', entityId: company.id }));
+								setAddOpen(false);
+							}}
+						/>
+					</Box>
+				)}
+
 				<NotesTimeline activities={activities} loading={activitiesLoading} />
 			</Box>
 		</Stack>
