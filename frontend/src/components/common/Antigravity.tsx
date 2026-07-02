@@ -68,12 +68,12 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
   const particles = useMemo(() => {
     const temp = [];
 
-    // Distribute particles across concentric rings (polar grid)
-    const numRings = Math.max(5, Math.min(20, Math.round(fieldStrength)));
-    const rStart = ringRadius * 0.15;
-    const rEnd = ringRadius * 1.7;
+    // Create concentric rings with evenly spaced particles
+    const numRings = Math.max(5, Math.min(20, Math.round(fieldStrength + 4)));
+    const rStart = ringRadius * 0.12;
+    const rEnd = ringRadius * 1.8;
 
-    // Calculate total weight to distribute particles based on ring radius
+    // Calculate total circumference-weight for proportional distribution
     let totalWeight = 0;
     for (let ring = 0; ring < numRings; ring++) {
       const t = ring / (numRings - 1);
@@ -86,7 +86,7 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
       const t = ring / (numRings - 1);
       const r = rStart + t * (rEnd - rStart);
 
-      // Determine number of particles for this ring (proportional to radius)
+      // More particles on outer rings (proportional to circumference)
       let ringCount = Math.round((r / totalWeight) * count);
       if (ring === numRings - 1) {
         ringCount = count - allocated;
@@ -94,18 +94,15 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
       allocated += ringCount;
 
       for (let p = 0; p < ringCount; p++) {
-        const phi = (p / ringCount) * Math.PI * 2; // Evenly spaced angle
+        const phi = (p / ringCount) * Math.PI * 2;
 
         const x = r * Math.cos(phi);
         const y = r * Math.sin(phi);
-        const z = (Math.random() - 0.5) * 4; // Slight 3D depth
-
-        const speed = 0.003 + Math.random() * 0.004;
-        const timeOffset = Math.random() * 1000;
+        const z = (Math.random() - 0.5) * 3;
 
         temp.push({
-          t: timeOffset,
-          speed,
+          t: Math.random() * 1000,
+          speed: 0.003 + Math.random() * 0.003,
           baseRadius: r,
           ringAngle: phi,
           ringIndex: ring,
@@ -154,56 +151,55 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
     const targetX = virtualMouse.current.x;
     const targetY = virtualMouse.current.y;
 
-    const globalRotation = state.clock.getElapsedTime() * rotationSpeed;
+    const elapsed = state.clock.getElapsedTime();
+    const globalRotation = elapsed * rotationSpeed;
 
     particles.forEach((particle, i) => {
-      // Increment time
       particle.t += particle.speed;
-      const { t, baseRadius, ringAngle, mz } = particle;
+      const { t, baseRadius, ringAngle, ringIndex, mz } = particle;
 
       const projectionFactor = 1 - particle.cz / 50;
-      // Scale target tracking with magnetRadius
       const targetScale = magnetRadius / 13;
       const projectedTargetX = targetX * projectionFactor * targetScale;
       const projectedTargetY = targetY * projectionFactor * targetScale;
 
-      // Base angle with rotation
+      // Slow rotation of the whole formation
       const currentAngle = ringAngle + globalRotation;
 
-      // Add gentle wave radial expansion/contraction to make it dynamic
-      const wave = Math.sin(t * waveSpeed * 5 + currentAngle * 3) * (0.05 * waveAmplitude * baseRadius);
-      const currentRadius = baseRadius + wave;
+      // ---- RADIAL WAVE: ripple propagates outward from center ----
+      // Phase offset by ringIndex so inner rings lead and outer rings follow
+      const wavePhase = elapsed * waveSpeed * 4 - ringIndex * 0.6;
+      const radialWave = Math.sin(wavePhase) * (waveAmplitude * 0.3);
+      const currentRadius = baseRadius + radialWave;
 
-      // Target position centered at targetX, targetY
+      // Target position on the orbit
       const targetPos = {
         x: projectedTargetX + currentRadius * Math.cos(currentAngle),
         y: projectedTargetY + currentRadius * Math.sin(currentAngle),
-        z: mz * depthFactor + Math.sin(t) * (0.2 * waveAmplitude * depthFactor)
+        z: mz * depthFactor + Math.sin(t * 0.5) * (0.15 * depthFactor)
       };
 
-      // Interpolate current position
+      // Smooth interpolation toward target
       particle.cx += (targetPos.x - particle.cx) * lerpSpeed;
       particle.cy += (targetPos.y - particle.cy) * lerpSpeed;
       particle.cz += (targetPos.z - particle.cz) * lerpSpeed;
 
       dummy.position.set(particle.cx, particle.cy, particle.cz);
 
-      // Rotate to point radially from the projected target
+      // Orient each particle radially outward from the formation center
       const radialAngle = Math.atan2(particle.cy - projectedTargetY, particle.cx - projectedTargetX);
       dummy.rotation.set(0, 0, radialAngle - Math.PI / 2);
 
-      // Scale: even radial sizing (smaller in center, larger at edges) + pulse with variance
-      const maxRadius = ringRadius * 1.7;
-      const baseScaleFactor = 0.25 + 0.75 * (baseRadius / maxRadius);
-      const pulse = 0.85 + Math.sin(t * pulseSpeed) * 0.15 * particleVariance;
-      const finalScale = baseScaleFactor * pulse * particleSize;
-      
+      // Uniform size with subtle pulse — all particles roughly the same size
+      const pulse = 0.9 + Math.sin(t * pulseSpeed) * 0.1 * particleVariance;
+      const finalScale = pulse * particleSize;
+
       dummy.scale.set(finalScale, finalScale, finalScale);
       dummy.updateMatrix();
 
       mesh.setMatrixAt(i, dummy.matrix);
 
-      // Color mapping from deep blue at bottom to light blue at top
+      // Color: gradient from deep indigo (bottom) to periwinkle (top)
       const height = v.height || 20;
       const yRatio = Math.max(0, Math.min(1, (particle.cy + height / 2) / height));
       tempColor.lerpColors(cEnd, cStart, yRatio);
