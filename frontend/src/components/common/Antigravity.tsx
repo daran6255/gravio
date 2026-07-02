@@ -68,40 +68,62 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
   const particles = useMemo(() => {
     const temp = [];
 
-    for (let i = 0; i < count; i++) {
-      const t = Math.random() * 1000;
-      const speed = 0.01 + Math.random() / 150;
+    // Distribute particles across concentric rings (polar grid)
+    const numRings = Math.max(5, Math.min(20, Math.round(fieldStrength)));
+    const rStart = ringRadius * 0.15;
+    const rEnd = ringRadius * 1.7;
 
-      // Radial/spherical placement so particles form a halo cloud around the
-      // origin from the start, rather than being scattered across the whole viewport.
-      const phi = Math.random() * Math.PI * 2;
-      const costheta = Math.random() * 2 - 1;
-      const theta = Math.acos(costheta);
-      const r = magnetRadius * (0.2 + Math.random() * 1.1);
+    // Calculate total weight to distribute particles based on ring radius
+    let totalWeight = 0;
+    for (let ring = 0; ring < numRings; ring++) {
+      const t = ring / (numRings - 1);
+      const r = rStart + t * (rEnd - rStart);
+      totalWeight += r;
+    }
 
-      const x = r * Math.sin(theta) * Math.cos(phi);
-      const y = r * Math.sin(theta) * Math.sin(phi);
-      const z = r * Math.cos(theta);
+    let allocated = 0;
+    for (let ring = 0; ring < numRings; ring++) {
+      const t = ring / (numRings - 1);
+      const r = rStart + t * (rEnd - rStart);
 
-      const randomRadiusOffset = (Math.random() - 0.5) * 2;
+      // Determine number of particles for this ring (proportional to radius)
+      let ringCount = Math.round((r / totalWeight) * count);
+      if (ring === numRings - 1) {
+        ringCount = count - allocated;
+      }
+      allocated += ringCount;
 
-      temp.push({
-        t,
-        speed,
-        mx: x,
-        my: y,
-        mz: z,
-        cx: x,
-        cy: y,
-        cz: z,
-        vx: 0,
-        vy: 0,
-        vz: 0,
-        randomRadiusOffset
-      });
+      for (let p = 0; p < ringCount; p++) {
+        const phi = (p / ringCount) * Math.PI * 2; // Evenly spaced angle
+
+        const x = r * Math.cos(phi);
+        const y = r * Math.sin(phi);
+        const z = (Math.random() - 0.5) * 4; // Slight 3D depth
+
+        const speed = 0.003 + Math.random() * 0.004;
+        const timeOffset = Math.random() * 1000;
+
+        temp.push({
+          t: timeOffset,
+          speed,
+          baseRadius: r,
+          ringAngle: phi,
+          ringIndex: ring,
+          mx: x,
+          my: y,
+          mz: z,
+          cx: x,
+          cy: y,
+          cz: z,
+          vx: 0,
+          vy: 0,
+          vz: 0,
+          randomRadiusOffset: (Math.random() - 0.5) * 2
+        });
+      }
     }
     return temp;
-  }, [count, magnetRadius]);
+  }, [count, magnetRadius, ringRadius, fieldStrength]);
 
   useFrame(state => {
     const mesh = meshRef.current;
@@ -119,9 +141,6 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
     let destX = (m.x * v.width) / 2;
     let destY = (m.y * v.height) / 2;
 
-    // Auto animate movement if the user hasn't moved the mouse recently
-    // Slow, contained drift rather than a fast sweep across the whole viewport,
-    // so the formation reads as a gently floating cloud instead of an orbiting ring.
     if (autoAnimate && Date.now() - lastMouseMoveTime.current > 2000) {
       const time = state.clock.getElapsedTime();
       destX = Math.sin(time * 0.08) * (v.width / 10);
@@ -138,62 +157,56 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
     const globalRotation = state.clock.getElapsedTime() * rotationSpeed;
 
     particles.forEach((particle, i) => {
-      let { t, speed, mx, my, mz, cz, randomRadiusOffset } = particle;
+      // Increment time
+      particle.t += particle.speed;
+      const { t, baseRadius, ringAngle, mz } = particle;
 
-      t = particle.t += speed / 2;
+      const projectionFactor = 1 - particle.cz / 50;
+      // Scale target tracking with magnetRadius
+      const targetScale = magnetRadius / 13;
+      const projectedTargetX = targetX * projectionFactor * targetScale;
+      const projectedTargetY = targetY * projectionFactor * targetScale;
 
-      const projectionFactor = 1 - cz / 50;
-      const projectedTargetX = targetX * projectionFactor;
-      const projectedTargetY = targetY * projectionFactor;
+      // Base angle with rotation
+      const currentAngle = ringAngle + globalRotation;
 
-      const dx = mx - projectedTargetX;
-      const dy = my - projectedTargetY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
+      // Add gentle wave radial expansion/contraction to make it dynamic
+      const wave = Math.sin(t * waveSpeed * 5 + currentAngle * 3) * (0.05 * waveAmplitude * baseRadius);
+      const currentRadius = baseRadius + wave;
 
-      const targetPos = { x: mx, y: my, z: mz * depthFactor };
+      // Target position centered at targetX, targetY
+      const targetPos = {
+        x: projectedTargetX + currentRadius * Math.cos(currentAngle),
+        y: projectedTargetY + currentRadius * Math.sin(currentAngle),
+        z: mz * depthFactor + Math.sin(t) * (0.2 * waveAmplitude * depthFactor)
+      };
 
-      if (dist < magnetRadius) {
-        const angle = Math.atan2(dy, dx) + globalRotation;
-
-        const wave = Math.sin(t * waveSpeed + angle) * (0.5 * waveAmplitude);
-        const deviation = randomRadiusOffset * (5 / (fieldStrength + 0.1));
-
-        const currentRingRadius = ringRadius + wave + deviation;
-
-        targetPos.x = projectedTargetX + currentRingRadius * Math.cos(angle);
-        targetPos.y = projectedTargetY + currentRingRadius * Math.sin(angle);
-        targetPos.z = mz * depthFactor + Math.sin(t) * (1 * waveAmplitude * depthFactor);
-      }
-
+      // Interpolate current position
       particle.cx += (targetPos.x - particle.cx) * lerpSpeed;
       particle.cy += (targetPos.y - particle.cy) * lerpSpeed;
       particle.cz += (targetPos.z - particle.cz) * lerpSpeed;
 
       dummy.position.set(particle.cx, particle.cy, particle.cz);
 
+      // Rotate to point radially from the projected target
       const radialAngle = Math.atan2(particle.cy - projectedTargetY, particle.cx - projectedTargetX);
       dummy.rotation.set(0, 0, radialAngle - Math.PI / 2);
 
-      const currentDistToMouse = Math.sqrt(
-        Math.pow(particle.cx - projectedTargetX, 2) + Math.pow(particle.cy - projectedTargetY, 2)
-      );
-
-      const distFromRing = Math.abs(currentDistToMouse - ringRadius);
-      let scaleFactor = 1 - distFromRing / 10;
-
-      scaleFactor = Math.max(0, Math.min(1, scaleFactor));
-
-      const finalScale = scaleFactor * (0.8 + Math.sin(t * pulseSpeed) * 0.2 * particleVariance) * particleSize;
+      // Scale: even radial sizing (smaller in center, larger at edges) + pulse with variance
+      const maxRadius = ringRadius * 1.7;
+      const baseScaleFactor = 0.25 + 0.75 * (baseRadius / maxRadius);
+      const pulse = 0.85 + Math.sin(t * pulseSpeed) * 0.15 * particleVariance;
+      const finalScale = baseScaleFactor * pulse * particleSize;
+      
       dummy.scale.set(finalScale, finalScale, finalScale);
-
       dummy.updateMatrix();
 
       mesh.setMatrixAt(i, dummy.matrix);
 
-      // Dynamically calculate color based on the current Y coordinate (cy)
+      // Color mapping from deep blue at bottom to light blue at top
       const height = v.height || 20;
       const yRatio = Math.max(0, Math.min(1, (particle.cy + height / 2) / height));
-      tempColor.lerpColors(cEnd, cStart, yRatio); // cEnd (deep indigo) at bottom, cStart (periwinkle) at top
+      tempColor.lerpColors(cEnd, cStart, yRatio);
       mesh.setColorAt(i, tempColor);
     });
 
