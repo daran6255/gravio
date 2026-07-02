@@ -10,6 +10,7 @@ from app.models.refresh_token import RefreshToken
 from app.models.audit import AuditLog
 from app.models.notification import Notification, NotificationType
 from app.models.reminder import CRMReminder, ReminderStatus
+from app.models.currency_rate import CurrencyRate
 from app.models.crm import (
     CRMTag,
     CRMCompany,
@@ -45,6 +46,7 @@ __all__ = [
     "NotificationType",
     "CRMReminder",
     "ReminderStatus",
+    "CurrencyRate",
     "CRMTag",
     "CRMCompany",
     "CRMContact",

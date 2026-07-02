@@ -14,6 +14,7 @@ import { RichTextViewer, DatePicker } from '../../../../common/form';
 import { SetReminderDialog } from '../../../shared';
 import useDateTime from '../../../../../hooks/useDateTime';
 import { formatReminderTime } from '../../../../../utils/reminders';
+import { getCurrencySymbol, formatMoney } from '../../../../../utils/currency';
 import type { Deal } from '../../../../../models/crm/deal';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
 
@@ -22,33 +23,14 @@ interface DealDetailsTabProps {
 	owners: CRMOwnerOption[];
 }
 
-const getCurrencySymbol = (currency?: string): string => {
-	const map: Record<string, string> = {
-		USD: '$',
-		EUR: '€',
-		INR: '₹',
-		GBP: '£',
-		JPY: '¥',
-		AUD: 'A$',
-		CAD: 'C$',
-		CNY: '¥',
-		SGD: 'S$',
-	};
-	return currency ? (map[currency.toUpperCase()] || '') : '';
-};
-
-const formatValue = (value: number, currency: string) => {
-	const symbol = getCurrencySymbol(currency);
-	const formattedNum = new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value);
-	return symbol ? `${symbol}${formattedNum}` : formattedNum;
-};
+const formatValue = (value: number, currency: string) => formatMoney(value, currency);
 
 export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) => {
 	const dispatch = useAppDispatch();
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const toast = useToast();
-	const { formatDateTime } = useDateTime();
+	const { formatDate, formatDateTime } = useDateTime();
 
 	const { companyOptions, contactOptions, activeReminders } = useAppSelector((state) => state.crm);
 
@@ -138,6 +120,13 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 									{deal.currency}
 								</Typography>
 							</Stack>
+							{deal.display_value != null && deal.display_currency && (
+								<Tooltip title={`Today's converted value, as of ${formatDate(new Date())}`} arrow>
+									<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+										≈ {formatMoney(deal.display_value, deal.display_currency)}
+									</Typography>
+								</Tooltip>
+							)}
 						</Box>
 						<Box sx={{ bgcolor: alpha(theme.palette.primary.main, 0.08), p: 1, borderRadius: '50%', color: 'primary.main', display: 'flex' }}>
 							<Payments sx={{ fontSize: 20 }} />

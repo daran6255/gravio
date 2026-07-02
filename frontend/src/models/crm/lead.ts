@@ -25,6 +25,10 @@ export interface Lead {
 	is_anonymized: boolean;
 	created_at: string;
 	updated_at: string;
+	/** Populated server-side only when `currency` differs from the viewer's preferred display
+	 * currency — the value converted using the exchange rate on `created_at`'s date. */
+	display_value?: number;
+	display_currency?: string;
 }
 
 /** Matches backend's CRMLeadCreateResponse - returned only from POST /leads. */

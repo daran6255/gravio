@@ -12,6 +12,7 @@ from app.api.deps import require_roles, get_current_active_user
 from app.models.user import User, UserRole
 from app.services.crm import CRMService
 from app.services.reminder import ReminderService
+from app.services.currency import CurrencyConversionService
 from app.services.plan_access import require_paid_plan
 from app.utils.file_validation import validate_upload
 from app.schemas.common import PaginatedResponse
@@ -385,6 +386,9 @@ async def create_lead_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> CRMLeadCreateResponse:
     lead, duplicate_warning = await CRMService.create_lead(db, payload, current_user)
+    await CurrencyConversionService.attach_display_value(
+        db, lead, value_field="estimated_value", currency_field="currency", user_currency=current_user.currency,
+    )
     return CRMLeadCreateResponse(**CRMLeadResponse.model_validate(lead).model_dump(), duplicate_warning=duplicate_warning)
 
 
@@ -482,6 +486,9 @@ async def get_lead_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> CRMLeadResponse:
     lead = await CRMService.get_lead(db, public_id, current_user)
+    await CurrencyConversionService.attach_display_value(
+        db, lead, value_field="estimated_value", currency_field="currency", user_currency=current_user.currency,
+    )
     return CRMLeadResponse.model_validate(lead)
 
 
@@ -497,6 +504,9 @@ async def update_lead_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> CRMLeadResponse:
     lead = await CRMService.update_lead(db, public_id, payload, current_user)
+    await CurrencyConversionService.attach_display_value(
+        db, lead, value_field="estimated_value", currency_field="currency", user_currency=current_user.currency,
+    )
     return CRMLeadResponse.model_validate(lead)
 
 
@@ -569,6 +579,9 @@ async def list_leads_endpoint(
         db, status, owner_id, page, page_size, search,
         priority=priority, source=source, stale=stale, current_user=current_user,
     )
+    await CurrencyConversionService.attach_display_values(
+        db, items, value_field="estimated_value", currency_field="currency", user_currency=current_user.currency,
+    )
     return PaginatedResponse[CRMLeadResponse](
         items=[CRMLeadResponse.model_validate(i) for i in items],
         total=total,
@@ -589,6 +602,9 @@ async def convert_lead_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> CRMDealResponse:
     deal = await CRMService.convert_lead(db, public_id, payload, current_user)
+    await CurrencyConversionService.attach_display_value(
+        db, deal, value_field="value", currency_field="currency", user_currency=current_user.currency,
+    )
     return CRMDealResponse.model_validate(deal)
 
 
@@ -605,6 +621,9 @@ async def create_deal_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> CRMDealResponse:
     deal = await CRMService.create_deal(db, payload, current_user.id)
+    await CurrencyConversionService.attach_display_value(
+        db, deal, value_field="value", currency_field="currency", user_currency=current_user.currency,
+    )
     return CRMDealResponse.model_validate(deal)
 
 
@@ -619,6 +638,9 @@ async def get_deal_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> CRMDealResponse:
     deal = await CRMService.get_deal(db, public_id)
+    await CurrencyConversionService.attach_display_value(
+        db, deal, value_field="value", currency_field="currency", user_currency=current_user.currency,
+    )
     return CRMDealResponse.model_validate(deal)
 
 
@@ -634,6 +656,9 @@ async def update_deal_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> CRMDealResponse:
     deal = await CRMService.update_deal(db, public_id, payload, current_user.id)
+    await CurrencyConversionService.attach_display_value(
+        db, deal, value_field="value", currency_field="currency", user_currency=current_user.currency,
+    )
     return CRMDealResponse.model_validate(deal)
 
 
@@ -692,6 +717,9 @@ async def list_deals_endpoint(
     items, total = await CRMService.list_deals(
         db, pipeline_id, stage_id, status, owner_id, page, page_size, search,
         company_id=company_id, contact_id=contact_id,
+    )
+    await CurrencyConversionService.attach_display_values(
+        db, items, value_field="value", currency_field="currency", user_currency=current_user.currency,
     )
     return PaginatedResponse[CRMDealResponse](
         items=[CRMDealResponse.model_validate(i) for i in items],

@@ -1,13 +1,14 @@
 import React, { useMemo } from 'react';
-import { TableRow, TableCell, Typography, Stack, Checkbox, Chip, useTheme } from '@mui/material';
+import { TableRow, TableCell, Typography, Stack, Checkbox, Chip, Tooltip, useTheme } from '@mui/material';
 import { Visibility, Edit, SwapHoriz, DeleteOutline, HelpOutline } from '@mui/icons-material';
 import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../../common/table';
 import StatusBadge from '../../../common/badge/StatusBadge';
 import EnterpriseAvatar from '../../../common/avatar/Avatar';
 import PremiumTooltip from '../../../common/PremiumTooltip';
+import useDateTime from '../../../../hooks/useDateTime';
 import type { Lead } from '../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
-import { getCurrencySymbol } from '../../../../utils/currency';
+import { formatMoney } from '../../../../utils/currency';
 import { isLeadStale } from '../../../../utils/leadStaleness';
 
 interface LeadsTableProps {
@@ -35,7 +36,7 @@ interface LeadsTableProps {
 
 const formatCurrency = (value?: number, currency?: string) => {
 	if (value == null) return '—';
-	return `${getCurrencySymbol(currency)}${value.toLocaleString()} ${currency || ''}`.trim();
+	return formatMoney(value, currency);
 };
 
 export const LeadsTable: React.FC<LeadsTableProps> = ({
@@ -62,6 +63,7 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const { formatDate } = useDateTime();
 	const ownerMap = useMemo(() => new Map(owners.map((o) => [o.id, o])), [owners]);
 
 	const columns: ColumnDefinition<Lead>[] = [
@@ -231,7 +233,13 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
 					{lead.source ? lead.source.replace('_', ' ') : '—'}
 				</TableCell>
 				<TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>
-					{formatCurrency(lead.estimated_value, lead.currency)}
+					{lead.display_value != null && lead.display_currency ? (
+						<Tooltip title={`≈ ${formatMoney(lead.display_value, lead.display_currency)} — today's converted value, as of ${formatDate(new Date())}`} arrow>
+							<span>{formatCurrency(lead.estimated_value, lead.currency)}</span>
+						</Tooltip>
+					) : (
+						formatCurrency(lead.estimated_value, lead.currency)
+					)}
 				</TableCell>
 				<TableCell align="right" onClick={(e) => e.stopPropagation()}>
 					<Stack direction="row" justifyContent="flex-end">

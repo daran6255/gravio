@@ -38,3 +38,8 @@ export const getCurrencySymbol = (code?: string): string => {
 	if (!code) return '';
 	return getWorldCurrencies().find((c) => c.code === code)?.symbol || resolveSymbol(code);
 };
+
+/** Formats a numeric value as money in the given ISO 4217 currency (defaults to USD). */
+export const formatMoney = (value: number, currencyCode?: string): string => {
+	return new Intl.NumberFormat(undefined, { style: 'currency', currency: currencyCode || 'USD' }).format(value);
+};

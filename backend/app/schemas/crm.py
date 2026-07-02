@@ -259,6 +259,8 @@ class CRMLeadResponse(CRMLeadBase):
     is_anonymized: bool = False
     created_at: datetime
     updated_at: datetime
+    display_value: Optional[float] = None
+    display_currency: Optional[str] = None
 
 
 class CRMLeadCreateResponse(CRMLeadResponse):
@@ -324,6 +326,8 @@ class CRMDealResponse(CRMDealBase):
     task_count: int = 0
     completed_task_count: int = 0
     in_progress_task_count: int = 0
+    display_value: Optional[float] = None
+    display_currency: Optional[str] = None
 
     @model_validator(mode="before")
     @classmethod

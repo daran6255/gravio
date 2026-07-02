@@ -4,6 +4,8 @@ import { KanbanCard } from '../../../common/kanban';
 import { DataTableActions, type TableMenuAction } from '../../../common/table';
 import { Visibility, Edit, DeleteOutline } from '@mui/icons-material';
 import type { Deal } from '../../../../models/crm/deal';
+import { formatMoney } from '../../../../utils/currency';
+import useDateTime from '../../../../hooks/useDateTime';
 
 interface DealCardProps {
 	deal: Deal;
@@ -13,29 +15,14 @@ interface DealCardProps {
 	onDelete: (deal: Deal) => void;
 }
 
-const getCurrencySymbol = (currency?: string): string => {
-	const map: Record<string, string> = {
-		USD: '$',
-		EUR: '€',
-		INR: '₹',
-		GBP: '£',
-		JPY: '¥',
-		AUD: 'A$',
-		CAD: 'C$',
-		CNY: '¥',
-		SGD: 'S$',
-	};
-	return currency ? (map[currency.toUpperCase()] || '') : '';
-};
-
 const formatValue = (value?: number, currency?: string) => {
 	if (value == null) return null;
-	const symbol = getCurrencySymbol(currency);
-	return `${symbol} ${value.toLocaleString()} ${currency || ''}`.trim();
+	return formatMoney(value, currency);
 };
 
 export const DealCard: React.FC<DealCardProps> = ({ deal, companyName, onView, onEdit, onDelete }) => {
 	const theme = useTheme();
+	const { formatDate } = useDateTime();
 	const actions: TableMenuAction<Deal>[] = [
 		{ label: 'View Details', icon: <Visibility fontSize="small" />, onClick: () => onView(deal) },
 		{ label: 'Edit', icon: <Edit fontSize="small" />, onClick: () => onEdit(deal) },
@@ -104,11 +91,20 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, companyName, onView, o
 			)}
 
 			<Stack direction="row" justifyContent="space-between" alignItems="center">
-				{formatValue(deal.value, deal.currency) && (
-					<Typography variant="caption" sx={{ fontWeight: 700, color: 'success.main' }}>
-						{formatValue(deal.value, deal.currency)}
-					</Typography>
-				)}
+				<Box sx={{ minWidth: 0 }}>
+					{formatValue(deal.value, deal.currency) && (
+						<Typography variant="caption" sx={{ fontWeight: 700, color: 'success.main', display: 'block' }}>
+							{formatValue(deal.value, deal.currency)}
+						</Typography>
+					)}
+					{deal.display_value != null && deal.display_currency && (
+						<Tooltip title={`Today's converted value, as of ${formatDate(new Date())}`} arrow>
+							<Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', display: 'block' }}>
+								≈ {formatMoney(deal.display_value, deal.display_currency)}
+							</Typography>
+						</Tooltip>
+					)}
+				</Box>
 				<Typography variant="caption" color="text.disabled">{deal.probability}%</Typography>
 			</Stack>
 		</KanbanCard>

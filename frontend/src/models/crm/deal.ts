@@ -25,6 +25,10 @@ export interface Deal {
 	task_count?: number;
 	completed_task_count?: number;
 	in_progress_task_count?: number;
+	/** Populated server-side only when `currency` differs from the viewer's preferred display
+	 * currency — the value converted using the exchange rate on `created_at`'s date. */
+	display_value?: number;
+	display_currency?: string;
 }
 
 /** Matches backend's CRMDealCreate. */

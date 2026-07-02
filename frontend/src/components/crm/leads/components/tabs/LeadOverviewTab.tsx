@@ -5,6 +5,7 @@ import { useAppSelector } from '../../../../../store/hooks';
 import { RichTextViewer } from '../../../../common/form';
 import useToast from '../../../../../hooks/useToast';
 import useDateTime from '../../../../../hooks/useDateTime';
+import { formatMoney } from '../../../../../utils/currency';
 import type { Lead } from '../../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
 
@@ -13,32 +14,13 @@ interface LeadOverviewTabProps {
 	owners: CRMOwnerOption[];
 }
 
-const getCurrencySymbol = (currency?: string): string => {
-	const map: Record<string, string> = {
-		USD: '$',
-		EUR: '€',
-		INR: '₹',
-		GBP: '£',
-		JPY: '¥',
-		AUD: 'A$',
-		CAD: 'C$',
-		CNY: '¥',
-		SGD: 'S$',
-	};
-	return currency ? (map[currency.toUpperCase()] || '') : '';
-};
-
-const formatValue = (value: number, currency: string) => {
-	const symbol = getCurrencySymbol(currency);
-	const formattedNum = new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value);
-	return symbol ? `${symbol}${formattedNum}` : formattedNum;
-};
+const formatValue = (value: number, currency: string) => formatMoney(value, currency);
 
 export const LeadOverviewTab: React.FC<LeadOverviewTabProps> = ({ lead, owners }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const toast = useToast();
-	const { formatDateTime } = useDateTime();
+	const { formatDate, formatDateTime } = useDateTime();
 
 	const { companyOptions, contactOptions } = useAppSelector((state) => state.crm);
 
@@ -103,6 +85,13 @@ export const LeadOverviewTab: React.FC<LeadOverviewTabProps> = ({ lead, owners }
 									{lead.currency}
 								</Typography>
 							</Stack>
+							{lead.display_value != null && lead.display_currency && (
+								<Tooltip title={`Today's converted value, as of ${formatDate(new Date())}`} arrow>
+									<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+										≈ {formatMoney(lead.display_value, lead.display_currency)}
+									</Typography>
+								</Tooltip>
+							)}
 						</Box>
 						<Box sx={{ bgcolor: alpha(theme.palette.primary.main, 0.08), p: 1, borderRadius: '50%', color: 'primary.main', display: 'flex' }}>
 							<Payments sx={{ fontSize: 20 }} />
