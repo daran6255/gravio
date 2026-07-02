@@ -17,7 +17,6 @@ const Register: React.FC = () => {
 				backgroundColor: '#08090d',
 				color: '#F4F5F7',
 				position: 'relative',
-				overflow: 'hidden',
 			}}
 		>
 			<AntigravityBackground />
@@ -37,7 +36,6 @@ const Register: React.FC = () => {
 					pb: { xs: '130px', md: '76px' },
 					px: 2,
 					zIndex: 5,
-					overflowY: 'auto',
 				}}
 			>
 				{/* Refactored Onboarding Registration Form Component */}

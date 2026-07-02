@@ -57,7 +57,6 @@ const Login: React.FC = () => {
 				backgroundColor: '#08090d',
 				color: '#F4F5F7',
 				position: 'relative',
-				overflow: 'hidden',
 			}}
 		>
 			<AntigravityBackground />
@@ -77,7 +76,6 @@ const Login: React.FC = () => {
 					pb: { xs: '140px', md: '100px' },
 					px: 2,
 					zIndex: 5,
-					overflowY: 'auto',
 				}}
 			>
 				<Fade in={true} timeout={1000}>
