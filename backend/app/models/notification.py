@@ -25,6 +25,7 @@ class NotificationType(str, enum.Enum):
     DEAL_TASK_DUE_SOON = "deal_task_due_soon"
     DEAL_TASK_OVERDUE = "deal_task_overdue"
     DEAL_TASK_COMPLETED = "deal_task_completed"
+    REMINDER_DUE = "reminder_due"
 
 
 class Notification(BaseModel, TenantAwareMixin):

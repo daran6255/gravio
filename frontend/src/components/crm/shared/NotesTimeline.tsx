@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Chip, IconButton, Tooltip } from '@mui/material';
-import { Notes, Call, Email, Groups, CheckCircleOutline, WhatsApp, DeleteOutline } from '@mui/icons-material';
+import { Notes, Call, Email, Groups, CheckCircleOutline, WhatsApp, DeleteOutline, NotificationsActiveOutlined } from '@mui/icons-material';
 import type { CRMActivity, CRMActivityType } from '../../../models/crm/crmActivity';
 import { useAppDispatch } from '../../../store/hooks';
 import { updateActivity, deleteActivity } from '../../../store/slices/crmSlice';
 import { Timeline, type TimelineItemDef } from '../../common/timeline';
 import { RichTextViewer } from '../../common/form';
+import { SetReminderDialog } from './SetReminderDialog';
 
 const TONES: Record<CRMActivityType, { icon: React.ReactNode; color: string; bgColor: string; borderColor: string }> = {
 	note: {
@@ -109,6 +110,7 @@ interface NotesTimelineProps {
 
 export const NotesTimeline: React.FC<NotesTimelineProps> = ({ activities, loading, showEntityType }) => {
 	const dispatch = useAppDispatch();
+	const [reminderActivity, setReminderActivity] = useState<CRMActivity | null>(null);
 
 	const timelineItems: TimelineItemDef[] = activities.map((activity) => {
 		const formattedDue = activity.due_date ? `Due ${formatDate(activity.due_date)}` : '';
@@ -158,9 +160,22 @@ export const NotesTimeline: React.FC<NotesTimelineProps> = ({ activities, loadin
 							sx={{ fontWeight: 600, cursor: 'pointer' }}
 						/>
 					)}
+					<Tooltip title="Set reminder">
+						<IconButton
+							size="small"
+							onClick={() => setReminderActivity(activity)}
+							sx={{
+								color: 'text.disabled',
+								'&:hover': { color: 'warning.main' },
+								p: 0.5,
+							}}
+						>
+							<NotificationsActiveOutlined sx={{ fontSize: 16 }} />
+						</IconButton>
+					</Tooltip>
 					<Tooltip title="Delete">
-						<IconButton 
-							size="small" 
+						<IconButton
+							size="small"
 							onClick={() => dispatch(deleteActivity(activity.public_id))}
 							sx={{
 								color: 'text.disabled',
@@ -177,11 +192,23 @@ export const NotesTimeline: React.FC<NotesTimelineProps> = ({ activities, loadin
 	});
 
 	return (
-		<Timeline
-			items={timelineItems}
-			loading={loading}
-			emptyMessage="No activity yet. Log a call, note, or task above."
-		/>
+		<>
+			<Timeline
+				items={timelineItems}
+				loading={loading}
+				emptyMessage="No activity yet. Log a call, note, or task above."
+			/>
+			{reminderActivity && (
+				<SetReminderDialog
+					open={!!reminderActivity}
+					onClose={() => setReminderActivity(null)}
+					entityType="activity"
+					entityId={reminderActivity.id}
+					entityLabel={reminderActivity.subject}
+					defaultDueDate={reminderActivity.due_date}
+				/>
+			)}
+		</>
 	);
 };
 

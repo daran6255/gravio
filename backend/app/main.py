@@ -15,6 +15,7 @@ from app.core.rate_limiter import limiter
 from app.middleware.error_handler import ErrorHandlerMiddleware
 from app.middleware.timezone import TimezoneMiddleware
 from app.middleware.garbage_collector import GarbageCollectorMiddleware, memory_monitor_task
+from app.services.reminder_scheduler import reminder_check_task
 from app.api.v1.router import router as v1_router
 from loguru import logger
 from fastapi.exceptions import RequestValidationError
@@ -29,7 +30,10 @@ async def lifespan(app: FastAPI):
     # Start memory monitoring background task
     import asyncio
     monitor_task = asyncio.create_task(memory_monitor_task(interval_seconds=60))
-    
+
+    # Start the CRM reminder scheduler background task
+    reminder_task = asyncio.create_task(reminder_check_task(interval_seconds=60))
+
     # You can uncomment this to create tables on startup (not recommended for production)
     # await init_db()
     # logger.info("Database initialized")
@@ -47,7 +51,14 @@ async def lifespan(app: FastAPI):
         await monitor_task
     except asyncio.CancelledError:
         pass
-        
+
+    # Cancel reminder scheduler task
+    reminder_task.cancel()
+    try:
+        await reminder_task
+    except asyncio.CancelledError:
+        pass
+
     await close_db()
     logger.info("Application shutdown complete")
 

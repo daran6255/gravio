@@ -1,0 +1,22 @@
+{% extends "email/base_email.html" %}
+{% block content %}
+                            <h2 style="margin:0 0 16px; font-family:'Inter',Arial,sans-serif; font-size:20px; font-weight:700; color:#0B0D12;">
+                                {{ subject }}
+                            </h2>
+                            <p style="margin:0 0 28px; font-family:'Inter',Arial,sans-serif; font-size:14px; line-height:1.6; color:rgba(11,13,18,0.7);">
+                                Hello {{ full_name }},<br/><br/>
+                                {{ body }}
+                            </p>
+                            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+                                <tr>
+                                    <td style="border-radius:8px; background-color:#8B7CF6; background-image:linear-gradient(135deg,#8B7CF6,#4EA8FF);">
+                                        <a href="{{ base_url }}/crm" style="display:inline-block; padding:13px 30px; font-family:'Inter',Arial,sans-serif; font-size:14px; font-weight:600; color:#ffffff; text-decoration:none;">
+                                            Open CRM
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin:0; font-family:'Inter',Arial,sans-serif; font-size:12px; line-height:1.5; color:rgba(11,13,18,0.45);">
+                                You're receiving this because you set a reminder on {{ app_name }}.
+                            </p>
+{% endblock %}

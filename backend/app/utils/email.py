@@ -207,6 +207,31 @@ async def send_password_reset_email(
     )
 
 
+async def send_reminder_email(
+    to_email: str,
+    full_name: str,
+    subject: str,
+    body: str,
+) -> None:
+    """Send a CRM reminder notification email.
+
+    Fired by the reminder scheduler background task, not a request handler —
+    same dev/SMTP fallback as the other senders here.
+    """
+    if not settings.SMTP_HOST:
+        logger.info(
+            f"[EMAIL - DEV] Reminder email for '{full_name}' ({to_email}) — {subject}\n"
+            f"  Body: {body}"
+        )
+        return
+
+    await _send_via_smtp(
+        to_email=to_email,
+        subject=subject,
+        html_body=_build_reminder_html(full_name, subject, body),
+    )
+
+
 async def _send_via_smtp(to_email: str, subject: str, html_body: str) -> None:
     """Internal helper — send an HTML email using aiosmtplib."""
     try:
@@ -263,6 +288,19 @@ def _build_invite_html(full_name: str, org_name: str, role: str, link: str) -> s
         role=role,
         link=link,
         expire_days=settings.INVITE_TOKEN_EXPIRE_DAYS,
+        year=datetime.now().year,
+    )
+
+
+def _build_reminder_html(full_name: str, subject: str, body: str) -> str:
+    """Build the HTML body for a reminder email from templates/email/reminder.html."""
+    return render_template(
+        "email/reminder.html",
+        app_name=settings.APP_NAME,
+        full_name=full_name,
+        subject=subject,
+        body=body,
+        base_url=settings.FRONTEND_URL or "http://localhost:5173",
         year=datetime.now().year,
     )
 

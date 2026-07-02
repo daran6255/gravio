@@ -7,12 +7,13 @@ import {
 import {
 	CheckCircle, RadioButtonUnchecked, Delete, Add, ExpandMore, ExpandLess,
 	Assignment, Description, Groups, Call, RateReview, FactCheck,
-	Schedule, WarningAmber,
+	Schedule, WarningAmber, NotificationsActiveOutlined,
 } from '@mui/icons-material';
 import { DatePicker } from '../../../../common/form';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
 import { fetchDealTasks, createDealTask, updateDealTask, deleteDealTask } from '../../../../../store/slices/crmSlice';
 import useToast from '../../../../../hooks/useToast';
+import { SetReminderDialog } from '../../../shared';
 import type { Deal } from '../../../../../models/crm/deal';
 import type { DealTask, DealTaskStatus, DealTaskType, DealTaskPriority } from '../../../../../models/crm/dealTask';
 
@@ -108,6 +109,8 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 	// Popover menu for changing status
 	const [statusMenuAnchor, setStatusMenuAnchor] = useState<null | HTMLElement>(null);
 	const [activeMenuTask, setActiveMenuTask] = useState<DealTask | null>(null);
+
+	const [reminderTask, setReminderTask] = useState<DealTask | null>(null);
 
 	const handleStatusClick = (event: React.MouseEvent<HTMLDivElement>, task: DealTask) => {
 		setStatusMenuAnchor(event.currentTarget);
@@ -541,6 +544,11 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 												</IconButton>
 											</Tooltip>
 										)}
+										<Tooltip title="Set reminder">
+											<IconButton size="small" onClick={() => setReminderTask(task)} sx={{ color: 'text.disabled', '&:hover': { color: 'warning.main' } }}>
+												<NotificationsActiveOutlined sx={{ fontSize: 16 }} />
+											</IconButton>
+										</Tooltip>
 										<Tooltip title="Delete task">
 											<IconButton size="small" onClick={() => handleDelete(task)} sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}>
 												<Delete sx={{ fontSize: 16 }} />
@@ -580,6 +588,16 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 					Completed
 				</MenuItem>
 			</Menu>
+			{reminderTask && (
+				<SetReminderDialog
+					open={!!reminderTask}
+					onClose={() => setReminderTask(null)}
+					entityType="deal_task"
+					entityId={reminderTask.id}
+					entityLabel={reminderTask.title}
+					defaultDueDate={reminderTask.due_date}
+				/>
+			)}
 		</Box>
 	);
 };

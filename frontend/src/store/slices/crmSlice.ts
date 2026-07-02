@@ -11,6 +11,7 @@ import type {
 } from '../../models/crm/lead';
 import type { Deal, DealCreate, DealUpdate } from '../../models/crm/deal';
 import type { DealTask, DealTaskCreate, DealTaskUpdate } from '../../models/crm/dealTask';
+import type { Reminder, ReminderCreate, ReminderUpdate, ReminderEntityType } from '../../models/crm/reminder';
 import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../../models/crm/pipeline';
 import type { Company, CompanyCreate, CompanyUpdate } from '../../models/crm/company';
 import type { Contact, ContactCreate, ContactUpdate } from '../../models/crm/contact';
@@ -84,6 +85,10 @@ interface CrmState {
 	activities: CRMActivity[];
 	activitiesLoading: boolean;
 	activitiesError: string | null;
+
+	reminders: Reminder[];
+	remindersLoading: boolean;
+	reminderMutating: boolean;
 
 	feedActivities: CRMActivity[];
 	feedActivitiesTotal: number;
@@ -188,6 +193,10 @@ const initialState: CrmState = {
 	activities: [],
 	activitiesLoading: false,
 	activitiesError: null,
+
+	reminders: [],
+	remindersLoading: false,
+	reminderMutating: false,
 
 	feedActivities: [],
 	feedActivitiesTotal: 0,
@@ -759,6 +768,51 @@ export const deleteDealTask = createAsyncThunk(
 	}
 );
 
+export const fetchReminders = createAsyncThunk(
+	'crm/fetchReminders',
+	async ({ entityType, entityId }: { entityType: ReminderEntityType; entityId: number }, { rejectWithValue }) => {
+		try {
+			return await crmService.listReminders(entityType, entityId);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch reminders'));
+		}
+	}
+);
+
+export const createReminder = createAsyncThunk(
+	'crm/createReminder',
+	async (payload: ReminderCreate, { rejectWithValue }) => {
+		try {
+			return await crmService.createReminder(payload);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to set reminder'));
+		}
+	}
+);
+
+export const updateReminder = createAsyncThunk(
+	'crm/updateReminder',
+	async ({ publicId, payload }: { publicId: string; payload: ReminderUpdate }, { rejectWithValue }) => {
+		try {
+			return await crmService.updateReminder(publicId, payload);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to update reminder'));
+		}
+	}
+);
+
+export const cancelReminder = createAsyncThunk(
+	'crm/cancelReminder',
+	async (publicId: string, { rejectWithValue }) => {
+		try {
+			await crmService.cancelReminder(publicId);
+			return publicId;
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to cancel reminder'));
+		}
+	}
+);
+
 export const fetchAllDealTasks = createAsyncThunk(
 	'crm/fetchAllDealTasks',
 	async (deals: Deal[], { rejectWithValue }) => {
@@ -795,6 +849,9 @@ const crmSlice = createSlice({
 		clearLinkedRecords: (state) => {
 			state.linkedContacts = [];
 			state.linkedDeals = [];
+		},
+		clearReminders: (state) => {
+			state.reminders = [];
 		},
 		clearImportResult: (state) => {
 			state.importResult = null;
@@ -1208,6 +1265,33 @@ const crmSlice = createSlice({
 				state.dealTasks = state.dealTasks.filter((t) => t.public_id !== action.payload);
 				state.allDealTasks = state.allDealTasks.filter((t) => t.public_id !== action.payload);
 			})
+			.addCase(fetchReminders.pending, (state) => {
+				state.remindersLoading = true;
+			})
+			.addCase(fetchReminders.fulfilled, (state, action: PayloadAction<Reminder[]>) => {
+				state.remindersLoading = false;
+				state.reminders = action.payload;
+			})
+			.addCase(fetchReminders.rejected, (state) => {
+				state.remindersLoading = false;
+			})
+			.addCase(createReminder.pending, (state) => { state.reminderMutating = true; })
+			.addCase(createReminder.fulfilled, (state, action: PayloadAction<Reminder>) => {
+				state.reminderMutating = false;
+				state.reminders = [...state.reminders, action.payload];
+			})
+			.addCase(createReminder.rejected, (state) => { state.reminderMutating = false; })
+			.addCase(updateReminder.pending, (state) => { state.reminderMutating = true; })
+			.addCase(updateReminder.fulfilled, (state, action: PayloadAction<Reminder>) => {
+				state.reminderMutating = false;
+				state.reminders = state.reminders.map((r) =>
+					r.public_id === action.payload.public_id ? action.payload : r
+				);
+			})
+			.addCase(updateReminder.rejected, (state) => { state.reminderMutating = false; })
+			.addCase(cancelReminder.fulfilled, (state, action: PayloadAction<string>) => {
+				state.reminders = state.reminders.filter((r) => r.public_id !== action.payload);
+			})
 			.addCase(fetchAllDealTasks.pending, (state) => {
 				state.allDealTasksLoading = true;
 				state.allDealTasksError = null;
@@ -1223,5 +1307,5 @@ const crmSlice = createSlice({
 	},
 });
 
-export const { clearLeadsError, clearConvertError, clearActivities, clearLinkedRecords, clearImportResult } = crmSlice.actions;
+export const { clearLeadsError, clearConvertError, clearActivities, clearLinkedRecords, clearReminders, clearImportResult } = crmSlice.actions;
 export default crmSlice.reducer;

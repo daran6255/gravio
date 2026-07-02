@@ -9,6 +9,7 @@ from app.models.ai_usage import AIUsageCounter
 from app.models.refresh_token import RefreshToken
 from app.models.audit import AuditLog
 from app.models.notification import Notification, NotificationType
+from app.models.reminder import CRMReminder, ReminderStatus
 from app.models.crm import (
     CRMTag,
     CRMCompany,
@@ -42,6 +43,8 @@ __all__ = [
     "AuditLog",
     "Notification",
     "NotificationType",
+    "CRMReminder",
+    "ReminderStatus",
     "CRMTag",
     "CRMCompany",
     "CRMContact",

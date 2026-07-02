@@ -13,6 +13,7 @@ import type {
 } from '../models/crm/lead';
 import type { Deal, DealCreate, DealUpdate } from '../models/crm/deal';
 import type { DealTask, DealTaskCreate, DealTaskUpdate } from '../models/crm/dealTask';
+import type { Reminder, ReminderCreate, ReminderUpdate, ReminderEntityType } from '../models/crm/reminder';
 import type { Pipeline, PipelineCreate, PipelineStageUpsert } from '../models/crm/pipeline';
 import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../models/crm/crmActivity';
 import type { CRMStats, CRMLeadStats, CRMCompanyStats } from '../models/crm/crmStats';
@@ -349,6 +350,29 @@ const crmService = {
 	},
 	deleteDealTask: async (taskPublicId: string): Promise<void> => {
 		await api.delete(`/crm/deal-tasks/${taskPublicId}`);
+	},
+
+	// --- Reminders ---
+	listReminders: async (entityType: ReminderEntityType, entityId: number): Promise<Reminder[]> => {
+		const response = await api.get<Reminder[]>('/crm/reminders', {
+			params: { entity_type: entityType, entity_id: entityId },
+		});
+		return response.data;
+	},
+	listMyReminders: async (): Promise<Reminder[]> => {
+		const response = await api.get<Reminder[]>('/crm/reminders/mine');
+		return response.data;
+	},
+	createReminder: async (payload: ReminderCreate): Promise<Reminder> => {
+		const response = await api.post<Reminder>('/crm/reminders', payload);
+		return response.data;
+	},
+	updateReminder: async (publicId: string, payload: ReminderUpdate): Promise<Reminder> => {
+		const response = await api.patch<Reminder>(`/crm/reminders/${publicId}`, payload);
+		return response.data;
+	},
+	cancelReminder: async (publicId: string): Promise<void> => {
+		await api.delete(`/crm/reminders/${publicId}`);
 	},
 };
 

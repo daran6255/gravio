@@ -18,6 +18,9 @@ from app.models.crm import (
     DealTaskType,
     ActivityType,
 )
+from app.models.reminder import ReminderStatus
+
+REMINDER_ENTITY_TYPES = ("lead", "deal", "deal_task", "activity")
 
 
 # --- Tag Schemas ---
@@ -372,6 +375,45 @@ class CRMDealTaskResponse(BaseModel):
     assignee_id: Optional[int] = None
     completed_at: Optional[datetime] = None
     order: int
+    created_at: datetime
+    updated_at: datetime
+
+
+# --- Reminder Schemas ---
+class CRMReminderCreate(BaseModel):
+    entity_type: str = Field(..., description=f"Target type: {' | '.join(REMINDER_ENTITY_TYPES)}")
+    entity_id: int
+    remind_at: datetime
+    message: Optional[str] = Field(None, max_length=500)
+    user_id: Optional[int] = Field(None, description="Who gets reminded; defaults to the current user")
+
+    @field_validator("entity_type")
+    @classmethod
+    def validate_entity_type(cls, v: str) -> str:
+        v = v.lower()
+        if v not in REMINDER_ENTITY_TYPES:
+            raise ValueError(f"entity_type must be one of {REMINDER_ENTITY_TYPES}")
+        return v
+
+
+class CRMReminderUpdate(BaseModel):
+    remind_at: Optional[datetime] = None
+    message: Optional[str] = Field(None, max_length=500)
+    status: Optional[ReminderStatus] = None
+
+
+class CRMReminderResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    public_id: uuid.UUID
+    entity_type: str
+    entity_id: int
+    user_id: int
+    created_by_id: Optional[int] = None
+    remind_at: datetime
+    message: Optional[str] = None
+    status: ReminderStatus
+    sent_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 

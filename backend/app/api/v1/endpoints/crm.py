@@ -11,6 +11,7 @@ from app.core.database import get_db
 from app.api.deps import require_roles, get_current_active_user
 from app.models.user import User, UserRole
 from app.services.crm import CRMService
+from app.services.reminder import ReminderService
 from app.services.plan_access import require_paid_plan
 from app.utils.file_validation import validate_upload
 from app.schemas.common import PaginatedResponse
@@ -32,6 +33,9 @@ from app.schemas.crm import (
     CRMDealTaskCreate,
     CRMDealTaskUpdate,
     CRMDealTaskResponse,
+    CRMReminderCreate,
+    CRMReminderUpdate,
+    CRMReminderResponse,
     CRMPipelineCreate,
     CRMPipelineResponse,
     CRMPipelineStagesUpdateRequest,
@@ -937,3 +941,75 @@ async def delete_deal_task_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     await CRMService.delete_deal_task(db, task_public_id)
+
+
+# --- Reminders ---
+@router.post(
+    "/reminders",
+    response_model=CRMReminderResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Set a reminder for a lead, deal, deal task, or activity",
+)
+async def create_reminder_endpoint(
+    payload: CRMReminderCreate,
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> CRMReminderResponse:
+    reminder = await ReminderService.create_reminder(db, payload, current_user.id)
+    return CRMReminderResponse.model_validate(reminder)
+
+
+@router.get(
+    "/reminders",
+    response_model=list[CRMReminderResponse],
+    summary="List reminders set for a specific record",
+)
+async def list_reminders_endpoint(
+    entity_type: str = Query(...),
+    entity_id: int = Query(...),
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> list[CRMReminderResponse]:
+    reminders = await ReminderService.list_reminders_for_entity(db, entity_type=entity_type, entity_id=entity_id)
+    return [CRMReminderResponse.model_validate(r) for r in reminders]
+
+
+@router.get(
+    "/reminders/mine",
+    response_model=list[CRMReminderResponse],
+    summary="List the current user's upcoming reminders",
+)
+async def list_my_reminders_endpoint(
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> list[CRMReminderResponse]:
+    reminders = await ReminderService.list_my_reminders(db, user_id=current_user.id)
+    return [CRMReminderResponse.model_validate(r) for r in reminders]
+
+
+@router.patch(
+    "/reminders/{public_id}",
+    response_model=CRMReminderResponse,
+    summary="Reschedule or edit a reminder",
+)
+async def update_reminder_endpoint(
+    public_id: uuid.UUID,
+    payload: CRMReminderUpdate,
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> CRMReminderResponse:
+    reminder = await ReminderService.update_reminder(db, public_id, payload, current_user.id)
+    return CRMReminderResponse.model_validate(reminder)
+
+
+@router.delete(
+    "/reminders/{public_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Cancel a reminder",
+)
+async def cancel_reminder_endpoint(
+    public_id: uuid.UUID,
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+):
+    await ReminderService.cancel_reminder(db, public_id, current_user.id)

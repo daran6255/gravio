@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Stack, IconButton, Tooltip, useTheme, alpha, Tabs, Tab } from '@mui/material';
-import { Edit, DeleteOutline, PersonOff } from '@mui/icons-material';
+import { Edit, DeleteOutline, PersonOff, NotificationsActiveOutlined } from '@mui/icons-material';
 import DetailDrawer from '../../../common/drawer/DetailDrawer';
 import StatusBadge from '../../../common/badge/StatusBadge';
 import { ConfirmationDialog } from '../../../common/dialogbox';
+import { SetReminderDialog } from '../../shared';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { updateLead, searchCompanyOptions, searchContactOptions, anonymizeLead } from '../../../../store/slices/crmSlice';
 import useToast from '../../../../hooks/useToast';
@@ -34,6 +35,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 	const [tab, setTab] = useState(0);
 	const [prevLeadId, setPrevLeadId] = useState<number | undefined>(lead?.id);
 	const [anonymizeConfirmOpen, setAnonymizeConfirmOpen] = useState(false);
+	const [reminderOpen, setReminderOpen] = useState(false);
 
 	if (lead?.id !== prevLeadId) {
 		setPrevLeadId(lead?.id);
@@ -141,6 +143,15 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 							sx={{ border: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
 						>
 							<Edit fontSize="small" />
+						</IconButton>
+					</Tooltip>
+					<Tooltip title="Set Reminder">
+						<IconButton
+							size="small"
+							onClick={() => setReminderOpen(true)}
+							sx={{ border: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', '&:hover': { color: 'warning.main' } }}
+						>
+							<NotificationsActiveOutlined fontSize="small" />
 						</IconButton>
 					</Tooltip>
 					<Tooltip title="Delete Lead">
@@ -266,6 +277,14 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 				confirmLabel="Anonymize"
 				severity="error"
 				loading={anonymizeLoading}
+			/>
+
+			<SetReminderDialog
+				open={reminderOpen}
+				onClose={() => setReminderOpen(false)}
+				entityType="lead"
+				entityId={lead.id}
+				entityLabel={lead.title}
 			/>
 		</DetailDrawer>
 	);

@@ -4,12 +4,14 @@ import {
 	Grid, TextField, InputAdornment, Button, Chip
 } from '@mui/material';
 import {
-	Business, Person, LocalOffer, Payments, TrendingUp, Launch, InfoOutlined, ContentCopy
+	Business, Person, LocalOffer, Payments, TrendingUp, Launch, InfoOutlined, ContentCopy,
+	NotificationsActiveOutlined,
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
 import { updateDeal } from '../../../../../store/slices/crmSlice';
 import useToast from '../../../../../hooks/useToast';
 import { RichTextViewer, DatePicker } from '../../../../common/form';
+import { SetReminderDialog } from '../../../shared';
 import type { Deal } from '../../../../../models/crm/deal';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
 
@@ -49,6 +51,7 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 
 	const [value, setValue] = useState(deal.value != null ? Number(deal.value).toLocaleString() : '');
 	const [closeDate, setCloseDate] = useState(deal.close_date || '');
+	const [reminderOpen, setReminderOpen] = useState(false);
 
 	useEffect(() => {
 		setValue(deal.value != null ? Number(deal.value).toLocaleString() : '');
@@ -192,11 +195,18 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 						/>
 					</Box>
 					<Box sx={{ flex: 1 }}>
-						<DatePicker
-							label="Close Date"
-							value={closeDate}
-							onChange={handleCloseDateChange}
-						/>
+						<Stack direction="row" spacing={0.5} alignItems="center">
+							<DatePicker
+								label="Close Date"
+								value={closeDate}
+								onChange={handleCloseDateChange}
+							/>
+							<Tooltip title="Set reminder">
+								<IconButton size="small" onClick={() => setReminderOpen(true)} sx={{ color: 'text.disabled', '&:hover': { color: 'warning.main' } }}>
+									<NotificationsActiveOutlined sx={{ fontSize: 18 }} />
+								</IconButton>
+							</Tooltip>
+						</Stack>
 					</Box>
 				</Stack>
 			</Box>
@@ -397,6 +407,15 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 					</Typography>
 				</Box>
 			)}
+
+			<SetReminderDialog
+				open={reminderOpen}
+				onClose={() => setReminderOpen(false)}
+				entityType="deal"
+				entityId={deal.id}
+				entityLabel={deal.title}
+				defaultDueDate={deal.close_date}
+			/>
 		</Stack>
 	);
 };

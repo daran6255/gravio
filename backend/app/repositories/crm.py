@@ -19,6 +19,7 @@ from app.models.crm import (
     CRMActivity,
     CRMFile,
     LeadStatus,
+    LeadPriority,
     DealTaskStatus,
 )
 
@@ -605,6 +606,11 @@ class CRMFileRepository:
 
 class CRMDealTaskRepository:
     @staticmethod
+    async def get_by_id(db: AsyncSession, task_id: int) -> Optional[CRMDealTask]:
+        result = await db.execute(select(CRMDealTask).where(CRMDealTask.id == task_id))
+        return result.scalars().first()
+
+    @staticmethod
     async def get_by_public_id(db: AsyncSession, public_id: uuid.UUID) -> Optional[CRMDealTask]:
         result = await db.execute(select(CRMDealTask).where(CRMDealTask.public_id == public_id))
         return result.scalars().first()
@@ -628,6 +634,7 @@ class CRMDealTaskRepository:
         due_date=None,
         notes=None,
         assignee_id=None,
+        priority=LeadPriority.MEDIUM,
         order: int = 0,
     ) -> CRMDealTask:
         task = CRMDealTask(
@@ -637,6 +644,7 @@ class CRMDealTaskRepository:
             due_date=due_date,
             notes=notes,
             assignee_id=assignee_id,
+            priority=priority,
             order=order,
         )
         db.add(task)
