@@ -1,24 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Box, TextField, Button, Stack, Divider, CircularProgress, ToggleButtonGroup, ToggleButton, Tabs, Tab, IconButton, Tooltip } from '@mui/material';
-import { Notes, Call, Email, Groups, CheckCircleOutline, WhatsApp, AttachFile, AlternateEmail } from '@mui/icons-material';
+import { Notes, Call, Email, Groups, AttachFile, AlternateEmail } from '@mui/icons-material';
 import { useAppDispatch } from '../../../store/hooks';
 import { createActivity } from '../../../store/slices/crmSlice';
 import type { CRMActivityType, CRMActivityEntityType } from '../../../models/crm/crmActivity';
 import useToast from '../../../hooks/useToast';
-import { NoteTab, CallTab, EmailTab, MeetingTab, TaskTab, WhatsAppTab } from './tabs';
+import { NoteTab, CallTab, EmailTab, MeetingTab } from './tabs';
 
 const TYPE_OPTIONS: { value: CRMActivityType; label: string; icon: React.ReactElement }[] = [
 	{ value: 'note', label: 'Note', icon: <Notes fontSize="small" /> },
 	{ value: 'call', label: 'Call', icon: <Call fontSize="small" /> },
 	{ value: 'email', label: 'Email', icon: <Email fontSize="small" /> },
 	{ value: 'meeting', label: 'Meeting', icon: <Groups fontSize="small" /> },
-	{ value: 'task', label: 'Task', icon: <CheckCircleOutline fontSize="small" /> },
-	{ value: 'whatsapp', label: 'WhatsApp', icon: <WhatsApp fontSize="small" /> },
 ];
 
-const COMPACT_TYPE_OPTIONS = TYPE_OPTIONS.filter((opt) =>
-	['note', 'call', 'email', 'meeting'].includes(opt.value)
-);
+const COMPACT_TYPE_OPTIONS = TYPE_OPTIONS;
 
 const SAVE_LABEL: Record<CRMActivityType, string> = {
 	note: 'Save Note',
@@ -251,26 +247,7 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 						compact={compact}
 					/>
 				)}
-				{type === 'task' && (
-					<TaskTab
-						subject={subject}
-						setSubject={setSubject}
-						description={description}
-						setDescription={setDescription}
-						compact={compact}
-					/>
-				)}
-				{type === 'whatsapp' && (
-					<WhatsAppTab
-						subject={subject}
-						setSubject={setSubject}
-						description={description}
-						setDescription={setDescription}
-						compact={compact}
-					/>
-				)}
-
-				{(type === 'task' || type === 'meeting' || type === 'call' || type === 'email') && (
+				{(type === 'meeting' || type === 'call' || type === 'email') && (
 					<TextField
 						type="datetime-local"
 						label={getDateLabel()}
@@ -425,28 +402,9 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 					compact={compact}
 				/>
 			)}
-			{type === 'task' && (
-				<TaskTab
-					subject={subject}
-					setSubject={setSubject}
-					description={description}
-					setDescription={setDescription}
-					compact={compact}
-				/>
-			)}
-			{type === 'whatsapp' && (
-				<WhatsAppTab
-					subject={subject}
-					setSubject={setSubject}
-					description={description}
-					setDescription={setDescription}
-					compact={compact}
-				/>
-			)}
-
 			<Stack direction="row" spacing={1.5} alignItems="center" justifyContent="space-between">
 				<Stack direction="row" spacing={1.5} alignItems="center">
-					{(type === 'task' || type === 'meeting' || type === 'call' || type === 'email') && (
+					{(type === 'meeting' || type === 'call' || type === 'email') && (
 						<TextField
 							type="datetime-local"
 							label={getDateLabel()}
