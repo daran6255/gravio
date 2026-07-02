@@ -71,6 +71,15 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 	const [outcome, setOutcome] = useState('Connected');
 	const compact = variant === 'compact';
 	const activeMeta = TYPE_META[type as ComposableType] ?? TYPE_META.note;
+	const labelCaptionSx = {
+		display: 'block',
+		mb: 0.75,
+		fontSize: '0.65rem',
+		fontWeight: 700,
+		textTransform: 'uppercase' as const,
+		letterSpacing: '0.06em',
+		color: 'text.secondary',
+	};
 
 	// Auto-draft preservation
 	useEffect(() => {
@@ -217,38 +226,41 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 			size="small"
 			sx={{
 				mb,
-				gap: 1,
+				height: 36,
+				bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+				p: 0.5,
+				borderRadius: '10px',
 				'& .MuiToggleButtonGroup-grouped': {
-					border: '1px solid',
-					borderRadius: '10px !important',
+					border: 'none !important',
+					borderRadius: '8px !important',
 					textTransform: 'none',
-					px: 1.5,
+					px: 2,
 					fontWeight: 700,
-					fontSize: '0.76rem',
+					fontSize: '0.75rem',
+					color: 'text.secondary',
+					transition: 'all 0.2s ease',
 					gap: 0.5,
-				},
+					'&.Mui-selected': {
+						backgroundColor: isCompleted 
+							? (isDark ? alpha(theme.palette.success.main, 0.22) : theme.palette.success.main)
+							: (isDark ? alpha(theme.palette.warning.main, 0.22) : theme.palette.warning.main),
+						color: isCompleted
+							? (isDark ? '#a5d6a7' : '#ffffff')
+							: (isDark ? '#ffe082' : '#ffffff'),
+						boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+					},
+					'&:hover': {
+						backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+					}
+				}
 			}}
 		>
-			<ToggleButton
-				value={false}
-				sx={{
-					borderColor: !isCompleted ? 'warning.main' : 'divider',
-					color: !isCompleted ? 'warning.main' : 'text.secondary',
-					bgcolor: !isCompleted ? alpha(theme.palette.warning.main, isDark ? 0.14 : 0.08) : 'transparent',
-				}}
-			>
-				<RadioButtonUnchecked sx={{ fontSize: 14 }} />
+			<ToggleButton value={false}>
+				<RadioButtonUnchecked sx={{ fontSize: 13 }} />
 				Pending
 			</ToggleButton>
-			<ToggleButton
-				value={true}
-				sx={{
-					borderColor: isCompleted ? 'success.main' : 'divider',
-					color: isCompleted ? 'success.main' : 'text.secondary',
-					bgcolor: isCompleted ? alpha(theme.palette.success.main, isDark ? 0.16 : 0.1) : 'transparent',
-				}}
-			>
-				<CheckCircle sx={{ fontSize: 14 }} />
+			<ToggleButton value={true}>
+				<CheckCircle sx={{ fontSize: 13 }} />
 				Completed
 			</ToggleButton>
 		</ToggleButtonGroup>
@@ -292,6 +304,47 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 						<Tab key={opt.value} value={opt.value} icon={opt.icon} iconPosition="start" label={opt.label} />
 					))}
 				</Tabs>
+
+				{(type === 'meeting' || type === 'call' || type === 'email') && (
+					<Box sx={{ mb: 2 }}>
+						<Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
+							<Box sx={{ flexGrow: 1, minWidth: 160 }}>
+								<Typography sx={labelCaptionSx}>{getDateLabel()}</Typography>
+								<DateTimePicker
+									label=""
+									value={dueDate || null}
+									onChange={setDueDate}
+									size="small"
+									fullWidth
+									textFieldProps={{
+										sx: {
+											'& .MuiOutlinedInput-root': {
+												borderRadius: '10px',
+												bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#ffffff',
+												height: 36,
+												fontSize: '0.78rem',
+												'& fieldset': {
+													borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+												},
+												'&:hover fieldset': {
+													borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+												},
+												'&.Mui-focused fieldset': {
+													borderColor: 'primary.main',
+													borderWidth: '1.5px',
+												},
+											}
+										}
+									}}
+								/>
+							</Box>
+							<Box sx={{ flexShrink: 0 }}>
+								<Typography sx={labelCaptionSx}>Status</Typography>
+								{renderStatusToggle()}
+							</Box>
+						</Stack>
+					</Box>
+				)}
 
 				{type === 'note' && (
 					<NoteTab description={description} setDescription={setDescription} compact={compact} />
@@ -339,36 +392,6 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 						accentColor={TYPE_META.meeting.color}
 					/>
 				)}
-				{(type === 'meeting' || type === 'call' || type === 'email') && (
-					<DateTimePicker
-						label={getDateLabel()}
-						value={dueDate || null}
-						onChange={setDueDate}
-						size="small"
-						fullWidth
-						textFieldProps={{
-							sx: {
-								mb: 1.5,
-								'& .MuiOutlinedInput-root': {
-									borderRadius: '10px',
-									bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#ffffff',
-									'& fieldset': {
-										borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-									},
-									'&:hover fieldset': {
-										borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
-									},
-									'&.Mui-focused fieldset': {
-										borderColor: 'primary.main',
-										borderWidth: '1.5px',
-									},
-								}
-							}
-						}}
-					/>
-				)}
-
-				{type !== 'note' && renderStatusToggle(1.5)}
 
 				<Divider sx={{ mb: 1 }} />
 
@@ -446,6 +469,47 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 				{activeMeta.subtitle}
 			</Typography>
 
+			{type !== 'note' && (
+				<Box sx={{ mb: 2.5 }}>
+					<Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
+						<Box sx={{ flexGrow: 1, minWidth: 200 }}>
+							<Typography sx={labelCaptionSx}>{getDateLabel()}</Typography>
+							<DateTimePicker
+								label=""
+								value={dueDate || null}
+								onChange={setDueDate}
+								size="small"
+								fullWidth
+								textFieldProps={{
+									sx: {
+										'& .MuiOutlinedInput-root': {
+											borderRadius: '10px',
+											bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#ffffff',
+											height: 38,
+											fontSize: '0.8rem',
+											'& fieldset': {
+												borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+											},
+											'&:hover fieldset': {
+												borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+											},
+											'&.Mui-focused fieldset': {
+												borderColor: 'primary.main',
+												borderWidth: '1.5px',
+											},
+										}
+									}
+								}}
+							/>
+						</Box>
+						<Box sx={{ flexShrink: 0 }}>
+							<Typography sx={labelCaptionSx}>Status</Typography>
+							{renderStatusToggle()}
+						</Box>
+					</Stack>
+				</Box>
+			)}
+
 			{type === 'note' && (
 				<NoteTab description={description} setDescription={setDescription} compact={compact} />
 			)}
@@ -494,46 +558,9 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 			)}
 			<Stack
 				direction="row"
-				spacing={1.5}
-				alignItems="center"
-				justifyContent="space-between"
-				flexWrap="wrap"
-				useFlexGap
+				justifyContent="flex-end"
 				sx={{ pt: 2, mt: 0.5, borderTop: '1px solid', borderColor: 'divider' }}
 			>
-				<Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
-					{(type === 'meeting' || type === 'call' || type === 'email') && (
-						<DateTimePicker
-							label={getDateLabel()}
-							value={dueDate || null}
-							onChange={setDueDate}
-							size="small"
-							fullWidth={false}
-							textFieldProps={{
-								sx: {
-									minWidth: 220,
-									'& .MuiOutlinedInput-root': {
-										borderRadius: '10px',
-										bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#ffffff',
-										'& fieldset': {
-											borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-										},
-										'&:hover fieldset': {
-											borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
-										},
-										'&.Mui-focused fieldset': {
-											borderColor: 'primary.main',
-											borderWidth: '1.5px',
-										},
-									}
-								}
-							}}
-						/>
-					)}
-
-					{type !== 'note' && renderStatusToggle()}
-				</Stack>
-
 				<Button
 					variant="contained"
 					size="small"

@@ -9,6 +9,7 @@ interface DateTimePickerProps {
   label: string;
   value: string | null; // ISO datetime string or null
   onChange: (value: string) => void;
+  format?: string;
   size?: 'small' | 'medium';
   fullWidth?: boolean;
   minDateTime?: string;
@@ -19,6 +20,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
   label,
   value,
   onChange,
+  format = 'DD-MMM-YYYY hh:mm A',
   size = 'small',
   fullWidth = true,
   minDateTime,
@@ -28,6 +30,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <MuiDateTimePicker
         label={label}
+        format={format}
         value={value ? dayjs(value) : null}
         onChange={(newValue) => onChange(newValue ? newValue.toISOString() : '')}
         minDateTime={minDateTime ? dayjs(minDateTime) : undefined}

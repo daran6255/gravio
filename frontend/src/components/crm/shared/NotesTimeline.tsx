@@ -102,10 +102,37 @@ export const NotesTimeline: React.FC<NotesTimelineProps> = ({ activities, loadin
 	const remindersByActivityId = useMemo(() => getNextReminderByEntityId(activeReminders), [activeReminders]);
 
 	const timelineItems: TimelineItemDef[] = activities.map((activity) => {
-		const formattedDue = activity.due_date ? `Due ${formatDateTime(activity.due_date)}` : '';
-		const entityInfo = showEntityType ? `On ${activity.entity_type} #${activity.entity_id}` : '';
-		const subtitleParts = [entityInfo, formattedDue].filter(Boolean);
-		const subtitle = subtitleParts.length > 0 ? subtitleParts.join(' · ') : undefined;
+		// Determine the primary date to display
+		const primaryDate = activity.due_date || activity.created_at;
+		
+		// Create a clean label for the primary timestamp
+		let dateLabel = '';
+		if (activity.type === 'note') {
+			dateLabel = `Logged ${formatDateTime(activity.created_at)}`;
+		} else if (activity.type === 'call') {
+			dateLabel = `${activity.is_completed ? 'Called on' : 'Call scheduled for'} ${formatDateTime(primaryDate)}`;
+		} else if (activity.type === 'meeting') {
+			dateLabel = `${activity.is_completed ? 'Held on' : 'Meeting scheduled for'} ${formatDateTime(primaryDate)}`;
+		} else if (activity.type === 'email') {
+			dateLabel = `${activity.is_completed ? 'Sent on' : 'Email scheduled for'} ${formatDateTime(primaryDate)}`;
+		} else {
+			dateLabel = `${activity.is_completed ? 'Completed on' : 'Due'} ${formatDateTime(primaryDate)}`;
+		}
+
+		// Secondary info (if different from primary date)
+		const secondaryParts = [];
+		if (showEntityType) {
+			secondaryParts.push(`On ${activity.entity_type} #${activity.entity_id}`);
+		}
+		
+		if (activity.due_date) {
+			const diffMinutes = Math.abs(new Date(activity.created_at).getTime() - new Date(activity.due_date).getTime()) / 60000;
+			if (diffMinutes > 1) {
+				secondaryParts.push(`Logged on ${formatDateTime(activity.created_at)}`);
+			}
+		}
+		
+		const subtitle = secondaryParts.length > 0 ? secondaryParts.join(' · ') : undefined;
 
 		const tone = TONES[activity.type] || TONES.note;
 		const titlePrefix = PREFIXES[activity.type] || 'Logged Activity';
@@ -119,7 +146,7 @@ export const NotesTimeline: React.FC<NotesTimelineProps> = ({ activities, loadin
 			title,
 			subtitle,
 			description: activity.description ? <RichTextViewer html={activity.description} /> : undefined,
-			timestamp: formatDateTime(activity.created_at),
+			timestamp: dateLabel,
 			icon: tone.icon,
 			iconColor: tone.color,
 			iconBgColor: tone.bgColor,
