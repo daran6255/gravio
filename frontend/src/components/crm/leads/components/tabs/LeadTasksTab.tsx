@@ -33,7 +33,7 @@ const TASK_TYPE_OPTIONS: { value: LeadTaskType; label: string }[] = [
 
 const STATUS_FILTERS: { value: LeadTaskStatus | 'all' | 'overdue'; label: string }[] = [
 	{ value: 'all', label: 'All' },
-	{ value: 'pending', label: 'Pending' },
+	{ value: 'pending', label: 'Yet to Start' },
 	{ value: 'in_progress', label: 'In Progress' },
 	{ value: 'blocked', label: 'Blocked' },
 	{ value: 'overdue', label: 'Overdue' },
@@ -246,60 +246,64 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 				)}
 			</Box>
 
-			{/* Filters */}
-			<Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-				{STATUS_FILTERS.map((f) => {
-					const isActive = statusFilter === f.value;
-					const count = f.value === 'all'
-						? totalCount
-						: f.value === 'overdue'
-							? leadTasks.filter(isOverdue).length
-							: leadTasks.filter((t) => t.status === f.value).length;
-					return (
-						<Chip
-							key={f.value}
-							label={count > 0 ? `${f.label} (${count})` : f.label}
-							size="small"
-							onClick={() => setStatusFilter(f.value)}
-							sx={{
-								borderRadius: '8px',
-								fontWeight: 600,
-								fontSize: '0.72rem',
-								height: 28,
-								cursor: 'pointer',
-								bgcolor: isActive ? alpha(theme.palette.primary.main, isDark ? 0.22 : 0.1) : 'transparent',
-								color: isActive ? 'primary.main' : 'text.secondary',
-								border: '1px solid',
-								borderColor: isActive ? alpha(theme.palette.primary.main, 0.4) : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'),
-								'&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.1) },
-							}}
-						/>
-					);
-				})}
+			{/* Filters + Add task */}
+			<Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" useFlexGap spacing={1}>
+				<Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+					{STATUS_FILTERS.map((f) => {
+						const isActive = statusFilter === f.value;
+						const count = f.value === 'all'
+							? totalCount
+							: f.value === 'overdue'
+								? leadTasks.filter(isOverdue).length
+								: leadTasks.filter((t) => t.status === f.value).length;
+						return (
+							<Chip
+								key={f.value}
+								label={count > 0 ? `${f.label} (${count})` : f.label}
+								size="small"
+								onClick={() => setStatusFilter(f.value)}
+								sx={{
+									borderRadius: '8px',
+									fontWeight: 600,
+									fontSize: '0.72rem',
+									height: 28,
+									cursor: 'pointer',
+									bgcolor: isActive ? alpha(theme.palette.primary.main, isDark ? 0.22 : 0.1) : 'transparent',
+									color: isActive ? 'primary.main' : 'text.secondary',
+									border: '1px solid',
+									borderColor: isActive ? alpha(theme.palette.primary.main, 0.4) : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'),
+									'&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.1) },
+								}}
+							/>
+						);
+					})}
+				</Stack>
+
+				{!addOpen && (
+					<Button
+						startIcon={<Add />}
+						onClick={() => setAddOpen(true)}
+						variant="contained"
+						size="small"
+						sx={{
+							borderRadius: '8px',
+							textTransform: 'none',
+							fontWeight: 700,
+							py: 0.5,
+							px: 1.5,
+							fontSize: '0.75rem',
+							flexShrink: 0,
+							background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
+							boxShadow: '0 2px 8px rgba(139, 124, 246, 0.25)',
+						}}
+					>
+						Add Task
+					</Button>
+				)}
 			</Stack>
 
-			{/* Add task */}
-			{!addOpen ? (
-				<Button
-					startIcon={<Add />}
-					onClick={() => setAddOpen(true)}
-					variant="outlined"
-					size="small"
-					sx={{
-						borderRadius: '10px',
-						textTransform: 'none',
-						fontWeight: 600,
-						fontSize: '0.82rem',
-						alignSelf: 'flex-start',
-						borderStyle: 'dashed',
-						borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
-						color: 'text.secondary',
-						'&:hover': { borderStyle: 'solid', color: 'primary.main', borderColor: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.05) },
-					}}
-				>
-					Add Task
-				</Button>
-			) : (
+			{/* Add task form */}
+			{addOpen && (
 				<Box sx={{ ...fc, border: '1px solid ' + alpha(theme.palette.primary.main, 0.3), bgcolor: isDark ? 'rgba(33,150,243,0.04)' : 'rgba(33,150,243,0.02)' }}>
 					<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.07em', display: 'block', mb: 1.5 }}>
 						New Task

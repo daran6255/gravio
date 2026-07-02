@@ -252,7 +252,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({ tasks, loading }) => {
 							task.status === 'completed' ? 'Completed'
 								: task.status === 'in_progress' ? 'In Progress'
 									: task.status === 'blocked' ? 'Blocked'
-										: 'Pending'
+										: 'Yet to Start'
 						}
 						size="small"
 						onClick={(e) => handleStatusClick(e, task)}
@@ -339,7 +339,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({ tasks, loading }) => {
 					}
 				}}
 			>
-				<MenuItem onClick={() => handleStatusSelect('pending')}>Pending</MenuItem>
+				<MenuItem onClick={() => handleStatusSelect('pending')}>Yet to Start</MenuItem>
 				<MenuItem onClick={() => handleStatusSelect('in_progress')}>In Progress</MenuItem>
 				<MenuItem onClick={() => handleStatusSelect('blocked')}>Blocked</MenuItem>
 				<MenuItem onClick={() => handleStatusSelect('completed')}>Completed</MenuItem>

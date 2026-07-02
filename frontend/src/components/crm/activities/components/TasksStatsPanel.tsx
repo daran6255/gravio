@@ -29,7 +29,7 @@ export const TasksStatsPanel: React.FC<TasksStatsPanelProps> = ({ tasks }) => {
 			tooltip: 'The total number of tasks created across all active deals.',
 		},
 		{
-			title: 'PENDING TASKS',
+			title: 'YET TO START',
 			value: pending,
 			subtitle: 'Tasks yet to be completed',
 			icon: <Schedule sx={{ color: '#F59E0B', fontSize: 26 }} />,

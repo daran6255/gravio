@@ -66,7 +66,7 @@ export const TaskKanbanBoard: React.FC<TaskKanbanBoardProps> = ({ tasks, loading
 	const toast = useToast();
 
 	const columns: KanbanColumnDef[] = [
-		{ id: 'pending', label: 'Pending', color: theme.palette.primary.main },
+		{ id: 'pending', label: 'Yet to Start', color: theme.palette.primary.main },
 		{ id: 'in_progress', label: 'In Progress', color: theme.palette.info.main },
 		{ id: 'blocked', label: 'Blocked', color: '#9C27B0' },
 		{ id: 'completed', label: 'Completed', color: theme.palette.success.main },
