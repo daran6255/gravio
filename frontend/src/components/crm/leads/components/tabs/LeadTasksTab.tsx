@@ -7,7 +7,7 @@ import {
 import {
 	CheckCircle, RadioButtonUnchecked, Delete, Add, ExpandMore, ExpandLess,
 	Assignment, Description, Groups, Call, RateReview, FactCheck,
-	Schedule, WarningAmber, NotificationsActiveOutlined,
+	Schedule, WarningAmber, NotificationsActiveOutlined, Lock,
 } from '@mui/icons-material';
 import { DatePicker } from '../../../../common/form';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
@@ -92,6 +92,8 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 	const isDark = theme.palette.mode === 'dark';
 	const toast = useToast();
 	const { leadTasks, leadTasksLoading, leadTaskMutating, owners, activeReminders } = useAppSelector((s) => s.crm);
+	// Once a lead converts to a deal, task management moves to the Deal — lock further changes here.
+	const isConverted = lead.status === 'converted';
 
 	useEffect(() => {
 		dispatch(fetchLeadTasks(lead.public_id));
@@ -123,6 +125,7 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 	const [reminderTask, setReminderTask] = useState<LeadTask | null>(null);
 
 	const handleStatusClick = (event: React.MouseEvent<HTMLDivElement>, task: LeadTask) => {
+		if (isConverted) return;
 		setStatusMenuAnchor(event.currentTarget);
 		setActiveMenuTask(task);
 	};
@@ -133,6 +136,7 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 	};
 
 	const handleStatusSelect = async (status: LeadTaskStatus) => {
+		if (isConverted) { handleStatusClose(); return; }
 		if (activeMenuTask) {
 			try {
 				await dispatch(updateLeadTask({ taskPublicId: activeMenuTask.public_id, payload: { status } })).unwrap();
@@ -154,6 +158,7 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 	});
 
 	const handleToggleComplete = async (task: LeadTask) => {
+		if (isConverted) return;
 		const newStatus: LeadTaskStatus = task.status === 'completed' ? 'pending' : 'completed';
 		try {
 			await dispatch(updateLeadTask({ taskPublicId: task.public_id, payload: { status: newStatus } })).unwrap();
@@ -163,6 +168,7 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 	};
 
 	const handleDelete = async (task: LeadTask) => {
+		if (isConverted) return;
 		try {
 			await dispatch(deleteLeadTask(task.public_id)).unwrap();
 			toast.success('Task deleted');
@@ -172,7 +178,7 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 	};
 
 	const handleAddTask = async () => {
-		if (!newTitle.trim()) return;
+		if (isConverted || !newTitle.trim()) return;
 		try {
 			await dispatch(createLeadTask({
 				leadPublicId: lead.public_id,
@@ -279,7 +285,27 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 					})}
 				</Stack>
 
-				{!addOpen && (
+				{isConverted ? (
+					<Tooltip title="This lead has been converted to a deal. Manage tasks on the deal instead.">
+						<Chip
+							icon={<Lock sx={{ fontSize: 13 }} />}
+							label="Converted — Read Only"
+							size="small"
+							sx={{
+								borderRadius: '8px',
+								fontWeight: 700,
+								fontSize: '0.7rem',
+								height: 28,
+								flexShrink: 0,
+								bgcolor: alpha(theme.palette.text.secondary, isDark ? 0.14 : 0.08),
+								color: 'text.secondary',
+								border: '1px solid',
+								borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+								'& .MuiChip-icon': { color: 'text.secondary' },
+							}}
+						/>
+					</Tooltip>
+				) : !addOpen && (
 					<Button
 						startIcon={<Add />}
 						onClick={() => setAddOpen(true)}
@@ -303,7 +329,7 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 			</Stack>
 
 			{/* Add task form */}
-			{addOpen && (
+			{addOpen && !isConverted && (
 				<Box sx={{ ...fc, border: '1px solid ' + alpha(theme.palette.primary.main, 0.3), bgcolor: isDark ? 'rgba(33,150,243,0.04)' : 'rgba(33,150,243,0.02)' }}>
 					<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.07em', display: 'block', mb: 1.5 }}>
 						New Task
@@ -429,14 +455,17 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 								}}
 							>
 								<Stack direction="row" alignItems="flex-start" spacing={1} sx={{ p: 1.5 }}>
-									<Tooltip title={isCompleted ? 'Mark as pending' : 'Mark as completed'}>
-										<IconButton
-											size="small"
-											onClick={() => handleToggleComplete(task)}
-											sx={{ color: isCompleted ? 'success.main' : 'text.disabled', mt: -0.25, flexShrink: 0, '&:hover': { color: 'success.main' } }}
-										>
-											{isCompleted ? <CheckCircle sx={{ fontSize: 20 }} /> : <RadioButtonUnchecked sx={{ fontSize: 20 }} />}
-										</IconButton>
+									<Tooltip title={isConverted ? 'Read only — lead has been converted' : (isCompleted ? 'Mark as pending' : 'Mark as completed')}>
+										<span>
+											<IconButton
+												size="small"
+												disabled={isConverted}
+												onClick={() => handleToggleComplete(task)}
+												sx={{ color: isCompleted ? 'success.main' : 'text.disabled', mt: -0.25, flexShrink: 0, '&:hover': { color: 'success.main' } }}
+											>
+												{isCompleted ? <CheckCircle sx={{ fontSize: 20 }} /> : <RadioButtonUnchecked sx={{ fontSize: 20 }} />}
+											</IconButton>
+										</span>
 									</Tooltip>
 									<Box sx={{ flex: 1, minWidth: 0 }}>
 										<Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap" useFlexGap>
@@ -500,7 +529,7 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 													height: 20,
 													fontSize: '0.65rem',
 													fontWeight: 700,
-													cursor: 'pointer',
+													cursor: isConverted ? 'default' : 'pointer',
 													bgcolor: task.status === 'completed'
 														? alpha(theme.palette.success.main, isDark ? 0.18 : 0.1)
 														: task.status === 'in_progress'
@@ -584,11 +613,13 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 												<NotificationsActiveOutlined sx={{ fontSize: 16 }} />
 											</IconButton>
 										</Tooltip>
-										<Tooltip title="Delete task">
-											<IconButton size="small" onClick={() => handleDelete(task)} sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}>
-												<Delete sx={{ fontSize: 16 }} />
-											</IconButton>
-										</Tooltip>
+										{!isConverted && (
+											<Tooltip title="Delete task">
+												<IconButton size="small" onClick={() => handleDelete(task)} sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}>
+													<Delete sx={{ fontSize: 16 }} />
+												</IconButton>
+											</Tooltip>
+										)}
 									</Stack>
 								</Stack>
 								<Collapse in={isExpanded && !!task.notes}>

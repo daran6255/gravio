@@ -1360,6 +1360,8 @@ class CRMService:
         lead = await CRMLeadRepository.get_by_public_id(db, lead_public_id)
         if not lead:
             raise NotFoundError("Lead not found")
+        if lead.status == LeadStatus.CONVERTED:
+            raise BadRequestError("Lead has been converted — add tasks on the deal instead")
 
         task = await CRMLeadTaskRepository.create(
             db,
@@ -1402,6 +1404,9 @@ class CRMService:
         task = await CRMLeadTaskRepository.get_by_public_id(db, task_public_id)
         if not task or task.is_deleted:
             raise NotFoundError("Task not found")
+        lead = await CRMLeadRepository.get_by_id(db, task.lead_id)
+        if lead and lead.status == LeadStatus.CONVERTED:
+            raise BadRequestError("Lead has been converted — its tasks are read-only")
 
         update_data = payload.model_dump(exclude_unset=True)
 
@@ -1447,5 +1452,8 @@ class CRMService:
         task = await CRMLeadTaskRepository.get_by_public_id(db, task_public_id)
         if not task or task.is_deleted:
             raise NotFoundError("Task not found")
+        lead = await CRMLeadRepository.get_by_id(db, task.lead_id)
+        if lead and lead.status == LeadStatus.CONVERTED:
+            raise BadRequestError("Lead has been converted — its tasks are read-only")
         await CRMLeadTaskRepository.delete(db, task)
         await db.commit()
