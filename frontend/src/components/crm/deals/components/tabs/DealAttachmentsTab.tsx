@@ -3,6 +3,7 @@ import { Box, Typography, Stack, Button, CircularProgress, IconButton, useTheme 
 import { CalendarToday, DeleteOutline } from '@mui/icons-material';
 import crmService from '../../../../../services/crmService';
 import useToast from '../../../../../hooks/useToast';
+import useDateTime from '../../../../../hooks/useDateTime';
 import { MAX_FILE_SIZE_BYTES, ALLOWED_UPLOAD_MIME_TYPES } from '../../../../../constants/fileUpload';
 import type { Deal } from '../../../../../models/crm/deal';
 import type { CRMFile } from '../../../../../models/crm/crmFile';
@@ -15,6 +16,7 @@ export const DealAttachmentsTab: React.FC<DealAttachmentsTabProps> = ({ deal }) 
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const toast = useToast();
+	const { formatDateTime } = useDateTime();
 
 	const [files, setFiles] = useState<CRMFile[]>([]);
 	const [filesLoading, setFilesLoading] = useState(false);
@@ -131,7 +133,7 @@ export const DealAttachmentsTab: React.FC<DealAttachmentsTabProps> = ({ deal }) 
 								<Box sx={{ minWidth: 0 }}>
 									<Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>{file.file_name}</Typography>
 									<Typography variant="caption" color="text.secondary">
-										{(file.file_size / 1024).toFixed(1)} KB • {new Date(file.created_at).toLocaleDateString()}
+										{(file.file_size / 1024).toFixed(1)} KB • {formatDateTime(file.created_at)}
 									</Typography>
 								</Box>
 							</Stack>

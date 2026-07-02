@@ -8,6 +8,7 @@ import { Timeline, type TimelineItemDef } from '../../common/timeline';
 import { RichTextViewer } from '../../common/form';
 import { SetReminderDialog } from './SetReminderDialog';
 import { getNextReminderByEntityId, formatReminderTime } from '../../../utils/reminders';
+import useDateTime from '../../../hooks/useDateTime';
 
 const TONES: Record<CRMActivityType, { icon: React.ReactNode; color: string; bgColor: string; borderColor: string }> = {
 	note: {
@@ -57,30 +58,6 @@ const PREFIXES: Record<CRMActivityType, string> = {
 	whatsapp: 'WhatsApp Message',
 };
 
-const formatDate = (iso: string) => {
-	const date = new Date(iso);
-	const now = new Date();
-	
-	const timeString = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-	const isToday = date.toDateString() === now.toDateString();
-	
-	const yesterday = new Date(now);
-	yesterday.setDate(now.getDate() - 1);
-	const isYesterday = date.toDateString() === yesterday.toDateString();
-
-	if (isToday) {
-		return `Today, ${timeString}`;
-	}
-	if (isYesterday) {
-		return `Yesterday, ${timeString}`;
-	}
-	
-	return date.toLocaleDateString(undefined, {
-		month: 'short',
-		day: 'numeric',
-	}) + `, ${timeString}`;
-};
-
 const getOutcomeColor = (outcome: string): 'success' | 'info' | 'primary' | 'warning' | 'error' | 'default' => {
 	switch (outcome) {
 		case 'Connected':
@@ -113,6 +90,7 @@ export const NotesTimeline: React.FC<NotesTimelineProps> = ({ activities, loadin
 	const dispatch = useAppDispatch();
 	const { activeReminders } = useAppSelector((state) => state.crm);
 	const [reminderActivity, setReminderActivity] = useState<CRMActivity | null>(null);
+	const { formatDateTime } = useDateTime();
 
 	const activityIds = useMemo(() => activities.map((a) => a.id), [activities]);
 	useEffect(() => {
@@ -124,7 +102,7 @@ export const NotesTimeline: React.FC<NotesTimelineProps> = ({ activities, loadin
 	const remindersByActivityId = useMemo(() => getNextReminderByEntityId(activeReminders), [activeReminders]);
 
 	const timelineItems: TimelineItemDef[] = activities.map((activity) => {
-		const formattedDue = activity.due_date ? `Due ${formatDate(activity.due_date)}` : '';
+		const formattedDue = activity.due_date ? `Due ${formatDateTime(activity.due_date)}` : '';
 		const entityInfo = showEntityType ? `On ${activity.entity_type} #${activity.entity_id}` : '';
 		const subtitleParts = [entityInfo, formattedDue].filter(Boolean);
 		const subtitle = subtitleParts.length > 0 ? subtitleParts.join(' · ') : undefined;
@@ -141,7 +119,7 @@ export const NotesTimeline: React.FC<NotesTimelineProps> = ({ activities, loadin
 			title,
 			subtitle,
 			description: activity.description ? <RichTextViewer html={activity.description} /> : undefined,
-			timestamp: formatDate(activity.created_at),
+			timestamp: formatDateTime(activity.created_at),
 			icon: tone.icon,
 			iconColor: tone.color,
 			iconBgColor: tone.bgColor,

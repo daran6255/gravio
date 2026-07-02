@@ -14,6 +14,7 @@ import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
 import { fetchLeadTasks, createLeadTask, updateLeadTask, deleteLeadTask, fetchActiveReminders } from '../../../../../store/slices/crmSlice';
 import useToast from '../../../../../hooks/useToast';
 import { SetReminderDialog } from '../../../shared';
+import useDateTime from '../../../../../hooks/useDateTime';
 import { getNextReminderByEntityId, formatReminderTime } from '../../../../../utils/reminders';
 import type { Lead } from '../../../../../models/crm/lead';
 import type { LeadTask, LeadTaskStatus, LeadTaskType, LeadTaskPriority } from '../../../../../models/crm/leadTask';
@@ -81,15 +82,28 @@ const isOverdue = (task: LeadTask): boolean => {
 	return new Date(task.due_date) < new Date();
 };
 
-const formatDate = (dateStr?: string): string => {
-	if (!dateStr) return '';
-	return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-};
-
 export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 	const dispatch = useAppDispatch();
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const { formatDate: dtFormatDate } = useDateTime();
+
+	const INPUT_FIELD_SX = {
+		'& .MuiOutlinedInput-root': {
+			borderRadius: '10px',
+			bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#ffffff',
+			'& fieldset': {
+				borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+			},
+			'&:hover fieldset': {
+				borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+			},
+			'&.Mui-focused fieldset': {
+				borderColor: 'primary.main',
+				borderWidth: '1.5px',
+			},
+		}
+	};
 	const toast = useToast();
 	const { leadTasks, leadTasksLoading, leadTaskMutating, owners, activeReminders } = useAppSelector((s) => s.crm);
 	// Once a lead converts to a deal, task management moves to the Deal — lock further changes here.
@@ -344,6 +358,7 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 							autoFocus
 							placeholder="e.g. Qualification Call"
 							slotProps={{ htmlInput: { maxLength: 255 } }}
+							sx={INPUT_FIELD_SX}
 						/>
 						<Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
 							<TextField
@@ -352,7 +367,7 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 								value={newType}
 								onChange={(e) => setNewType(e.target.value as LeadTaskType)}
 								size="small"
-								sx={{ minWidth: 130 }}
+								sx={{ minWidth: 130, ...INPUT_FIELD_SX }}
 							>
 								{TASK_TYPE_OPTIONS.map((o) => (
 									<MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
@@ -364,7 +379,7 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 								value={newPriority}
 								onChange={(e) => setNewPriority(e.target.value as LeadTaskPriority)}
 								size="small"
-								sx={{ minWidth: 120 }}
+								sx={{ minWidth: 120, ...INPUT_FIELD_SX }}
 							>
 								<MenuItem value="low">Low</MenuItem>
 								<MenuItem value="medium">Medium</MenuItem>
@@ -375,6 +390,7 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 								label="Due Date"
 								value={newDueDate}
 								onChange={(newValue) => setNewDueDate(newValue)}
+								textFieldProps={{ sx: INPUT_FIELD_SX }}
 							/>
 						</Stack>
 						<TextField
@@ -384,6 +400,7 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 							onChange={(e) => setNewAssignee(e.target.value ? Number(e.target.value) : '')}
 							size="small"
 							fullWidth
+							sx={INPUT_FIELD_SX}
 						>
 							<MenuItem value="">Unassigned</MenuItem>
 							{owners.map((o) => (
@@ -399,6 +416,7 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 							multiline
 							rows={2}
 							placeholder="Additional details..."
+							sx={INPUT_FIELD_SX}
 						/>
 						<Stack direction="row" spacing={1} justifyContent="flex-end">
 							<Button size="small" onClick={() => { setAddOpen(false); setNewTitle(''); }} sx={{ textTransform: 'none', fontWeight: 600 }}>
@@ -409,7 +427,22 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 								variant="contained"
 								onClick={handleAddTask}
 								disabled={!newTitle.trim() || leadTaskMutating}
-								sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px', minWidth: 80 }}
+								sx={{
+									textTransform: 'none',
+									fontWeight: 700,
+									borderRadius: '8px',
+									minWidth: 80,
+									background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
+									boxShadow: '0 2px 8px rgba(139, 124, 246, 0.25)',
+									'&:hover': {
+										background: 'linear-gradient(135deg, #7c6cf0 0%, #5548c9 100%)',
+										boxShadow: '0 4px 12px rgba(139, 124, 246, 0.35)',
+									},
+									'&.Mui-disabled': {
+										background: 'none',
+										boxShadow: 'none',
+									},
+								}}
 							>
 								{leadTaskMutating ? <CircularProgress size={16} color="inherit" /> : 'Add'}
 							</Button>
@@ -569,7 +602,7 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 												<Stack direction="row" spacing={0.4} alignItems="center">
 													<Schedule sx={{ fontSize: 13, color: overdue ? 'error.main' : 'text.disabled' }} />
 													<Typography variant="caption" sx={{ color: overdue ? 'error.main' : 'text.secondary', fontWeight: 500 }}>
-														{formatDate(task.due_date)}
+														{dtFormatDate(task.due_date)}
 													</Typography>
 												</Stack>
 											)}

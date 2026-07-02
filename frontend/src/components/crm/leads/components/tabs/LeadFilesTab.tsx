@@ -3,6 +3,7 @@ import { Box, Typography, Stack, CircularProgress, IconButton, useTheme, Tooltip
 import { InsertDriveFileOutlined, CloudUploadOutlined, GetApp, DeleteOutline, HelpOutline, Image, PictureAsPdf, Description, GridOn, InsertDriveFile } from '@mui/icons-material';
 import crmService from '../../../../../services/crmService';
 import useToast from '../../../../../hooks/useToast';
+import useDateTime from '../../../../../hooks/useDateTime';
 import { MAX_FILE_SIZE_BYTES, ALLOWED_UPLOAD_MIME_TYPES } from '../../../../../constants/fileUpload';
 import PremiumTooltip from '../../../../common/PremiumTooltip';
 import type { Lead } from '../../../../../models/crm/lead';
@@ -39,6 +40,7 @@ const getFileIcon = (mime: string) => {
 export const LeadFilesTab: React.FC<LeadFilesTabProps> = ({ lead }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const { formatDateTime } = useDateTime();
 	const toast = useToast();
 
 	const [files, setFiles] = useState<CRMFile[]>([]);
@@ -246,7 +248,7 @@ export const LeadFilesTab: React.FC<LeadFilesTabProps> = ({ lead }) => {
 										{f.file_name}
 									</Typography>
 									<Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-										{formatFileSize(f.file_size)} • {new Date(f.created_at).toLocaleDateString()}
+										{formatFileSize(f.file_size)} • {formatDateTime(f.created_at)}
 									</Typography>
 								</Box>
 							</Stack>

@@ -4,6 +4,7 @@ import { Business, Person, LocalOffer, Payments, TrendingUp, Launch, Phone, Cont
 import { useAppSelector } from '../../../../../store/hooks';
 import { RichTextViewer } from '../../../../common/form';
 import useToast from '../../../../../hooks/useToast';
+import useDateTime from '../../../../../hooks/useDateTime';
 import type { Lead } from '../../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
 
@@ -37,6 +38,7 @@ export const LeadOverviewTab: React.FC<LeadOverviewTabProps> = ({ lead, owners }
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const toast = useToast();
+	const { formatDateTime } = useDateTime();
 
 	const { companyOptions, contactOptions } = useAppSelector((state) => state.crm);
 
@@ -311,13 +313,13 @@ export const LeadOverviewTab: React.FC<LeadOverviewTabProps> = ({ lead, owners }
 					<Grid size={{ xs: 6 }}>
 						<Typography variant="caption" sx={labelSx}>Created On</Typography>
 						<Typography variant="body2" sx={{ fontWeight: 600 }}>
-							{new Date(lead.created_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+							{formatDateTime(lead.created_at)}
 						</Typography>
 					</Grid>
 					<Grid size={{ xs: 6 }}>
 						<Typography variant="caption" sx={labelSx}>Last Updated</Typography>
 						<Typography variant="body2" sx={{ fontWeight: 600 }}>
-							{new Date(lead.updated_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+							{formatDateTime(lead.updated_at)}
 						</Typography>
 					</Grid>
 					<Grid size={{ xs: 6 }}>

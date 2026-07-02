@@ -4,6 +4,7 @@ import { History as HistoryIcon, HelpOutline, Add, PersonOff, SwapHoriz, CheckCi
 import PremiumTooltip from '../../../../common/PremiumTooltip';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
 import { fetchLeadHistory } from '../../../../../store/slices/crmSlice';
+import useDateTime from '../../../../../hooks/useDateTime';
 import type { Lead } from '../../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
 import type { LeadHistoryEntry } from '../../../../../models/crm/lead';
@@ -13,15 +14,11 @@ interface LeadHistoryTabProps {
 	owners: CRMOwnerOption[];
 }
 
-const formatDate = (dateString: string) => {
-	const d = new Date(dateString);
-	return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-};
-
 export const LeadHistoryTab: React.FC<LeadHistoryTabProps> = ({ lead, owners }) => {
 	const dispatch = useAppDispatch();
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const { formatDateTime } = useDateTime();
 	const { leadHistory, leadHistoryLoading } = useAppSelector((state) => state.crm);
 
 	useEffect(() => {
@@ -147,7 +144,7 @@ export const LeadHistoryTab: React.FC<LeadHistoryTabProps> = ({ lead, owners }) 
 										<strong style={{ color: theme.palette.text.primary, marginRight: 6 }}>{actorName}</strong>
 										{getFieldChangeDescription(h)}
 										<span style={{ color: theme.palette.text.disabled, marginLeft: 6, fontSize: '0.75rem' }}>
-											on {formatDate(h.changed_at)}
+											on {formatDateTime(h.changed_at)}
 										</span>
 									</Typography>
 								</Box>

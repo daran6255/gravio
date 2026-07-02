@@ -4,6 +4,7 @@ import { Language, Phone, Email, LocationOn, Launch, Handshake, Groups, LocalOff
 import type { Company } from '../../../../../models/crm/company';
 import type { Deal } from '../../../../../models/crm/deal';
 import type { Contact } from '../../../../../models/crm/contact';
+import useDateTime from '../../../../../hooks/useDateTime';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
 
 interface CompanyDetailsTabProps {
@@ -18,6 +19,7 @@ interface CompanyDetailsTabProps {
 export const CompanyDetailsTab: React.FC<CompanyDetailsTabProps> = ({
 	company, address, owners, linkedDeals, linkedContacts, onNavigateTab,
 }) => {
+	const { formatDateTime } = useDateTime();
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const displayId = `CO-${String(company.id).padStart(5, '0')}`;
@@ -321,13 +323,13 @@ export const CompanyDetailsTab: React.FC<CompanyDetailsTabProps> = ({
 					<Grid size={{ xs: 6 }}>
 						<Typography variant="caption" sx={labelSx}>Created On</Typography>
 						<Typography variant="body2" sx={{ fontWeight: 600 }}>
-							{new Date(company.created_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+							{formatDateTime(company.created_at)}
 						</Typography>
 					</Grid>
 					<Grid size={{ xs: 6 }}>
 						<Typography variant="caption" sx={labelSx}>Last Updated</Typography>
 						<Typography variant="body2" sx={{ fontWeight: 600 }}>
-							{new Date(company.updated_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+							{formatDateTime(company.updated_at)}
 						</Typography>
 					</Grid>
 				</Grid>

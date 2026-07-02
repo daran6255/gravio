@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Box, TextField, Button, Stack, Divider, CircularProgress, ToggleButtonGroup, ToggleButton, Tabs, Tab, IconButton, Tooltip } from '@mui/material';
-import { Notes, Call, Email, Groups, AttachFile, AlternateEmail } from '@mui/icons-material';
+import { Box, Typography, Button, Stack, Divider, CircularProgress, ToggleButtonGroup, ToggleButton, Tabs, Tab, IconButton, Tooltip, useTheme, alpha } from '@mui/material';
+import { Notes, Call, Email, Groups, AttachFile, AlternateEmail, RadioButtonUnchecked, CheckCircle } from '@mui/icons-material';
 import { useAppDispatch } from '../../../store/hooks';
 import { createActivity } from '../../../store/slices/crmSlice';
 import type { CRMActivityType, CRMActivityEntityType } from '../../../models/crm/crmActivity';
 import useToast from '../../../hooks/useToast';
+import { DateTimePicker } from '../../common/form';
 import { NoteTab, CallTab, EmailTab, MeetingTab } from './tabs';
 
-const TYPE_OPTIONS: { value: CRMActivityType; label: string; icon: React.ReactElement }[] = [
-	{ value: 'note', label: 'Note', icon: <Notes fontSize="small" /> },
-	{ value: 'call', label: 'Call', icon: <Call fontSize="small" /> },
-	{ value: 'email', label: 'Email', icon: <Email fontSize="small" /> },
-	{ value: 'meeting', label: 'Meeting', icon: <Groups fontSize="small" /> },
-];
+type ComposableType = 'note' | 'call' | 'email' | 'meeting';
 
-const COMPACT_TYPE_OPTIONS = TYPE_OPTIONS;
+const TYPE_META: Record<ComposableType, { icon: React.ReactElement; label: string; color: string; subtitle: string }> = {
+	note: { icon: <Notes fontSize="small" />, label: 'Note', color: '#10B981', subtitle: 'Capture context, a summary, or an internal remark.' },
+	call: { icon: <Call fontSize="small" />, label: 'Call', color: '#8B5CF6', subtitle: 'Record the outcome of a phone conversation.' },
+	email: { icon: <Email fontSize="small" />, label: 'Email', color: '#3B82F6', subtitle: 'Track an email that was sent or received.' },
+	meeting: { icon: <Groups fontSize="small" />, label: 'Meeting', color: '#EC4899', subtitle: 'Capture the agenda, notes, and outcome.' },
+};
+
+const TYPE_OPTIONS = (Object.keys(TYPE_META) as ComposableType[]).map((value) => ({ value, ...TYPE_META[value] }));
 
 const SAVE_LABEL: Record<CRMActivityType, string> = {
 	note: 'Save Note',
@@ -23,6 +26,25 @@ const SAVE_LABEL: Record<CRMActivityType, string> = {
 	meeting: 'Log Meeting',
 	task: 'Log Task',
 	whatsapp: 'Log WhatsApp',
+};
+
+const GRADIENT_BUTTON_SX = {
+	borderRadius: '8px',
+	textTransform: 'none' as const,
+	fontWeight: 700,
+	py: 0.5,
+	px: 1.5,
+	fontSize: '0.75rem',
+	background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
+	boxShadow: '0 2px 8px rgba(139, 124, 246, 0.25)',
+	'&:hover': {
+		background: 'linear-gradient(135deg, #7c6cf0 0%, #5548c9 100%)',
+		boxShadow: '0 4px 12px rgba(139, 124, 246, 0.35)',
+	},
+	'&.Mui-disabled': {
+		background: 'none',
+		boxShadow: 'none',
+	},
 };
 
 interface NotesComposerProps {
@@ -35,24 +57,20 @@ interface NotesComposerProps {
 }
 
 export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entityId, onCreated, variant = 'standard', defaultType }) => {
-	const getLocalDateTimeString = () => {
-		const now = new Date();
-		const offset = now.getTimezoneOffset();
-		const localDate = new Date(now.getTime() - offset * 60 * 1000);
-		return localDate.toISOString().slice(0, 16);
-	};
-
+	const theme = useTheme();
+	const isDark = theme.palette.mode === 'dark';
 	const dispatch = useAppDispatch();
 	const toast = useToast();
 	const [type, setType] = useState<CRMActivityType>(defaultType || 'note');
 	const [subject, setSubject] = useState('');
 	const [description, setDescription] = useState('');
-	const [dueDate, setDueDate] = useState(getLocalDateTimeString());
+	const [dueDate, setDueDate] = useState(new Date().toISOString());
 	const [isCompleted, setIsCompleted] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
 	const [direction, setDirection] = useState<string>('Outbound');
 	const [outcome, setOutcome] = useState('Connected');
 	const compact = variant === 'compact';
+	const activeMeta = TYPE_META[type as ComposableType] ?? TYPE_META.note;
 
 	// Auto-draft preservation
 	useEffect(() => {
@@ -145,14 +163,14 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 				description: (['call', 'email', 'meeting'].includes(type) ? description.trim() : hasDescriptionContent ? description : undefined),
 				entity_type: entityType,
 				entity_id: entityId,
-				due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
+				due_date: dueDate || undefined,
 				is_completed: type !== 'note' ? isCompleted : undefined,
 				outcome: ['call', 'email', 'meeting'].includes(type) ? outcome : undefined,
 				custom_fields: ['call', 'email', 'meeting'].includes(type) ? { direction } : undefined,
 			})).unwrap();
 			setSubject('');
 			setDescription('');
-			setDueDate(getLocalDateTimeString());
+			setDueDate(new Date().toISOString());
 			setIsCompleted(false);
 			setDirection(type === 'email' ? 'Sent' : type === 'meeting' ? 'Online' : 'Outbound');
 			setOutcome(type === 'email' ? 'Sent' : type === 'meeting' ? 'Scheduled' : 'Connected');
@@ -164,6 +182,77 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 			setSubmitting(false);
 		}
 	};
+
+	const segmentedTypeSelectorSx = {
+		p: 0.5,
+		bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+		borderRadius: '12px',
+		gap: 0.5,
+		flexWrap: 'wrap' as const,
+		'& .MuiToggleButtonGroup-grouped': {
+			border: 'none !important',
+			borderRadius: '9px !important',
+			marginLeft: '0px !important',
+			textTransform: 'none',
+			px: 1.75,
+			py: 0.75,
+			fontWeight: 700,
+			fontSize: '0.8rem',
+			color: 'text.secondary',
+			gap: 0.75,
+			transition: 'all 0.2s ease',
+			'&:hover': {
+				bgcolor: alpha(theme.palette.text.primary, 0.05),
+			},
+		},
+	};
+
+	const renderStatusToggle = (mb?: number) => (
+		<ToggleButtonGroup
+			value={isCompleted}
+			exclusive
+			onChange={(_e, value) => {
+				if (value !== null) setIsCompleted(value);
+			}}
+			size="small"
+			sx={{
+				mb,
+				gap: 1,
+				'& .MuiToggleButtonGroup-grouped': {
+					border: '1px solid',
+					borderRadius: '10px !important',
+					textTransform: 'none',
+					px: 1.5,
+					fontWeight: 700,
+					fontSize: '0.76rem',
+					gap: 0.5,
+				},
+			}}
+		>
+			<ToggleButton
+				value={false}
+				sx={{
+					borderColor: !isCompleted ? 'warning.main' : 'divider',
+					color: !isCompleted ? 'warning.main' : 'text.secondary',
+					bgcolor: !isCompleted ? alpha(theme.palette.warning.main, isDark ? 0.14 : 0.08) : 'transparent',
+				}}
+			>
+				<RadioButtonUnchecked sx={{ fontSize: 14 }} />
+				Pending
+			</ToggleButton>
+			<ToggleButton
+				value={true}
+				sx={{
+					borderColor: isCompleted ? 'success.main' : 'divider',
+					color: isCompleted ? 'success.main' : 'text.secondary',
+					bgcolor: isCompleted ? alpha(theme.palette.success.main, isDark ? 0.16 : 0.1) : 'transparent',
+				}}
+			>
+				<CheckCircle sx={{ fontSize: 14 }} />
+				Completed
+			</ToggleButton>
+		</ToggleButtonGroup>
+	);
 
 	if (compact) {
 		return (
@@ -199,7 +288,7 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 						},
 					}}
 				>
-					{COMPACT_TYPE_OPTIONS.map((opt) => (
+					{TYPE_OPTIONS.map((opt) => (
 						<Tab key={opt.value} value={opt.value} icon={opt.icon} iconPosition="start" label={opt.label} />
 					))}
 				</Tabs>
@@ -218,6 +307,7 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 						outcome={outcome}
 						setOutcome={setOutcome}
 						compact={compact}
+						accentColor={TYPE_META.call.color}
 					/>
 				)}
 				{type === 'email' && (
@@ -231,6 +321,7 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 						outcome={outcome}
 						setOutcome={setOutcome}
 						compact={compact}
+						accentColor={TYPE_META.email.color}
 					/>
 				)}
 				{type === 'meeting' && (
@@ -245,61 +336,39 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 						setOutcome={setOutcome}
 						setIsCompleted={setIsCompleted}
 						compact={compact}
+						accentColor={TYPE_META.meeting.color}
 					/>
 				)}
 				{(type === 'meeting' || type === 'call' || type === 'email') && (
-					<TextField
-						type="datetime-local"
+					<DateTimePicker
 						label={getDateLabel()}
-						value={dueDate}
-						onChange={(e) => setDueDate(e.target.value)}
+						value={dueDate || null}
+						onChange={setDueDate}
 						size="small"
 						fullWidth
-						InputLabelProps={{ shrink: true }}
-						sx={{ mb: 1.5 }}
-					/>
-				)}
-
-				{type !== 'note' && (
-					<ToggleButtonGroup
-						value={isCompleted}
-						exclusive
-						onChange={(_e, value) => {
-							if (value !== null) setIsCompleted(value);
-						}}
-						size="small"
-						sx={{
-							mb: 1.5,
-							gap: 1,
-							'& .MuiToggleButtonGroup-grouped': {
-								border: '1px solid !important',
-								borderColor: 'divider',
-								borderRadius: '8px !important',
-								marginLeft: '0px !important',
-								textTransform: 'none',
-								px: 2,
-								fontWeight: 600,
-								color: 'text.secondary',
-								backgroundColor: 'background.paper',
-								transition: 'all 0.2s ease',
-								'&.Mui-selected': {
-									backgroundColor: 'primary.main',
-									color: '#ffffff',
-									borderColor: 'primary.main',
-									'&:hover': {
-										backgroundColor: 'primary.dark',
-									}
-								},
-								'&:hover': {
-									backgroundColor: 'action.hover',
+						textFieldProps={{
+							sx: {
+								mb: 1.5,
+								'& .MuiOutlinedInput-root': {
+									borderRadius: '10px',
+									bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#ffffff',
+									'& fieldset': {
+										borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+									},
+									'&:hover fieldset': {
+										borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+									},
+									'&.Mui-focused fieldset': {
+										borderColor: 'primary.main',
+										borderWidth: '1.5px',
+									},
 								}
 							}
 						}}
-					>
-						<ToggleButton value={false}>Pending</ToggleButton>
-						<ToggleButton value={true}>Completed</ToggleButton>
-					</ToggleButtonGroup>
+					/>
 				)}
+
+				{type !== 'note' && renderStatusToggle(1.5)}
 
 				<Divider sx={{ mb: 1 }} />
 
@@ -318,7 +387,7 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 						size="small"
 						disabled={isButtonDisabled || submitting}
 						onClick={handleSubmit}
-						sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px' }}
+						sx={GRADIENT_BUTTON_SX}
 					>
 						{submitting ? <CircularProgress size={18} color="inherit" /> : SAVE_LABEL[type]}
 					</Button>
@@ -329,11 +398,12 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 
 	return (
 		<Box sx={{
-			p: 2,
-			borderRadius: '14px',
+			p: 2.5,
+			borderRadius: '16px',
 			border: '1px solid',
 			borderColor: 'divider',
 			bgcolor: 'background.default',
+			boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 4px 20px rgba(0,0,0,0.04)',
 		}}>
 			<ToggleButtonGroup
 				value={type}
@@ -349,15 +419,32 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 					}
 				}}
 				size="small"
-				sx={{ mb: 1.5, flexWrap: 'wrap', gap: 0.5, '& .MuiToggleButtonGroup-grouped': { border: '1px solid', borderColor: 'divider', borderRadius: '8px !important' } }}
+				sx={segmentedTypeSelectorSx}
 			>
 				{TYPE_OPTIONS.map((opt) => (
-					<ToggleButton key={opt.value} value={opt.value} sx={{ textTransform: 'none', px: 1.25, gap: 0.5 }}>
+					<ToggleButton
+						key={opt.value}
+						value={opt.value}
+						sx={{
+							'&.Mui-selected': {
+								bgcolor: alpha(opt.color, isDark ? 0.18 : 0.1),
+								color: opt.color,
+								boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
+								'&:hover': {
+									bgcolor: alpha(opt.color, isDark ? 0.24 : 0.14),
+								},
+							},
+						}}
+					>
 						{opt.icon}
 						{opt.label}
 					</ToggleButton>
 				))}
 			</ToggleButtonGroup>
+
+			<Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mt: 1.25, mb: 2 }}>
+				{activeMeta.subtitle}
+			</Typography>
 
 			{type === 'note' && (
 				<NoteTab description={description} setDescription={setDescription} compact={compact} />
@@ -373,6 +460,7 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 					outcome={outcome}
 					setOutcome={setOutcome}
 					compact={compact}
+					accentColor={TYPE_META.call.color}
 				/>
 			)}
 			{type === 'email' && (
@@ -386,6 +474,7 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 					outcome={outcome}
 					setOutcome={setOutcome}
 					compact={compact}
+					accentColor={TYPE_META.email.color}
 				/>
 			)}
 			{type === 'meeting' && (
@@ -400,35 +489,49 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 					setOutcome={setOutcome}
 					setIsCompleted={setIsCompleted}
 					compact={compact}
+					accentColor={TYPE_META.meeting.color}
 				/>
 			)}
-			<Stack direction="row" spacing={1.5} alignItems="center" justifyContent="space-between">
-				<Stack direction="row" spacing={1.5} alignItems="center">
+			<Stack
+				direction="row"
+				spacing={1.5}
+				alignItems="center"
+				justifyContent="space-between"
+				flexWrap="wrap"
+				useFlexGap
+				sx={{ pt: 2, mt: 0.5, borderTop: '1px solid', borderColor: 'divider' }}
+			>
+				<Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
 					{(type === 'meeting' || type === 'call' || type === 'email') && (
-						<TextField
-							type="datetime-local"
+						<DateTimePicker
 							label={getDateLabel()}
-							value={dueDate}
-							onChange={(e) => setDueDate(e.target.value)}
+							value={dueDate || null}
+							onChange={setDueDate}
 							size="small"
-							InputLabelProps={{ shrink: true }}
+							fullWidth={false}
+							textFieldProps={{
+								sx: {
+									minWidth: 220,
+									'& .MuiOutlinedInput-root': {
+										borderRadius: '10px',
+										bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#ffffff',
+										'& fieldset': {
+											borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+										},
+										'&:hover fieldset': {
+											borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+										},
+										'&.Mui-focused fieldset': {
+											borderColor: 'primary.main',
+											borderWidth: '1.5px',
+										},
+									}
+								}
+							}}
 						/>
 					)}
 
-					{type !== 'note' && (
-						<ToggleButtonGroup
-							value={isCompleted}
-							exclusive
-							onChange={(_e, value) => {
-								if (value !== null) setIsCompleted(value);
-							}}
-							size="small"
-							sx={{ '& .MuiToggleButtonGroup-grouped': { border: '1px solid', borderColor: 'divider', borderRadius: '8px !important', textTransform: 'none', px: 1.25 } }}
-						>
-							<ToggleButton value={false}>Pending</ToggleButton>
-							<ToggleButton value={true}>Completed</ToggleButton>
-						</ToggleButtonGroup>
-					)}
+					{type !== 'note' && renderStatusToggle()}
 				</Stack>
 
 				<Button
@@ -436,9 +539,9 @@ export const NotesComposer: React.FC<NotesComposerProps> = ({ entityType, entity
 					size="small"
 					disabled={isButtonDisabled || submitting}
 					onClick={handleSubmit}
-					sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px' }}
+					sx={GRADIENT_BUTTON_SX}
 				>
-					{submitting ? <CircularProgress size={18} color="inherit" /> : 'Log Activity'}
+					{submitting ? <CircularProgress size={18} color="inherit" /> : SAVE_LABEL[type]}
 				</Button>
 			</Stack>
 		</Box>

@@ -12,6 +12,7 @@ import { updateDeal, fetchActiveReminders } from '../../../../../store/slices/cr
 import useToast from '../../../../../hooks/useToast';
 import { RichTextViewer, DatePicker } from '../../../../common/form';
 import { SetReminderDialog } from '../../../shared';
+import useDateTime from '../../../../../hooks/useDateTime';
 import { formatReminderTime } from '../../../../../utils/reminders';
 import type { Deal } from '../../../../../models/crm/deal';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
@@ -47,6 +48,7 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const toast = useToast();
+	const { formatDateTime } = useDateTime();
 
 	const { companyOptions, contactOptions, activeReminders } = useAppSelector((state) => state.crm);
 
@@ -383,13 +385,13 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 					<Grid size={{ xs: 6 }}>
 						<Typography variant="caption" sx={labelSx}>Created On</Typography>
 						<Typography variant="body2" sx={{ fontWeight: 600 }}>
-							{new Date(deal.created_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+							{formatDateTime(deal.created_at)}
 						</Typography>
 					</Grid>
 					<Grid size={{ xs: 6 }}>
 						<Typography variant="caption" sx={labelSx}>Last Updated</Typography>
 						<Typography variant="body2" sx={{ fontWeight: 600 }}>
-							{new Date(deal.updated_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+							{formatDateTime(deal.updated_at)}
 						</Typography>
 					</Grid>
 					<Grid size={{ xs: 6 }}>
