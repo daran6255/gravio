@@ -975,6 +975,22 @@ async def list_reminders_endpoint(
 
 
 @router.get(
+    "/reminders/for-entities",
+    response_model=list[CRMReminderResponse],
+    summary="List active reminders across a batch of records (powers list-view badges)",
+)
+async def list_reminders_for_entities_endpoint(
+    entity_type: str = Query(...),
+    entity_ids: str = Query(..., description="Comma-separated entity ids"),
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> list[CRMReminderResponse]:
+    ids = [int(x) for x in entity_ids.split(",") if x.strip()]
+    reminders = await ReminderService.list_active_reminders_for_entities(db, entity_type=entity_type, entity_ids=ids)
+    return [CRMReminderResponse.model_validate(r) for r in reminders]
+
+
+@router.get(
     "/reminders/mine",
     response_model=list[CRMReminderResponse],
     summary="List the current user's upcoming reminders",

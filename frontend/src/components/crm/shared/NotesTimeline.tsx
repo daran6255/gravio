@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Chip, IconButton, Tooltip } from '@mui/material';
 import { Notes, Call, Email, Groups, CheckCircleOutline, WhatsApp, DeleteOutline, NotificationsActiveOutlined } from '@mui/icons-material';
 import type { CRMActivity, CRMActivityType } from '../../../models/crm/crmActivity';
-import { useAppDispatch } from '../../../store/hooks';
-import { updateActivity, deleteActivity } from '../../../store/slices/crmSlice';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { updateActivity, deleteActivity, fetchActiveReminders } from '../../../store/slices/crmSlice';
 import { Timeline, type TimelineItemDef } from '../../common/timeline';
 import { RichTextViewer } from '../../common/form';
 import { SetReminderDialog } from './SetReminderDialog';
+import { getNextReminderByEntityId, formatReminderTime } from '../../../utils/reminders';
 
 const TONES: Record<CRMActivityType, { icon: React.ReactNode; color: string; bgColor: string; borderColor: string }> = {
 	note: {
@@ -110,7 +111,17 @@ interface NotesTimelineProps {
 
 export const NotesTimeline: React.FC<NotesTimelineProps> = ({ activities, loading, showEntityType }) => {
 	const dispatch = useAppDispatch();
+	const { activeReminders } = useAppSelector((state) => state.crm);
 	const [reminderActivity, setReminderActivity] = useState<CRMActivity | null>(null);
+
+	const activityIds = useMemo(() => activities.map((a) => a.id), [activities]);
+	useEffect(() => {
+		if (activityIds.length > 0) {
+			dispatch(fetchActiveReminders({ entityType: 'activity', entityIds: activityIds }));
+		}
+	}, [dispatch, activityIds]);
+
+	const remindersByActivityId = useMemo(() => getNextReminderByEntityId(activeReminders), [activeReminders]);
 
 	const timelineItems: TimelineItemDef[] = activities.map((activity) => {
 		const formattedDue = activity.due_date ? `Due ${formatDate(activity.due_date)}` : '';
@@ -158,6 +169,22 @@ export const NotesTimeline: React.FC<NotesTimelineProps> = ({ activities, loadin
 								payload: { is_completed: !activity.is_completed },
 							}))}
 							sx={{ fontWeight: 600, cursor: 'pointer' }}
+						/>
+					)}
+					{remindersByActivityId[activity.id] && (
+						<Chip
+							size="small"
+							icon={<NotificationsActiveOutlined sx={{ fontSize: 13 }} />}
+							label={`Reminds ${formatReminderTime(remindersByActivityId[activity.id].remind_at)}`}
+							sx={{
+								fontWeight: 600,
+								height: 24,
+								color: 'warning.main',
+								bgcolor: 'transparent',
+								border: '1px solid',
+								borderColor: 'warning.main',
+								'& .MuiChip-icon': { color: 'warning.main' },
+							}}
 						/>
 					)}
 					<Tooltip title="Set reminder">

@@ -6,8 +6,9 @@ import StatusBadge from '../../../common/badge/StatusBadge';
 import { ConfirmationDialog } from '../../../common/dialogbox';
 import { SetReminderDialog } from '../../shared';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
-import { updateLead, searchCompanyOptions, searchContactOptions, anonymizeLead } from '../../../../store/slices/crmSlice';
+import { updateLead, searchCompanyOptions, searchContactOptions, anonymizeLead, fetchActiveReminders } from '../../../../store/slices/crmSlice';
 import useToast from '../../../../hooks/useToast';
+import { formatReminderTime } from '../../../../utils/reminders';
 import type { Lead, LeadStatus } from '../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
 
@@ -42,9 +43,19 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 		setTab(0);
 	}
 
-	const { anonymizeLoading } = useAppSelector((state) => state.crm);
+	const { anonymizeLoading, activeReminders } = useAppSelector((state) => state.crm);
 	const { user } = useAppSelector((state) => state.auth);
 	const isAdmin = user?.role === 'admin';
+
+	useEffect(() => {
+		if (lead) {
+			dispatch(fetchActiveReminders({ entityType: 'lead', entityIds: [lead.id] }));
+		}
+	}, [dispatch, lead]);
+
+	const activeReminder = lead
+		? activeReminders.find((r) => r.entity_type === 'lead' && r.entity_id === lead.id)
+		: undefined;
 
 	const handleAnonymize = async () => {
 		if (!lead) return;
@@ -188,6 +199,14 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 							<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
 								Owner: <strong style={{ color: theme.palette.text.primary }}>{owner.full_name || owner.email}</strong>
 							</Typography>
+						)}
+						{activeReminder && (
+							<Stack direction="row" spacing={0.4} alignItems="center">
+								<NotificationsActiveOutlined sx={{ fontSize: 13, color: 'warning.main' }} />
+								<Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 600 }}>
+									Reminds {formatReminderTime(activeReminder.remind_at)}
+								</Typography>
+							</Stack>
 						)}
 					</Stack>
 					<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>

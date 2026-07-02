@@ -8,10 +8,11 @@ import {
 	NotificationsActiveOutlined,
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
-import { updateDeal } from '../../../../../store/slices/crmSlice';
+import { updateDeal, fetchActiveReminders } from '../../../../../store/slices/crmSlice';
 import useToast from '../../../../../hooks/useToast';
 import { RichTextViewer, DatePicker } from '../../../../common/form';
 import { SetReminderDialog } from '../../../shared';
+import { formatReminderTime } from '../../../../../utils/reminders';
 import type { Deal } from '../../../../../models/crm/deal';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
 
@@ -47,7 +48,7 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 	const isDark = theme.palette.mode === 'dark';
 	const toast = useToast();
 
-	const { companyOptions, contactOptions } = useAppSelector((state) => state.crm);
+	const { companyOptions, contactOptions, activeReminders } = useAppSelector((state) => state.crm);
 
 	const [value, setValue] = useState(deal.value != null ? Number(deal.value).toLocaleString() : '');
 	const [closeDate, setCloseDate] = useState(deal.close_date || '');
@@ -57,6 +58,12 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 		setValue(deal.value != null ? Number(deal.value).toLocaleString() : '');
 		setCloseDate(deal.close_date || '');
 	}, [deal.value, deal.close_date, deal.id]);
+
+	useEffect(() => {
+		dispatch(fetchActiveReminders({ entityType: 'deal', entityIds: [deal.id] }));
+	}, [dispatch, deal.id]);
+
+	const activeReminder = activeReminders.find((r) => r.entity_type === 'deal' && r.entity_id === deal.id);
 
 	const handleChangeValue = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const raw = e.target.value.replace(/[^0-9.]/g, '');
@@ -207,6 +214,14 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 								</IconButton>
 							</Tooltip>
 						</Stack>
+						{activeReminder && (
+							<Stack direction="row" spacing={0.4} alignItems="center" sx={{ mt: 0.75 }}>
+								<NotificationsActiveOutlined sx={{ fontSize: 12, color: 'warning.main' }} />
+								<Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 600, fontSize: '0.7rem' }}>
+									Reminds {formatReminderTime(activeReminder.remind_at)}
+								</Typography>
+							</Stack>
+						)}
 					</Box>
 				</Stack>
 			</Box>

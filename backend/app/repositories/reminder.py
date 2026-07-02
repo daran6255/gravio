@@ -38,6 +38,24 @@ class CRMReminderRepository:
         return list(result.scalars().all())
 
     @staticmethod
+    async def list_active_for_entities(db: AsyncSession, *, entity_type: str, entity_ids: list[int]) -> list[CRMReminder]:
+        """Pending reminders across a batch of entities — powers list-view badges
+        (e.g. 'Reminds Tomorrow at 9:00 AM' on each row) without one request per row."""
+        if not entity_ids:
+            return []
+        result = await db.execute(
+            select(CRMReminder)
+            .where(
+                CRMReminder.entity_type == entity_type,
+                CRMReminder.entity_id.in_(entity_ids),
+                CRMReminder.status == ReminderStatus.PENDING,
+                CRMReminder.is_deleted.is_(False),
+            )
+            .order_by(CRMReminder.remind_at.asc())
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
     async def list_for_user(db: AsyncSession, *, user_id: int) -> list[CRMReminder]:
         result = await db.execute(
             select(CRMReminder)

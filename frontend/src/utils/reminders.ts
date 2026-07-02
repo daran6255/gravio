@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import type { ReminderStatus } from '../models/crm/reminder';
+import type { Reminder, ReminderStatus } from '../models/crm/reminder';
 
 export type ReminderPreset = '15_min' | '1_hour' | '1_day' | 'on_due_date' | 'custom';
 
@@ -73,4 +73,19 @@ export function formatReminderTime(remindAt: string): string {
 export function isReminderOverdue(remindAt: string, status: ReminderStatus): boolean {
 	if (status !== 'pending') return false;
 	return dayjs(remindAt).isBefore(dayjs());
+}
+
+/** Reduces a flat reminder list (e.g. a bulk "active reminders for these tasks"
+ * fetch) down to the single soonest pending reminder per entity_id, for
+ * rendering one "Reminds <when>" badge per list row. */
+export function getNextReminderByEntityId(reminders: Reminder[]): Record<number, Reminder> {
+	const map: Record<number, Reminder> = {};
+	for (const reminder of reminders) {
+		if (reminder.status !== 'pending') continue;
+		const existing = map[reminder.entity_id];
+		if (!existing || dayjs(reminder.remind_at).isBefore(dayjs(existing.remind_at))) {
+			map[reminder.entity_id] = reminder;
+		}
+	}
+	return map;
 }

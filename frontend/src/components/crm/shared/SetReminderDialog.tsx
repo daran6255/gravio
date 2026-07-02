@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
-	Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, Stack, Typography,
-	ToggleButtonGroup, ToggleButton, TextField, useTheme, Chip, CircularProgress, Tooltip,
+	Box, Stack, Typography, IconButton, Button, ToggleButtonGroup, ToggleButton,
+	TextField, useTheme, alpha, Chip, CircularProgress, Tooltip,
 } from '@mui/material';
-import { Close, DeleteOutline, NotificationsActiveOutlined } from '@mui/icons-material';
+import { DeleteOutline, NotificationsActiveOutlined } from '@mui/icons-material';
+import { BaseDialog } from '../../common/dialogbox';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchReminders, createReminder, cancelReminder, clearReminders } from '../../../store/slices/crmSlice';
 import useToast from '../../../hooks/useToast';
@@ -75,6 +76,7 @@ export const SetReminderDialog: React.FC<SetReminderDialogProps> = ({
 			setMessage('');
 			setCustomDateTime('');
 			setPreset(defaultDueDate ? '1_day' : 'custom');
+			onClose();
 		} catch (err: any) {
 			toast.error(err || 'Failed to set reminder');
 		}
@@ -89,16 +91,6 @@ export const SetReminderDialog: React.FC<SetReminderDialogProps> = ({
 		}
 	};
 
-	const fieldCardSx = {
-		borderRadius: '12px',
-		border: '1px solid',
-		borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',
-		bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
-		p: 1.75,
-		borderLeft: '4px solid',
-		borderLeftColor: 'warning.main',
-	};
-
 	const labelSx = {
 		fontWeight: 700,
 		color: 'text.secondary',
@@ -109,28 +101,67 @@ export const SetReminderDialog: React.FC<SetReminderDialogProps> = ({
 		mb: 0.75,
 	};
 
-	return (
-		<Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-			<DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
-				<Stack direction="row" spacing={1} alignItems="center">
-					<NotificationsActiveOutlined sx={{ fontSize: 20, color: 'warning.main' }} />
-					<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Set Reminder</Typography>
-				</Stack>
-				<IconButton size="small" onClick={onClose}><Close fontSize="small" /></IconButton>
-			</DialogTitle>
-			<DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-				<Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
-					{entityLabel}
-				</Typography>
+	const actions = (
+		<>
+			<Button
+				onClick={onClose}
+				disabled={reminderMutating}
+				sx={{ textTransform: 'none', color: 'text.secondary', fontWeight: 600, borderRadius: '10px' }}
+			>
+				Close
+			</Button>
+			<Button
+				variant="contained"
+				disabled={!canSubmit}
+				onClick={handleSubmit}
+				sx={{
+					color: 'white',
+					textTransform: 'none',
+					fontWeight: 700,
+					px: 4,
+					minWidth: 140,
+					borderRadius: '10px',
+					boxShadow: 'none',
+					background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
+					'&:hover': { boxShadow: '0 4px 12px rgba(139,124,246,0.3)' },
+					'&.Mui-disabled': { background: theme.palette.action.disabledBackground },
+				}}
+			>
+				{reminderMutating ? <CircularProgress size={18} color="inherit" /> : 'Set Reminder'}
+			</Button>
+		</>
+	);
 
-				<Stack sx={fieldCardSx} spacing={1.5}>
-					<Typography variant="caption" sx={labelSx}>When</Typography>
+	return (
+		<BaseDialog
+			open={open}
+			onClose={onClose}
+			title="Set Reminder"
+			subtitle={entityLabel}
+			maxWidth="xs"
+			loading={reminderMutating}
+			actions={actions}
+		>
+			<Stack spacing={2.5}>
+				<Box
+					sx={{
+						borderRadius: '16px',
+						bgcolor: alpha(theme.palette.warning.main, isDark ? 0.08 : 0.06),
+						border: '1px solid',
+						borderColor: alpha(theme.palette.warning.main, 0.25),
+						p: 2,
+					}}
+				>
+					<Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+						<NotificationsActiveOutlined sx={{ fontSize: 16, color: 'warning.main' }} />
+						<Typography variant="caption" sx={labelSx}>When</Typography>
+					</Stack>
 					<ToggleButtonGroup
 						value={preset}
 						exclusive
 						onChange={(_e, value) => { if (value) setPreset(value); }}
 						size="small"
-						sx={{ flexWrap: 'wrap', gap: 0.5, '& .MuiToggleButtonGroup-grouped': { border: '1px solid', borderColor: 'divider', borderRadius: '8px !important' } }}
+						sx={{ flexWrap: 'wrap', gap: 0.5, mb: 1.5, '& .MuiToggleButtonGroup-grouped': { border: '1px solid', borderColor: 'divider', borderRadius: '10px !important' } }}
 					>
 						{REMINDER_PRESET_OPTIONS.filter((opt) => defaultDueDate || opt.value === 'custom').map((opt) => (
 							<ToggleButton key={opt.value} value={opt.value} sx={{ textTransform: 'none', px: 1.25, fontSize: '0.78rem' }}>
@@ -150,84 +181,75 @@ export const SetReminderDialog: React.FC<SetReminderDialogProps> = ({
 							Reminds you {formatReminderTime(computedRemindAt)}
 						</Typography>
 					) : null}
+				</Box>
 
-					<TextField
-						label="Note (optional)"
-						value={message}
-						onChange={(e) => setMessage(e.target.value)}
-						size="small"
-						fullWidth
-						multiline
-						rows={2}
-						placeholder="What should this reminder be about?"
-					/>
-				</Stack>
+				<TextField
+					label="Note (optional)"
+					value={message}
+					onChange={(e) => setMessage(e.target.value)}
+					size="small"
+					fullWidth
+					multiline
+					rows={2}
+					placeholder="What should this reminder be about?"
+				/>
 
-				{remindersLoading ? (
-					<Stack alignItems="center" sx={{ py: 2 }}><CircularProgress size={20} /></Stack>
-				) : reminders.length > 0 ? (
-					<Stack spacing={1}>
-						<Typography variant="caption" sx={labelSx}>Existing Reminders</Typography>
-						{reminders.map((r) => {
-							const overdue = isReminderOverdue(r.remind_at, r.status);
-							return (
-								<Stack
-									key={r.public_id}
-									direction="row"
-									alignItems="center"
-									justifyContent="space-between"
-									sx={{
-										p: 1,
-										borderRadius: '8px',
-										border: '1px solid',
-										borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
-									}}
-								>
-									<Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
-										<Typography variant="caption" sx={{ fontWeight: 600 }} noWrap>
-											{formatReminderTime(r.remind_at)}
-										</Typography>
-										{r.status !== 'pending' && (
-											<Chip
-												size="small"
-												label={r.status}
-												color={r.status === 'sent' ? 'success' : 'default'}
-												sx={{ height: 18, fontSize: '0.62rem', textTransform: 'capitalize' }}
-											/>
-										)}
-										{overdue && (
-											<Chip size="small" label="Overdue" color="error" sx={{ height: 18, fontSize: '0.62rem' }} />
+				<Box>
+					<Typography variant="caption" sx={labelSx}>Existing Reminders</Typography>
+					{remindersLoading ? (
+						<Stack alignItems="center" sx={{ py: 2 }}><CircularProgress size={20} /></Stack>
+					) : reminders.length > 0 ? (
+						<Stack spacing={1} sx={{ mt: 0.5 }}>
+							{reminders.map((r) => {
+								const overdue = isReminderOverdue(r.remind_at, r.status);
+								return (
+									<Stack
+										key={r.public_id}
+										direction="row"
+										alignItems="center"
+										justifyContent="space-between"
+										sx={{
+											p: 1,
+											borderRadius: '10px',
+											border: '1px solid',
+											borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+										}}
+									>
+										<Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+											<Typography variant="caption" sx={{ fontWeight: 600 }} noWrap>
+												{formatReminderTime(r.remind_at)}
+											</Typography>
+											{r.status !== 'pending' && (
+												<Chip
+													size="small"
+													label={r.status}
+													color={r.status === 'sent' ? 'success' : 'default'}
+													sx={{ height: 18, fontSize: '0.62rem', textTransform: 'capitalize' }}
+												/>
+											)}
+											{overdue && (
+												<Chip size="small" label="Overdue" color="error" sx={{ height: 18, fontSize: '0.62rem' }} />
+											)}
+										</Stack>
+										{r.status === 'pending' && (
+											<Tooltip title="Cancel reminder">
+												<IconButton size="small" onClick={() => handleCancelReminder(r.public_id)} sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}>
+													<DeleteOutline sx={{ fontSize: 16 }} />
+												</IconButton>
+											</Tooltip>
 										)}
 									</Stack>
-									{r.status === 'pending' && (
-										<Tooltip title="Cancel reminder">
-											<IconButton size="small" onClick={() => handleCancelReminder(r.public_id)} sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}>
-												<DeleteOutline sx={{ fontSize: 16 }} />
-											</IconButton>
-										</Tooltip>
-									)}
-								</Stack>
-							);
-						})}
-					</Stack>
-				) : (
-					<Typography variant="caption" color="text.disabled" sx={{ fontStyle: 'italic' }}>
-						No reminders set yet.
-					</Typography>
-				)}
-			</DialogContent>
-			<DialogActions sx={{ px: 3, pb: 2.5 }}>
-				<Button onClick={onClose} sx={{ textTransform: 'none', fontWeight: 600 }}>Close</Button>
-				<Button
-					variant="contained"
-					disabled={!canSubmit}
-					onClick={handleSubmit}
-					sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px', minWidth: 100 }}
-				>
-					{reminderMutating ? <CircularProgress size={16} color="inherit" /> : 'Set Reminder'}
-				</Button>
-			</DialogActions>
-		</Dialog>
+								);
+							})}
+						</Stack>
+					) : (
+						<Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic', mt: 0.5 }}>
+							No reminders set yet.
+						</Typography>
+					)}
+				</Box>
+			</Stack>
+		</BaseDialog>
 	);
 };
 

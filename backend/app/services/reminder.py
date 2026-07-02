@@ -53,6 +53,10 @@ class ReminderService:
         return await CRMReminderRepository.list_for_entity(db, entity_type=entity_type, entity_id=entity_id)
 
     @staticmethod
+    async def list_active_reminders_for_entities(db: AsyncSession, *, entity_type: str, entity_ids: list[int]):
+        return await CRMReminderRepository.list_active_for_entities(db, entity_type=entity_type, entity_ids=entity_ids)
+
+    @staticmethod
     async def list_my_reminders(db: AsyncSession, *, user_id: int):
         return await CRMReminderRepository.list_for_user(db, user_id=user_id)
 

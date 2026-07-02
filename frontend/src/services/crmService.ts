@@ -363,6 +363,13 @@ const crmService = {
 		const response = await api.get<Reminder[]>('/crm/reminders/mine');
 		return response.data;
 	},
+	listRemindersForEntities: async (entityType: ReminderEntityType, entityIds: number[]): Promise<Reminder[]> => {
+		if (entityIds.length === 0) return [];
+		const response = await api.get<Reminder[]>('/crm/reminders/for-entities', {
+			params: { entity_type: entityType, entity_ids: entityIds.join(',') },
+		});
+		return response.data;
+	},
 	createReminder: async (payload: ReminderCreate): Promise<Reminder> => {
 		const response = await api.post<Reminder>('/crm/reminders', payload);
 		return response.data;

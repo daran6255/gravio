@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
 	Box, Typography, Stack, Chip, LinearProgress, TextField, MenuItem,
 	Button, IconButton, Tooltip, CircularProgress, useTheme, alpha,
@@ -11,9 +11,10 @@ import {
 } from '@mui/icons-material';
 import { DatePicker } from '../../../../common/form';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
-import { fetchDealTasks, createDealTask, updateDealTask, deleteDealTask } from '../../../../../store/slices/crmSlice';
+import { fetchDealTasks, createDealTask, updateDealTask, deleteDealTask, fetchActiveReminders } from '../../../../../store/slices/crmSlice';
 import useToast from '../../../../../hooks/useToast';
 import { SetReminderDialog } from '../../../shared';
+import { getNextReminderByEntityId, formatReminderTime } from '../../../../../utils/reminders';
 import type { Deal } from '../../../../../models/crm/deal';
 import type { DealTask, DealTaskStatus, DealTaskType, DealTaskPriority } from '../../../../../models/crm/dealTask';
 
@@ -90,11 +91,20 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const toast = useToast();
-	const { dealTasks, dealTasksLoading, dealTaskMutating, owners } = useAppSelector((s) => s.crm);
+	const { dealTasks, dealTasksLoading, dealTaskMutating, owners, activeReminders } = useAppSelector((s) => s.crm);
 
 	useEffect(() => {
 		dispatch(fetchDealTasks(deal.public_id));
 	}, [dispatch, deal.public_id]);
+
+	const taskIds = useMemo(() => dealTasks.map((t) => t.id), [dealTasks]);
+	useEffect(() => {
+		if (taskIds.length > 0) {
+			dispatch(fetchActiveReminders({ entityType: 'deal_task', entityIds: taskIds }));
+		}
+	}, [dispatch, taskIds]);
+
+	const remindersByTaskId = useMemo(() => getNextReminderByEntityId(activeReminders), [activeReminders]);
 
 	const [statusFilter, setStatusFilter] = useState<DealTaskStatus | 'all' | 'overdue'>('all');
 	const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -401,6 +411,7 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 						const typeColor = getTaskTypeColor(task.task_type);
 						const isCompleted = task.status === 'completed';
 						const assignee = task.assignee_id ? owners.find((o) => o.id === task.assignee_id) : undefined;
+						const activeReminder = remindersByTaskId[task.id];
 						return (
 							<Box
 								key={task.public_id}
@@ -533,6 +544,26 @@ export const DealTasksTab: React.FC<DealTasksTabProps> = ({ deal }) => {
 												<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
 													{assignee.full_name || assignee.email}
 												</Typography>
+											)}
+											{activeReminder && (
+												<Tooltip title="A reminder is set for this task">
+													<Stack
+														direction="row"
+														spacing={0.4}
+														alignItems="center"
+														sx={{
+															px: 0.75,
+															py: 0.15,
+															borderRadius: '6px',
+															bgcolor: alpha(theme.palette.warning.main, isDark ? 0.16 : 0.1),
+														}}
+													>
+														<NotificationsActiveOutlined sx={{ fontSize: 12, color: 'warning.main' }} />
+														<Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 600, fontSize: '0.7rem' }}>
+															Reminds {formatReminderTime(activeReminder.remind_at)}
+														</Typography>
+													</Stack>
+												</Tooltip>
 											)}
 										</Stack>
 									</Box>
