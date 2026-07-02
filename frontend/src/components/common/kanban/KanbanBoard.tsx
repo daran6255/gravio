@@ -60,7 +60,7 @@ export function KanbanBoard<T>({
 		onMoveItem?.(item, targetColumn);
 	};
 
-	if (loading) {
+	if (loading && items.length === 0) {
 		return (
 			<Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
 				<CircularProgress />

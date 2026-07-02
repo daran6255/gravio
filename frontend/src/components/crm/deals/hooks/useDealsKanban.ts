@@ -62,6 +62,15 @@ export const useDealsKanban = () => {
 
 	const refreshData = useCallback(() => setRefreshKey((k) => k + 1), []);
 
+	const refreshDeals = useCallback(() => {
+		if (activePipelineId === null) return;
+		dispatch(fetchDeals({
+			pipelineId: activePipelineId,
+			search: searchTerm || undefined,
+			ownerId: ownerFilter || undefined,
+		}));
+	}, [dispatch, activePipelineId, searchTerm, ownerFilter]);
+
 	const handleCreateClick = () => {
 		setEditingDeal(null);
 		setFormOpen(true);
@@ -121,6 +130,7 @@ export const useDealsKanban = () => {
 		dealsLoading,
 		canManagePipeline,
 		refreshData,
+		refreshDeals,
 
 		searchTerm,
 		setSearchTerm,

@@ -48,7 +48,7 @@ const DealsPage: React.FC = () => {
 		editingDeal,
 		handleCreateClick,
 		handleFormSuccess,
-		refreshData,
+		refreshDeals,
 	} = useDealsKanban();
 
 	const { companyOptions, owners } = useAppSelector((state) => state.crm);
@@ -157,7 +157,7 @@ const DealsPage: React.FC = () => {
 
 				<DealDetailDrawer
 					open={detailOpen}
-					onClose={() => { setDetailOpen(false); refreshData(); }}
+					onClose={() => { setDetailOpen(false); refreshDeals(); }}
 					deal={selectedDeal}
 					owners={owners}
 					onEdit={handleEditDeal}
