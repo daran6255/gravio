@@ -10,6 +10,7 @@ import { useAppDispatch } from '../../../../store/hooks';
 import { createCompany, updateCompany } from '../../../../store/slices/crmSlice';
 import type { Company, CompanySize, CompanyStatus } from '../../../../models/crm/company';
 import useToast from '../../../../hooks/useToast';
+import { COMPANY_INDUSTRIES } from '../../../../data/companyData';
 
 const COMPANY_SIZES: CompanySize[] = ['startup', 'small', 'medium', 'enterprise'];
 const COMPANY_STATUSES: CompanyStatus[] = ['prospect', 'customer', 'churned', 'partner'];
@@ -104,12 +105,17 @@ export const CompanyFormDialog: React.FC<CompanyFormDialogProps> = ({ open, onCl
 					/>
 
 					<TextField
+						select
 						label="Industry"
 						value={industry}
 						onChange={(e) => setIndustry(e.target.value)}
 						fullWidth
-						placeholder="e.g. Technology, Healthcare"
-					/>
+					>
+						<MenuItem value="">Unspecified</MenuItem>
+						{COMPANY_INDUSTRIES.map((i) => (
+							<MenuItem key={i} value={i}>{i}</MenuItem>
+						))}
+					</TextField>
 
 					<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
 						<TextField
