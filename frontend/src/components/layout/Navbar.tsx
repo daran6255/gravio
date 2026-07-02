@@ -1,5 +1,5 @@
 import React from 'react';
-import { AppBar, Toolbar, IconButton, Box, Button, Divider, Tooltip } from '@mui/material';
+import { AppBar, Toolbar, IconButton, Box, Button, Chip, Divider, Tooltip } from '@mui/material';
 import {
 	Menu as MenuIcon,
 	LightMode as LightModeIcon,
@@ -15,6 +15,7 @@ import { toggleSidebar } from '../../store/slices/uiSlice';
 import { useColorMode } from '../../theme/ThemeContext';
 import GlobalSearch from '../common/GlobalSearch';
 import NotificationBell from './NotificationBell';
+import { getCurrencySymbol } from '../../utils/currency';
 
 const DRAWER_WIDTH = 260;
 
@@ -263,6 +264,28 @@ const Navbar: React.FC = () => {
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
 					{/* Subscription Plan / Trial Badge */}
 					{renderSubscriptionBadge()}
+
+					{/* Preferred Display Currency */}
+					{user?.currency && (
+						<Tooltip title={`Display currency: ${user.currency}. Click to change.`} arrow>
+							<Chip
+								label={`${getCurrencySymbol(user.currency)} ${user.currency}`}
+								size="small"
+								onClick={() => navigate('/account-settings')}
+								sx={{
+									fontWeight: 700,
+									fontSize: '0.75rem',
+									mr: 1.5,
+									cursor: 'pointer',
+									borderRadius: '10px',
+									bgcolor: mode === 'light' ? 'rgba(139, 124, 246, 0.1)' : 'rgba(139, 124, 246, 0.15)',
+									color: mode === 'light' ? '#7C3AED' : '#A78BFA',
+									border: '1px solid rgba(139, 124, 246, 0.3)',
+									display: { xs: 'none', sm: 'inline-flex' },
+								}}
+							/>
+						</Tooltip>
+					)}
 
 					{/* Theme Mode Toggle */}
 					<IconButton

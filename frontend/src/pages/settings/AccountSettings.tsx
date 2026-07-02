@@ -13,6 +13,7 @@ import {
 	Button,
 	Divider,
 	CircularProgress,
+	InputAdornment,
 	alpha,
 	useTheme,
 } from '@mui/material';
@@ -20,10 +21,32 @@ import { Save } from '@mui/icons-material';
 import PageHeader from '../../components/common/page-header';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { updateProfile } from '../../store/slices/authSlice';
-import { getWorldCurrencies } from '../../utils/currency';
+import { getWorldCurrencies, type CurrencyOption } from '../../utils/currency';
 import useToast from '../../hooks/useToast';
 
 const BROWSER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+/** Common representations for a timezone: IANA identifier (given), UTC offset (±HH:MM), and abbreviation (e.g. IST). */
+const getTimezoneMeta = (tz: string): { offset: string; abbreviation: string } => {
+	const now = new Date();
+	try {
+		const offsetPart = new Intl.DateTimeFormat('en', { timeZone: tz, timeZoneName: 'shortOffset' })
+			.formatToParts(now)
+			.find((p) => p.type === 'timeZoneName')?.value || '';
+		const abbrPart = new Intl.DateTimeFormat('en', { timeZone: tz, timeZoneName: 'short' })
+			.formatToParts(now)
+			.find((p) => p.type === 'timeZoneName')?.value || '';
+		return { offset: offsetPart.replace('GMT', 'UTC'), abbreviation: abbrPart };
+	} catch {
+		return { offset: '', abbreviation: '' };
+	}
+};
+
+const getTimezoneLabel = (tz: string): string => {
+	const { offset, abbreviation } = getTimezoneMeta(tz);
+	const showAbbr = abbreviation && abbreviation !== offset;
+	return `${tz} (${offset}${showAbbr ? `, ${abbreviation}` : ''})`;
+};
 
 const AccountSettings: React.FC = () => {
 	const theme = useTheme();
@@ -37,12 +60,15 @@ const AccountSettings: React.FC = () => {
 	const [saving, setSaving] = useState(false);
 
 	const timezoneOptions = useMemo(() => {
+		let zones: string[];
 		try {
-			return Intl.supportedValuesOf('timeZone');
+			zones = Intl.supportedValuesOf('timeZone');
 		} catch {
-			return [BROWSER_TIMEZONE];
+			zones = [BROWSER_TIMEZONE];
 		}
+		return zones.map((tz) => ({ tz, label: getTimezoneLabel(tz) }));
 	}, []);
+	const selectedTimezone = timezoneOptions.find((o) => o.tz === timezone) || null;
 
 	const currencyOptions = useMemo(() => getWorldCurrencies(), []);
 	const selectedCurrency = currencyOptions.find((c) => c.code === currency) || null;
@@ -128,8 +154,10 @@ const AccountSettings: React.FC = () => {
 							<Box>
 								<Autocomplete
 									options={timezoneOptions}
-									value={timezone}
-									onChange={(_e, value) => setTimezone(value)}
+									getOptionLabel={(o) => o.label}
+									value={selectedTimezone}
+									onChange={(_e, value) => setTimezone(value?.tz || null)}
+									isOptionEqualToValue={(o, v) => o.tz === v.tz}
 									renderInput={(params) => (
 										<TextField
 											{...params}
@@ -139,7 +167,7 @@ const AccountSettings: React.FC = () => {
 									)}
 								/>
 								<Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-									Leave blank to use your browser's local timezone ({BROWSER_TIMEZONE}). Dates and times across the app will be shown in the selected timezone.
+									Shown as Region/City (IANA identifier) with its current UTC offset and abbreviation, e.g. Asia/Kolkata (UTC+05:30, IST). Leave blank to use your browser's local timezone ({BROWSER_TIMEZONE}).
 								</Typography>
 							</Box>
 
@@ -150,9 +178,26 @@ const AccountSettings: React.FC = () => {
 									value={selectedCurrency}
 									onChange={(_e, value) => setCurrency(value?.code || null)}
 									isOptionEqualToValue={(o, v) => o.code === v.code}
-									renderOption={(props, option) => (
-										<Box component="li" {...props} key={option.code}>
-											{option.symbol} {option.code} — {option.name}
+									renderOption={(props, option: CurrencyOption) => (
+										<Box component="li" {...props} key={option.code} sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+											<Box
+												sx={{
+													width: 28,
+													height: 28,
+													borderRadius: '50%',
+													flexShrink: 0,
+													display: 'flex',
+													alignItems: 'center',
+													justifyContent: 'center',
+													bgcolor: alpha(theme.palette.primary.main, isDark ? 0.18 : 0.1),
+													color: 'primary.main',
+													fontWeight: 800,
+													fontSize: '0.8rem',
+												}}
+											>
+												{option.symbol}
+											</Box>
+											<span>{option.code} — {option.name}</span>
 										</Box>
 									)}
 									renderInput={(params) => (
@@ -160,11 +205,34 @@ const AccountSettings: React.FC = () => {
 											{...params}
 											label="Preferred Display Currency"
 											placeholder="USD — US Dollar"
+											InputProps={{
+												...params.InputProps,
+												startAdornment: selectedCurrency ? (
+													<InputAdornment position="start">
+														<Box
+															sx={{
+																width: 22,
+																height: 22,
+																borderRadius: '50%',
+																display: 'flex',
+																alignItems: 'center',
+																justifyContent: 'center',
+																bgcolor: alpha(theme.palette.primary.main, isDark ? 0.18 : 0.1),
+																color: 'primary.main',
+																fontWeight: 800,
+																fontSize: '0.7rem',
+															}}
+														>
+															{selectedCurrency.symbol}
+														</Box>
+													</InputAdornment>
+												) : undefined,
+											}}
 										/>
 									)}
 								/>
 								<Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-									Only changes the currency symbol shown on aggregate totals (e.g. pipeline stat cards) — no conversion is applied to individual deal or lead values.
+									Changes the currency symbol shown on aggregate totals (e.g. pipeline stat cards), and is used to convert individual deal/lead values recorded in a different currency for display.
 								</Typography>
 							</Box>
 						</Stack>
