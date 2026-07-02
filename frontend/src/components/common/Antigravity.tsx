@@ -171,8 +171,8 @@ const AntigravityInner: React.FC<AntigravityProps> = ({
 
       dummy.position.set(particle.cx, particle.cy, particle.cz);
 
-      dummy.lookAt(projectedTargetX, projectedTargetY, particle.cz);
-      dummy.rotateX(Math.PI / 2);
+      const radialAngle = Math.atan2(particle.cy - projectedTargetY, particle.cx - projectedTargetX);
+      dummy.rotation.set(0, 0, radialAngle - Math.PI / 2);
 
       const currentDistToMouse = Math.sqrt(
         Math.pow(particle.cx - projectedTargetX, 2) + Math.pow(particle.cy - projectedTargetY, 2)
