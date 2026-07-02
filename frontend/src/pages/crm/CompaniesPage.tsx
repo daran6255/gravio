@@ -138,6 +138,7 @@ const CompaniesPage: React.FC = () => {
 					open={detailOpen}
 					onClose={() => setDetailOpen(false)}
 					company={selectedCompany}
+					owners={owners}
 					onEdit={handleEdit}
 				/>
 

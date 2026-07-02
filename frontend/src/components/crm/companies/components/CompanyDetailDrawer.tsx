@@ -12,6 +12,7 @@ import {
 	clearLinkedRecords,
 } from '../../../../store/slices/crmSlice';
 import type { Company } from '../../../../models/crm/company';
+import type { CRMOwnerOption } from '../../../../models/crm/owner';
 
 // Import subcomponents from tabs subdirectory
 import {
@@ -25,6 +26,7 @@ interface CompanyDetailDrawerProps {
 	open: boolean;
 	onClose: () => void;
 	company: Company | null;
+	owners: CRMOwnerOption[];
 	onEdit: (company: Company) => void;
 }
 
@@ -34,7 +36,7 @@ const formatAddress = (company: Company) => {
 	return [address.street, address.city, address.state, address.country, address.zip].filter(Boolean).join(', ') || null;
 };
 
-export const CompanyDetailDrawer: React.FC<CompanyDetailDrawerProps> = ({ open, onClose, company, onEdit }) => {
+export const CompanyDetailDrawer: React.FC<CompanyDetailDrawerProps> = ({ open, onClose, company, owners, onEdit }) => {
 	const dispatch = useAppDispatch();
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
@@ -120,7 +122,16 @@ export const CompanyDetailDrawer: React.FC<CompanyDetailDrawerProps> = ({ open, 
 
 			{/* Scrollable drawer body */}
 			<Box sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 2.5, overscrollBehavior: 'contain' }}>
-				{tab === 0 && <CompanyDetailsTab company={company} address={address} />}
+				{tab === 0 && (
+					<CompanyDetailsTab
+						company={company}
+						address={address}
+						owners={owners}
+						linkedDeals={linkedDeals}
+						linkedContacts={linkedContacts}
+						onNavigateTab={setTab}
+					/>
+				)}
 				{tab === 1 && <CompanyContactsTab company={company} linkedContacts={linkedContacts} linkedContactsLoading={linkedContactsLoading} />}
 				{tab === 2 && <CompanyDealsTab linkedDeals={linkedDeals} linkedDealsLoading={linkedDealsLoading} />}
 				{tab === 3 && <CompanyNotesTab company={company} activities={activities} activitiesLoading={activitiesLoading} />}
