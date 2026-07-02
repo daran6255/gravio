@@ -14,6 +14,7 @@ import { DealDetailsTab } from './tabs/DealDetailsTab';
 import DealTasksTab from './tabs/DealTasksTab';
 import { DealAttachmentsTab } from './tabs/DealAttachmentsTab';
 import { DealNotesTab } from './tabs/DealNotesTab';
+import { DealHistoryTab } from './tabs/DealHistoryTab';
 
 interface DealDetailDrawerProps {
 	open: boolean;
@@ -188,18 +189,20 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 					}
 				}}
 			>
-				<Tab label="Details" />
+				<Tab label="Overview" />
 				<Tab label="Tasks" />
-				<Tab label="Attachments" />
 				<Tab label="Notes" />
+				<Tab label="Attachments" />
+				<Tab label="History" />
 			</Tabs>
 
 			{/* Scrollable drawer body */}
 			<Box sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 2.5, overscrollBehavior: 'contain' }}>
 				{tab === 0 && <DealDetailsTab deal={deal} owners={owners} />}
 				{tab === 1 && <DealTasksTab deal={deal} />}
-				{tab === 2 && <DealAttachmentsTab deal={deal} />}
-				{tab === 3 && <DealNotesTab deal={deal} />}
+				{tab === 2 && <DealNotesTab deal={deal} />}
+				{tab === 3 && <DealAttachmentsTab deal={deal} />}
+				{tab === 4 && <DealHistoryTab deal={deal} owners={owners} />}
 			</Box>
 		</DetailDrawer>
 	);

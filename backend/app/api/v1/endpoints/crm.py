@@ -633,7 +633,7 @@ async def update_deal_endpoint(
     current_user: User = Depends(require_crm_access),
     db: AsyncSession = Depends(get_db),
 ) -> CRMDealResponse:
-    deal = await CRMService.update_deal(db, public_id, payload)
+    deal = await CRMService.update_deal(db, public_id, payload, current_user.id)
     return CRMDealResponse.model_validate(deal)
 
 
@@ -647,7 +647,28 @@ async def delete_deal_endpoint(
     current_user: User = Depends(require_crm_access),
     db: AsyncSession = Depends(get_db),
 ):
-    await CRMService.delete_deal(db, public_id)
+    await CRMService.delete_deal(db, public_id, current_user.id)
+
+
+@router.get(
+    "/deals/{public_id}/history",
+    response_model=PaginatedResponse[AuditLogResponse],
+    summary="Get a deal's field-level change history",
+)
+async def get_deal_history_endpoint(
+    public_id: uuid.UUID,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> PaginatedResponse[AuditLogResponse]:
+    items, total = await CRMService.get_deal_history(db, public_id, page, page_size)
+    return PaginatedResponse[AuditLogResponse](
+        items=[AuditLogResponse.model_validate(i) for i in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.get(

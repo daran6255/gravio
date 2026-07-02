@@ -1,4 +1,4 @@
-"""Generic change-audit logging business logic (used by CRM Leads for now)"""
+"""Generic change-audit logging business logic (used by CRM Leads and Deals)"""
 
 from typing import Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession

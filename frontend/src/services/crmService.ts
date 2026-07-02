@@ -11,7 +11,7 @@ import type {
 	LeadHistoryEntry,
 	LeadImportResponse,
 } from '../models/crm/lead';
-import type { Deal, DealCreate, DealUpdate } from '../models/crm/deal';
+import type { Deal, DealCreate, DealUpdate, DealHistoryEntry } from '../models/crm/deal';
 import type { DealTask, DealTaskCreate, DealTaskUpdate } from '../models/crm/dealTask';
 import type { LeadTask, LeadTaskCreate, LeadTaskUpdate } from '../models/crm/leadTask';
 import type { Reminder, ReminderCreate, ReminderUpdate, ReminderEntityType } from '../models/crm/reminder';
@@ -233,6 +233,12 @@ const crmService = {
 	},
 	deleteDeal: async (publicId: string): Promise<void> => {
 		await api.delete(`/crm/deals/${publicId}`);
+	},
+	getDealHistory: async (publicId: string, page = 1, pageSize = 50): Promise<PaginatedResponse<DealHistoryEntry>> => {
+		const response = await api.get<PaginatedResponse<DealHistoryEntry>>(`/crm/deals/${publicId}/history`, {
+			params: { page, page_size: pageSize },
+		});
+		return response.data;
 	},
 
 	// --- Pipelines ---

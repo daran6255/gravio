@@ -762,7 +762,12 @@ class CRMService:
         if "probability" not in data or data["probability"] is None:
             data["probability"] = stage.probability
 
-        return await CRMDealRepository.create(db, **data)
+        deal = await CRMDealRepository.create(db, **data)
+        await AuditService.record(
+            db, entity_type="deal", entity_id=deal.id, action="create",
+            changed_by_user_id=user_id,
+        )
+        return deal
 
     @staticmethod
     async def get_deal(db: AsyncSession, public_id: uuid.UUID) -> CRMDeal:
@@ -772,7 +777,7 @@ class CRMService:
         return deal
 
     @staticmethod
-    async def update_deal(db: AsyncSession, public_id: uuid.UUID, payload: CRMDealUpdate) -> CRMDeal:
+    async def update_deal(db: AsyncSession, public_id: uuid.UUID, payload: CRMDealUpdate, current_user_id: Optional[int] = None) -> CRMDeal:
         deal = await CRMService.get_deal(db, public_id)
         data = payload.model_dump(exclude_unset=True)
 
@@ -803,12 +808,34 @@ class CRMService:
             if not contact or contact.is_deleted:
                 raise NotFoundError("Linked contact not found")
 
-        return await CRMDealRepository.update(db, deal, **data)
+        changes = {
+            field: (getattr(deal, field), new_val)
+            for field, new_val in data.items()
+            if hasattr(deal, field) and getattr(deal, field) != new_val
+        }
+
+        updated = await CRMDealRepository.update(db, deal, **data)
+
+        await AuditService.record_field_changes(
+            db, entity_type="deal", entity_id=updated.id, action="update",
+            changed_by_user_id=current_user_id, changes=changes,
+        )
+
+        return updated
 
     @staticmethod
-    async def delete_deal(db: AsyncSession, public_id: uuid.UUID) -> None:
+    async def delete_deal(db: AsyncSession, public_id: uuid.UUID, current_user_id: Optional[int] = None) -> None:
         deal = await CRMService.get_deal(db, public_id)
+        await AuditService.record(
+            db, entity_type="deal", entity_id=deal.id, action="delete",
+            changed_by_user_id=current_user_id,
+        )
         await CRMDealRepository.delete(db, deal)
+
+    @staticmethod
+    async def get_deal_history(db: AsyncSession, public_id: uuid.UUID, page: int, page_size: int):
+        deal = await CRMService.get_deal(db, public_id)
+        return await AuditService.list_for_entity(db, entity_type="deal", entity_id=deal.id, page=page, page_size=page_size)
 
     @staticmethod
     async def list_deals(

@@ -9,7 +9,7 @@ import type {
 	LeadHistoryEntry,
 	LeadImportResponse,
 } from '../../models/crm/lead';
-import type { Deal, DealCreate, DealUpdate } from '../../models/crm/deal';
+import type { Deal, DealCreate, DealUpdate, DealHistoryEntry } from '../../models/crm/deal';
 import type { DealTask, DealTaskCreate, DealTaskUpdate } from '../../models/crm/dealTask';
 import type { LeadTask, LeadTaskCreate, LeadTaskUpdate } from '../../models/crm/leadTask';
 import type { Reminder, ReminderCreate, ReminderUpdate, ReminderEntityType } from '../../models/crm/reminder';
@@ -120,6 +120,10 @@ interface CrmState {
 	leadHistory: LeadHistoryEntry[];
 	leadHistoryLoading: boolean;
 	leadHistoryError: string | null;
+
+	dealHistory: DealHistoryEntry[];
+	dealHistoryLoading: boolean;
+	dealHistoryError: string | null;
 
 	anonymizeLoading: boolean;
 	anonymizeError: string | null;
@@ -235,6 +239,10 @@ const initialState: CrmState = {
 	leadHistory: [],
 	leadHistoryLoading: false,
 	leadHistoryError: null,
+
+	dealHistory: [],
+	dealHistoryLoading: false,
+	dealHistoryError: null,
 
 	anonymizeLoading: false,
 	anonymizeError: null,
@@ -358,6 +366,17 @@ export const fetchLeadHistory = createAsyncThunk(
 			return await crmService.getLeadHistory(publicId);
 		} catch (error: any) {
 			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch lead history'));
+		}
+	}
+);
+
+export const fetchDealHistory = createAsyncThunk(
+	'crm/fetchDealHistory',
+	async (publicId: string, { rejectWithValue }) => {
+		try {
+			return await crmService.getDealHistory(publicId);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch deal history'));
 		}
 	}
 );
@@ -1015,6 +1034,18 @@ const crmSlice = createSlice({
 			.addCase(fetchLeadHistory.rejected, (state, action: PayloadAction<any>) => {
 				state.leadHistoryLoading = false;
 				state.leadHistoryError = action.payload;
+			})
+			.addCase(fetchDealHistory.pending, (state) => {
+				state.dealHistoryLoading = true;
+				state.dealHistoryError = null;
+			})
+			.addCase(fetchDealHistory.fulfilled, (state, action: PayloadAction<PaginatedResponse<DealHistoryEntry>>) => {
+				state.dealHistoryLoading = false;
+				state.dealHistory = action.payload.items;
+			})
+			.addCase(fetchDealHistory.rejected, (state, action: PayloadAction<any>) => {
+				state.dealHistoryLoading = false;
+				state.dealHistoryError = action.payload;
 			})
 			.addCase(anonymizeLead.pending, (state) => {
 				state.anonymizeLoading = true;

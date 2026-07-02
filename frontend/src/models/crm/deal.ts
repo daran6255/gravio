@@ -47,3 +47,14 @@ export interface DealCreate {
 }
 
 export interface DealUpdate extends Partial<DealCreate> { }
+
+/** Matches backend's AuditLogResponse, scoped to entity_type="deal". */
+export interface DealHistoryEntry {
+	id: number;
+	action: string;
+	field_name?: string;
+	old_value?: string;
+	new_value?: string;
+	changed_by_user_id?: number;
+	changed_at: string;
+}
