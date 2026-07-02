@@ -81,3 +81,11 @@ class UserProfileResponse(BaseModel):
     is_superuser: bool
     organization_id: Optional[int]
     organization: Optional[OrgPublic] = None
+    timezone: Optional[str] = None
+    currency: Optional[str] = None
+
+
+class UpdateProfileRequest(BaseModel):
+    """Self-service update of the current user's own display preferences."""
+    timezone: Optional[str] = None
+    currency: Optional[str] = None

@@ -16,8 +16,9 @@ from app.schemas.auth import (
     TokenResponse,
     UserProfileResponse,
     ResetPasswordRequest,
+    UpdateProfileRequest,
 )
-from app.services.auth import accept_invite, login, logout, refresh_tokens, verify_email, reset_password_with_token
+from app.services.auth import accept_invite, login, logout, refresh_tokens, verify_email, reset_password_with_token, update_own_profile
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -163,3 +164,18 @@ async def me_endpoint(
     current_user: User = Depends(get_current_user),
 ) -> UserProfileResponse:
     return UserProfileResponse.model_validate(current_user)
+
+
+@router.patch(
+    "/me",
+    response_model=UserProfileResponse,
+    summary="Update current user's display preferences",
+    description="Self-service update of the authenticated user's own timezone and currency preferences.",
+)
+async def update_me_endpoint(
+    payload: UpdateProfileRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> UserProfileResponse:
+    updated = await update_own_profile(db, user=current_user, payload=payload)
+    return UserProfileResponse.model_validate(updated)

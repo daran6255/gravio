@@ -5,6 +5,7 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
+from app.models.user import User
 from app.repositories.user import UserRepository
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.core.security import (
@@ -16,7 +17,7 @@ from app.core.security import (
     verify_token_type,
 )
 from app.middleware.exceptions import UnauthorizedError, ForbiddenError, BadRequestError
-from app.schemas.auth import TokenResponse
+from app.schemas.auth import TokenResponse, UpdateProfileRequest
 from app.utils.password import validate_password_strength
 
 
@@ -311,4 +312,22 @@ async def reset_password_with_token(
     await RefreshTokenRepository.revoke_all_for_user(db, user.id)
     await db.commit()
     logger.info(f"User '{user.username}' (id={user_id}) reset password successfully.")
+
+
+# ── Self-Service Profile Update ─────────────────────────────────────────────────
+
+async def update_own_profile(
+    db: AsyncSession,
+    *,
+    user: User,
+    payload: UpdateProfileRequest,
+) -> User:
+    """Update the current user's own display preferences (timezone, currency)."""
+    data = payload.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        setattr(user, field, value)
+
+    await db.commit()
+    await db.refresh(user)
+    return user
 

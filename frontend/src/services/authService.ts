@@ -200,6 +200,14 @@ const authService = {
 	},
 
 	/**
+	 * Update the current user's own display preferences (timezone, currency)
+	 */
+	updateProfile: async (payload: { timezone?: string | null; currency?: string | null }): Promise<User> => {
+		const response = await api.patch<User>('/auth/me', payload);
+		return response.data;
+	},
+
+	/**
 	 * Extend organization trial period (Super Admin only)
 	 */
 	extendTrial: async (orgPublicId: string, extendDays: number): Promise<any> => {

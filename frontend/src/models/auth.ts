@@ -35,6 +35,8 @@ export interface User {
 	updated_at: string;
 	organization_id?: number | null;
 	organization?: Organization | null;
+	timezone?: string | null;
+	currency?: string | null;
 }
 
 export interface Token {

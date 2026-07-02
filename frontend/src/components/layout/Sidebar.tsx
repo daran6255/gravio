@@ -516,7 +516,7 @@ const Sidebar: React.FC = () => {
 								</Typography>
 							</Box>
 							<Divider sx={{ my: 0 }} />
-							<MenuItem onClick={handleProfileClose} sx={{ py: 1, px: 2 }}>
+							<MenuItem onClick={() => { handleProfileClose(); handleNavigate('/account-settings'); }} sx={{ py: 1, px: 2 }}>
 								<ListItemIcon sx={{ minWidth: 32 }}>
 									<ProfileIcon fontSize="small" />
 								</ListItemIcon>

@@ -139,6 +139,21 @@ export const logoutUser = createAsyncThunk(
 );
 
 /**
+ * Update the current user's own display preferences (timezone, currency)
+ */
+export const updateProfile = createAsyncThunk(
+	'auth/updateProfile',
+	async (payload: { timezone?: string | null; currency?: string | null }, { rejectWithValue }) => {
+		try {
+			const user = await authService.updateProfile(payload);
+			return user;
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.error?.message || error.response?.data?.detail || 'Failed to update profile');
+		}
+	}
+);
+
+/**
  * Extend organization trial period (Super Admin only)
  */
 export const extendOrganizationTrial = createAsyncThunk(
@@ -207,6 +222,13 @@ const authSlice = createSlice({
 			// Fetch Current User
 			.addCase(fetchCurrentUser.fulfilled, (state, action: PayloadAction<User>) => {
 				state.user = action.payload;
+			})
+			// Update Profile (timezone/currency preferences)
+			.addCase(updateProfile.fulfilled, (state, action: PayloadAction<User>) => {
+				state.user = action.payload;
+			})
+			.addCase(updateProfile.rejected, (state, action: PayloadAction<any>) => {
+				state.error = action.payload;
 			})
 			// Accept Invite (ends in the same logged-in state as login)
 			.addCase(acceptInvite.pending, (state) => {

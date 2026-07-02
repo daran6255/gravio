@@ -53,6 +53,8 @@ class User(BaseModel):
         JSON,
         nullable=True,
     )
+    timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
     
     organization: Mapped[Organization] = relationship("Organization", back_populates="users")
     
