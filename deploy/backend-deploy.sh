@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Backend Deployment Script for WinVinaya CRM
+# Backend Deployment Script for Gravit CRM
 # Usage: ./backend-deploy.sh {dev|qa|prod}
 
 set -e  # Exit on error
@@ -17,18 +17,18 @@ fi
 case $ENV in
     dev)
         PORT=8000
-        APP_NAME="winvinaya-backend-dev"
-        ENV_FILE="/var/www/winvinaya-crm/backend/.env.dev"
+        APP_NAME="gravit-backend-dev"
+        ENV_FILE="/var/www/gravio/backend/.env.dev"
         ;;
     qa)
         PORT=8001
-        APP_NAME="winvinaya-backend-qa"
-        ENV_FILE="/var/www/winvinaya-crm/backend/.env.qa"
+        APP_NAME="gravit-backend-qa"
+        ENV_FILE="/var/www/gravio/backend/.env.qa"
         ;;
     prod)
         PORT=8002
-        APP_NAME="winvinaya-backend-prod"
-        ENV_FILE="/var/www/winvinaya-crm/backend/.env.prod"
+        APP_NAME="gravit-backend-prod"
+        ENV_FILE="/var/www/gravio/backend/.env.prod"
         ;;
     *)
         echo "❌ Error: Invalid environment. Use dev, qa, or prod"
@@ -42,7 +42,7 @@ echo "App:  $APP_NAME"
 echo "Port: $PORT"
 echo "================================"
 
-cd /var/www/winvinaya-crm/backend
+cd /var/www/gravio/backend
 
 # Stop existing PM2 process safely
 echo "🛑 Stopping existing PM2 process..."

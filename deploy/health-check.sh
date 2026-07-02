@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Health Check Script for WinVinaya CRM
+# Health Check Script for Gravit CRM
 # Usage: ./health-check.sh {dev|qa|prod}
 
 set -e
@@ -51,7 +51,7 @@ fi
 
 # Check PM2 process
 echo "Checking PM2 process..."
-PM2_STATUS=$(pm2 jlist | jq -r ".[] | select(.name == \"winvinaya-backend-$ENV\") | .pm2_env.status")
+PM2_STATUS=$(pm2 jlist | jq -r ".[] | select(.name == \"gravit-backend-$ENV\") | .pm2_env.status")
 if [ "$PM2_STATUS" == "online" ]; then
     echo "✅ PM2 process is online"
 else

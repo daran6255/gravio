@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Database Backup Script for WinVinaya CRM
+# Database Backup Script for Gravit CRM
 # Usage: ./backup-db.sh {dev|qa|prod}
 
 set -e
@@ -16,13 +16,13 @@ fi
 # Environment-specific configurations
 case $ENV in
     dev)
-        DB_NAME="winvinaya_dev"
+        DB_NAME="gravit_dev"
         ;;
     qa)
-        DB_NAME="winvinaya_qa"
+        DB_NAME="gravit_qa"
         ;;
     prod)
-        DB_NAME="winvinaya_prod"
+        DB_NAME="gravit_prod"
         ;;
     *)
         echo "Error: Invalid environment"
@@ -31,7 +31,7 @@ case $ENV in
 esac
 
 # Backup directory
-BACKUP_DIR="/var/www/winvinaya-crm/backups/db"
+BACKUP_DIR="/var/www/gravio/backups/db"
 mkdir -p $BACKUP_DIR
 
 # Create timestamped backup filename

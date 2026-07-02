@@ -21,10 +21,10 @@ jobs:
           envs: GH_PAT
           script: |
             # Navigate to project
-            cd /var/www/winvinaya-crm
+            cd /var/www/gravio
             
             # Configure git with PAT
-            git remote set-url origin https://$GH_PAT@github.com/winvinayainfosystemsindia/winvinaya-crm.git
+            git remote set-url origin https://$GH_PAT@github.com/daran6255/gravio.git
 
             # Pull latest changes
             git fetch origin main

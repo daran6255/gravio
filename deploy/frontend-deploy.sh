@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Frontend Deployment Script for WinVinaya CRM
+# Frontend Deployment Script for Gravit CRM
 # Usage: ./frontend-deploy.sh {dev|qa|prod}
 
 set -e  # Exit on error
@@ -16,15 +16,15 @@ fi
 # Environment-specific configurations
 case $ENV in
     dev)
-        DEPLOY_DIR="/var/www/winvinaya-crm/frontend/dist-dev"
+        DEPLOY_DIR="/var/www/gravio/frontend/dist-dev"
         ENV_FILE=".env.dev"
         ;;
     qa)
-        DEPLOY_DIR="/var/www/winvinaya-crm/frontend/dist-qa"
+        DEPLOY_DIR="/var/www/gravio/frontend/dist-qa"
         ENV_FILE=".env.qa"
         ;;
     prod)
-        DEPLOY_DIR="/var/www/winvinaya-crm/frontend/dist-prod"
+        DEPLOY_DIR="/var/www/gravio/frontend/dist-prod"
         ENV_FILE=".env.prod"
         ;;
     *)
@@ -39,7 +39,7 @@ echo "Deploy Directory: $DEPLOY_DIR"
 echo "================================"
 
 # Navigate to frontend directory
-cd /var/www/winvinaya-crm/frontend
+cd /var/www/gravio/frontend
 
 # Install/update dependencies
 echo "Installing dependencies..."

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Rollback Script for WinVinaya CRM
+# Rollback Script for Gravit CRM
 # Usage: ./rollback.sh {dev|qa|prod}
 
 set -e
@@ -18,7 +18,7 @@ echo "ROLLBACK - $ENV Environment"
 echo "================================"
 
 # Get the previous git commit
-cd /var/www/winvinaya-crm
+cd /var/www/gravio
 CURRENT_COMMIT=$(git rev-parse HEAD)
 PREVIOUS_COMMIT=$(git rev-parse HEAD~1)
 
