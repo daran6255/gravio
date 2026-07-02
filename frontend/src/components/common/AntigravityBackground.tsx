@@ -1,26 +1,9 @@
 import React from 'react';
 import { Box } from '@mui/material';
-import Antigravity from './Antigravity';
+import { Canvas } from '@react-three/fiber';
+import Particles from './bg-anim/medusa';
 
-interface AntigravityBackgroundProps {
-  colorStart?: string;
-  colorEnd?: string;
-  count?: number;
-  magnetRadius?: number;
-  ringRadius?: number;
-  particleSize?: number;
-  particleShape?: 'capsule' | 'sphere' | 'box' | 'tetrahedron';
-}
-
-const AntigravityBackground: React.FC<AntigravityBackgroundProps> = ({
-  colorStart = '#7D8CF3', // Periwinkle blue
-  colorEnd = '#537CDE',   // Deeper indigo blue
-  count = 450,
-  magnetRadius = 13,
-  ringRadius = 9,
-  particleSize = 0.8,
-  particleShape = 'capsule',
-}) => {
+const AntigravityBackground: React.FC = () => {
   return (
     <Box
       sx={{
@@ -35,19 +18,17 @@ const AntigravityBackground: React.FC<AntigravityBackgroundProps> = ({
         background: '#000000',
       }}
     >
-      <Antigravity
-        colorStart={colorStart}
-        colorEnd={colorEnd}
-        count={count}
-        magnetRadius={magnetRadius}
-        ringRadius={ringRadius}
-        particleSize={particleSize}
-        particleShape={particleShape}
-        autoAnimate={true}
-        lerpSpeed={0.04}
-        waveSpeed={0.3}
-        waveAmplitude={0.6}
-      />
+      <Canvas
+        camera={{ position: [0, 0, 5] }}
+        // The canvas sits behind the page with pointer-events disabled so
+        // clicks reach the real UI. Track the pointer on document.body
+        // instead so the shader still receives live mouse coordinates.
+        eventSource={document.body}
+        eventPrefix="client"
+      >
+        <color attach="background" args={['#000000']} />
+        <Particles />
+      </Canvas>
     </Box>
   );
 };
