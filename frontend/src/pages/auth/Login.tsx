@@ -13,7 +13,7 @@ import { loginUser, clearError } from '../../store/slices/authSlice';
 import LoginForm from '../../components/auth/LoginForm';
 import AuthNavbar from '../../components/layout/AuthNavbar';
 import AuthFooter from '../../components/layout/AuthFooter';
-import AntigravityBackground from '../../components/common/AntigravityBackground';
+import AntigravityBackground from '../../components/common/bg-anim/AntigravityBackground';
 
 const Login: React.FC = () => {
 	const dispatch = useAppDispatch();

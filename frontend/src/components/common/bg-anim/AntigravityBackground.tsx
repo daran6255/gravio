@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import { Canvas } from '@react-three/fiber';
-import Particles from './bg-anim/medusa';
+import Particles from './medusa';
 
 const AntigravityBackground: React.FC = () => {
   return (
