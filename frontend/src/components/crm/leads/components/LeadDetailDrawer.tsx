@@ -278,7 +278,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 				<Tab label="Overview" />
 				<Tab label="Tasks" />
 				<Tab label="Activities" />
-				<Tab label="Files" />
+				<Tab label="Attachments" />
 				<Tab label="History" />
 			</Tabs>
 
