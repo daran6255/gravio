@@ -1,11 +1,19 @@
 import React from 'react';
 import { Box, Typography, Stack, Grid, Button, useTheme, alpha } from '@mui/material';
-import { Language, Phone, Email, LocationOn, Launch, Handshake, Groups, LocalOffer, Person } from '@mui/icons-material';
+import {
+	Language, Phone, Email, LocationOn, Launch, Handshake, Groups, LocalOffer, Person, ChevronRight,
+	Business, ContactPhone, InfoOutlined,
+} from '@mui/icons-material';
 import type { Company } from '../../../../../models/crm/company';
 import type { Deal } from '../../../../../models/crm/deal';
 import type { Contact } from '../../../../../models/crm/contact';
 import useDateTime from '../../../../../hooks/useDateTime';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
+
+// theme.palette.secondary.main is the near-black brand "logo dark" color, not a
+// real accent hue — it's invisible against the dark-mode background. Use a fixed
+// accent for the Primary Contact card instead of that palette slot.
+const PRIMARY_CONTACT_COLOR = '#EC4899';
 
 interface CompanyDetailsTabProps {
 	company: Company;
@@ -25,17 +33,13 @@ export const CompanyDetailsTab: React.FC<CompanyDetailsTabProps> = ({
 	const displayId = `CO-${String(company.id).padStart(5, '0')}`;
 	const owner = company.owner_id != null ? owners.find((o) => o.id === company.owner_id) : undefined;
 
-	const getFieldCardSx = (accentColor?: string) => ({
+	const getFieldCardSx = () => ({
 		borderRadius: '12px',
 		border: '1px solid',
 		borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',
 		bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
 		p: 2,
 		boxShadow: isDark ? '0px 4px 20px rgba(0,0,0,0.15)' : '0px 4px 20px rgba(0,0,0,0.02)',
-		...(accentColor && {
-			borderLeft: '4px solid',
-			borderLeftColor: accentColor,
-		}),
 	});
 
 	const labelSx = {
@@ -56,6 +60,18 @@ export const CompanyDetailsTab: React.FC<CompanyDetailsTabProps> = ({
 		color: 'text.primary',
 	};
 
+	const SectionHeader: React.FC<{ icon: React.ReactNode; title: string; color: string; action?: React.ReactNode }> = ({ icon, title, color, action }) => (
+		<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+			<Stack direction="row" spacing={1.25} alignItems="center">
+				<Box sx={{ bgcolor: alpha(color, 0.12), color, p: 0.7, borderRadius: '8px', display: 'flex' }}>
+					{icon}
+				</Box>
+				<Typography variant="caption" sx={sectionTitleSx}>{title}</Typography>
+			</Stack>
+			{action}
+		</Stack>
+	);
+
 	return (
 		<Stack spacing={2.5}>
 			{/* Quick Stats — jump straight to the Deals/Contacts tabs */}
@@ -64,57 +80,71 @@ export const CompanyDetailsTab: React.FC<CompanyDetailsTabProps> = ({
 					<Box
 						onClick={() => onNavigateTab?.(2)}
 						sx={{
-							...getFieldCardSx('primary.main'),
+							borderRadius: '14px',
+							border: '1px solid',
+							borderColor: alpha(theme.palette.primary.main, 0.18),
+							bgcolor: alpha(theme.palette.primary.main, isDark ? 0.08 : 0.05),
 							p: 2,
-							display: 'flex',
-							justifyContent: 'space-between',
-							alignItems: 'center',
 							cursor: onNavigateTab ? 'pointer' : 'default',
-							transition: 'transform 0.15s',
-							'&:hover': onNavigateTab ? { transform: 'translateY(-2px)' } : undefined,
+							transition: 'transform 0.15s, border-color 0.15s',
+							'&:hover': onNavigateTab ? {
+								transform: 'translateY(-2px)',
+								borderColor: alpha(theme.palette.primary.main, 0.4),
+							} : undefined,
 						}}
 					>
-						<Box>
-							<Typography variant="caption" sx={labelSx}>Deals</Typography>
-							<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em', mt: 0.5 }}>
-								{linkedDeals.length}
-							</Typography>
-						</Box>
-						<Box sx={{ bgcolor: alpha(theme.palette.primary.main, 0.08), p: 1, borderRadius: '50%', color: 'primary.main', display: 'flex' }}>
-							<Handshake sx={{ fontSize: 20 }} />
-						</Box>
+						<Stack direction="row" justifyContent="space-between" alignItems="center">
+							<Box sx={{ bgcolor: alpha(theme.palette.primary.main, 0.12), p: 0.75, borderRadius: '10px', color: 'primary.main', display: 'flex' }}>
+								<Handshake sx={{ fontSize: 18 }} />
+							</Box>
+							{onNavigateTab && <ChevronRight sx={{ fontSize: 18, color: alpha(theme.palette.primary.main, 0.5) }} />}
+						</Stack>
+						<Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.02em', mt: 1.5, lineHeight: 1 }}>
+							{linkedDeals.length}
+						</Typography>
+						<Typography variant="caption" sx={{ ...labelSx, mt: 0.75, mb: 0.25 }}>Deals</Typography>
+						<Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block', lineHeight: 1.3 }}>
+							Open pipeline deals linked to this company
+						</Typography>
 					</Box>
 				</Grid>
 				<Grid size={{ xs: 6 }}>
 					<Box
 						onClick={() => onNavigateTab?.(1)}
 						sx={{
-							...getFieldCardSx('success.main'),
+							borderRadius: '14px',
+							border: '1px solid',
+							borderColor: alpha(theme.palette.success.main, 0.18),
+							bgcolor: alpha(theme.palette.success.main, isDark ? 0.08 : 0.05),
 							p: 2,
-							display: 'flex',
-							justifyContent: 'space-between',
-							alignItems: 'center',
 							cursor: onNavigateTab ? 'pointer' : 'default',
-							transition: 'transform 0.15s',
-							'&:hover': onNavigateTab ? { transform: 'translateY(-2px)' } : undefined,
+							transition: 'transform 0.15s, border-color 0.15s',
+							'&:hover': onNavigateTab ? {
+								transform: 'translateY(-2px)',
+								borderColor: alpha(theme.palette.success.main, 0.4),
+							} : undefined,
 						}}
 					>
-						<Box>
-							<Typography variant="caption" sx={labelSx}>Contacts</Typography>
-							<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em', mt: 0.5 }}>
-								{linkedContacts.length}
-							</Typography>
-						</Box>
-						<Box sx={{ bgcolor: alpha(theme.palette.success.main, 0.08), p: 1, borderRadius: '50%', color: 'success.main', display: 'flex' }}>
-							<Groups sx={{ fontSize: 20 }} />
-						</Box>
+						<Stack direction="row" justifyContent="space-between" alignItems="center">
+							<Box sx={{ bgcolor: alpha(theme.palette.success.main, 0.12), p: 0.75, borderRadius: '10px', color: 'success.main', display: 'flex' }}>
+								<Groups sx={{ fontSize: 18 }} />
+							</Box>
+							{onNavigateTab && <ChevronRight sx={{ fontSize: 18, color: alpha(theme.palette.success.main, 0.5) }} />}
+						</Stack>
+						<Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.02em', mt: 1.5, lineHeight: 1 }}>
+							{linkedContacts.length}
+						</Typography>
+						<Typography variant="caption" sx={{ ...labelSx, mt: 0.75, mb: 0.25 }}>Contacts</Typography>
+						<Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block', lineHeight: 1.3 }}>
+							People linked to this company
+						</Typography>
 					</Box>
 				</Grid>
 			</Grid>
 
 			{/* Company Profile Card */}
-			<Box sx={getFieldCardSx('primary.main')}>
-				<Typography variant="caption" sx={{ ...sectionTitleSx, mb: 1.5, display: 'block' }}>Profile</Typography>
+			<Box sx={getFieldCardSx()}>
+				<SectionHeader icon={<Business sx={{ fontSize: 16 }} />} title="Profile" color={theme.palette.primary.main} />
 				<Grid container spacing={2}>
 					<Grid size={{ xs: 6, sm: 4 }}>
 						<Typography variant="caption" sx={labelSx}>Industry</Typography>
@@ -159,8 +189,8 @@ export const CompanyDetailsTab: React.FC<CompanyDetailsTabProps> = ({
 			</Box>
 
 			{/* Contact Details Card */}
-			<Box sx={getFieldCardSx('success.main')}>
-				<Typography variant="caption" sx={{ ...sectionTitleSx, mb: 1.5, display: 'block' }}>Contact Information</Typography>
+			<Box sx={getFieldCardSx()}>
+				<SectionHeader icon={<ContactPhone sx={{ fontSize: 16 }} />} title="Contact Information" color={theme.palette.success.main} />
 				<Grid container spacing={2}>
 					{company.website && (
 						<Grid size={{ xs: 12, sm: 6 }}>
@@ -236,10 +266,12 @@ export const CompanyDetailsTab: React.FC<CompanyDetailsTabProps> = ({
 
 			{/* Key Contact preview (first linked contact) */}
 			{linkedContacts.length > 0 && (
-				<Box sx={getFieldCardSx('secondary.main')}>
-					<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
-						<Typography variant="caption" sx={sectionTitleSx}>Primary Contact</Typography>
-						{linkedContacts.length > 1 && onNavigateTab && (
+				<Box sx={getFieldCardSx()}>
+					<SectionHeader
+						icon={<Person sx={{ fontSize: 16 }} />}
+						title="Primary Contact"
+						color={PRIMARY_CONTACT_COLOR}
+						action={linkedContacts.length > 1 && onNavigateTab && (
 							<Typography
 								variant="caption"
 								onClick={() => onNavigateTab(1)}
@@ -248,7 +280,7 @@ export const CompanyDetailsTab: React.FC<CompanyDetailsTabProps> = ({
 								+{linkedContacts.length - 1} more
 							</Typography>
 						)}
-					</Stack>
+					/>
 					{(() => {
 						const contact = linkedContacts[0];
 						return (
@@ -257,8 +289,8 @@ export const CompanyDetailsTab: React.FC<CompanyDetailsTabProps> = ({
 									width: 32,
 									height: 32,
 									borderRadius: '50%',
-									bgcolor: alpha(theme.palette.secondary.main, 0.1),
-									color: 'secondary.main',
+									bgcolor: alpha(PRIMARY_CONTACT_COLOR, 0.12),
+									color: PRIMARY_CONTACT_COLOR,
 									display: 'flex',
 									alignItems: 'center',
 									justifyContent: 'center',
@@ -285,8 +317,8 @@ export const CompanyDetailsTab: React.FC<CompanyDetailsTabProps> = ({
 			{/* Tags */}
 			{company.tags && company.tags.length > 0 && (
 				<Box sx={getFieldCardSx()}>
-					<Typography variant="caption" sx={labelSx}>Tags</Typography>
-					<Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
+					<SectionHeader icon={<LocalOffer sx={{ fontSize: 16 }} />} title="Tags" color={theme.palette.warning.main} />
+					<Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
 						{company.tags.map((t) => (
 							<Box
 								key={t}
@@ -311,8 +343,8 @@ export const CompanyDetailsTab: React.FC<CompanyDetailsTabProps> = ({
 			)}
 
 			{/* System Info Card */}
-			<Box sx={getFieldCardSx('info.main')}>
-				<Typography variant="caption" sx={{ ...sectionTitleSx, mb: 1.5, display: 'block' }}>System Details</Typography>
+			<Box sx={getFieldCardSx()}>
+				<SectionHeader icon={<InfoOutlined sx={{ fontSize: 16 }} />} title="System Details" color={theme.palette.info.main} />
 				<Grid container spacing={2}>
 					<Grid size={{ xs: 6 }}>
 						<Typography variant="caption" sx={labelSx}>Company ID</Typography>
