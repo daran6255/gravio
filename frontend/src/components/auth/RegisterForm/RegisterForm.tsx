@@ -341,6 +341,7 @@ const RegisterForm: React.FC = () => {
 			{success ? (
 				<SuccessStep
 					successMsg={successMsg}
+					email={adminEmail}
 					onReturnToLogin={() => navigate('/auth/login')}
 				/>
 			) : (

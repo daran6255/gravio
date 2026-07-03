@@ -225,6 +225,38 @@ async def verify_email(db: AsyncSession, *, token: str) -> str:
     )
 
 
+# ── Resend Verification ─────────────────────────────────────────────────────────
+
+_RESEND_GENERIC_MESSAGE = (
+    "If an account with that email exists and still needs verification, "
+    "we've sent a new verification link."
+)
+
+
+async def resend_verification_email(db: AsyncSession, *, email: str) -> str:
+    """Send a fresh verification email for a not-yet-verified account.
+
+    Always returns the same generic message regardless of whether the email
+    exists, is already verified, or is inactive — this endpoint is public and
+    unauthenticated, so distinguishing those cases would leak account existence.
+    """
+    import asyncio
+    from app.utils.email import send_verification_email
+
+    user = await UserRepository.get_by_email(db, email.strip().lower())
+    if user and user.is_active and not user.is_verified:
+        asyncio.create_task(
+            send_verification_email(
+                to_email=user.email,
+                full_name=user.full_name or user.username,
+                user_id=user.id,
+            )
+        )
+        logger.info(f"Resent verification email to '{user.email}' (id={user.id}).")
+
+    return _RESEND_GENERIC_MESSAGE
+
+
 # ── Accept Invite ────────────────────────────────────────────────────────────────
 
 async def accept_invite(db: AsyncSession, *, token: str, new_password: str) -> TokenResponse:

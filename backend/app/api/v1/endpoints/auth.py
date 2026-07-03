@@ -15,10 +15,11 @@ from app.schemas.auth import (
     RefreshRequest,
     TokenResponse,
     UserProfileResponse,
+    ResendVerificationRequest,
     ResetPasswordRequest,
     UpdateProfileRequest,
 )
-from app.services.auth import accept_invite, login, logout, refresh_tokens, verify_email, reset_password_with_token, update_own_profile
+from app.services.auth import accept_invite, login, logout, refresh_tokens, verify_email, resend_verification_email, reset_password_with_token, update_own_profile
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -107,6 +108,26 @@ async def verify_email_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> MessageResponse:
     message = await verify_email(db, token=token)
+    return MessageResponse(message=message)
+
+
+@router.post(
+    "/resend-verification",
+    response_model=MessageResponse,
+    summary="Resend the account verification email",
+    description=(
+        "Sends a fresh verification link to the given email if it belongs to an "
+        "unverified account. Always returns the same generic message — success "
+        "or not — so this can't be used to probe which emails are registered."
+    ),
+)
+@rate_limit_auth()
+async def resend_verification_endpoint(
+    request: Request,
+    payload: ResendVerificationRequest,
+    db: AsyncSession = Depends(get_db),
+) -> MessageResponse:
+    message = await resend_verification_email(db, email=payload.email)
     return MessageResponse(message=message)
 
 

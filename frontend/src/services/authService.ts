@@ -73,6 +73,14 @@ const authService = {
 	},
 
 	/**
+	 * Resend the verification email for a not-yet-verified account
+	 */
+	resendVerification: async (email: string): Promise<any> => {
+		const response = await api.post('/auth/resend-verification', { email });
+		return response.data;
+	},
+
+	/**
 	 * Reset password using the reset token from the email link
 	 */
 	resetPassword: async (token: string, newPassword: string): Promise<any> => {

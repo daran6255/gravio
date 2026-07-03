@@ -50,6 +50,11 @@ class ResetPasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=8, description="Min 8 chars with uppercase, digit, and special char")
 
 
+class ResendVerificationRequest(BaseModel):
+    """Request a fresh verification email for a not-yet-verified account"""
+    email: str = Field(..., description="Email address used at registration")
+
+
 # ── Response Schemas ───────────────────────────────────────────────────────────
 
 class TokenResponse(BaseModel):
