@@ -1,6 +1,7 @@
 """Pydantic schemas for authentication (login, tokens, profile)"""
 
 import uuid
+from datetime import datetime
 from typing import Optional, Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -88,6 +89,8 @@ class UserProfileResponse(BaseModel):
     organization: Optional[OrgPublic] = None
     timezone: Optional[str] = None
     currency: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
 
 
 class UpdateProfileRequest(BaseModel):

@@ -6,11 +6,11 @@ import OrgManagement from '../pages/org/OrgManagement';
 import { OrgConsole } from '../components/orgs';
 import ProtectedRoute from './ProtectedRoute';
 import MainLayout from '../components/layout/MainLayout';
+import SettingsLayout from '../components/layout/SettingsLayout';
 import SuccessPage from '../pages/common/SuccessPage';
 import NotFoundPage from '../pages/common/NotFoundPage';
 import MaintenancePage from '../pages/common/MaintenancePage';
 import BillingSettings from '../pages/settings/BillingSettings';
-import AccountSettings from '../pages/settings/AccountSettings';
 import { LeadsPage, DealsPage, CompaniesPage, TasksPage } from '../pages/crm';
 
 // Legacy auth links (e.g. tokenized verify/invite/reset links already sent by
@@ -49,7 +49,13 @@ const AppRouter: React.FC = () => {
 					<Route path="users" element={<OrgManagement />} />
 					<Route path="organizations" element={<OrgConsole />} />
 					<Route path="billing" element={<BillingSettings />} />
-					<Route path="account-settings" element={<AccountSettings />} />
+
+					{/* Legacy redirect: old account-settings → settings */}
+					<Route path="account-settings" element={<Navigate to="/settings" replace />} />
+
+					{/* Settings — single page, all sections, own sidebar */}
+					<Route path="settings" element={<SettingsLayout />} />
+
 					<Route path="crm/leads" element={<LeadsPage />} />
 					<Route path="crm/deals" element={<DealsPage />} />
 					<Route path="crm/companies" element={<CompaniesPage />} />
@@ -59,7 +65,13 @@ const AppRouter: React.FC = () => {
 					<Route path="org/:orgId/dashboard" element={<Dashboard />} />
 					<Route path="org/:orgId/users" element={<OrgManagement />} />
 					<Route path="org/:orgId/billing" element={<BillingSettings />} />
-					<Route path="org/:orgId/account-settings" element={<AccountSettings />} />
+
+					{/* Tenant-prefixed legacy redirect */}
+					<Route path="org/:orgId/account-settings" element={<Navigate to="../settings" replace />} />
+
+					{/* Tenant-prefixed Settings — single page */}
+					<Route path="org/:orgId/settings" element={<SettingsLayout />} />
+
 					<Route path="org/:orgId/crm/leads" element={<LeadsPage />} />
 					<Route path="org/:orgId/crm/deals" element={<DealsPage />} />
 					<Route path="org/:orgId/crm/companies" element={<CompaniesPage />} />

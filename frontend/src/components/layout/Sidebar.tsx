@@ -11,25 +11,25 @@ import {
 	Tooltip,
 	alpha,
 	Avatar,
-	Menu,
-	MenuItem,
 	Divider,
-	Typography
+	Typography,
+	Button
 } from '@mui/material';
 import {
 	ExpandLess,
 	ExpandMore,
 	Person as ProfileIcon,
-	ExitToApp as LogoutIcon
+	ExitToApp as LogoutIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { useTheme, useMediaQuery } from '@mui/material';
 import { toggleSidebar } from '../../store/slices/uiSlice';
-import { topNavigation, bottomNavigation } from '../../config/navigation';
+import { topNavigation, bottomNavigation, settingsNavigation } from '../../config/navigation';
 import type { NavigationItem } from '../../config/navigation';
 import { useColorMode } from '../../theme/ThemeContext';
 import { logoutUser } from '../../store/slices/authSlice';
+import ActionMenu from '../common/action-menu/ActionMenu';
 
 const DRAWER_WIDTH = 260;
 const COLLAPSED_WIDTH = 64; // Standardized slightly wider for icon centering
@@ -48,8 +48,6 @@ const Sidebar: React.FC = () => {
 	const user = useAppSelector((state) => state.auth.user);
 	const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
-	// Menu Anchor for bottom user profile
-	const [profileAnchorEl, setProfileAnchorEl] = useState<null | HTMLElement>(null);
 	const { mode } = useColorMode();
 
 	const isDarkSidebar = mode === 'light'; // Light Mode -> Dark Sidebar; Dark Mode -> Light Sidebar
@@ -61,17 +59,8 @@ const Sidebar: React.FC = () => {
 	const sidebarHoverBg = isDarkSidebar ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)';
 	const drawerExpanded = isMobile ? open : true; // Always expanded on desktop
 
-	const handleProfileOpen = (event: React.MouseEvent<HTMLElement>) => {
-		setProfileAnchorEl(event.currentTarget);
-	};
-
-	const handleProfileClose = () => {
-		setProfileAnchorEl(null);
-	};
-
 	const handleLogout = () => {
 		dispatch(logoutUser());
-		handleProfileClose();
 		navigate('/auth/login');
 	};
 
@@ -103,7 +92,66 @@ const Sidebar: React.FC = () => {
 		}
 	}, [location.pathname, drawerExpanded]);
 
-	const isActive = (path?: string) => {
+	const isSettingsRoute =
+		location.pathname === '/settings' ||
+		location.pathname.startsWith('/settings/') ||
+		/^\/org\/[^/]+\/settings(\/|$)/.test(location.pathname);
+
+	const [activeSection, setActiveSection] = useState('settings-profile');
+
+	React.useEffect(() => {
+		if (!isSettingsRoute) return;
+
+		const sectionIds = ['settings-profile', 'settings-preferences', 'settings-security', 'settings-notifications'];
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					if (entry.isIntersecting) {
+						setActiveSection(entry.target.id);
+					}
+				}
+			},
+			{
+				rootMargin: '-20% 0px -60% 0px',
+				threshold: 0.1,
+			}
+		);
+
+		sectionIds.forEach((id) => {
+			const el = document.getElementById(id);
+			if (el) observer.observe(el);
+		});
+
+		// The observer's rootMargin only counts a section "active" once it
+		// enters the top ~20-40% band of the viewport. A short last section
+		// can never reach that band once the scroll container is already at
+		// its max scroll (there's nothing left below it to scroll further) —
+		// so treat "scrolled to the bottom" as the last section being active,
+		// instead of padding the page out artificially to force it into the band.
+		const scrollContainer = document.getElementById('settings-scroll-container');
+		const handleScroll = () => {
+			if (!scrollContainer) return;
+			const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+			if (scrollTop + clientHeight >= scrollHeight - 4) {
+				setActiveSection(sectionIds[sectionIds.length - 1]);
+			}
+		};
+		scrollContainer?.addEventListener('scroll', handleScroll, { passive: true });
+		handleScroll();
+
+		return () => {
+			observer.disconnect();
+			scrollContainer?.removeEventListener('scroll', handleScroll);
+		};
+	}, [isSettingsRoute, location.pathname]);
+
+
+
+	const isActive = (path?: string, sectionId?: string) => {
+		if (isSettingsRoute && sectionId) {
+			return activeSection === sectionId;
+		}
 		if (!path) return false;
 		let checkPath = path;
 		if (user?.organization?.public_id && path.startsWith('/') && !path.startsWith('/org/') && path !== '/organizations') {
@@ -166,15 +214,24 @@ const Sidebar: React.FC = () => {
 		return !!hasDirectPermission;
 	};
 
-	const NavItem = ({ item }: { item: NavigationItem }) => {
-		if (!hasPermission(item)) return null;
+	const NavItem = ({ item }: { item: NavigationItem & { sectionId?: string } }) => {
+		if (!hasPermission(item) && !item.sectionId) return null;
 
-		const active = isActive(item.path);
+		const active = isActive(item.path, item.sectionId);
 		const Icon = item.icon;
 
 		const content = (
 			<ListItemButton
-				onClick={() => item.path && handleNavigate(item.path)}
+				onClick={() => {
+					if (item.sectionId) {
+						const element = document.getElementById(item.sectionId);
+						if (element) {
+							element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+						}
+					} else if (item.path) {
+						handleNavigate(item.path);
+					}
+				}}
 				selected={active}
 				sx={{
 					minHeight: 44,
@@ -419,118 +476,176 @@ const Sidebar: React.FC = () => {
 				>
 					<List disablePadding>
 						{/* Real Navigation Items */}
-						{topNavigation.map((item, index) => (
-							item.children ? (
-								<NavGroup key={index} group={item} />
-							) : (
-								<NavItem key={index} item={item} />
-							)
+						{(isSettingsRoute ? settingsNavigation : topNavigation).map((item, index) => (
+							<React.Fragment key={index}>
+								{item.children ? (
+									<NavGroup group={item} />
+								) : (
+									<NavItem item={item} />
+								)}
+								{item.divider && (
+									<Divider 
+										sx={{ 
+											my: 1.5, 
+											mx: drawerExpanded ? 2 : 1, 
+											borderColor: sidebarDivider 
+										}} 
+									/>
+								)}
+							</React.Fragment>
 						))}
-
-
 					</List>
 				</Box>
 
-				{/* User Profile Block */}
-				{user && (
+				{/* User Profile Block or Settings Bottom Controls */}
+				{isSettingsRoute ? (
 					<Box sx={{
 						flexShrink: 0,
 						borderTop: `1px solid ${sidebarDivider}`,
 						bgcolor: 'transparent',
 						p: 1
 					}}>
-						<Box
-							onClick={handleProfileOpen}
-							sx={{
-								display: 'flex',
-								alignItems: 'center',
-								gap: drawerExpanded ? 1.5 : 0,
-								justifyContent: drawerExpanded ? 'flex-start' : 'center',
-								p: 1,
-								borderRadius: 1.5,
-								cursor: 'pointer',
-								transition: theme.transitions.create(['background-color', 'padding']),
-								'&:hover': {
-									bgcolor: sidebarHoverBg
-								}
-							}}
-						>
-							<Avatar
-								sx={{
-									width: 36,
-									height: 36,
-									bgcolor: 'primary.main',
-									color: '#ffffff',
-									fontSize: '0.875rem',
-									fontWeight: 700
-								}}
-							>
-								{userInitials}
-							</Avatar>
-							{drawerExpanded && (
-								<Box sx={{ minWidth: 0, overflow: 'hidden' }}>
-									<Typography variant="body2" sx={{ fontWeight: 600, color: sidebarText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-										{user.full_name || user.username}
-									</Typography>
-									<Typography variant="caption" sx={{ color: sidebarTextMuted, display: 'block', textTransform: 'capitalize' }}>
-										{user.role} Role
-									</Typography>
-								</Box>
-							)}
-						</Box>
-
-						{/* Profile Dropdown Menu */}
-						<Menu
-							id="sidebar-profile-menu"
-							anchorEl={profileAnchorEl}
-							anchorOrigin={{
-								vertical: 'top',
-								horizontal: 'right',
-							}}
-							transformOrigin={{
-								vertical: 'bottom',
-								horizontal: 'left',
-							}}
-							open={Boolean(profileAnchorEl)}
-							onClose={handleProfileClose}
-							PaperProps={{
-								elevation: 4,
-								sx: {
-									width: 240,
-									mb: 1,
-									ml: 1,
-									borderRadius: 1.5,
-									overflow: 'hidden',
-									bgcolor: theme.palette.background.paper,
-									border: `1px solid ${theme.palette.divider}`,
-									'& .MuiList-root': { py: 0 }
-								}
-							}}
-						>
-							<Box sx={{ p: 2, bgcolor: isDarkSidebar ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.01)' }}>
-								<Typography variant="subtitle2" sx={{ fontWeight: 700, color: theme.palette.text.primary, lineHeight: 1.2 }}>
-									{user.full_name || user.username}
-								</Typography>
-								<Typography variant="caption" sx={{ color: theme.palette.text.secondary, mt: 0.5, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-									{user.email}
-								</Typography>
+						{user && !user.is_superuser && (
+							<Box sx={{ px: 1, mb: 1.5 }}>
+								<Button
+									fullWidth
+									variant="contained"
+									onClick={() => {
+										const orgMatch = location.pathname.match(/^\/org\/([^/]+)/);
+										if (orgMatch) {
+											navigate(`/org/${orgMatch[1]}/billing`);
+										} else {
+											navigate('/billing');
+										}
+									}}
+									sx={{
+										textTransform: 'none',
+										fontWeight: 700,
+										fontSize: '0.8rem',
+										borderRadius: '8px',
+										py: 1,
+										background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
+										boxShadow: '0 2px 8px rgba(139, 124, 246, 0.3)',
+										'&:hover': {
+											background: 'linear-gradient(135deg, #9C8FFF 0%, #7062E9 100%)',
+										},
+									}}
+								>
+									Upgrade Plan
+								</Button>
 							</Box>
-							<Divider sx={{ my: 0 }} />
-							<MenuItem onClick={() => { handleProfileClose(); handleNavigate('/account-settings'); }} sx={{ py: 1, px: 2 }}>
-								<ListItemIcon sx={{ minWidth: 32 }}>
-									<ProfileIcon fontSize="small" />
-								</ListItemIcon>
-								<ListItemText primary="Account Settings" primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }} />
-							</MenuItem>
-							<Divider sx={{ my: 0 }} />
-							<MenuItem onClick={handleLogout} sx={{ py: 1, px: 2, color: theme.palette.error.main }}>
-								<ListItemIcon sx={{ minWidth: 32, color: theme.palette.error.main }}>
-									<LogoutIcon fontSize="small" />
-								</ListItemIcon>
-								<ListItemText primary="Sign Out" primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} />
-							</MenuItem>
-						</Menu>
+						)}
+						<List disablePadding>
+							<ListItem disablePadding sx={{ mb: 0.5 }}>
+								<ListItemButton
+									onClick={handleLogout}
+									sx={{
+										minHeight: 40,
+										px: drawerExpanded ? 2 : 0,
+										py: 0.5,
+										mx: drawerExpanded ? 1 : 0.5,
+										borderRadius: 1.5,
+										justifyContent: drawerExpanded ? 'initial' : 'center',
+										'&:hover': { bgcolor: sidebarHoverBg },
+									}}
+								>
+									<ListItemIcon sx={{ minWidth: 0, mr: drawerExpanded ? 1.5 : 0, color: sidebarTextMuted, justifyContent: 'center' }}>
+										<LogoutIcon sx={{ fontSize: '1.15rem' }} />
+									</ListItemIcon>
+									<ListItemText
+										primary="Log Out"
+										sx={{
+											opacity: drawerExpanded ? 1 : 0,
+											display: drawerExpanded ? 'block' : 'none',
+											m: 0,
+											'& .MuiListItemText-primary': {
+												fontSize: '0.85rem',
+												fontWeight: 500,
+												color: sidebarTextMuted,
+											},
+										}}
+									/>
+								</ListItemButton>
+							</ListItem>
+						</List>
 					</Box>
+				) : (
+					user && (
+						<Box sx={{
+							flexShrink: 0,
+							borderTop: `1px solid ${sidebarDivider}`,
+							bgcolor: 'transparent',
+							p: 1
+						}}>
+							<ActionMenu
+								minWidth={240}
+								header={
+									<Box sx={{ px: 0.5, py: 0.25 }}>
+										<Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1.2 }}>
+											{user.full_name || user.username}
+										</Typography>
+										<Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+											{user.email}
+										</Typography>
+									</Box>
+								}
+								trigger={
+									<Box
+										sx={{
+											display: 'flex',
+											alignItems: 'center',
+											gap: drawerExpanded ? 1.5 : 0,
+											justifyContent: drawerExpanded ? 'flex-start' : 'center',
+											p: 1,
+											borderRadius: 1.5,
+											cursor: 'pointer',
+											width: '100%',
+											transition: theme.transitions.create(['background-color', 'padding']),
+											'&:hover': {
+												bgcolor: sidebarHoverBg
+											}
+										}}
+									>
+										<Avatar
+											sx={{
+												width: 36,
+												height: 36,
+												bgcolor: 'primary.main',
+												color: '#ffffff',
+												fontSize: '0.875rem',
+												fontWeight: 700
+											}}
+										>
+											{userInitials}
+										</Avatar>
+										{drawerExpanded && (
+											<Box sx={{ minWidth: 0, overflow: 'hidden' }}>
+												<Typography variant="body2" sx={{ fontWeight: 600, color: sidebarText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+													{user.full_name || user.username}
+												</Typography>
+												<Typography variant="caption" sx={{ color: sidebarTextMuted, display: 'block', textTransform: 'capitalize' }}>
+													{user.role} Role
+												</Typography>
+											</Box>
+										)}
+									</Box>
+								}
+								actions={[
+									{
+										label: 'Settings',
+										icon: <ProfileIcon sx={{ fontSize: '1rem' }} />,
+										onClick: () => handleNavigate('/settings'),
+									},
+									{
+										label: 'Sign Out',
+										icon: <LogoutIcon sx={{ fontSize: '1rem' }} />,
+										color: theme.palette.error.main,
+										onClick: handleLogout
+									}
+								]}
+							/>
+						</Box>
+					)
 				)}
 			</Box>
 		</Drawer>

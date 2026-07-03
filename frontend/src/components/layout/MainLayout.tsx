@@ -14,6 +14,26 @@ const MainLayout: React.FC = () => {
 
 	const showBreadcrumbs = user?.is_superuser && !isOrgPage;
 
+	// Detect settings routes — they use their own SettingsLayout with a dedicated sidebar
+	const isSettingsRoute =
+		location.pathname === '/settings' ||
+		location.pathname.startsWith('/settings/') ||
+		/^\/org\/[^/]+\/settings(\/|$)/.test(location.pathname);
+
+	// Settings pages: keep Navbar and Sidebar (Sidebar dynamically loads settings menus)
+	if (isSettingsRoute) {
+		return (
+			<Box sx={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
+				<CssBaseline />
+				<Navbar />
+				<Sidebar />
+				<Box sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', mt: '64px' }}>
+					<Outlet />
+				</Box>
+			</Box>
+		);
+	}
+
 	return (
 		<Box sx={{ display: 'flex', minHeight: '100vh' }}>
 			<CssBaseline />
@@ -47,3 +67,4 @@ const MainLayout: React.FC = () => {
 };
 
 export default MainLayout;
+

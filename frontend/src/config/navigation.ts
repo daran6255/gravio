@@ -3,6 +3,11 @@ import {
 	ManageAccounts as UserIcon,
 	CorporateFare as OrgIcon,
 	TrendingUp as CrmIcon,
+	Person as ProfileIcon,
+	Tune as PreferencesIcon,
+	Shield as SecurityIcon,
+	Notifications as NotificationsIcon,
+	ArrowBack as BackIcon,
 } from '@mui/icons-material';
 import type { SvgIconComponent } from '@mui/icons-material';
 
@@ -17,6 +22,7 @@ export interface NavigationItem {
 	children?: NavigationItem[];
 	divider?: boolean;
 	hidden?: boolean;
+	sectionId?: string;
 }
 
 export const topNavigation: NavigationItem[] = [
@@ -58,6 +64,7 @@ export const topNavigation: NavigationItem[] = [
 			},
 		],
 	},
+
 	{
 		label: 'Organizations',
 		path: '/organizations',
@@ -73,6 +80,14 @@ export const topNavigation: NavigationItem[] = [
 ];
 
 export const bottomNavigation: NavigationItem[] = [];
+
+export const settingsNavigation: NavigationItem[] = [
+	{ label: 'Back to Dashboard', icon: BackIcon, path: '/dashboard', divider: true },
+	{ label: 'Profile', icon: ProfileIcon, sectionId: 'settings-profile' },
+	{ label: 'Preferences', icon: PreferencesIcon, sectionId: 'settings-preferences' },
+	{ label: 'Security', icon: SecurityIcon, sectionId: 'settings-security' },
+	{ label: 'Notifications', icon: NotificationsIcon, sectionId: 'settings-notifications' },
+];
 
 /**
  * Resolves a route's configuration dynamically from top and bottom navigation lists.
