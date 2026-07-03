@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Button, CircularProgress } from '@mui/material';
 import { MarkEmailReadOutlined as MarkEmailReadIcon } from '@mui/icons-material';
-import authService from '../../../services/authService';
-import useToast from '../../../hooks/useToast';
+import authService from '../../../../services/authService';
+import useToast from '../../../../hooks/useToast';
 
 const RESEND_COOLDOWN_SECONDS = 120;
 

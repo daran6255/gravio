@@ -276,8 +276,8 @@ const AdminStep: React.FC<AdminStepProps> = ({
 						boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
 					}}>
 						<Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mb: 1.25, fontSize: '0.725rem', fontWeight: 600 }}>
-							{usernameStatus === 'available' 
-								? "Username is available! You can also use one of these suggestions:" 
+							{usernameStatus === 'available'
+								? "Username is available! You can also use one of these suggestions:"
 								: "Taken. Try one of these suggestions:"}
 						</Typography>
 						<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
 	Button,
@@ -20,6 +20,7 @@ import {
 	LockOutlined as LockIcon,
 	Login as LoginIcon,
 } from '@mui/icons-material';
+import { useLoginForm } from './hooks/useLoginForm';
 
 interface LoginFormProps {
 	loading: boolean;
@@ -28,19 +29,17 @@ interface LoginFormProps {
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
-	const [identifier, setIdentifier] = useState('');
-	const [password, setPassword] = useState('');
-	const [showPassword, setShowPassword] = useState(false);
-	const [rememberDevice, setRememberDevice] = useState(false);
-
-	const handleTogglePasswordVisibility = () => {
-		setShowPassword((prev) => !prev);
-	};
-
-	const handleSubmit = (e: React.FormEvent) => {
-		e.preventDefault();
-		onLogin(identifier, password);
-	};
+	const {
+		identifier,
+		setIdentifier,
+		password,
+		setPassword,
+		showPassword,
+		rememberDevice,
+		setRememberDevice,
+		handleTogglePasswordVisibility,
+		handleSubmit,
+	} = useLoginForm(onLogin);
 
 	return (
 		<Paper

@@ -270,6 +270,7 @@ const OrganizationStep: React.FC<OrganizationStepProps> = ({
 						)
 					}}
 					SelectProps={{
+						displayEmpty: true,
 						MenuProps: {
 							PaperProps: {
 								sx: {
@@ -307,6 +308,7 @@ const OrganizationStep: React.FC<OrganizationStepProps> = ({
 						}
 					}}
 				>
+					<MenuItem value="" disabled sx={{ color: '#64748b' }}>Select company size</MenuItem>
 					<MenuItem value="1-10">1-10 employees</MenuItem>
 					<MenuItem value="11-50">11-50 employees</MenuItem>
 					<MenuItem value="51-200">51-200 employees</MenuItem>
@@ -346,6 +348,7 @@ const OrganizationStep: React.FC<OrganizationStepProps> = ({
 						)
 					}}
 					SelectProps={{
+						displayEmpty: true,
 						MenuProps: {
 							PaperProps: {
 								sx: {
@@ -383,6 +386,7 @@ const OrganizationStep: React.FC<OrganizationStepProps> = ({
 						}
 					}}
 				>
+					<MenuItem value="" disabled sx={{ color: '#64748b' }}>Select industry</MenuItem>
 					<MenuItem value="Technology">Technology & Software</MenuItem>
 					<MenuItem value="Healthcare">Healthcare & Life Sciences</MenuItem>
 					<MenuItem value="Finance">Finance & Insurance</MenuItem>
