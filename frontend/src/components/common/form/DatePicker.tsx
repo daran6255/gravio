@@ -12,6 +12,8 @@ interface DatePickerProps {
   size?: 'small' | 'medium';
   fullWidth?: boolean;
   textFieldProps?: any;
+  minDate?: string; // ISO Date String 'YYYY-MM-DD'
+  maxDate?: string; // ISO Date String 'YYYY-MM-DD'
 }
 
 export const DatePicker: React.FC<DatePickerProps> = ({
@@ -22,6 +24,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   size = 'small',
   fullWidth = true,
   textFieldProps,
+  minDate,
+  maxDate,
 }) => {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -30,6 +34,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         format={format}
         value={value ? dayjs(value) : null}
         onChange={(newValue) => onChange(newValue ? newValue.format('YYYY-MM-DD') : '')}
+        minDate={minDate ? dayjs(minDate) : undefined}
+        maxDate={maxDate ? dayjs(maxDate) : undefined}
         slotProps={{
           textField: {
             size,

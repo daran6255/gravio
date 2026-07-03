@@ -91,7 +91,8 @@ const NotificationsTab: React.FC = () => {
 				sx={{
 					bgcolor: cardBg,
 					border: `1px solid ${cardBorder}`,
-					borderRadius: 3,
+					borderRadius: 4,
+					boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.25)' : '0 8px 32px rgba(15,23,42,0.06)',
 					overflow: 'hidden',
 					mb: 2,
 				}}

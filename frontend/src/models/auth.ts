@@ -21,6 +21,15 @@ export interface Organization {
 	plan_name?: string;
 }
 
+export interface BillingAddress {
+	line1?: string | null;
+	line2?: string | null;
+	city?: string | null;
+	state?: string | null;
+	postal_code?: string | null;
+	country?: string | null;
+}
+
 export interface User {
 	id: number;
 	public_id: string;
@@ -37,6 +46,12 @@ export interface User {
 	organization?: Organization | null;
 	timezone?: string | null;
 	currency?: string | null;
+	dob?: string | null;
+	phone?: string | null;
+	avatar?: string | null;
+	job_title?: string | null;
+	billing_address?: BillingAddress | null;
+	billing_reminder?: boolean;
 }
 
 export interface Token {

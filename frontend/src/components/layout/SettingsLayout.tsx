@@ -42,24 +42,28 @@ const SettingsLayoutInner: React.FC = () => {
 						scrollPaddingTop: '24px',
 					}}
 				>
-					{/* Profile Section */}
-					<Box id="settings-profile" sx={{ mb: 6, scrollMarginTop: '88px' }}>
-						<ProfileTab />
-					</Box>
+					{/* Content column — fills the available width; each tab's own grids
+					    add wider breakpoints so the extra room gets used, not just stretched */}
+					<Box sx={{ width: '100%' }}>
+						{/* Profile Section */}
+						<Box id="settings-profile" sx={{ mb: 6, scrollMarginTop: '88px' }}>
+							<ProfileTab />
+						</Box>
 
-					{/* Preferences Section */}
-					<Box id="settings-preferences" sx={{ mb: 6, scrollMarginTop: '88px' }}>
-						<PreferencesTab />
-					</Box>
+						{/* Preferences Section */}
+						<Box id="settings-preferences" sx={{ mb: 6, scrollMarginTop: '88px' }}>
+							<PreferencesTab />
+						</Box>
 
-					{/* Security Section */}
-					<Box id="settings-security" sx={{ mb: 6, scrollMarginTop: '88px' }}>
-						<SecurityTab />
-					</Box>
+						{/* Security Section */}
+						<Box id="settings-security" sx={{ mb: 6, scrollMarginTop: '88px' }}>
+							<SecurityTab />
+						</Box>
 
-					{/* Notifications Section */}
-					<Box id="settings-notifications" sx={{ mb: 6, scrollMarginTop: '88px' }}>
-						<NotificationsTab />
+						{/* Notifications Section */}
+						<Box id="settings-notifications" sx={{ mb: 6, scrollMarginTop: '88px' }}>
+							<NotificationsTab />
+						</Box>
 					</Box>
 				</Box>
 

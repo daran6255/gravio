@@ -57,6 +57,33 @@ class User(BaseModel):
     currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
     
     organization: Mapped[Organization] = relationship("Organization", back_populates="users")
-    
+
+    # Profile extras (date of birth, phone, avatar) aren't first-class columns —
+    # they're stored inside `others` and exposed here as plain properties so the
+    # Pydantic response schema can read them via from_attributes like any other field.
+    @property
+    def dob(self) -> str | None:
+        return (self.others or {}).get("dob")
+
+    @property
+    def phone(self) -> str | None:
+        return (self.others or {}).get("phone")
+
+    @property
+    def avatar(self) -> str | None:
+        return (self.others or {}).get("avatar")
+
+    @property
+    def job_title(self) -> str | None:
+        return (self.others or {}).get("job_title")
+
+    @property
+    def billing_address(self) -> dict | None:
+        return (self.others or {}).get("billing_address")
+
+    @property
+    def billing_reminder(self) -> bool:
+        return bool((self.others or {}).get("billing_reminder", False))
+
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email}, username={self.username})>"

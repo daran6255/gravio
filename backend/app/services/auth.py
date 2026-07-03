@@ -348,14 +348,27 @@ async def reset_password_with_token(
 
 # ── Self-Service Profile Update ─────────────────────────────────────────────────
 
+# Fields that aren't real User columns — they live inside the `others` JSON
+# column instead (see User.dob/phone/avatar properties).
+_OTHERS_BACKED_PROFILE_FIELDS = {"dob", "phone", "avatar", "job_title", "billing_address", "billing_reminder"}
+
+
 async def update_own_profile(
     db: AsyncSession,
     *,
     user: User,
     payload: UpdateProfileRequest,
 ) -> User:
-    """Update the current user's own display preferences (timezone, currency)."""
+    """Update the current user's own display preferences (timezone, currency)
+    and profile extras (dob, phone, avatar)."""
     data = payload.model_dump(exclude_unset=True)
+
+    others_updates = {key: data.pop(key) for key in list(data) if key in _OTHERS_BACKED_PROFILE_FIELDS}
+    if others_updates:
+        # Reassign a new dict (rather than mutating in place) so SQLAlchemy's
+        # change tracking actually notices the JSON column changed.
+        user.others = {**(user.others or {}), **others_updates}
+
     for field, value in data.items():
         setattr(user, field, value)
 

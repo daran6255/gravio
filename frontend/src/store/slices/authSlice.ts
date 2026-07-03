@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import authService from '../../services/authService';
-import type { LoginResponse, User } from '../../models/auth';
+import type { LoginResponse, User, BillingAddress } from '../../models/auth';
 
 // The API wraps errors as { error: { message, code, detail } }, not a bare
 // `detail` field — read `error.message` first or the real reason (e.g. "please
@@ -150,7 +150,17 @@ export const logoutUser = createAsyncThunk(
  */
 export const updateProfile = createAsyncThunk(
 	'auth/updateProfile',
-	async (payload: { timezone?: string | null; currency?: string | null }, { rejectWithValue }) => {
+	async (payload: {
+		full_name?: string | null;
+		timezone?: string | null;
+		currency?: string | null;
+		dob?: string | null;
+		phone?: string | null;
+		avatar?: string | null;
+		job_title?: string | null;
+		billing_address?: BillingAddress | null;
+		billing_reminder?: boolean | null;
+	}, { rejectWithValue }) => {
 		try {
 			const user = await authService.updateProfile(payload);
 			return user;

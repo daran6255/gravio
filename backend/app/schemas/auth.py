@@ -73,6 +73,20 @@ class MessageResponse(BaseModel):
 
 from app.schemas.onboarding import OrgPublic
 
+
+class BillingAddress(BaseModel):
+    """Structured billing address — stored inside User.others['billing_address'].
+
+    Kept ready for future invoicing when an organization upgrades its plan.
+    """
+    line1: Optional[str] = Field(None, max_length=255)
+    line2: Optional[str] = Field(None, max_length=255)
+    city: Optional[str] = Field(None, max_length=120)
+    state: Optional[str] = Field(None, max_length=120)
+    postal_code: Optional[str] = Field(None, max_length=32)
+    country: Optional[str] = Field(None, max_length=120)
+
+
 class UserProfileResponse(BaseModel):
     """Authenticated user's profile (returned by /auth/me)"""
     model_config = ConfigDict(from_attributes=True)
@@ -89,11 +103,32 @@ class UserProfileResponse(BaseModel):
     organization: Optional[OrgPublic] = None
     timezone: Optional[str] = None
     currency: Optional[str] = None
+    dob: Optional[str] = None
+    phone: Optional[str] = None
+    avatar: Optional[str] = None
+    job_title: Optional[str] = None
+    billing_address: Optional[BillingAddress] = None
+    billing_reminder: bool = False
     created_at: datetime
     updated_at: datetime
 
 
 class UpdateProfileRequest(BaseModel):
-    """Self-service update of the current user's own display preferences."""
+    """Self-service update of the current user's own profile.
+
+    dob/phone/avatar/job_title aren't first-class User columns — they're merged
+    into the `others` JSON column (see the matching User model properties).
+    """
+    full_name: Optional[str] = Field(None, min_length=1, max_length=255)
     timezone: Optional[str] = None
     currency: Optional[str] = None
+    dob: Optional[str] = Field(None, description="Date of birth, ISO format YYYY-MM-DD")
+    phone: Optional[str] = Field(None, max_length=32, description="Contact phone number, E.164 formatted")
+    job_title: Optional[str] = Field(None, max_length=150)
+    avatar: Optional[str] = Field(
+        None,
+        max_length=2_800_000,  # ~2MB of binary image data once base64-decoded
+        description="Profile photo as a data URI, e.g. data:image/png;base64,...",
+    )
+    billing_address: Optional[BillingAddress] = None
+    billing_reminder: Optional[bool] = Field(None, description="Remind me before my organization's plan renews/trial ends")

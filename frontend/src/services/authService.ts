@@ -1,5 +1,5 @@
 import api from './api';
-import type { LoginResponse, RegisterResponse, User } from '../models/auth';
+import type { LoginResponse, RegisterResponse, User, BillingAddress } from '../models/auth';
 import { jwtDecode } from 'jwt-decode';
 
 // Token storage keys
@@ -208,9 +208,20 @@ const authService = {
 	},
 
 	/**
-	 * Update the current user's own display preferences (timezone, currency)
+	 * Update the current user's own display preferences and profile extras
+	 * (timezone, currency, dob, phone, avatar)
 	 */
-	updateProfile: async (payload: { timezone?: string | null; currency?: string | null }): Promise<User> => {
+	updateProfile: async (payload: {
+		full_name?: string | null;
+		timezone?: string | null;
+		currency?: string | null;
+		dob?: string | null;
+		phone?: string | null;
+		avatar?: string | null;
+		job_title?: string | null;
+		billing_address?: BillingAddress | null;
+		billing_reminder?: boolean | null;
+	}): Promise<User> => {
 		const response = await api.patch<User>('/auth/me', payload);
 		return response.data;
 	},
