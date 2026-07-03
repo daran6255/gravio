@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Login, { Register, VerifyEmail, AcceptInvite, ResetPassword } from '../pages/auth';
 import Dashboard from '../pages/dashboard';
 import OrgManagement from '../pages/org/OrgManagement';
@@ -13,14 +13,29 @@ import BillingSettings from '../pages/settings/BillingSettings';
 import AccountSettings from '../pages/settings/AccountSettings';
 import { LeadsPage, DealsPage, CompaniesPage, TasksPage } from '../pages/crm';
 
+// Legacy auth links (e.g. tokenized verify/invite/reset links already sent by
+// email before the /auth prefix existed) redirect here — preserve the query
+// string so the token survives the redirect.
+const LegacyAuthRedirect: React.FC<{ to: string }> = ({ to }) => {
+	const location = useLocation();
+	return <Navigate to={`${to}${location.search}`} replace />;
+};
+
 const AppRouter: React.FC = () => {
 	return (
 		<Routes>
-			<Route path="/login" element={<Login />} />
-			<Route path="/register" element={<Register />} />
-			<Route path="/verify-email" element={<VerifyEmail />} />
-			<Route path="/accept-invite" element={<AcceptInvite />} />
-			<Route path="/reset-password" element={<ResetPassword />} />
+			<Route path="/auth/login" element={<Login />} />
+			<Route path="/auth/register" element={<Register />} />
+			<Route path="/auth/verify-email" element={<VerifyEmail />} />
+			<Route path="/auth/accept-invite" element={<AcceptInvite />} />
+			<Route path="/auth/reset-password" element={<ResetPassword />} />
+
+			{/* Legacy paths — redirect old bookmarks/links to the new /auth/* routes */}
+			<Route path="/login" element={<LegacyAuthRedirect to="/auth/login" />} />
+			<Route path="/register" element={<LegacyAuthRedirect to="/auth/register" />} />
+			<Route path="/verify-email" element={<LegacyAuthRedirect to="/auth/verify-email" />} />
+			<Route path="/accept-invite" element={<LegacyAuthRedirect to="/auth/accept-invite" />} />
+			<Route path="/reset-password" element={<LegacyAuthRedirect to="/auth/reset-password" />} />
 
 			{/* Public Support Pages */}
 			<Route path="/success" element={<SuccessPage />} />

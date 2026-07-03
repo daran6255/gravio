@@ -72,7 +72,7 @@ const Sidebar: React.FC = () => {
 	const handleLogout = () => {
 		dispatch(logoutUser());
 		handleProfileClose();
-		navigate('/login');
+		navigate('/auth/login');
 	};
 
 	const userInitials = user

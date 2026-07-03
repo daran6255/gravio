@@ -341,7 +341,7 @@ const RegisterForm: React.FC = () => {
 			{success ? (
 				<SuccessStep
 					successMsg={successMsg}
-					onReturnToLogin={() => navigate('/login')}
+					onReturnToLogin={() => navigate('/auth/login')}
 				/>
 			) : (
 				<Box>
@@ -465,7 +465,7 @@ const RegisterForm: React.FC = () => {
 								Already have an account?{' '}
 								<Link
 									component={RouterLink}
-									to="/login"
+									to="/auth/login"
 									sx={{
 										color: '#8B7CF6',
 										textDecoration: 'none',

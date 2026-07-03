@@ -21,7 +21,7 @@ const ProtectedRoute: React.FC = () => {
 
 	// If not authenticated after initialization, redirect to login
 	if (!isAuthenticated) {
-		return <Navigate to="/login" replace />;
+		return <Navigate to="/auth/login" replace />;
 	}
 
 	// Resolve route permission configuration centrally from navigation.ts

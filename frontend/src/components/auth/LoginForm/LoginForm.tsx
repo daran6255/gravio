@@ -342,7 +342,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 						Don't have an account?{' '}
 						<Link
 							component={RouterLink}
-							to="/register"
+							to="/auth/register"
 							sx={{
 								color: '#8B7CF6',
 								textDecoration: 'none',

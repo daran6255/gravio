@@ -434,7 +434,7 @@ const AcceptInvite: React.FC = () => {
 									<Button
 										variant="contained"
 										fullWidth
-										onClick={() => navigate('/login')}
+										onClick={() => navigate('/auth/login')}
 										sx={{
 											py: 1.25,
 											backgroundColor: '#8B7CF6',

@@ -55,7 +55,7 @@ const AuthNavbar: React.FC = () => {
 			<Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
 				<Button
 					variant="text"
-					onClick={() => navigate('/login')}
+					onClick={() => navigate('/auth/login')}
 					sx={{
 						color: '#F4F5F7',
 						fontSize: '0.875rem',
@@ -68,7 +68,7 @@ const AuthNavbar: React.FC = () => {
 				</Button>
 				<Button
 					variant="contained"
-					onClick={() => navigate('/register')}
+					onClick={() => navigate('/auth/register')}
 					sx={{
 						backgroundColor: '#8B7CF6',
 						color: '#ffffff',

@@ -54,9 +54,9 @@ const ResetPassword: React.FC = () => {
 		try {
 			await authService.resetPassword(token, password);
 			setStatus('success');
-			setTimeout(() => navigate('/login'), 2000);
+			setTimeout(() => navigate('/auth/login'), 2000);
 		} catch (err: any) {
-			setError(err?.response?.data?.detail || err?.message || 'Failed to reset password.');
+			setError(err?.response?.data?.error?.message || err?.response?.data?.detail || err?.message || 'Failed to reset password.');
 			setStatus('error');
 		} finally {
 			setLoading(false);
@@ -241,7 +241,7 @@ const ResetPassword: React.FC = () => {
 								<Button
 									variant="contained"
 									fullWidth
-									onClick={() => navigate('/login')}
+									onClick={() => navigate('/auth/login')}
 									sx={{
 										py: 1.25,
 										backgroundColor: theme.palette.primary.main,

@@ -169,6 +169,12 @@ const OrganizationStep: React.FC<OrganizationStepProps> = ({
 					onChange={(_, newValue) => setOrgLocation(newValue || '')}
 					inputValue={locationInputValue}
 					onInputChange={(_, newInputValue) => setLocationInputValue(newInputValue)}
+					// Options already come pre-filtered by the geocoding API for the typed
+					// text — MUI's default client-side filter re-matches the input against
+					// the option label, which hides results whenever the search term is a
+					// misspelling/alias of the returned name (e.g. "Bangalore" input vs a
+					// "Bengaluru, Karnataka" result). Disable it so server results always show.
+					filterOptions={(options) => options}
 					slotProps={{
 						paper: {
 							sx: {

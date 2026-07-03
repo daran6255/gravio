@@ -83,15 +83,23 @@ async def check_org_name_availability(db: AsyncSession, name: str) -> dict:
                 "matched_name": exist_name,
                 "message": f"An organization with a logically similar name '{exist_name}' already exists."
             }
+        # NOTE: a plain substring check (e.g. "winvinaya" in "winvinayainfosystems")
+        # was removed here — real distinct legal entities routinely share a brand
+        # word (e.g. "WinVinaya Foundation" vs "WinVinaya Infosystems India Pvt
+        # Ltd"), and that check blocked registration for any org name containing
+        # another org's name as a prefix/suffix. Exact + fuzzy (typo) matching below
+        # is enough to catch genuine duplicates.
+        
         # Substring logical comparison (for brand prefixes/suffixes, length >= 4)
-        if (len(norm_input) >= 4 and len(norm_exist) >= 4) and (norm_input in norm_exist or norm_exist in norm_input):
-            return {
-                "available": False,
-                "exists": True,
-                "similarity": "logical",
-                "matched_name": exist_name,
-                "message": f"An organization with a logically similar name '{exist_name}' already exists."
-            }
+        # if (len(norm_input) >= 4 and len(norm_exist) >= 4) and (norm_input in norm_exist or norm_exist in norm_input):
+        #     return {
+        #         "available": False,
+        #         "exists": True,
+        #         "similarity": "logical",
+        #         "matched_name": exist_name,
+        #         "message": f"An organization with a logically similar name '{exist_name}' already exists."
+        #     }
+        
         # Check Levenshtein distance on normalized strings if length >= 3
         if len(norm_input) >= 3 and len(norm_exist) >= 3:
             dist = levenshtein_distance(norm_input, norm_exist)

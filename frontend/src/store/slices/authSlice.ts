@@ -2,6 +2,13 @@ import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/tool
 import authService from '../../services/authService';
 import type { LoginResponse, User } from '../../models/auth';
 
+// The API wraps errors as { error: { message, code, detail } }, not a bare
+// `detail` field — read `error.message` first or the real reason (e.g. "please
+// verify your email") gets swallowed and callers fall back to a generic message.
+function extractErrorMessage(error: any, fallback: string): string {
+	return error?.response?.data?.error?.message || error?.response?.data?.detail || error?.message || fallback;
+}
+
 interface AuthState {
 	user: User | null;
 	token: string | null;
@@ -30,7 +37,7 @@ export const fetchCurrentUser = createAsyncThunk(
 			const user = await authService.getCurrentUser();
 			return user;
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || 'Failed to fetch user details');
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch user details'));
 		}
 	}
 );
@@ -71,7 +78,7 @@ export const loginUser = createAsyncThunk(
 			const user = await authService.getCurrentUser();
 			return { ...response, user };
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || 'Login failed');
+			return rejectWithValue(extractErrorMessage(error, 'Login failed'));
 		}
 	}
 );
@@ -87,7 +94,7 @@ export const acceptInvite = createAsyncThunk(
 			const user = await authService.getCurrentUser();
 			return { ...response, user };
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || 'Failed to accept invite');
+			return rejectWithValue(extractErrorMessage(error, 'Failed to accept invite'));
 		}
 	}
 );
@@ -102,7 +109,7 @@ export const onboardUser = createAsyncThunk(
 			const response = await authService.onboard(onboardData);
 			return response;
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || 'Onboarding failed');
+			return rejectWithValue(extractErrorMessage(error, 'Onboarding failed'));
 		}
 	}
 );
@@ -123,7 +130,7 @@ export const refreshAccessToken = createAsyncThunk(
 			return response;
 		} catch (error: any) {
 			authService.clearTokens();
-			return rejectWithValue(error.response?.data?.detail || 'Token refresh failed');
+			return rejectWithValue(extractErrorMessage(error, 'Token refresh failed'));
 		}
 	}
 );
@@ -148,7 +155,7 @@ export const updateProfile = createAsyncThunk(
 			const user = await authService.updateProfile(payload);
 			return user;
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.error?.message || error.response?.data?.detail || 'Failed to update profile');
+			return rejectWithValue(extractErrorMessage(error, 'Failed to update profile'));
 		}
 	}
 );
@@ -163,7 +170,7 @@ export const extendOrganizationTrial = createAsyncThunk(
 			const updatedOrg = await authService.extendTrial(orgPublicId, extendDays);
 			return updatedOrg;
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || 'Failed to extend trial');
+			return rejectWithValue(extractErrorMessage(error, 'Failed to extend trial'));
 		}
 	}
 );

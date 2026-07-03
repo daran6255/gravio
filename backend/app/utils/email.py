@@ -131,7 +131,7 @@ async def send_verification_email(
     """
     token = create_verification_token(user_id)
     base_url = settings.FRONTEND_URL or "http://localhost:5173"
-    verification_link = f"{base_url}/verify-email?token={token}"
+    verification_link = f"{base_url}/auth/verify-email?token={token}"
 
     if not settings.SMTP_HOST:
         # Dev / no-SMTP fallback — just log it
@@ -164,7 +164,7 @@ async def send_invite_email(
     """
     token = create_invite_token(user_id)
     base_url = settings.FRONTEND_URL or "http://localhost:5173"
-    invite_link = f"{base_url}/accept-invite?token={token}"
+    invite_link = f"{base_url}/auth/accept-invite?token={token}"
 
     if not settings.SMTP_HOST:
         logger.info(
@@ -191,7 +191,7 @@ async def send_password_reset_email(
     """
     token = create_reset_token(user_id)
     base_url = settings.FRONTEND_URL or "http://localhost:5173"
-    reset_link = f"{base_url}/reset-password?token={token}"
+    reset_link = f"{base_url}/auth/reset-password?token={token}"
 
     if not settings.SMTP_HOST:
         logger.info(

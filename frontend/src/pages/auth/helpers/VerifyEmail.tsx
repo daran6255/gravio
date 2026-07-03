@@ -41,8 +41,9 @@ const VerifyEmail: React.FC = () => {
 				setMessage(response.message || 'Your email address has been verified successfully!');
 			} catch (error) {
 				setStatus('error');
-				const err = error as { response?: { data?: { detail?: string } } };
+				const err = error as { response?: { data?: { detail?: string; error?: { message?: string } } } };
 				setMessage(
+					err.response?.data?.error?.message ||
 					err.response?.data?.detail ||
 					'Verification failed. The token may be invalid or expired. Tokens are valid for 24 hours.'
 				);
@@ -134,7 +135,7 @@ const VerifyEmail: React.FC = () => {
 								<Button
 									variant="contained"
 									fullWidth
-									onClick={() => navigate('/login')}
+									onClick={() => navigate('/auth/login')}
 									sx={{
 										py: 1.25,
 										backgroundColor: theme.palette.primary.main,
@@ -164,7 +165,7 @@ const VerifyEmail: React.FC = () => {
 									<Button
 										variant="contained"
 										fullWidth
-										onClick={() => navigate('/login')}
+										onClick={() => navigate('/auth/login')}
 										sx={{
 											py: 1.25,
 											backgroundColor: theme.palette.primary.main,
