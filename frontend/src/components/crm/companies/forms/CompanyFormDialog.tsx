@@ -5,11 +5,13 @@ import {
 	MenuItem,
 	Stack,
 } from '@mui/material';
+import { MuiTelInput, type MuiTelInputCountry, type MuiTelInputInfo } from 'mui-tel-input';
 import { EnterpriseForm, type FormStep } from '../../../common/form';
 import { useAppDispatch } from '../../../../store/hooks';
 import { createCompany, updateCompany } from '../../../../store/slices/crmSlice';
 import type { Company, CompanySize, CompanyStatus } from '../../../../models/crm/company';
 import useToast from '../../../../hooks/useToast';
+import usePhoneValidation from '../../../../hooks/usePhoneValidation';
 import { COMPANY_INDUSTRIES } from '../../../../data/companyData';
 
 const COMPANY_SIZES: CompanySize[] = ['startup', 'small', 'medium', 'enterprise'];
@@ -37,6 +39,16 @@ export const CompanyFormDialog: React.FC<CompanyFormDialogProps> = ({ open, onCl
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [touched, setTouched] = useState<{ name?: boolean }>({});
+	const { countryCode, setCountryCode, validatePhoneChange, getMaxLength } = usePhoneValidation();
+
+	const handlePhoneChange = (value: string, info: MuiTelInputInfo) => {
+		// Hard cap: reject the keystroke (or country switch) once the national
+		// number would exceed the selected country's max length, instead of
+		// just flagging it as an error after the fact.
+		if (!validatePhoneChange(info)) return;
+		if (info.countryCode) setCountryCode(info.countryCode);
+		setPhone(value);
+	};
 
 	const fieldErrors = {
 		name: name.trim() ? '' : 'Name is required',
@@ -164,12 +176,14 @@ export const CompanyFormDialog: React.FC<CompanyFormDialogProps> = ({ open, onCl
 					/>
 
 					<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-						<TextField
+						<MuiTelInput
 							label="Phone"
 							value={phone}
-							onChange={(e) => setPhone(e.target.value)}
+							onChange={handlePhoneChange}
+							defaultCountry={countryCode as MuiTelInputCountry}
+							forceCallingCode
 							fullWidth
-							placeholder="+1 (555) 000-0000"
+							helperText={`Max ${getMaxLength(countryCode)} digits for the selected country`}
 						/>
 						<TextField
 							label="Email"
