@@ -1,10 +1,10 @@
 import React from 'react';
 import { Box, Typography, Stack, useTheme } from '@mui/material';
 import { HelpOutline } from '@mui/icons-material';
-import PremiumTooltip from '../../common/PremiumTooltip';
-import { getStatusTone } from '../../common/badge/StatusBadge';
-import { PROJECT_STATUS_OPTIONS } from '../../../models/projects/project';
-import type { ProjectStatusCount } from '../../../models/projects/project';
+import PremiumTooltip from '../../../common/PremiumTooltip';
+import { getStatusTone } from '../../../common/badge/StatusBadge';
+import { PROJECT_STATUS_OPTIONS } from '../../../../models/projects/project';
+import type { ProjectStatusCount } from '../../../../models/projects/project';
 
 interface ProjectStatusBreakdownProps {
 	statusCounts: ProjectStatusCount[];

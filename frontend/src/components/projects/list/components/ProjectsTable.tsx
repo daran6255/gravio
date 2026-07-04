@@ -2,11 +2,11 @@ import React from 'react';
 import { TableRow, TableCell, Typography, Stack, Avatar, TextField, MenuItem, alpha, LinearProgress, Box, Checkbox } from '@mui/material';
 import { DeleteOutline } from '@mui/icons-material';
 import dayjs from 'dayjs';
-import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../common/table';
-import StatusBadge from '../../common/badge/StatusBadge';
-import type { Project, ProjectStatus } from '../../../models/projects/project';
-import { PROJECT_STATUS_OPTIONS } from '../../../models/projects/project';
-import type { CRMOwnerOption } from '../../../models/crm/owner';
+import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../../common/table';
+import StatusBadge from '../../../common/badge/StatusBadge';
+import type { Project, ProjectStatus } from '../../../../models/projects/project';
+import { PROJECT_STATUS_OPTIONS } from '../../../../models/projects/project';
+import type { CRMOwnerOption } from '../../../../models/crm/owner';
 
 interface ProjectsTableProps {
 	projects: Project[];

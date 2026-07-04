@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchProjects, fetchProjectStats, createProject, deleteProject, bulkUpdateProjects } from '../../../store/slices/projectsSlice';
-import { fetchOwners } from '../../../store/slices/crmSlice';
-import useToast from '../../../hooks/useToast';
-import type { Project, ProjectStatus, ProjectCreate } from '../../../models/projects/project';
+import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
+import { fetchProjects, fetchProjectStats, createProject, deleteProject, bulkUpdateProjects } from '../../../../store/slices/projectsSlice';
+import { fetchOwners } from '../../../../store/slices/crmSlice';
+import useToast from '../../../../hooks/useToast';
+import type { Project, ProjectStatus, ProjectCreate } from '../../../../models/projects/project';
 
 export const useProjectsManagement = () => {
 	const dispatch = useAppDispatch();

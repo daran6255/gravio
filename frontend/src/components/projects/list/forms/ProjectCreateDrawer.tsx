@@ -32,14 +32,14 @@ import {
 	CheckCircleOutline,
 	ReceiptLong
 } from '@mui/icons-material';
-import { DatePicker, RichTextEditor } from '../../common/form';
-import useToast from '../../../hooks/useToast';
-import type { ProjectCreate, ProjectStatus } from '../../../models/projects/project';
-import type { CRMOwnerOption } from '../../../models/crm/owner';
-import { getWorldCurrencies, getCurrencySymbol } from '../../../utils/currency';
+import { DatePicker, RichTextEditor } from '../../../common/form';
+import useToast from '../../../../hooks/useToast';
+import type { ProjectCreate, ProjectStatus } from '../../../../models/projects/project';
+import type { CRMOwnerOption } from '../../../../models/crm/owner';
+import { getWorldCurrencies, getCurrencySymbol } from '../../../../utils/currency';
 import { NumericFormat } from 'react-number-format';
-import { TEMPLATE_CATEGORIES } from '../../../data/projectTemplates';
-import type { ProjectTemplate } from '../../../data/projectTemplates';
+import { TEMPLATE_CATEGORIES } from '../../../../data/projectTemplates';
+import type { ProjectTemplate } from '../../../../data/projectTemplates';
 
 interface ProjectCreateDrawerProps {
 	open: boolean;

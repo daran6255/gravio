@@ -1,3 +1,2 @@
-export * from './components';
+export * from './list';
 export * from './forms';
-export * from './hooks/useProjectsManagement';

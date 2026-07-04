@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Box, Typography, Button, Stack, Menu, MenuItem, Fade, useTheme, alpha } from '@mui/material';
 import { Close, PersonOutline, SyncAlt, KeyboardArrowDown } from '@mui/icons-material';
-import type { ProjectStatus } from '../../../models/projects/project';
-import { PROJECT_STATUS_OPTIONS } from '../../../models/projects/project';
-import type { CRMOwnerOption } from '../../../models/crm/owner';
+import type { ProjectStatus } from '../../../../models/projects/project';
+import { PROJECT_STATUS_OPTIONS } from '../../../../models/projects/project';
+import type { CRMOwnerOption } from '../../../../models/crm/owner';
 
 interface ProjectsBulkActionBarProps {
 	selectedCount: number;

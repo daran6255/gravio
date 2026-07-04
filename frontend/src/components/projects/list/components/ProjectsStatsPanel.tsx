@@ -1,8 +1,8 @@
 import React from 'react';
 import { Grid } from '@mui/material';
 import { FolderOpenOutlined, PlayCircleOutline, WarningAmberOutlined, AccountBalanceWalletOutlined } from '@mui/icons-material';
-import StatCard from '../../common/stats/StatCard';
-import type { ProjectStats } from '../../../models/projects/project';
+import StatCard from '../../../common/stats/StatCard';
+import type { ProjectStats } from '../../../../models/projects/project';
 
 interface ProjectsStatsPanelProps {
 	stats: ProjectStats | null;

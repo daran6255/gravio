@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Paper, Stack, Typography, Chip, useTheme } from '@mui/material';
 import { NotificationImportantOutlined, WarningAmberOutlined } from '@mui/icons-material';
 import dayjs from 'dayjs';
-import type { ProjectDeadlineItem } from '../../../models/projects/project';
+import type { ProjectDeadlineItem } from '../../../../models/projects/project';
 
 interface ProjectAttentionPanelProps {
 	upcomingDeadlines: ProjectDeadlineItem[];
