@@ -13,7 +13,7 @@ interface StatusBadgeProps {
 
 type StatusTone = 'success' | 'info' | 'warning' | 'error' | 'default';
 
-const getStatusTone = (status: string, type: BadgeType): StatusTone => {
+export const getStatusTone = (status: string, type: BadgeType): StatusTone => {
 	const s = status.toLowerCase();
 
 	if (type === 'lead') {

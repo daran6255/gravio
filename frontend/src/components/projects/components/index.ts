@@ -4,3 +4,4 @@ export * from './ProjectTaskKanbanBoard';
 export * from './ProjectTaskList';
 export * from './ProjectsStatsPanel';
 export * from './ProjectAttentionPanel';
+export * from './ProjectStatusBreakdown';

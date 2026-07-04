@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Container, Grid } from '@mui/material';
+import { Box, Container, Grid, Stack } from '@mui/material';
 import PageHeader from '../../components/common/page-header';
 import { ConfirmationDialog } from '../../components/common/dialogbox';
 import {
@@ -8,6 +8,7 @@ import {
 	ProjectCreateDrawer,
 	ProjectsStatsPanel,
 	ProjectAttentionPanel,
+	ProjectStatusBreakdown,
 	useProjectsManagement,
 } from '../../components/projects';
 
@@ -60,10 +61,13 @@ const ProjectsListPage: React.FC = () => {
 
 				<Grid container spacing={3}>
 					<Grid size={{ xs: 12, md: 3 }}>
-						<ProjectAttentionPanel
-							upcomingDeadlines={projectStats?.upcoming_deadlines ?? []}
-							overdueProjects={projectStats?.overdue_projects ?? []}
-						/>
+						<Stack spacing={3}>
+							<ProjectStatusBreakdown statusCounts={projectStats?.status_counts ?? []} />
+							<ProjectAttentionPanel
+								upcomingDeadlines={projectStats?.upcoming_deadlines ?? []}
+								overdueProjects={projectStats?.overdue_projects ?? []}
+							/>
+						</Stack>
 					</Grid>
 
 					<Grid size={{ xs: 12, md: 9 }}>
