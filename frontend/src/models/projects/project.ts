@@ -76,6 +76,7 @@ export interface DealConvertToProjectRequest {
 	start_date?: string;
 	end_date?: string;
 	budget?: number;
+	template_key?: string;
 }
 
 export interface DealProjectConversionPreview {

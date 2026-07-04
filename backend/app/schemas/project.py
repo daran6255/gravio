@@ -137,6 +137,7 @@ class DealConvertToProjectRequest(BaseModel):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     budget: Optional[float] = None   # defaults to deal.value, converted into the target currency
+    template_key: Optional[str] = None
 
 
 class DealProjectConversionPreview(BaseModel):

@@ -69,7 +69,7 @@ export const ProjectsTable: React.FC<ProjectsTableProps> = ({
 		{ id: 'status', label: 'Status' },
 		{ id: 'owner_id', label: 'Owner', hideOnMobile: true },
 		{ id: 'task_count', label: 'Tasks', hideOnMobile: true },
-		{ id: 'on_track', label: 'On Track', hideOnMobile: true },
+		{ id: 'on_track' as any, label: 'On Track', hideOnMobile: true },
 		{ id: 'budget', label: 'Budget', hideOnMobile: true },
 		{ id: 'actions', label: '', align: 'right', width: 60 },
 	];

@@ -321,6 +321,23 @@ class ProjectService:
             currency=currency,
         )
 
+        # Seed tasks if template selected
+        template_key = payload.template_key
+        if template_key and template_key in PROJECT_TEMPLATES:
+            template = PROJECT_TEMPLATES[template_key]
+            initial_status = await ProjectTaskStatusRepository.get_initial(db)
+            if initial_status:
+                for idx, t in enumerate(template["tasks"]):
+                    await ProjectTaskRepository.create(
+                        db,
+                        project_id=project.id,
+                        parent_task_id=None,
+                        title=t["title"],
+                        description=t["description"],
+                        status_id=initial_status.id,
+                        order=idx,
+                    )
+
         await CRMDealRepository.update(db, deal, project_id=project.id)
 
         await AuditService.record(
