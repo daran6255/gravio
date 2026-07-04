@@ -31,9 +31,14 @@ if TYPE_CHECKING:
 class ProjectStatus(str, enum.Enum):
     PLANNING = "planning"
     ACTIVE = "active"
+    IN_PROGRESS = "in_progress"
+    DELAYED = "delayed"
+    IN_TESTING = "in_testing"
     ON_HOLD = "on_hold"
     COMPLETED = "completed"
-    ARCHIVED = "archived"
+    APPROVED = "approved"
+    INVOICED = "invoiced"
+    CANCELED = "canceled"
 
 
 class BillingType(str, enum.Enum):

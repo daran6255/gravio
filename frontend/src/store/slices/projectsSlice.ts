@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import projectService from '../../services/projectService';
 import crmService from '../../services/crmService';
-import type { Project, ProjectCreate, ProjectUpdate, DealConvertToProjectRequest } from '../../models/projects/project';
+import type { Project, ProjectCreate, ProjectUpdate, DealConvertToProjectRequest, ProjectStats } from '../../models/projects/project';
 import type {
 	ProjectTask,
 	ProjectTaskCreate,
@@ -23,6 +23,10 @@ interface ProjectsState {
 	projectsPageSize: number;
 	projectsLoading: boolean;
 	projectsError: string | null;
+
+	projectStats: ProjectStats | null;
+	projectStatsLoading: boolean;
+	projectStatsError: string | null;
 
 	currentProject: Project | null;
 	currentProjectLoading: boolean;
@@ -50,6 +54,10 @@ const initialState: ProjectsState = {
 	projectsPageSize: 20,
 	projectsLoading: false,
 	projectsError: null,
+
+	projectStats: null,
+	projectStatsLoading: false,
+	projectStatsError: null,
 
 	currentProject: null,
 	currentProjectLoading: false,
@@ -81,6 +89,17 @@ export const fetchProjects = createAsyncThunk(
 			return await projectService.listProjects(params || {});
 		} catch (error: any) {
 			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch projects'));
+		}
+	}
+);
+
+export const fetchProjectStats = createAsyncThunk(
+	'projects/fetchProjectStats',
+	async (_: void | undefined, { rejectWithValue }) => {
+		try {
+			return await projectService.getProjectStats();
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch project stats'));
 		}
 	}
 );
@@ -252,6 +271,18 @@ const projectsSlice = createSlice({
 			.addCase(fetchProjects.rejected, (state, action: PayloadAction<any>) => {
 				state.projectsLoading = false;
 				state.projectsError = action.payload;
+			})
+			.addCase(fetchProjectStats.pending, (state) => {
+				state.projectStatsLoading = true;
+				state.projectStatsError = null;
+			})
+			.addCase(fetchProjectStats.fulfilled, (state, action: PayloadAction<ProjectStats>) => {
+				state.projectStatsLoading = false;
+				state.projectStats = action.payload;
+			})
+			.addCase(fetchProjectStats.rejected, (state, action: PayloadAction<any>) => {
+				state.projectStatsLoading = false;
+				state.projectStatsError = action.payload;
 			})
 			.addCase(fetchProject.pending, (state) => {
 				state.currentProjectLoading = true;

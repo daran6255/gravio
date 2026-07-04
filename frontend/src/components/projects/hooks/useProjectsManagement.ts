@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchProjects, createProject, updateProject, deleteProject } from '../../../store/slices/projectsSlice';
+import { fetchProjects, fetchProjectStats, createProject, updateProject, deleteProject } from '../../../store/slices/projectsSlice';
 import { fetchOwners } from '../../../store/slices/crmSlice';
 import useToast from '../../../hooks/useToast';
 import type { Project, ProjectStatus, ProjectCreate, ProjectUpdate } from '../../../models/projects/project';
@@ -10,7 +10,7 @@ export const useProjectsManagement = () => {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 	const toast = useToast();
-	const { projects, projectsTotal, projectsLoading, projectMutating } = useAppSelector((state) => state.projects);
+	const { projects, projectsTotal, projectsLoading, projectMutating, projectStats, projectStatsLoading } = useAppSelector((state) => state.projects);
 	const { owners } = useAppSelector((state) => state.crm);
 	const [searchParams] = useSearchParams();
 
@@ -39,6 +39,10 @@ export const useProjectsManagement = () => {
 	useEffect(() => {
 		dispatch(fetchOwners());
 	}, [dispatch]);
+
+	useEffect(() => {
+		dispatch(fetchProjectStats());
+	}, [dispatch, refreshKey]);
 
 	const refreshData = useCallback(() => setRefreshKey((k) => k + 1), []);
 
@@ -112,6 +116,9 @@ export const useProjectsManagement = () => {
 		projectsTotal,
 		projectsLoading,
 		owners,
+
+		projectStats,
+		projectStatsLoading,
 
 		page,
 		rowsPerPage,

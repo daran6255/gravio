@@ -102,6 +102,34 @@ class ProjectResponse(ProjectBase):
         return data
 
 
+# --- Project Stats ---
+class ProjectBudgetByCurrency(BaseModel):
+    currency: str
+    total: float
+
+
+class ProjectDeadlineItem(BaseModel):
+    public_id: uuid.UUID
+    name: str
+    end_date: date
+
+
+class ProjectStatusCount(BaseModel):
+    status: ProjectStatus
+    count: int
+
+
+class ProjectStatsResponse(BaseModel):
+    total_projects: int
+    status_counts: list[ProjectStatusCount]
+    overdue_count: int
+    total_tasks: int
+    completed_tasks: int
+    budget_by_currency: list[ProjectBudgetByCurrency]
+    upcoming_deadlines: list[ProjectDeadlineItem]
+    overdue_projects: list[ProjectDeadlineItem]
+
+
 # --- Deal -> Project conversion ---
 class DealConvertToProjectRequest(BaseModel):
     name: Optional[str] = None       # defaults to deal.title if not provided

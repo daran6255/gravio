@@ -1,6 +1,6 @@
 import api from './api';
 import type { PaginatedResponse } from '../models/common';
-import type { Project, ProjectCreate, ProjectUpdate, ProjectStatus } from '../models/projects/project';
+import type { Project, ProjectCreate, ProjectUpdate, ProjectStatus, ProjectStats } from '../models/projects/project';
 import type {
 	ProjectTask,
 	ProjectTaskCreate,
@@ -23,6 +23,11 @@ const projectService = {
 		const response = await api.get<PaginatedResponse<Project>>('/projects', {
 			params: { page, page_size: pageSize, search, status, owner_id: ownerId, company_id: companyId },
 		});
+		return response.data;
+	},
+
+	getProjectStats: async (): Promise<ProjectStats> => {
+		const response = await api.get<ProjectStats>('/projects/stats');
 		return response.data;
 	},
 

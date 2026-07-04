@@ -1,19 +1,12 @@
 import React from 'react';
-import { TableRow, TableCell, Typography, Stack, Avatar, TextField, MenuItem, alpha, LinearProgress } from '@mui/material';
+import { TableRow, TableCell, Typography, Stack, Avatar, TextField, MenuItem, alpha, LinearProgress, Box } from '@mui/material';
 import { Visibility, Edit, DeleteOutline } from '@mui/icons-material';
+import dayjs from 'dayjs';
 import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../common/table';
 import StatusBadge from '../../common/badge/StatusBadge';
 import type { Project, ProjectStatus } from '../../../models/projects/project';
+import { PROJECT_STATUS_OPTIONS } from '../../../models/projects/project';
 import type { CRMOwnerOption } from '../../../models/crm/owner';
-import dayjs from 'dayjs';
-
-const PROJECT_STATUSES: { value: ProjectStatus; label: string }[] = [
-	{ value: 'planning', label: 'Planning' },
-	{ value: 'active', label: 'Active' },
-	{ value: 'on_hold', label: 'On Hold' },
-	{ value: 'completed', label: 'Completed' },
-	{ value: 'archived', label: 'Archived' },
-];
 
 interface ProjectsTableProps {
 	projects: Project[];
@@ -40,9 +33,16 @@ const formatBudget = (project: Project): string => {
 	return new Intl.NumberFormat(undefined, { style: 'currency', currency: project.currency }).format(project.budget);
 };
 
-const formatDate = (dateStr?: string): string => {
-	if (!dateStr) return '—';
-	return dayjs(dateStr).format('DD-MMM-YYYY');
+const CLOSED_STATUSES: ProjectStatus[] = ['completed', 'approved', 'invoiced', 'canceled'];
+
+const getTrackInfo = (project: Project): { label: string; color: string } => {
+	if (project.status === 'canceled') return { label: 'Canceled', color: 'text.disabled' };
+	if (CLOSED_STATUSES.includes(project.status)) return { label: 'Completed', color: 'success.main' };
+	if (project.status === 'delayed') return { label: 'Delayed', color: 'error.main' };
+	if (project.end_date && dayjs(project.end_date).isBefore(dayjs(), 'day')) {
+		return { label: 'Delayed', color: 'error.main' };
+	}
+	return { label: 'On Track', color: 'success.main' };
 };
 
 export const ProjectsTable: React.FC<ProjectsTableProps> = ({
@@ -69,10 +69,7 @@ export const ProjectsTable: React.FC<ProjectsTableProps> = ({
 		{ id: 'status', label: 'Status' },
 		{ id: 'owner_id', label: 'Owner', hideOnMobile: true },
 		{ id: 'task_count', label: 'Tasks', hideOnMobile: true },
-		{ id: 'phase', label: 'Phase', hideOnMobile: true },
-		{ id: 'issues', label: 'Issues', hideOnMobile: true },
-		{ id: 'start_date', label: 'Start Date', hideOnMobile: true },
-		{ id: 'end_date', label: 'End Date', hideOnMobile: true },
+		{ id: 'on_track', label: 'On Track', hideOnMobile: true },
 		{ id: 'budget', label: 'Budget', hideOnMobile: true },
 		{ id: 'actions', label: '', align: 'right', width: 60 },
 	];
@@ -137,20 +134,15 @@ export const ProjectsTable: React.FC<ProjectsTableProps> = ({
 					</Stack>
 				</TableCell>
 				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
-					<Typography variant="body2" color={project.phase ? "text.primary" : "text.secondary"}>
-						{project.phase || '—'}
-					</Typography>
-				</TableCell>
-				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' }, maxWidth: 200 }}>
-					<Typography variant="body2" noWrap color={project.issues ? "error.main" : "text.secondary"} sx={{ fontWeight: project.issues ? 500 : 400 }}>
-						{project.issues || '—'}
-					</Typography>
-				</TableCell>
-				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
-					<Typography variant="body2">{formatDate(project.start_date)}</Typography>
-				</TableCell>
-				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
-					<Typography variant="body2">{formatDate(project.end_date)}</Typography>
+					{(() => {
+						const track = getTrackInfo(project);
+						return (
+							<Stack direction="row" spacing={0.75} alignItems="center">
+								<Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: track.color, flexShrink: 0 }} />
+								<Typography variant="body2" sx={{ color: track.color, fontWeight: 600 }}>{track.label}</Typography>
+							</Stack>
+						);
+					})()}
 				</TableCell>
 				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{formatBudget(project)}</TableCell>
 				<TableCell align="right" onClick={(e) => e.stopPropagation()}>
@@ -200,7 +192,7 @@ export const ProjectsTable: React.FC<ProjectsTableProps> = ({
 					}}
 				>
 					<MenuItem value="">All Status</MenuItem>
-					{PROJECT_STATUSES.map((s) => (
+					{PROJECT_STATUS_OPTIONS.map((s) => (
 						<MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
 					))}
 				</TextField>

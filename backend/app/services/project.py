@@ -155,6 +155,10 @@ class ProjectService:
             db, status=status, owner_id=owner_id, company_id=company_id, page=page, page_size=page_size, search=search
         )
 
+    @staticmethod
+    async def get_stats(db: AsyncSession) -> dict:
+        return await ProjectRepository.get_stats(db)
+
     # --- Project Task CRUD (also used for sub-tasks) ---
     @staticmethod
     async def get_task(db: AsyncSession, public_id: uuid.UUID) -> ProjectTask:

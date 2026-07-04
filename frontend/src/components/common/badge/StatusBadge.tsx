@@ -38,10 +38,10 @@ const getStatusTone = (status: string, type: BadgeType): StatusTone => {
 	}
 
 	if (type === 'project') {
-		if (['completed'].includes(s)) return 'success';
-		if (['active'].includes(s)) return 'info';
-		if (['planning', 'on_hold'].includes(s)) return 'warning';
-		if (['archived'].includes(s)) return 'error';
+		if (['completed', 'approved', 'invoiced'].includes(s)) return 'success';
+		if (['active', 'in_progress'].includes(s)) return 'info';
+		if (['planning', 'on_hold', 'in_testing'].includes(s)) return 'warning';
+		if (['delayed', 'canceled'].includes(s)) return 'error';
 	}
 
 	// Company & generic

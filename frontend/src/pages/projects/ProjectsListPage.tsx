@@ -1,8 +1,15 @@
 import React from 'react';
-import { Box, Container } from '@mui/material';
+import { Box, Container, Grid } from '@mui/material';
 import PageHeader from '../../components/common/page-header';
 import { ConfirmationDialog } from '../../components/common/dialogbox';
-import { ProjectsTable, ProjectFormDialog, ProjectCreateDrawer, useProjectsManagement } from '../../components/projects';
+import {
+	ProjectsTable,
+	ProjectFormDialog,
+	ProjectCreateDrawer,
+	ProjectsStatsPanel,
+	ProjectAttentionPanel,
+	useProjectsManagement,
+} from '../../components/projects';
 
 /**
  * Project Management — projects created from Won deals (or directly), each
@@ -14,6 +21,7 @@ const ProjectsListPage: React.FC = () => {
 		projectsTotal,
 		projectsLoading,
 		owners,
+		projectStats,
 		page,
 		rowsPerPage,
 		searchTerm,
@@ -48,25 +56,38 @@ const ProjectsListPage: React.FC = () => {
 					subtitle="Delivery projects converted from Won deals, tracked through to completion"
 				/>
 
-				<ProjectsTable
-					projects={projects}
-					owners={owners}
-					loading={projectsLoading}
-					totalCount={projectsTotal}
-					page={page}
-					rowsPerPage={rowsPerPage}
-					onPageChange={handlePageChange}
-					onRowsPerPageChange={handleRowsPerPageChange}
-					searchTerm={searchTerm}
-					onSearchChange={handleSearchChange}
-					statusFilter={statusFilter}
-					onStatusFilterChange={handleStatusFilterChange}
-					onRefresh={refreshData}
-					onCreateClick={handleCreateClick}
-					onRowClick={handleRowClick}
-					onEdit={handleEdit}
-					onDelete={handleDeleteRequest}
-				/>
+				<ProjectsStatsPanel stats={projectStats} />
+
+				<Grid container spacing={3}>
+					<Grid size={{ xs: 12, md: 3 }}>
+						<ProjectAttentionPanel
+							upcomingDeadlines={projectStats?.upcoming_deadlines ?? []}
+							overdueProjects={projectStats?.overdue_projects ?? []}
+						/>
+					</Grid>
+
+					<Grid size={{ xs: 12, md: 9 }}>
+						<ProjectsTable
+							projects={projects}
+							owners={owners}
+							loading={projectsLoading}
+							totalCount={projectsTotal}
+							page={page}
+							rowsPerPage={rowsPerPage}
+							onPageChange={handlePageChange}
+							onRowsPerPageChange={handleRowsPerPageChange}
+							searchTerm={searchTerm}
+							onSearchChange={handleSearchChange}
+							statusFilter={statusFilter}
+							onStatusFilterChange={handleStatusFilterChange}
+							onRefresh={refreshData}
+							onCreateClick={handleCreateClick}
+							onRowClick={handleRowClick}
+							onEdit={handleEdit}
+							onDelete={handleDeleteRequest}
+						/>
+					</Grid>
+				</Grid>
 
 				<ProjectFormDialog
 					open={formOpen}

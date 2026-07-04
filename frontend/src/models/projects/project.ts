@@ -1,4 +1,28 @@
-export type ProjectStatus = 'planning' | 'active' | 'on_hold' | 'completed' | 'archived';
+export type ProjectStatus =
+	| 'planning'
+	| 'active'
+	| 'in_progress'
+	| 'delayed'
+	| 'in_testing'
+	| 'on_hold'
+	| 'completed'
+	| 'approved'
+	| 'invoiced'
+	| 'canceled';
+
+/** Canonical status list/labels, shared by the table filter and forms. */
+export const PROJECT_STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
+	{ value: 'planning', label: 'Planning' },
+	{ value: 'active', label: 'Active' },
+	{ value: 'in_progress', label: 'In Progress' },
+	{ value: 'delayed', label: 'Delayed' },
+	{ value: 'in_testing', label: 'In Testing' },
+	{ value: 'on_hold', label: 'On Hold' },
+	{ value: 'completed', label: 'Completed' },
+	{ value: 'approved', label: 'Approved' },
+	{ value: 'invoiced', label: 'Invoiced' },
+	{ value: 'canceled', label: 'Canceled' },
+];
 
 export interface Project {
 	id: number;
@@ -62,5 +86,33 @@ export interface DealProjectConversionPreview {
 	rate?: number;
 	rate_date?: string;
 	converted: boolean;
+}
+
+export interface ProjectBudgetByCurrency {
+	currency: string;
+	total: number;
+}
+
+export interface ProjectDeadlineItem {
+	public_id: string;
+	name: string;
+	end_date: string;
+}
+
+export interface ProjectStatusCount {
+	status: ProjectStatus;
+	count: number;
+}
+
+/** Matches backend's ProjectStatsResponse (GET /projects/stats). */
+export interface ProjectStats {
+	total_projects: number;
+	status_counts: ProjectStatusCount[];
+	overdue_count: number;
+	total_tasks: number;
+	completed_tasks: number;
+	budget_by_currency: ProjectBudgetByCurrency[];
+	upcoming_deadlines: ProjectDeadlineItem[];
+	overdue_projects: ProjectDeadlineItem[];
 }
 

@@ -22,6 +22,7 @@ from app.schemas.project import (
     ProjectCreate,
     ProjectUpdate,
     ProjectResponse,
+    ProjectStatsResponse,
     ProjectTaskCreate,
     ProjectTaskUpdate,
     ProjectTaskResponse,
@@ -115,6 +116,20 @@ async def list_projects_endpoint(
         page=page,
         page_size=page_size,
     )
+
+
+@router.get(
+    "/stats",
+    response_model=ProjectStatsResponse,
+    summary="Get aggregate project stats for the stats panel",
+)
+async def get_project_stats_endpoint(
+    current_user: User = Depends(require_project_access),
+    _pm: User = Depends(require_pm_module),
+    db: AsyncSession = Depends(get_db),
+) -> ProjectStatsResponse:
+    stats = await ProjectService.get_stats(db)
+    return ProjectStatsResponse(**stats)
 
 
 @router.get(

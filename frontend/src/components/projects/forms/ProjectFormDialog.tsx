@@ -6,15 +6,8 @@ import useToast from '../../../hooks/useToast';
 import { getWorldCurrencies, getCurrencySymbol } from '../../../utils/currency';
 import { NumericFormat } from 'react-number-format';
 import type { Project, ProjectStatus, ProjectCreate, ProjectUpdate } from '../../../models/projects/project';
+import { PROJECT_STATUS_OPTIONS } from '../../../models/projects/project';
 import type { CRMOwnerOption } from '../../../models/crm/owner';
-
-const PROJECT_STATUSES: { value: ProjectStatus; label: string }[] = [
-	{ value: 'planning', label: 'Planning' },
-	{ value: 'active', label: 'Active' },
-	{ value: 'on_hold', label: 'On Hold' },
-	{ value: 'completed', label: 'Completed' },
-	{ value: 'archived', label: 'Archived' },
-];
 
 interface ProjectFormDialogProps {
 	open: boolean;
@@ -123,7 +116,7 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({ open, onCl
 								onChange={(e) => setStatus(e.target.value as ProjectStatus)}
 								fullWidth
 							>
-								{PROJECT_STATUSES.map((s) => (
+								{PROJECT_STATUS_OPTIONS.map((s) => (
 									<MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
 								))}
 							</TextField>

@@ -1,13 +1,14 @@
 """Project Management data access layer repositories"""
 
 import uuid
+from datetime import date
 from typing import Optional
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
-from app.models.project import Project, ProjectTask, ProjectTaskStatus
+from app.models.project import Project, ProjectStatus, ProjectTask, ProjectTaskStatus
 
 
 class ProjectTaskStatusRepository:
@@ -131,6 +132,83 @@ class ProjectRepository:
             .limit(page_size)
         )
         return list(result.scalars().all()), total
+
+    # Statuses still considered "in flight" -- eligible for overdue/upcoming-deadline
+    # tracking. COMPLETED/APPROVED/INVOICED/CANCELED are terminal and excluded.
+    OPEN_STATUSES = (
+        ProjectStatus.PLANNING, ProjectStatus.ACTIVE, ProjectStatus.IN_PROGRESS,
+        ProjectStatus.DELAYED, ProjectStatus.IN_TESTING, ProjectStatus.ON_HOLD,
+    )
+
+    @staticmethod
+    async def get_stats(db: AsyncSession) -> dict:
+        not_deleted = Project.is_deleted.is_(False)
+        open_statuses = ProjectRepository.OPEN_STATUSES
+        today = date.today()
+
+        status_counts_result = await db.execute(
+            select(Project.status, func.count(Project.id)).where(not_deleted).group_by(Project.status)
+        )
+        status_counts = {row[0]: row[1] for row in status_counts_result.all()}
+        total_projects = sum(status_counts.values())
+
+        overdue_count_result = await db.execute(
+            select(func.count(Project.id)).where(
+                not_deleted, Project.status.in_(open_statuses), Project.end_date < today
+            )
+        )
+        overdue_count = overdue_count_result.scalar_one()
+
+        task_totals_result = await db.execute(
+            select(func.count(ProjectTask.id), func.count(ProjectTask.completed_at))
+            .join(Project, Project.id == ProjectTask.project_id)
+            .where(not_deleted, ProjectTask.is_deleted.is_(False))
+        )
+        total_tasks, completed_tasks = task_totals_result.one()
+
+        budget_result = await db.execute(
+            select(Project.currency, func.sum(Project.budget))
+            .where(not_deleted, Project.budget.is_not(None))
+            .group_by(Project.currency)
+            .order_by(func.sum(Project.budget).desc())
+        )
+        budget_by_currency = [
+            {"currency": row[0], "total": float(row[1])} for row in budget_result.all()
+        ]
+
+        upcoming_result = await db.execute(
+            select(Project.public_id, Project.name, Project.end_date)
+            .where(
+                not_deleted, Project.status.in_(open_statuses),
+                Project.end_date.is_not(None), Project.end_date >= today,
+            )
+            .order_by(Project.end_date.asc())
+            .limit(5)
+        )
+        upcoming_deadlines = [
+            {"public_id": row[0], "name": row[1], "end_date": row[2]} for row in upcoming_result.all()
+        ]
+
+        overdue_result = await db.execute(
+            select(Project.public_id, Project.name, Project.end_date)
+            .where(not_deleted, Project.status.in_(open_statuses), Project.end_date < today)
+            .order_by(Project.end_date.asc())
+            .limit(5)
+        )
+        overdue_projects = [
+            {"public_id": row[0], "name": row[1], "end_date": row[2]} for row in overdue_result.all()
+        ]
+
+        return {
+            "total_projects": total_projects,
+            "status_counts": [{"status": status, "count": count} for status, count in status_counts.items()],
+            "overdue_count": overdue_count,
+            "total_tasks": total_tasks,
+            "completed_tasks": completed_tasks,
+            "budget_by_currency": budget_by_currency,
+            "upcoming_deadlines": upcoming_deadlines,
+            "overdue_projects": overdue_projects,
+        }
 
 
 class ProjectTaskRepository:
