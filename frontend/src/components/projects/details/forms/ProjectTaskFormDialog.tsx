@@ -135,8 +135,8 @@ export const ProjectTaskFormDialog: React.FC<ProjectTaskFormDialogProps> = ({
 	const dueDateLabel = dueDate ? `Due: ${dayjs(dueDate).format('MMM D')}` : 'Due Date';
 	const tagsLabel = tags.length ? `${tags.length} tag${tags.length === 1 ? '' : 's'}` : 'Tags';
 
-	const title_ = isEdit ? 'Edit Task' : parentTask ? 'New Sub-task' : 'New Task';
-	const subtitle = isEdit ? task?.title : parentTask ? `Under "${parentTask.title}"` : 'Add a task to this project';
+	const title_ = parentTask ? 'Edit Sub-task' : 'Edit Task';
+	const subtitle = task?.title || '';
 
 	return (
 		<>

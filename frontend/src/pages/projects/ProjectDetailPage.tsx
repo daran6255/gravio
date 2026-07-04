@@ -7,6 +7,7 @@ import {
 	ProjectEditDrawer,
 	ProjectTaskKanbanBoard,
 	ProjectTaskFormDialog,
+	ProjectTaskCreateDialog,
 	ProjectTaskStatusManagementDialog,
 	useProjectDetail,
 } from '../../components/projects';
@@ -108,17 +109,29 @@ const ProjectDetailPage: React.FC = () => {
 							onDeleteTask={handleTaskDeleteRequest}
 						/>
 
-						<ProjectTaskFormDialog
-							open={taskFormOpen}
-							onClose={() => setTaskFormOpen(false)}
-							task={editingTask}
-							parentTask={subtaskParent}
-							statuses={taskStatuses}
-							owners={owners}
-							existingTags={projectTags}
-							submitting={taskMutating}
-							onSubmit={handleTaskFormSubmit}
-						/>
+						{editingTask ? (
+							<ProjectTaskFormDialog
+								open={taskFormOpen}
+								onClose={() => setTaskFormOpen(false)}
+								task={editingTask}
+								parentTask={subtaskParent}
+								statuses={taskStatuses}
+								owners={owners}
+								existingTags={projectTags}
+								submitting={taskMutating}
+								onSubmit={handleTaskFormSubmit}
+							/>
+						) : (
+							<ProjectTaskCreateDialog
+								open={taskFormOpen}
+								onClose={() => setTaskFormOpen(false)}
+								parentTask={subtaskParent}
+								statuses={taskStatuses}
+								owners={owners}
+								submitting={taskMutating}
+								onSubmit={handleTaskFormSubmit}
+							/>
+						)}
 
 						<ProjectTaskStatusManagementDialog
 							open={statusDialogOpen}
