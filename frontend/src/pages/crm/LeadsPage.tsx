@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Container, Grid, Stack, Button, useTheme, Typography } from '@mui/material';
-import { HelpOutline, FileUploadOutlined, FileDownloadOutlined, LockOutlined } from '@mui/icons-material';
+import { HelpOutline, FileUploadOutlined, LockOutlined } from '@mui/icons-material';
 import PageHeader from '../../components/common/page-header';
 import { PremiumTooltip } from '../../components/common/PremiumTooltip';
 import { useAppSelector } from '../../store/hooks';
@@ -74,7 +74,6 @@ const LeadsPage: React.FC = () => {
 		handleConfirmBulkDelete,
 		importOpen,
 		setImportOpen,
-		handleExport,
 		handleImportSuccess,
 		handleCreateClick,
 		handleEdit,
@@ -109,29 +108,6 @@ const LeadsPage: React.FC = () => {
 					subtitle="Capture, qualify, and convert your sales pipeline"
 					action={
 						<Stack direction="row" spacing={1.5}>
-							<PremiumTooltip
-								title={locked ? 'Upgrade to a paid plan to export leads as CSV' : ''}
-								arrow
-							>
-								<span>
-									<Button
-										variant="outlined"
-										startIcon={locked ? <LockOutlined /> : <FileDownloadOutlined />}
-										onClick={handleExport}
-										disabled={locked}
-										sx={{
-											textTransform: 'none',
-											fontWeight: 700,
-											borderRadius: '8px',
-											borderColor: 'divider',
-											color: 'text.secondary',
-											'&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover', color: 'primary.main' }
-										}}
-									>
-										Export
-									</Button>
-								</span>
-							</PremiumTooltip>
 							<PremiumTooltip
 								title={locked ? 'Upgrade to a paid plan to import leads from CSV' : ''}
 								arrow

@@ -164,24 +164,6 @@ const crmService = {
 		const response = await api.post<Lead>(`/crm/leads/${publicId}/anonymize`);
 		return response.data;
 	},
-	exportLeadsCsv: async (params: {
-		status?: string; priority?: string; source?: string; ownerId?: number; search?: string;
-	} = {}): Promise<void> => {
-		const { status, priority, source, ownerId, search } = params;
-		const response = await api.get('/crm/leads/export', {
-			params: { status, priority, source, owner_id: ownerId, search },
-			responseType: 'blob',
-		});
-		const blob = new Blob([response.data], { type: 'text/csv' });
-		const downloadUrl = window.URL.createObjectURL(blob);
-		const link = document.createElement('a');
-		link.href = downloadUrl;
-		link.download = 'leads_export.csv';
-		document.body.appendChild(link);
-		link.click();
-		link.remove();
-		window.URL.revokeObjectURL(downloadUrl);
-	},
 	importLeadsCsv: async (file: File): Promise<LeadImportResponse> => {
 		const formData = new FormData();
 		formData.append('file', file);

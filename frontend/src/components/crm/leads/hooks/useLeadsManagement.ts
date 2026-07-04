@@ -13,7 +13,6 @@ import {
 	bulkDeleteLeads,
 } from '../../../../store/slices/crmSlice';
 import useToast from '../../../../hooks/useToast';
-import crmService from '../../../../services/crmService';
 import type { Lead, LeadStatus, LeadPriority, LeadSource } from '../../../../models/crm/lead';
 
 export const useLeadsManagement = () => {
@@ -228,20 +227,6 @@ export const useLeadsManagement = () => {
 		}
 	};
 
-	const handleExport = async () => {
-		try {
-			await crmService.exportLeadsCsv({
-				status: statusFilter || undefined,
-				priority: priorityFilter || undefined,
-				source: sourceFilter || undefined,
-				ownerId: ownerFilter || undefined,
-				search: searchTerm || undefined,
-			});
-		} catch (err: any) {
-			toast.error('Failed to export leads');
-		}
-	};
-
 	const handleImportSuccess = () => {
 		refreshData();
 		dispatch(fetchLeadStats());
@@ -307,7 +292,6 @@ export const useLeadsManagement = () => {
 
 		importOpen,
 		setImportOpen,
-		handleExport,
 		handleImportSuccess,
 
 		handleCreateClick,
