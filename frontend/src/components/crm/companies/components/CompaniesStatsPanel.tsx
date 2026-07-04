@@ -2,6 +2,7 @@ import React from 'react';
 import { Grid } from '@mui/material';
 import { Business, Verified, PersonSearch, AttachMoney } from '@mui/icons-material';
 import StatCard from '../../../common/stats/StatCard';
+import { useAppSelector } from '../../../../store/hooks';
 import type { CRMCompanyStats } from '../../../../models/crm/crmStats';
 
 interface CompaniesStatsPanelProps {
@@ -9,6 +10,8 @@ interface CompaniesStatsPanelProps {
 }
 
 export const CompaniesStatsPanel: React.FC<CompaniesStatsPanelProps> = ({ stats }) => {
+	const displayCurrency = useAppSelector((state) => state.auth.user?.currency) || 'USD';
+
 	const statsCards = [
 		{
 			title: 'TOTAL COMPANIES',
@@ -36,7 +39,7 @@ export const CompaniesStatsPanel: React.FC<CompaniesStatsPanelProps> = ({ stats 
 		},
 		{
 			title: 'OPEN PIPELINE VALUE',
-			value: stats ? `$${stats.total_open_pipeline_value.toLocaleString()}` : '$0',
+			value: new Intl.NumberFormat(undefined, { style: 'currency', currency: displayCurrency }).format(stats?.total_open_pipeline_value ?? 0),
 			subtitle: `${stats?.companies_with_open_deals ?? 0} companies with open deals`,
 			icon: <AttachMoney sx={{ color: '#4EA8FF', fontSize: 26 }} />,
 			color: '#4EA8FF',
