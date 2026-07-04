@@ -1,7 +1,15 @@
 import React from 'react';
-import { Box, Container, Paper, Typography, CircularProgress } from '@mui/material';
-import { ChecklistOutlined } from '@mui/icons-material';
-import { ProjectDetailHeader, ProjectEditDrawer, useProjectDetail } from '../../components/projects';
+import { Box, Container, Stack, Button, Typography, CircularProgress } from '@mui/material';
+import { AddOutlined, TuneOutlined } from '@mui/icons-material';
+import { ConfirmationDialog } from '../../components/common/dialogbox';
+import {
+	ProjectDetailHeader,
+	ProjectEditDrawer,
+	ProjectTaskKanbanBoard,
+	ProjectTaskFormDialog,
+	ProjectTaskStatusManagementDialog,
+	useProjectDetail,
+} from '../../components/projects';
 
 const ProjectDetailPage: React.FC = () => {
 	const {
@@ -14,6 +22,30 @@ const ProjectDetailPage: React.FC = () => {
 		handleBack,
 		handleEditClick,
 		handleEditSubmit,
+
+		tasks,
+		tasksLoading,
+		taskMutating,
+		taskStatuses,
+
+		taskFormOpen,
+		setTaskFormOpen,
+		editingTask,
+		subtaskParent,
+		handleCreateTaskClick,
+		handleAddSubtaskClick,
+		handleEditTaskClick,
+		handleTaskFormSubmit,
+		handleMoveTask,
+
+		taskDeleteTarget,
+		setTaskDeleteTarget,
+		taskDeleteLoading,
+		handleTaskDeleteRequest,
+		handleConfirmTaskDelete,
+
+		statusDialogOpen,
+		setStatusDialogOpen,
 	} = useProjectDetail();
 
 	return (
@@ -36,26 +68,71 @@ const ProjectDetailPage: React.FC = () => {
 							onSubmit={handleEditSubmit}
 						/>
 
-						<Paper
-							variant="outlined"
-							sx={{
-								p: 6,
-								borderRadius: '20px',
-								textAlign: 'center',
-								display: 'flex',
-								flexDirection: 'column',
-								alignItems: 'center',
-								gap: 1.5,
-							}}
-						>
-							<ChecklistOutlined sx={{ fontSize: 40, color: 'text.secondary', opacity: 0.5 }} />
-							<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-								Task board coming soon
+						<Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1.5} sx={{ mb: 2.5 }}>
+							<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.01em' }}>
+								Task Board
 							</Typography>
-							<Typography variant="body2" color="text.secondary" sx={{ maxWidth: 420 }}>
-								This project's task board and activity will show up here.
-							</Typography>
-						</Paper>
+							<Stack direction="row" spacing={1.5}>
+								<Button
+									variant="outlined"
+									startIcon={<TuneOutlined />}
+									onClick={() => setStatusDialogOpen(true)}
+									sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px' }}
+								>
+									Manage Stages
+								</Button>
+								<Button
+									variant="contained"
+									startIcon={<AddOutlined />}
+									onClick={handleCreateTaskClick}
+									sx={{
+										color: 'white', textTransform: 'none', fontWeight: 700, borderRadius: '8px', boxShadow: 'none',
+										background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
+										'&:hover': { boxShadow: '0 4px 12px rgba(139,124,246,0.3)' },
+									}}
+								>
+									Add Task
+								</Button>
+							</Stack>
+						</Stack>
+
+						<ProjectTaskKanbanBoard
+							tasks={tasks}
+							statuses={taskStatuses}
+							owners={owners}
+							loading={tasksLoading}
+							onMoveTask={handleMoveTask}
+							onEditTask={handleEditTaskClick}
+							onAddSubtask={handleAddSubtaskClick}
+							onDeleteTask={handleTaskDeleteRequest}
+						/>
+
+						<ProjectTaskFormDialog
+							open={taskFormOpen}
+							onClose={() => setTaskFormOpen(false)}
+							task={editingTask}
+							parentTask={subtaskParent}
+							statuses={taskStatuses}
+							owners={owners}
+							submitting={taskMutating}
+							onSubmit={handleTaskFormSubmit}
+						/>
+
+						<ProjectTaskStatusManagementDialog
+							open={statusDialogOpen}
+							onClose={() => setStatusDialogOpen(false)}
+						/>
+
+						<ConfirmationDialog
+							open={!!taskDeleteTarget}
+							onClose={() => setTaskDeleteTarget(null)}
+							onConfirm={handleConfirmTaskDelete}
+							title="Delete Task"
+							message={`Are you sure you want to delete "${taskDeleteTarget?.title}"? This will also delete every sub-task under it.`}
+							confirmLabel="Delete"
+							severity="error"
+							loading={taskDeleteLoading}
+						/>
 					</>
 				) : (
 					<Box sx={{ py: 10, textAlign: 'center' }}>

@@ -1,6 +1,13 @@
 import api from './api';
 import type { PaginatedResponse } from '../models/common';
 import type { Project, ProjectCreate, ProjectUpdate, ProjectStatus, ProjectStats } from '../models/projects/project';
+import type {
+	ProjectTask,
+	ProjectTaskCreate,
+	ProjectTaskUpdate,
+	ProjectTaskStatus,
+	ProjectTaskStatusUpsert,
+} from '../models/projects/projectTask';
 
 const projectService = {
 	// --- Projects ---
@@ -49,6 +56,42 @@ const projectService = {
 			owner_id: updates.ownerId,
 			status: updates.status,
 		});
+		return response.data;
+	},
+
+	// --- Project Tasks (and sub-tasks) ---
+	listProjectTasks: async (projectPublicId: string): Promise<ProjectTask[]> => {
+		const response = await api.get<ProjectTask[]>(`/projects/${projectPublicId}/tasks`);
+		return response.data;
+	},
+
+	createProjectTask: async (projectPublicId: string, payload: ProjectTaskCreate): Promise<ProjectTask> => {
+		const response = await api.post<ProjectTask>(`/projects/${projectPublicId}/tasks`, payload);
+		return response.data;
+	},
+
+	createSubtask: async (parentTaskPublicId: string, payload: ProjectTaskCreate): Promise<ProjectTask> => {
+		const response = await api.post<ProjectTask>(`/project-tasks/${parentTaskPublicId}/subtasks`, payload);
+		return response.data;
+	},
+
+	updateProjectTask: async (taskPublicId: string, payload: ProjectTaskUpdate): Promise<ProjectTask> => {
+		const response = await api.patch<ProjectTask>(`/project-tasks/${taskPublicId}`, payload);
+		return response.data;
+	},
+
+	deleteProjectTask: async (taskPublicId: string): Promise<void> => {
+		await api.delete(`/project-tasks/${taskPublicId}`);
+	},
+
+	// --- Task Statuses (tenant-configurable) ---
+	listTaskStatuses: async (): Promise<ProjectTaskStatus[]> => {
+		const response = await api.get<ProjectTaskStatus[]>('/project-task-statuses');
+		return response.data;
+	},
+
+	updateTaskStatuses: async (statuses: ProjectTaskStatusUpsert[]): Promise<ProjectTaskStatus[]> => {
+		const response = await api.patch<ProjectTaskStatus[]>('/project-task-statuses', { statuses });
 		return response.data;
 	},
 };

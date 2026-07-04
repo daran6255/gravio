@@ -57,6 +57,12 @@ async def list_project_task_statuses_endpoint(
 ) -> list[ProjectTaskStatusResponse]:
     from app.repositories.project import ProjectTaskStatusRepository
     statuses = await ProjectTaskStatusRepository.list_all(db)
+    # Orgs created before task-status seeding existed (or where onboarding was
+    # skipped) would otherwise see an empty board with no columns to drop tasks
+    # into -- lazily seed the same defaults new orgs get so there's always a
+    # usable starting workflow.
+    if not statuses and current_user.organization_id:
+        statuses = await ProjectService.seed_default_task_statuses(db, current_user.organization_id)
     return [ProjectTaskStatusResponse.model_validate(s) for s in statuses]
 
 
