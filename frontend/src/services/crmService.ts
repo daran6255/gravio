@@ -20,6 +20,7 @@ import type { CRMActivity, CRMActivityCreate, CRMActivityUpdate } from '../model
 import type { CRMStats, CRMLeadStats, CRMCompanyStats } from '../models/crm/crmStats';
 import type { CRMOwnerOption } from '../models/crm/owner';
 import type { CRMFile } from '../models/crm/crmFile';
+import type { Project, DealConvertToProjectRequest, DealProjectConversionPreview } from '../models/projects/project';
 
 const crmService = {
 	// --- Companies ---
@@ -134,6 +135,16 @@ const crmService = {
 	},
 	convertLead: async (publicId: string, payload: LeadConvertRequest): Promise<Deal> => {
 		const response = await api.post<Deal>(`/crm/leads/${publicId}/convert`, payload);
+		return response.data;
+	},
+	// Deal-scoped action that returns a Project Management Project, not a CRM entity —
+	// lives here (rather than projectService) since it's triggered from the Deal side.
+	convertDealToProject: async (publicId: string, payload: DealConvertToProjectRequest): Promise<Project> => {
+		const response = await api.post<Project>(`/crm/deals/${publicId}/convert-to-project`, payload);
+		return response.data;
+	},
+	getDealProjectConversionPreview: async (publicId: string): Promise<DealProjectConversionPreview> => {
+		const response = await api.get<DealProjectConversionPreview>(`/crm/deals/${publicId}/project-conversion-preview`);
 		return response.data;
 	},
 	bulkUpdateLeads: async (publicIds: string[], updates: { ownerId?: number; status?: string }): Promise<Lead[]> => {

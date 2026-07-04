@@ -1,0 +1,171 @@
+"""Pydantic validation schemas for the Gravit Project Management module"""
+
+import uuid
+from datetime import datetime, date
+from typing import Any, Optional
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+from sqlalchemy import inspect as sa_inspect
+
+from app.models.project import ProjectStatus, BillingType
+from app.models.crm import LeadPriority
+
+
+# --- Task Status (tenant-configurable) Schemas ---
+class ProjectTaskStatusBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    order: int = Field(0, ge=0)
+    color: str = Field("#808080", max_length=20)
+    is_initial_status: bool = False
+    is_done_status: bool = False
+    custom_fields: Optional[dict[str, Any]] = None
+
+
+class ProjectTaskStatusCreate(ProjectTaskStatusBase):
+    pass
+
+
+class ProjectTaskStatusResponse(ProjectTaskStatusBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+
+
+class ProjectTaskStatusUpsert(ProjectTaskStatusBase):
+    """A status in a bulk status-update request. Omit `id` to create a new status;
+    any existing status whose id is not present in the request is deleted."""
+    id: Optional[int] = None
+
+
+class ProjectTaskStatusesUpdateRequest(BaseModel):
+    statuses: list[ProjectTaskStatusUpsert]
+
+
+# --- Project Schemas ---
+class ProjectBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    description: Optional[str] = None
+    owner_id: Optional[int] = None
+    company_id: Optional[int] = None
+    status: ProjectStatus = ProjectStatus.PLANNING
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    budget: Optional[float] = Field(None, ge=0)
+    currency: str = Field("USD", max_length=10)
+    tags: Optional[list[str]] = None
+    custom_fields: Optional[dict[str, Any]] = None
+
+
+class ProjectCreate(ProjectBase):
+    pass
+
+
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = None
+    owner_id: Optional[int] = None
+    company_id: Optional[int] = None
+    status: Optional[ProjectStatus] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    budget: Optional[float] = Field(None, ge=0)
+    currency: Optional[str] = Field(None, max_length=10)
+    tags: Optional[list[str]] = None
+    custom_fields: Optional[dict[str, Any]] = None
+
+
+class ProjectResponse(ProjectBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    public_id: uuid.UUID
+    deal_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+    task_count: int = 0
+
+    @model_validator(mode="before")
+    @classmethod
+    def _attach_task_count(cls, data: Any) -> Any:
+        # Only computed when `.tasks` was eagerly loaded (e.g. selectinload in list_all);
+        # touching the relationship otherwise would trigger a lazy load and crash async sessions.
+        if isinstance(data, dict) or "tasks" in sa_inspect(data).unloaded:
+            return data
+        data.task_count = len(data.tasks)
+        return data
+
+
+# --- Deal -> Project conversion ---
+class DealConvertToProjectRequest(BaseModel):
+    name: Optional[str] = None       # defaults to deal.title if not provided
+    owner_id: Optional[int] = None   # defaults to deal.owner_id
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    budget: Optional[float] = None   # defaults to deal.value, converted into the target currency
+
+
+class DealProjectConversionPreview(BaseModel):
+    """What converting this deal would produce, so the UI can show the budget
+    pre-converted into the target currency before the user commits to it."""
+    original_value: Optional[float] = None
+    original_currency: str
+    target_currency: str
+    converted_value: Optional[float] = None
+    rate: Optional[float] = None
+    rate_date: Optional[date] = None
+    converted: bool  # True only when the currencies differ AND a rate was found
+
+
+# --- Project Task Schemas (also used for sub-tasks -- same shape, just parented) ---
+class ProjectTaskCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    description: Optional[str] = None
+    status_id: Optional[int] = None  # defaults to the org's initial status if omitted
+    priority: LeadPriority = LeadPriority.MEDIUM
+    assignee_id: Optional[int] = None
+    due_date: Optional[date] = None
+    start_date: Optional[date] = None
+    order: int = 0
+    estimated_hours: Optional[float] = Field(None, ge=0)
+    actual_hours: Optional[float] = Field(None, ge=0)
+    billing_type: BillingType = BillingType.BILLABLE
+    tags: Optional[list[str]] = None
+    custom_fields: Optional[dict[str, Any]] = None
+
+
+class ProjectTaskUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = None
+    status_id: Optional[int] = None
+    priority: Optional[LeadPriority] = None
+    assignee_id: Optional[int] = None
+    due_date: Optional[date] = None
+    start_date: Optional[date] = None
+    order: Optional[int] = None
+    estimated_hours: Optional[float] = Field(None, ge=0)
+    actual_hours: Optional[float] = Field(None, ge=0)
+    billing_type: Optional[BillingType] = None
+    parent_task_id: Optional[int] = None   # allows re-parenting a sub-task
+    tags: Optional[list[str]] = None
+    custom_fields: Optional[dict[str, Any]] = None
+
+
+class ProjectTaskResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    public_id: uuid.UUID
+    project_id: int
+    parent_task_id: Optional[int] = None
+    title: str
+    description: Optional[str] = None
+    status_id: int
+    priority: LeadPriority
+    assignee_id: Optional[int] = None
+    due_date: Optional[date] = None
+    start_date: Optional[date] = None
+    completed_at: Optional[datetime] = None
+    order: int
+    estimated_hours: Optional[float] = None
+    actual_hours: Optional[float] = None
+    billing_type: BillingType
+    tags: Optional[list[str]] = None
+    custom_fields: Optional[dict[str, Any]] = None
+    created_at: datetime
+    updated_at: datetime

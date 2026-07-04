@@ -30,6 +30,9 @@ export const useDealsKanban = () => {
 	const [deleteTarget, setDeleteTarget] = useState<Deal | null>(null);
 	const [deleteLoading, setDeleteLoading] = useState(false);
 
+	const [convertOpen, setConvertOpen] = useState(false);
+	const [convertingDeal, setConvertingDeal] = useState<Deal | null>(null);
+
 	const canManagePipeline = user?.role === 'admin' || user?.role === 'manager';
 
 	useEffect(() => {
@@ -120,6 +123,19 @@ export const useDealsKanban = () => {
 		refreshData();
 	};
 
+	const handleConvertToProject = (deal: Deal) => {
+		setConvertingDeal(deal);
+		setConvertOpen(true);
+	};
+
+	const handleConverted = () => {
+		// The drawer would otherwise keep showing the stale deal (no project_id
+		// yet) until a refetch — close it and refresh so re-opening shows the
+		// "View Project" link instead of "Convert to Project".
+		setDetailOpen(false);
+		refreshDeals();
+	};
+
 	return {
 		pipelines,
 		pipelinesLoading,
@@ -155,6 +171,12 @@ export const useDealsKanban = () => {
 		deleteTarget,
 		setDeleteTarget,
 		deleteLoading,
+
+		convertOpen,
+		setConvertOpen,
+		convertingDeal,
+		handleConvertToProject,
+		handleConverted,
 
 		handleViewDeal,
 		handleEditDeal,

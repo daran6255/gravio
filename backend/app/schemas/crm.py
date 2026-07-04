@@ -20,7 +20,7 @@ from app.models.crm import (
 )
 from app.models.reminder import ReminderStatus
 
-REMINDER_ENTITY_TYPES = ("lead", "deal", "deal_task", "lead_task", "activity")
+REMINDER_ENTITY_TYPES = ("lead", "deal", "deal_task", "lead_task", "activity", "project_task")
 
 
 # --- Tag Schemas ---
@@ -322,6 +322,7 @@ class CRMDealResponse(CRMDealBase):
     public_id: uuid.UUID
     owner_id: Optional[int] = None
     lead_id: Optional[int] = None
+    project_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
     task_count: int = 0

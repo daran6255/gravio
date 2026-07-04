@@ -3,6 +3,7 @@ import {
 	ManageAccounts as UserIcon,
 	CorporateFare as OrgIcon,
 	TrendingUp as CrmIcon,
+	ViewKanban as ProjectsIcon,
 	Person as ProfileIcon,
 	Tune as PreferencesIcon,
 	Shield as SecurityIcon,
@@ -65,6 +66,12 @@ export const topNavigation: NavigationItem[] = [
 		],
 	},
 
+	{
+		label: 'Projects',
+		path: '/projects',
+		icon: ProjectsIcon,
+		roles: ['admin', 'manager', 'project_coordinator', 'developer'],
+	},
 	{
 		label: 'Organizations',
 		path: '/organizations',

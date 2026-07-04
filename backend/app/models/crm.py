@@ -298,6 +298,11 @@ class CRMDeal(BaseModel, TenantAwareMixin):
     lost_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     tags: Mapped[Optional[list[str]]] = mapped_column(JSON, nullable=True)
     custom_fields: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    # The Project this Won deal was converted into (see app.models.project.Project.deal_id
+    # for the other half of this bidirectional pair — same pattern as CRMLead.deal_id above).
+    project_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
     # Relationships
     contact: Mapped[Optional[CRMContact]] = relationship("CRMContact", back_populates="deals")
@@ -307,6 +312,7 @@ class CRMDeal(BaseModel, TenantAwareMixin):
     stage: Mapped[CRMPipelineStage] = relationship("CRMPipelineStage", back_populates="deals")
     owner: Mapped[Optional[User]] = relationship("User", foreign_keys=[owner_id])
     tasks: Mapped[list["CRMDealTask"]] = relationship("CRMDealTask", back_populates="deal", cascade="all, delete-orphan")
+    project: Mapped[Optional["Project"]] = relationship("Project", foreign_keys=[project_id])
 
     def __repr__(self) -> str:
         return f"<CRMDeal(id={self.id}, title='{self.title}', value={self.value})>"

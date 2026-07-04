@@ -91,8 +91,28 @@ class CurrencyConversionService:
         if not record_currency or record_value is None or record_currency == user_currency:
             return
 
+        on_date = None
         created_at = getattr(obj, "created_at", None)
-        on_date = created_at.date() if created_at else date.today()
+
+        entity_type = None
+        field_name = None
+        if obj.__class__.__name__ == "CRMDeal":
+            entity_type = "deal"
+            field_name = "value"
+        elif obj.__class__.__name__ == "CRMLead":
+            entity_type = "lead"
+            field_name = "estimated_value"
+
+        if entity_type and field_name and hasattr(obj, "id"):
+            from app.repositories.audit import AuditLogRepository
+            latest_change = await AuditLogRepository.get_latest_field_change(
+                db, entity_type=entity_type, entity_id=obj.id, field_name=field_name,
+            )
+            if latest_change:
+                on_date = latest_change.changed_at.date()
+
+        if on_date is None:
+            on_date = created_at.date() if created_at else date.today()
 
         rate = await CurrencyConversionService.get_rate(
             db, from_currency=record_currency, to_currency=user_currency, on_date=on_date,

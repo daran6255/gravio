@@ -9,6 +9,7 @@ import {
 	DealsStatsPanel,
 	useDealsKanban,
 } from '../../components/crm';
+import { ConvertDealToProjectDialog } from '../../components/projects';
 import { useAppSelector } from '../../store/hooks';
 
 /**
@@ -49,6 +50,11 @@ const DealsPage: React.FC = () => {
 		handleCreateClick,
 		handleFormSuccess,
 		refreshDeals,
+		convertOpen,
+		setConvertOpen,
+		convertingDeal,
+		handleConvertToProject,
+		handleConverted,
 	} = useDealsKanban();
 
 	const { companyOptions, owners } = useAppSelector((state) => state.crm);
@@ -162,6 +168,14 @@ const DealsPage: React.FC = () => {
 					owners={owners}
 					onEdit={handleEditDeal}
 					onDelete={handleDeleteRequest}
+					onConvertToProject={handleConvertToProject}
+				/>
+
+				<ConvertDealToProjectDialog
+					open={convertOpen}
+					onClose={() => setConvertOpen(false)}
+					deal={convertingDeal}
+					onConverted={handleConverted}
 				/>
 
 				<DealsModals

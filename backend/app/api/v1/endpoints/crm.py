@@ -14,8 +14,10 @@ from app.services.crm import CRMService
 from app.services.reminder import ReminderService
 from app.services.currency import CurrencyConversionService
 from app.services.plan_access import require_paid_plan
+from app.services.project import ProjectService
 from app.utils.file_validation import validate_upload
 from app.schemas.common import PaginatedResponse
+from app.schemas.project import DealConvertToProjectRequest, ProjectResponse, DealProjectConversionPreview
 from app.schemas.crm import (
     CRMCompanyCreate,
     CRMCompanyUpdate,
@@ -727,6 +729,44 @@ async def list_deals_endpoint(
         page=page,
         page_size=page_size,
     )
+
+
+@router.get(
+    "/deals/{public_id}/project-conversion-preview",
+    response_model=DealProjectConversionPreview,
+    summary="Preview what converting this deal to a project would set the budget/currency to",
+    description=(
+        "Converts the deal's own value into the current user's preferred currency (falling "
+        "back to the org default) using the exchange rate on the day the deal's value was "
+        "last set, so the UI can show the converted amount before the user commits to it."
+    ),
+)
+async def preview_deal_conversion_endpoint(
+    public_id: uuid.UUID,
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> DealProjectConversionPreview:
+    return await ProjectService.preview_deal_conversion(db, public_id, current_user)
+
+
+@router.post(
+    "/deals/{public_id}/convert-to-project",
+    response_model=ProjectResponse,
+    summary="Convert a Won deal into a project",
+    description=(
+        "Creates a Project Management project from this deal (name/owner/budget/"
+        "currency default from the deal if not provided in the payload). The deal "
+        "must be Won and not already converted."
+    ),
+)
+async def convert_deal_to_project_endpoint(
+    public_id: uuid.UUID,
+    payload: DealConvertToProjectRequest,
+    current_user: User = Depends(require_crm_access),
+    db: AsyncSession = Depends(get_db),
+) -> ProjectResponse:
+    project = await ProjectService.convert_deal_to_project(db, public_id, payload, current_user)
+    return ProjectResponse.model_validate(project)
 
 
 # --- Activities ---

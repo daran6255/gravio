@@ -29,6 +29,13 @@ from app.models.crm import (
     DealStatus,
     ActivityType,
 )
+from app.models.project import (
+    Project,
+    ProjectTask,
+    ProjectTaskStatus,
+    ProjectStatus,
+    BillingType,
+)
 
 __all__ = [
     "Organization",
@@ -63,6 +70,11 @@ __all__ = [
     "LeadPriority",
     "DealStatus",
     "ActivityType",
+    "Project",
+    "ProjectTask",
+    "ProjectTaskStatus",
+    "ProjectStatus",
+    "BillingType",
 ]
 
 

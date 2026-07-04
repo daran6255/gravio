@@ -40,3 +40,11 @@ router.include_router(crm_router)
 # In-app notifications        →  /api/v1/notifications/...
 from app.api.v1.endpoints.notifications import router as notifications_router
 router.include_router(notifications_router)
+
+# Project Management          →  /api/v1/projects/...
+#                             /api/v1/project-tasks/...
+#                             /api/v1/project-task-statuses
+from app.api.v1.endpoints.projects import router as projects_router, router_tasks as project_tasks_router, router_statuses as project_task_statuses_router
+router.include_router(projects_router)
+router.include_router(project_tasks_router)
+router.include_router(project_task_statuses_router)

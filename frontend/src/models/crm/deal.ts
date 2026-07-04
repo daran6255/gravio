@@ -8,6 +8,8 @@ export interface Deal {
 	contact_id?: number;
 	company_id?: number;
 	lead_id?: number;
+	/** Set once this Won deal has been converted into a Project Management project. */
+	project_id?: number;
 	pipeline_id: number;
 	stage_id: number;
 	owner_id?: number;

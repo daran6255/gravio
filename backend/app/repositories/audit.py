@@ -17,6 +17,22 @@ class AuditLogRepository:
         return entry
 
     @staticmethod
+    async def get_latest_field_change(
+        db: AsyncSession, *, entity_type: str, entity_id: int, field_name: str
+    ) -> Optional[AuditLog]:
+        result = await db.execute(
+            select(AuditLog)
+            .where(
+                AuditLog.entity_type == entity_type,
+                AuditLog.entity_id == entity_id,
+                AuditLog.field_name == field_name,
+            )
+            .order_by(AuditLog.changed_at.desc())
+            .limit(1)
+        )
+        return result.scalars().first()
+
+    @staticmethod
     async def list_by_entity(
         db: AsyncSession,
         *,

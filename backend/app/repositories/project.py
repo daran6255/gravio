@@ -1,0 +1,209 @@
+"""Project Management data access layer repositories"""
+
+import uuid
+from typing import Optional
+from sqlalchemy import func
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
+
+from app.models.project import Project, ProjectTask, ProjectTaskStatus
+
+
+class ProjectTaskStatusRepository:
+    @staticmethod
+    async def get_by_id(db: AsyncSession, status_id: int) -> Optional[ProjectTaskStatus]:
+        return await db.get(ProjectTaskStatus, status_id)
+
+    @staticmethod
+    async def get_initial(db: AsyncSession) -> Optional[ProjectTaskStatus]:
+        result = await db.execute(
+            select(ProjectTaskStatus)
+            .where(ProjectTaskStatus.is_initial_status.is_(True), ProjectTaskStatus.is_deleted.is_(False))
+            .order_by(ProjectTaskStatus.order.asc())
+        )
+        return result.scalars().first()
+
+    @staticmethod
+    async def create(db: AsyncSession, *, name: str, **kwargs) -> ProjectTaskStatus:
+        status = ProjectTaskStatus(name=name, **kwargs)
+        db.add(status)
+        await db.flush()
+        return status
+
+    @staticmethod
+    async def update(db: AsyncSession, status: ProjectTaskStatus, **kwargs) -> ProjectTaskStatus:
+        for key, val in kwargs.items():
+            setattr(status, key, val)
+        await db.flush()
+        return status
+
+    @staticmethod
+    async def delete(db: AsyncSession, status: ProjectTaskStatus) -> None:
+        await db.delete(status)
+        await db.flush()
+
+    @staticmethod
+    async def list_all(db: AsyncSession) -> list[ProjectTaskStatus]:
+        result = await db.execute(
+            select(ProjectTaskStatus)
+            .where(ProjectTaskStatus.is_deleted.is_(False))
+            .order_by(ProjectTaskStatus.order.asc())
+        )
+        return list(result.scalars().all())
+
+
+class ProjectRepository:
+    @staticmethod
+    async def get_by_id(db: AsyncSession, project_id: int) -> Optional[Project]:
+        return await db.get(Project, project_id)
+
+    @staticmethod
+    async def get_by_public_id(db: AsyncSession, public_id: uuid.UUID) -> Optional[Project]:
+        result = await db.execute(
+            select(Project).options(selectinload(Project.tasks)).where(Project.public_id == public_id)
+        )
+        return result.scalars().first()
+
+    @staticmethod
+    async def create(db: AsyncSession, *, name: str, **kwargs) -> Project:
+        project = Project(name=name, **kwargs)
+        db.add(project)
+        await db.flush()
+        return project
+
+    @staticmethod
+    async def update(db: AsyncSession, project: Project, **kwargs) -> Project:
+        for key, val in kwargs.items():
+            setattr(project, key, val)
+        await db.flush()
+        await db.refresh(project)
+        return project
+
+    @staticmethod
+    async def delete(db: AsyncSession, project: Project) -> None:
+        """Soft-deletes the project and every task/sub-task under it.
+
+        ORM cascade="all, delete-orphan" only fires on a real session.delete(),
+        never on a flag flip -- so child tasks must be walked and soft-deleted
+        explicitly here (the same gap CRMDeal -> CRMDealTask silently has today).
+        """
+        result = await db.execute(
+            select(ProjectTask).where(ProjectTask.project_id == project.id, ProjectTask.is_deleted.is_(False))
+        )
+        for task in result.scalars().all():
+            task.soft_delete()
+        project.soft_delete()
+        await db.flush()
+
+    @staticmethod
+    async def list_all(
+        db: AsyncSession,
+        *,
+        status: Optional[str] = None,
+        owner_id: Optional[int] = None,
+        company_id: Optional[int] = None,
+        page: int = 1,
+        page_size: int = 20,
+        search: Optional[str] = None,
+    ) -> tuple[list[Project], int]:
+        conditions = [Project.is_deleted.is_(False)]
+        if status:
+            conditions.append(Project.status == status)
+        if owner_id:
+            conditions.append(Project.owner_id == owner_id)
+        if company_id:
+            conditions.append(Project.company_id == company_id)
+        if search:
+            conditions.append(Project.name.ilike(f"%{search}%"))
+
+        count_result = await db.execute(
+            select(func.count()).select_from(Project).where(*conditions)
+        )
+        total = count_result.scalar_one()
+
+        result = await db.execute(
+            select(Project)
+            .options(selectinload(Project.tasks))
+            .where(*conditions)
+            .order_by(Project.id.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        return list(result.scalars().all()), total
+
+
+class ProjectTaskRepository:
+    @staticmethod
+    async def get_by_id(db: AsyncSession, task_id: int) -> Optional[ProjectTask]:
+        return await db.get(ProjectTask, task_id)
+
+    @staticmethod
+    async def get_by_public_id(db: AsyncSession, public_id: uuid.UUID) -> Optional[ProjectTask]:
+        result = await db.execute(select(ProjectTask).where(ProjectTask.public_id == public_id))
+        return result.scalars().first()
+
+    @staticmethod
+    async def list_by_project(db: AsyncSession, *, project_id: int) -> list[ProjectTask]:
+        """Flat list of every task and sub-task in the project, all depths and
+        statuses -- the frontend derives the parent -> children tree client-side."""
+        result = await db.execute(
+            select(ProjectTask)
+            .where(ProjectTask.project_id == project_id, ProjectTask.is_deleted.is_(False))
+            .order_by(ProjectTask.order.asc(), ProjectTask.created_at.asc())
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def create(
+        db: AsyncSession,
+        *,
+        project_id: int,
+        title: str,
+        status_id: int,
+        parent_task_id: Optional[int] = None,
+        **kwargs,
+    ) -> ProjectTask:
+        task = ProjectTask(
+            project_id=project_id,
+            title=title,
+            status_id=status_id,
+            parent_task_id=parent_task_id,
+            **kwargs,
+        )
+        db.add(task)
+        await db.flush()
+        await db.refresh(task)
+        return task
+
+    @staticmethod
+    async def update(db: AsyncSession, task: ProjectTask, **kwargs) -> ProjectTask:
+        for key, val in kwargs.items():
+            setattr(task, key, val)
+        await db.flush()
+        await db.refresh(task)
+        return task
+
+    @staticmethod
+    async def _list_descendants(db: AsyncSession, task_id: int) -> list[ProjectTask]:
+        """Breadth-first walk of every (non-deleted) descendant of a task."""
+        descendants: list[ProjectTask] = []
+        frontier = [task_id]
+        while frontier:
+            result = await db.execute(
+                select(ProjectTask).where(
+                    ProjectTask.parent_task_id.in_(frontier), ProjectTask.is_deleted.is_(False)
+                )
+            )
+            children = list(result.scalars().all())
+            descendants.extend(children)
+            frontier = [child.id for child in children]
+        return descendants
+
+    @staticmethod
+    async def delete(db: AsyncSession, task: ProjectTask) -> None:
+        """Soft-deletes the task and recursively every sub-task under it."""
+        for descendant in await ProjectTaskRepository._list_descendants(db, task.id):
+            descendant.soft_delete()
+        task.soft_delete()
+        await db.flush()

@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 
-export type BadgeType = 'lead' | 'deal' | 'task' | 'company' | 'generic';
+export type BadgeType = 'lead' | 'deal' | 'task' | 'company' | 'project' | 'generic';
 
 interface StatusBadgeProps {
 	label: string;
@@ -35,6 +35,13 @@ const getStatusTone = (status: string, type: BadgeType): StatusTone => {
 		if (['in_progress'].includes(s)) return 'info';
 		if (['pending', 'deferred'].includes(s)) return 'warning';
 		if (['cancelled'].includes(s)) return 'error';
+	}
+
+	if (type === 'project') {
+		if (['completed'].includes(s)) return 'success';
+		if (['active'].includes(s)) return 'info';
+		if (['planning', 'on_hold'].includes(s)) return 'warning';
+		if (['archived'].includes(s)) return 'error';
 	}
 
 	// Company & generic

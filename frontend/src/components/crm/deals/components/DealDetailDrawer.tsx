@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Stack, IconButton, Tooltip, useTheme, alpha, Tabs, Tab } from '@mui/material';
-import { Edit, DeleteOutline } from '@mui/icons-material';
+import { Edit, DeleteOutline, TransformOutlined, FolderOpenOutlined } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import DetailDrawer from '../../../common/drawer/DetailDrawer';
 import StatusBadge from '../../../common/badge/StatusBadge';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
@@ -23,11 +24,13 @@ interface DealDetailDrawerProps {
 	owners: CRMOwnerOption[];
 	onEdit?: (deal: Deal) => void;
 	onDelete?: (deal: Deal) => void;
+	onConvertToProject?: (deal: Deal) => void;
 }
 
 export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
-	open, onClose, deal, owners, onEdit, onDelete
+	open, onClose, deal, owners, onEdit, onDelete, onConvertToProject
 }) => {
+	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
@@ -76,6 +79,28 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 			headerExtra={<StatusBadge label={deal.status} status={deal.status} type="deal" />}
 			headerActions={
 				<Stack direction="row" spacing={1} sx={{ mr: 1 }}>
+					{deal.status === 'won' && !deal.project_id && onConvertToProject && (
+						<Tooltip title="Convert to Project">
+							<IconButton
+								size="small"
+								onClick={() => onConvertToProject(deal)}
+								sx={{ border: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
+							>
+								<TransformOutlined fontSize="small" />
+							</IconButton>
+						</Tooltip>
+					)}
+					{deal.project_id && (
+						<Tooltip title="View Project">
+							<IconButton
+								size="small"
+								onClick={() => navigate(`/projects/${deal.project_id}`)}
+								sx={{ border: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
+							>
+								<FolderOpenOutlined fontSize="small" />
+							</IconButton>
+						</Tooltip>
+					)}
 					{onEdit && (
 						<Tooltip title="Edit Deal">
 							<IconButton

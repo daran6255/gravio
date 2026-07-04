@@ -11,6 +11,7 @@ from app.repositories.crm import (
     CRMLeadTaskRepository,
     CRMActivityRepository,
 )
+from app.repositories.project import ProjectTaskRepository
 from app.models.crm import LeadStatus
 from app.schemas.crm import CRMReminderCreate, CRMReminderUpdate
 from app.middleware.exceptions import NotFoundError, BadRequestError, ForbiddenError
@@ -30,6 +31,8 @@ async def _verify_entity_exists(db: AsyncSession, entity_type: str, entity_id: i
         ent = await CRMLeadTaskRepository.get_by_id(db, entity_id)
     elif entity_type == "activity":
         ent = await CRMActivityRepository.get_by_id(db, entity_id)
+    elif entity_type == "project_task":
+        ent = await ProjectTaskRepository.get_by_id(db, entity_id)
     else:
         raise BadRequestError("Invalid entity_type")
 

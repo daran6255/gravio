@@ -84,6 +84,10 @@ async def onboard_organization(
     from app.services.crm import CRMService
     await CRMService.seed_default_pipeline(db, org.id)
 
+    # Seed default Project Management task statuses (To Do/In Progress/In Review/Done)
+    from app.services.project import ProjectService
+    await ProjectService.seed_default_task_statuses(db, org.id)
+
     # ── 4. Hash password ──────────────────────────────────────────────────────
     hashed_pw = get_password_hash(payload.admin_user.password)
 
