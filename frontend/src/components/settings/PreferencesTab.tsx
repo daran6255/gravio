@@ -5,6 +5,7 @@ import {
 	Stack,
 	Autocomplete,
 	TextField,
+	InputAdornment,
 	alpha,
 } from '@mui/material';
 import {
@@ -13,6 +14,12 @@ import {
 	SettingsBrightness as SystemSyncIcon,
 	CalendarMonth as CalendarIcon,
 	PaidOutlined as CurrencyIcon,
+	PaletteOutlined as AppearanceIcon,
+	PublicOutlined as RegionalIcon,
+	VisibilityOutlined as PreviewIcon,
+	TranslateOutlined as LanguageIcon,
+	AccessTimeOutlined as TimezoneIcon,
+	CheckCircleRounded as CheckIcon,
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material';
 import { useColorMode } from '../../theme/ThemeContext';
@@ -48,6 +55,34 @@ const getTimezoneLabel = (tz: string): string => {
 };
 
 type ThemeOption = 'dark' | 'light' | 'system';
+
+interface SectionHeaderProps {
+	icon: React.ReactNode;
+	title: string;
+	subtitle?: string;
+	color?: string;
+	isDark: boolean;
+	textColor: string;
+	labelColor: string;
+}
+
+const SectionHeader: React.FC<SectionHeaderProps> = ({ icon, title, subtitle, color = '#8B7CF6', isDark, textColor, labelColor }) => (
+	<Stack direction="row" spacing={1.25} alignItems="center" sx={{ mb: 2.5 }}>
+		<Box sx={{ bgcolor: alpha(color, isDark ? 0.15 : 0.1), color, p: 0.7, borderRadius: '8px', display: 'flex' }}>
+			{icon}
+		</Box>
+		<Box>
+			<Typography variant="body2" sx={{ fontWeight: 700, color: textColor, lineHeight: 1.3 }}>
+				{title}
+			</Typography>
+			{subtitle && (
+				<Typography variant="caption" sx={{ color: labelColor }}>
+					{subtitle}
+				</Typography>
+			)}
+		</Box>
+	</Stack>
+);
 
 const PreferencesTab: React.FC = () => {
 	const theme = useTheme();
@@ -162,25 +197,56 @@ const PreferencesTab: React.FC = () => {
 	const cardBg = isDark ? '#141822' : '#ffffff';
 	const cardBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
 	const labelColor = isDark ? '#94A3B8' : '#64748b';
+	const textColor = isDark ? '#F4F5F7' : '#1e293b';
 
-	const themeOptions: { key: ThemeOption; label: string; description: string; icon: React.ReactElement }[] = [
+	const fieldSx = {
+		'& .MuiOutlinedInput-root': {
+			bgcolor: isDark ? '#1a1e28' : '#f8fafc',
+			borderRadius: 2,
+			'& fieldset': {
+				borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+			},
+			'&.Mui-focused fieldset': {
+				borderColor: '#8B7CF6',
+			},
+		},
+		'& .MuiInputBase-input': {
+			color: textColor,
+			fontWeight: 500,
+		},
+	};
+
+	const fieldLabelSx = {
+		fontWeight: 700,
+		color: labelColor,
+		display: 'block' as const,
+		mb: 0.75,
+		fontSize: '0.75rem',
+		textTransform: 'uppercase' as const,
+		letterSpacing: '0.04em',
+	};
+
+	const themeOptions: { key: ThemeOption; label: string; description: string; icon: React.ReactElement; accent: string }[] = [
 		{
 			key: 'dark',
 			label: 'Dark Theme',
 			description: 'Maximum focus for deep work sessions.',
-			icon: <DarkModeIcon sx={{ fontSize: '1.5rem' }} />,
+			icon: <DarkModeIcon sx={{ fontSize: '1.4rem' }} />,
+			accent: '#8B7CF6',
 		},
 		{
 			key: 'light',
 			label: 'Light Theme',
 			description: 'High clarity for daytime environments.',
-			icon: <LightModeIcon sx={{ fontSize: '1.5rem' }} />,
+			icon: <LightModeIcon sx={{ fontSize: '1.4rem' }} />,
+			accent: '#F5A623',
 		},
 		{
 			key: 'system',
 			label: 'System Sync',
 			description: 'Follow OS level lighting settings.',
-			icon: <SystemSyncIcon sx={{ fontSize: '1.5rem' }} />,
+			icon: <SystemSyncIcon sx={{ fontSize: '1.4rem' }} />,
+			accent: '#4EA8FF',
 		},
 	];
 
@@ -194,7 +260,7 @@ const PreferencesTab: React.FC = () => {
 					fontSize: '0.9rem',
 					textTransform: 'uppercase',
 					letterSpacing: '0.08em',
-					color: isDark ? '#F4F5F7' : '#1e293b',
+					color: textColor,
 					mb: 0.5,
 				}}
 			>
@@ -204,71 +270,83 @@ const PreferencesTab: React.FC = () => {
 				Customize your workspace appearance and regional parameters.
 			</Typography>
 
+			<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, alignItems: 'start', mb: 3 }}>
 			{/* Theme Selector */}
-			<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 4 }}>
-				{themeOptions.map((opt) => {
-					const isSelected = selectedTheme === opt.key;
-					return (
-						<Box
-							key={opt.key}
-							onClick={() => setSelectedTheme(opt.key)}
-							sx={{
-								flex: 1,
-								p: 2.5,
-								bgcolor: cardBg,
-								border: `1px solid ${isSelected ? '#8B7CF6' : cardBorder}`,
-								borderRadius: 3,
-								cursor: 'pointer',
-								transition: 'all 0.2s ease',
-								position: 'relative',
-								'&:hover': {
-									borderColor: isSelected ? '#8B7CF6' : alpha('#8B7CF6', 0.4),
-									bgcolor: isSelected ? cardBg : alpha('#8B7CF6', 0.04),
-								},
-							}}
-						>
-							{/* Radio indicator */}
-							{isSelected && (
+			<Box
+				sx={{
+					bgcolor: cardBg,
+					border: `1px solid ${cardBorder}`,
+					borderRadius: 4,
+					boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.25)' : '0 8px 32px rgba(15,23,42,0.06)',
+					p: 3,
+				}}
+			>
+				<SectionHeader icon={<AppearanceIcon sx={{ fontSize: 16 }} />} title="Appearance" subtitle="Choose how Gravit looks on this device" isDark={isDark} textColor={textColor} labelColor={labelColor} />
+				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+					{themeOptions.map((opt) => {
+						const isSelected = selectedTheme === opt.key;
+						return (
+							<Box
+								key={opt.key}
+								onClick={() => setSelectedTheme(opt.key)}
+								sx={{
+									flex: 1,
+									p: 2.5,
+									bgcolor: isSelected ? alpha(opt.accent, isDark ? 0.12 : 0.07) : (isDark ? 'rgba(255,255,255,0.02)' : '#fafbfc'),
+									border: '1px solid',
+									borderColor: isSelected ? alpha(opt.accent, 0.5) : cardBorder,
+									borderRadius: 3,
+									cursor: 'pointer',
+									position: 'relative',
+									transition: 'transform 0.18s ease, border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease',
+									boxShadow: isSelected ? `0 6px 20px ${alpha(opt.accent, isDark ? 0.2 : 0.14)}` : 'none',
+									'&:hover': {
+										transform: 'translateY(-2px)',
+										borderColor: alpha(opt.accent, 0.5),
+										bgcolor: isSelected ? alpha(opt.accent, isDark ? 0.12 : 0.07) : alpha(opt.accent, isDark ? 0.06 : 0.04),
+									},
+								}}
+							>
+								{isSelected && (
+									<CheckIcon
+										sx={{
+											position: 'absolute',
+											top: 10,
+											right: 10,
+											fontSize: 18,
+											color: opt.accent,
+										}}
+									/>
+								)}
 								<Box
 									sx={{
-										position: 'absolute',
-										top: 12,
-										right: 12,
-										width: 18,
-										height: 18,
-										borderRadius: '50%',
-										border: '2px solid #8B7CF6',
+										width: 40,
+										height: 40,
+										borderRadius: '10px',
+										bgcolor: alpha(opt.accent, isDark ? 0.16 : 0.1),
+										color: opt.accent,
 										display: 'flex',
 										alignItems: 'center',
 										justifyContent: 'center',
+										mb: 1.5,
 									}}
 								>
-									<Box
-										sx={{
-											width: 10,
-											height: 10,
-											borderRadius: '50%',
-											bgcolor: '#8B7CF6',
-										}}
-									/>
+									{opt.icon}
 								</Box>
-							)}
-							<Box sx={{ color: isSelected ? '#8B7CF6' : (isDark ? '#94A3B8' : '#64748b'), mb: 1.5 }}>
-								{opt.icon}
+								<Typography
+									variant="body2"
+									sx={{ fontWeight: 700, color: textColor, mb: 0.5 }}
+								>
+									{opt.label}
+								</Typography>
+								<Typography variant="caption" sx={{ color: labelColor, lineHeight: 1.4 }}>
+									{opt.description}
+								</Typography>
 							</Box>
-							<Typography
-								variant="body2"
-								sx={{ fontWeight: 700, color: isDark ? '#F4F5F7' : '#1e293b', mb: 0.5 }}
-							>
-								{opt.label}
-							</Typography>
-							<Typography variant="caption" sx={{ color: labelColor, lineHeight: 1.4 }}>
-								{opt.description}
-							</Typography>
-						</Box>
-					);
-				})}
-			</Stack>
+						);
+					})}
+				</Stack>
+			</Box>
 
 			{/* Language, Timezone & Currency */}
 			<Box
@@ -281,56 +359,27 @@ const PreferencesTab: React.FC = () => {
 					mb: 3,
 				}}
 			>
-				<Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
+				<SectionHeader icon={<RegionalIcon sx={{ fontSize: 16 }} />} title="Regional Settings" subtitle="Language, timezone, and currency used across your account" color="#4EA8FF" isDark={isDark} textColor={textColor} labelColor={labelColor} />
+				<Stack spacing={2.5}>
 					<Box sx={{ flex: 1 }}>
-						<Typography
-							variant="caption"
-							sx={{
-								fontWeight: 700,
-								color: isDark ? '#94A3B8' : '#64748b',
-								display: 'block',
-								mb: 0.75,
-								fontSize: '0.75rem',
-								fontStyle: 'italic',
-							}}
-						>
-							Interface Language
-						</Typography>
+						<Typography variant="caption" sx={fieldLabelSx}>Interface Language</Typography>
 						<TextField
 							fullWidth
 							size="small"
 							value={language}
 							disabled
-							select={false}
-							sx={{
-								'& .MuiOutlinedInput-root': {
-									bgcolor: isDark ? '#1a1e28' : '#f8fafc',
-									borderRadius: 2,
-									'& fieldset': {
-										borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-									},
-								},
-								'& .MuiInputBase-input': {
-									color: isDark ? '#F4F5F7' : '#1e293b',
-									fontWeight: 500,
-								},
+							InputProps={{
+								startAdornment: (
+									<InputAdornment position="start">
+										<LanguageIcon sx={{ fontSize: 18, color: labelColor }} />
+									</InputAdornment>
+								),
 							}}
+							sx={fieldSx}
 						/>
 					</Box>
 					<Box sx={{ flex: 1 }}>
-						<Typography
-							variant="caption"
-							sx={{
-								fontWeight: 700,
-								color: isDark ? '#94A3B8' : '#64748b',
-								display: 'block',
-								mb: 0.75,
-								fontSize: '0.75rem',
-								fontStyle: 'italic',
-							}}
-						>
-							Timezone
-						</Typography>
+						<Typography variant="caption" sx={fieldLabelSx}>Timezone</Typography>
 						<Autocomplete
 							options={timezoneOptions}
 							getOptionLabel={(o) => o.label}
@@ -342,37 +391,21 @@ const PreferencesTab: React.FC = () => {
 									{...params}
 									size="small"
 									placeholder={`System Default (${BROWSER_TIMEZONE})`}
-									sx={{
-										'& .MuiOutlinedInput-root': {
-											bgcolor: isDark ? '#1a1e28' : '#f8fafc',
-											borderRadius: 2,
-											'& fieldset': {
-												borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-											},
-										},
-										'& .MuiInputBase-input': {
-											color: isDark ? '#F4F5F7' : '#1e293b',
-											fontWeight: 500,
-										},
+									InputProps={{
+										...params.InputProps,
+										startAdornment: (
+											<InputAdornment position="start">
+												<TimezoneIcon sx={{ fontSize: 18, color: labelColor }} />
+											</InputAdornment>
+										),
 									}}
+									sx={fieldSx}
 								/>
 							)}
 						/>
 					</Box>
 					<Box sx={{ flex: 1 }}>
-						<Typography
-							variant="caption"
-							sx={{
-								fontWeight: 700,
-								color: isDark ? '#94A3B8' : '#64748b',
-								display: 'block',
-								mb: 0.75,
-								fontSize: '0.75rem',
-								fontStyle: 'italic',
-							}}
-						>
-							Preferred Display Currency
-						</Typography>
+						<Typography variant="caption" sx={fieldLabelSx}>Preferred Display Currency</Typography>
 						<Autocomplete
 							options={currencyOptions}
 							getOptionLabel={(o) => `${o.code} — ${o.name}`}
@@ -384,24 +417,21 @@ const PreferencesTab: React.FC = () => {
 									{...params}
 									size="small"
 									placeholder="System Default (USD)"
-									sx={{
-										'& .MuiOutlinedInput-root': {
-											bgcolor: isDark ? '#1a1e28' : '#f8fafc',
-											borderRadius: 2,
-											'& fieldset': {
-												borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-											},
-										},
-										'& .MuiInputBase-input': {
-											color: isDark ? '#F4F5F7' : '#1e293b',
-											fontWeight: 500,
-										},
+									InputProps={{
+										...params.InputProps,
+										startAdornment: (
+											<InputAdornment position="start">
+												<CurrencyIcon sx={{ fontSize: 18, color: labelColor }} />
+											</InputAdornment>
+										),
 									}}
+									sx={fieldSx}
 								/>
 							)}
 						/>
 					</Box>
 				</Stack>
+			</Box>
 			</Box>
 
 			{/* Live Regional Preview — shows what the selection above actually
@@ -417,12 +447,7 @@ const PreferencesTab: React.FC = () => {
 					mb: 5,
 				}}
 			>
-				<Typography
-					variant="body2"
-					sx={{ fontWeight: 700, color: isDark ? '#F4F5F7' : '#1e293b', mb: 2 }}
-				>
-					Regional Preview
-				</Typography>
+				<SectionHeader icon={<PreviewIcon sx={{ fontSize: 16 }} />} title="Live Preview" subtitle="How these choices render elsewhere in the app" color="#10b981" isDark={isDark} textColor={textColor} labelColor={labelColor} />
 				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
 					<Stack direction="row" spacing={1.5} alignItems="center" sx={{ flex: 1 }}>
 						<Box
