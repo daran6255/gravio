@@ -15,10 +15,13 @@ import {
 } from '@mui/material';
 import {
 	PersonOutline,
-	CalendarMonthOutlined,
-	ScheduleOutlined,
-	AttachMoneyOutlined,
 	SettingsOutlined,
+	ArrowForwardOutlined,
+	ContentCopyOutlined,
+	DeleteOutline,
+	AutoAwesomeOutlined,
+	FolderOutlined,
+	ChevronRightOutlined,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import type { ProjectTask, ProjectTaskUpdate, ProjectTaskStatus, ProjectTaskTag } from '../../../../../models/projects/projectTask';
@@ -39,17 +42,26 @@ interface TaskDrawerSidebarProps {
 	statuses: ProjectTaskStatus[];
 	owners: CRMOwnerOption[];
 	existingTags: ProjectTaskTag[];
+	projectName: string;
 	onUpdateField: (fields: ProjectTaskUpdate) => Promise<void>;
+	onDelete: () => void;
 }
 
 export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 	task,
+	statuses,
 	owners,
 	existingTags,
+	projectName,
 	onUpdateField,
+	onDelete,
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+
+	const borderColor = isDark ? '#30363d' : '#d0d7de';
+	const cardBg = isDark ? '#161b22' : '#ffffff';
+	const hoverBg = isDark ? '#21262d' : '#f3f4f6';
 
 	const [popover, setPopover] = useState<{ key: string; anchorEl: HTMLElement } | null>(null);
 
@@ -59,56 +71,43 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 	const closePopover = () => setPopover(null);
 
 	const selectedAssignee = owners.find((o) => o.id === task.assignee_id) || null;
+	const selectedStatus = statuses.find((s) => s.id === task.status_id) || statuses[0];
 	const selectedPriority = PRIORITIES.find((p) => p.value === task.priority) || PRIORITIES[1];
 
 	const dotIcon = (color: string) => (
 		<Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: color, flexShrink: 0 }} />
 	);
 
-	// Renders a property row in the sheet
-	const PropertyRow = ({
+	// Renders a row inside the Projects Card
+	const CardRow = ({
 		label,
-		icon,
 		valueElement,
 		popoverKey,
 	}: {
 		label: string;
-		icon: React.ReactNode;
 		valueElement: React.ReactNode;
 		popoverKey: string;
 	}) => (
-		<Box>
-			<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-				<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.7rem' }}>
-					{label}
-				</Typography>
-				<IconButton size="small" onClick={openPopover(popoverKey)} sx={{ color: 'text.secondary', opacity: 0.7, '&:hover': { opacity: 1 } }}>
-					<SettingsOutlined fontSize="inherit" />
-				</IconButton>
-			</Stack>
-			<Box
-				onClick={openPopover(popoverKey)}
-				sx={{
-					display: 'flex',
-					alignItems: 'center',
-					gap: 1.5,
-					p: 1.25,
-					borderRadius: '10px',
-					cursor: 'pointer',
-					border: '1px solid',
-					borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-					bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.005)',
-					transition: 'all 0.2s',
-					'&:hover': {
-						bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
-						borderColor: 'primary.main',
-					},
-				}}
-			>
-				{icon}
+		<Stack
+			direction="row"
+			justifyContent="space-between"
+			alignItems="center"
+			onClick={openPopover(popoverKey)}
+			sx={{
+				py: 1,
+				px: 1.5,
+				cursor: 'pointer',
+				borderRadius: '6px',
+				'&:hover': { bgcolor: hoverBg },
+			}}
+		>
+			<Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+				{label}
+			</Typography>
+			<Stack direction="row" alignItems="center" spacing={1}>
 				{valueElement}
-			</Box>
-		</Box>
+			</Stack>
+		</Stack>
 	);
 
 	return (
@@ -116,47 +115,60 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 			sx={{
 				width: { xs: '100%', md: '280px', lg: '320px' },
 				p: 3.5,
-				bgcolor: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.01)',
+				bgcolor: isDark ? '#0d1117' : '#f6f8fa',
 				display: 'flex',
 				flexDirection: 'column',
 				gap: 3,
 				borderLeft: { md: '1px solid' },
-				borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+				borderColor: borderColor,
 			}}
 		>
 			{/* Assignees */}
-			<PropertyRow
-				label="Assignees"
-				popoverKey="assignee"
-				icon={
-					selectedAssignee ? (
-						<Avatar sx={{ width: 24, height: 24, fontSize: '0.7rem', fontWeight: 700, bgcolor: 'primary.main', color: 'white' }}>
-							{(selectedAssignee.full_name || selectedAssignee.email)[0]?.toUpperCase()}
-						</Avatar>
+			<Box>
+				<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+					<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.7rem' }}>
+						Assignees
+					</Typography>
+					<IconButton size="small" onClick={openPopover('assignee')} sx={{ color: 'text.secondary' }}>
+						<SettingsOutlined fontSize="inherit" />
+					</IconButton>
+				</Stack>
+				<Stack
+					direction="row"
+					alignItems="center"
+					spacing={1.5}
+					onClick={openPopover('assignee')}
+					sx={{
+						p: 1.25,
+						borderRadius: '10px',
+						border: '1px solid',
+						borderColor: borderColor,
+						bgcolor: 'background.paper',
+						cursor: 'pointer',
+						'&:hover': { borderColor: 'primary.main', bgcolor: hoverBg },
+					}}
+				>
+					{selectedAssignee ? (
+						<>
+							<Avatar sx={{ width: 24, height: 24, fontSize: '0.7rem', fontWeight: 700, bgcolor: 'primary.main', color: 'white' }}>
+								{(selectedAssignee.full_name || selectedAssignee.email)[0]?.toUpperCase()}
+							</Avatar>
+							<Typography variant="body2" sx={{ fontWeight: 600 }}>
+								{selectedAssignee.full_name || selectedAssignee.email}
+							</Typography>
+						</>
 					) : (
-						<Avatar sx={{ width: 24, height: 24, bgcolor: 'transparent', border: '1.5px dashed', borderColor: 'text.secondary', color: 'text.secondary' }}>
-							<PersonOutline fontSize="inherit" style={{ fontSize: 14 }} />
-						</Avatar>
-					)
-				}
-				valueElement={
-					<Typography variant="body2" sx={{ fontWeight: 600, color: selectedAssignee ? 'text.primary' : 'text.secondary', fontStyle: selectedAssignee ? 'normal' : 'italic' }}>
-						{selectedAssignee ? (selectedAssignee.full_name || selectedAssignee.email) : 'No assignee'}
-					</Typography>
-				}
-			/>
-
-			{/* Priority */}
-			<PropertyRow
-				label="Priority"
-				popoverKey="priority"
-				icon={dotIcon(selectedPriority.color)}
-				valueElement={
-					<Typography variant="body2" sx={{ fontWeight: 700, color: selectedPriority.color }}>
-						{selectedPriority.label}
-					</Typography>
-				}
-			/>
+						<>
+							<Avatar sx={{ width: 24, height: 24, bgcolor: 'transparent', border: '1.5px dashed', borderColor: 'text.secondary', color: 'text.secondary' }}>
+								<PersonOutline fontSize="inherit" style={{ fontSize: 13 }} />
+							</Avatar>
+							<Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+								No assignee
+							</Typography>
+						</>
+					)}
+				</Stack>
+			</Box>
 
 			{/* Labels (Tags) */}
 			<Box>
@@ -164,7 +176,7 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 					<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.7rem' }}>
 						Labels
 					</Typography>
-					<IconButton size="small" onClick={openPopover('tags')} sx={{ color: 'text.secondary', opacity: 0.7, '&:hover': { opacity: 1 } }}>
+					<IconButton size="small" onClick={openPopover('tags')} sx={{ color: 'text.secondary' }}>
 						<SettingsOutlined fontSize="inherit" />
 					</IconButton>
 				</Stack>
@@ -179,12 +191,9 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 							borderRadius: '10px',
 							cursor: 'pointer',
 							border: '1px solid',
-							borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-							bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.005)',
-							'&:hover': {
-								bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
-								borderColor: 'primary.main',
-							},
+							borderColor: borderColor,
+							bgcolor: 'background.paper',
+							'&:hover': { borderColor: 'primary.main', bgcolor: hoverBg },
 						}}
 					>
 						{task.tags.map((t) => (
@@ -214,11 +223,11 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 							borderRadius: '10px',
 							cursor: 'pointer',
 							border: '1px dashed',
-							borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)',
+							borderColor: borderColor,
 							bgcolor: 'background.paper',
 							textAlign: 'center',
 							transition: 'all 0.2s',
-							'&:hover': { borderColor: 'primary.main', bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)' },
+							'&:hover': { borderColor: 'primary.main', bgcolor: hoverBg },
 						}}
 					>
 						<Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
@@ -228,58 +237,243 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 				)}
 			</Box>
 
+			{/* Type */}
+			<Box>
+				<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+					<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.7rem' }}>
+						Type
+					</Typography>
+				</Stack>
+				<Box
+					sx={{
+						p: 1.25,
+						borderRadius: '10px',
+						border: '1px solid',
+						borderColor: borderColor,
+						bgcolor: 'background.paper',
+						display: 'flex',
+						alignItems: 'center',
+						gap: 1,
+					}}
+				>
+					<Box
+						sx={{
+							bgcolor: isDark ? 'rgba(255,152,0,0.15)' : 'rgba(255,152,0,0.08)',
+							border: '1px solid',
+							borderColor: '#FF9800',
+							color: '#FF9800',
+							px: 1.25,
+							py: 0.25,
+							borderRadius: '100px',
+							fontSize: '0.7rem',
+							fontWeight: 800,
+							letterSpacing: '0.03em',
+						}}
+					>
+						TASK
+					</Box>
+				</Box>
+			</Box>
+
 			<Divider />
 
-			{/* Start Date */}
-			<PropertyRow
-				label="Start Date"
-				popoverKey="startDate"
-				icon={<CalendarMonthOutlined sx={{ color: 'text.secondary', fontSize: 18 }} />}
-				valueElement={
-					<Typography variant="body2" sx={{ fontWeight: 600 }}>
-						{task.start_date ? dayjs(task.start_date).format('MMM D, YYYY') : 'Choose a date'}
+			{/* Projects card (collapsible structure from screenshot) */}
+			<Box>
+				<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+					<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.7rem' }}>
+						Projects
 					</Typography>
-				}
-			/>
+				</Stack>
+				
+				<Box
+					sx={{
+						border: '1px solid',
+						borderColor: borderColor,
+						borderRadius: '10px',
+						bgcolor: cardBg,
+						overflow: 'hidden',
+					}}
+				>
+					{/* Projects Card Header */}
+					<Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: borderColor, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.005)' }}>
+						<Stack direction="row" alignItems="center" spacing={1}>
+							<FolderOutlined fontSize="small" sx={{ color: 'text.secondary' }} />
+							<Typography variant="body2" sx={{ fontWeight: 700 }}>
+								{projectName}
+							</Typography>
+						</Stack>
+						<ChevronRightOutlined fontSize="small" sx={{ transform: 'rotate(90deg)', color: 'text.secondary' }} />
+					</Box>
 
-			{/* Due Date */}
-			<PropertyRow
-				label="Due Date"
-				popoverKey="dueDate"
-				icon={<CalendarMonthOutlined sx={{ color: 'text.secondary', fontSize: 18 }} />}
-				valueElement={
-					<Typography variant="body2" sx={{ fontWeight: 600 }}>
-						{task.due_date ? dayjs(task.due_date).format('MMM D, YYYY') : 'Choose a date'}
-					</Typography>
-				}
-			/>
+					{/* Projects Card Content Rows */}
+					<Stack sx={{ p: 1 }}>
+						<CardRow
+							label="Status"
+							popoverKey="status"
+							valueElement={
+								<Box sx={{ px: 1.25, py: 0.25, bgcolor: selectedStatus.color, color: 'white', borderRadius: '100px', fontSize: '0.75rem', fontWeight: 700 }}>
+									{selectedStatus.name}
+								</Box>
+							}
+						/>
+						<CardRow
+							label="Priority"
+							popoverKey="priority"
+							valueElement={
+								<Box sx={{ px: 1.25, py: 0.25, bgcolor: isDark ? '#281a52' : '#f0ebf8', color: isDark ? '#a371f7' : '#6f42c1', border: '1px solid', borderColor: isDark ? '#4c2889' : '#d1c4e9', borderRadius: '100px', fontSize: '0.75rem', fontWeight: 800 }}>
+									{selectedPriority.label}
+								</Box>
+							}
+						/>
+						<CardRow
+							label="Estimate"
+							popoverKey="estimatedHours"
+							valueElement={
+								<Typography variant="body2" sx={{ fontWeight: 600 }}>
+									{task.estimated_hours != null ? `${task.estimated_hours}h` : '—'}
+								</Typography>
+							}
+						/>
+						<CardRow
+							label="Start Date"
+							popoverKey="startDate"
+							valueElement={
+								<Typography variant="body2" sx={{ fontWeight: 600 }}>
+									{task.start_date ? dayjs(task.start_date).format('MMM D, YYYY') : '—'}
+								</Typography>
+							}
+						/>
+						<CardRow
+							label="Target Date"
+							popoverKey="dueDate"
+							valueElement={
+								<Typography variant="body2" sx={{ fontWeight: 600 }}>
+									{task.due_date ? dayjs(task.due_date).format('MMM D, YYYY') : '—'}
+								</Typography>
+							}
+						/>
+						<CardRow
+							label="Billing"
+							popoverKey="billingType"
+							valueElement={
+								<Typography variant="body2" sx={{ fontWeight: 600 }}>
+									{task.billing_type === 'billable' ? 'Billable' : 'Non-billable'}
+								</Typography>
+							}
+						/>
+					</Stack>
+				</Box>
+			</Box>
 
-			{/* Estimate Hours */}
-			<PropertyRow
-				label="Estimate Hours"
-				popoverKey="estimatedHours"
-				icon={<ScheduleOutlined sx={{ color: 'text.secondary', fontSize: 18 }} />}
-				valueElement={
-					<Typography variant="body2" sx={{ fontWeight: 600 }}>
-						{task.estimated_hours != null ? `${task.estimated_hours} Hours` : 'Not set'}
-					</Typography>
-				}
-			/>
+			{/* Participants */}
+			<Box>
+				<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.7rem', display: 'block', mb: 1.5 }}>
+					Participants
+				</Typography>
+				<Stack direction="row" spacing={-0.75}>
+					{selectedAssignee ? (
+						<Avatar sx={{ width: 28, height: 28, border: '2px solid', borderColor: 'background.paper', fontSize: '0.75rem', fontWeight: 700 }}>
+							{(selectedAssignee.full_name || selectedAssignee.email)[0]?.toUpperCase()}
+						</Avatar>
+					) : (
+						<Avatar sx={{ width: 28, height: 28, border: '2px solid', borderColor: 'background.paper', bgcolor: 'transparent', color: 'text.secondary' }}>
+							<PersonOutline fontSize="small" />
+						</Avatar>
+					)}
+				</Stack>
+			</Box>
 
-			{/* Billing Type */}
-			<PropertyRow
-				label="Billing"
-				popoverKey="billingType"
-				icon={<AttachMoneyOutlined sx={{ color: 'text.secondary', fontSize: 18 }} />}
-				valueElement={
-					<Typography variant="body2" sx={{ fontWeight: 600 }}>
-						{task.billing_type === 'billable' ? 'Billable' : 'Non-billable'}
-					</Typography>
-				}
-			/>
+			<Divider />
+
+			{/* Actions list */}
+			<Stack spacing={1.5}>
+				<Button
+					onClick={() => {}}
+					startIcon={<AutoAwesomeOutlined />}
+					sx={{
+						justifyContent: 'flex-start',
+						textTransform: 'none',
+						fontWeight: 600,
+						color: 'text.primary',
+						fontSize: '0.825rem',
+						'&:hover': { bgcolor: hoverBg },
+					}}
+				>
+					Open in GitHub Copilot app
+				</Button>
+				<Button
+					onClick={() => {}}
+					startIcon={<ArrowForwardOutlined />}
+					sx={{
+						justifyContent: 'flex-start',
+						textTransform: 'none',
+						fontWeight: 600,
+						color: 'text.primary',
+						fontSize: '0.825rem',
+						'&:hover': { bgcolor: hoverBg },
+					}}
+				>
+					Transfer task
+				</Button>
+				<Button
+					onClick={() => {}}
+					startIcon={<ContentCopyOutlined />}
+					sx={{
+						justifyContent: 'flex-start',
+						textTransform: 'none',
+						fontWeight: 600,
+						color: 'text.primary',
+						fontSize: '0.825rem',
+						'&:hover': { bgcolor: hoverBg },
+					}}
+				>
+					Clone task
+				</Button>
+				<Button
+					onClick={onDelete}
+					startIcon={<DeleteOutline />}
+					sx={{
+						justifyContent: 'flex-start',
+						textTransform: 'none',
+						fontWeight: 600,
+						color: 'error.main',
+						fontSize: '0.825rem',
+						'&:hover': { bgcolor: isDark ? 'rgba(244,67,54,0.1)' : 'rgba(244,67,54,0.05)' },
+					}}
+				>
+					Delete task
+				</Button>
+			</Stack>
 
 			{/* POPPOVERS */}
-			{/* Assignee Picker */}
+			{/* Status Picker Popover */}
+			<Popover
+				open={popover?.key === 'status'}
+				anchorEl={popover?.anchorEl}
+				onClose={closePopover}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+				PaperProps={{ sx: { borderRadius: '10px', mt: 0.5, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' } }}
+			>
+				<Stack sx={{ minWidth: 180, py: 0.5 }}>
+					{statuses.map((s) => (
+						<Box
+							key={s.id}
+							onClick={() => { onUpdateField({ status_id: s.id }); closePopover(); }}
+							sx={{
+								display: 'flex', alignItems: 'center', gap: 1.5, px: 2.25, py: 1.25, cursor: 'pointer',
+								bgcolor: s.id === task.status_id ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
+								color: s.id === task.status_id ? 'primary.main' : 'text.primary',
+								'&:hover': { bgcolor: hoverBg },
+							}}
+						>
+							{dotIcon(s.color)}
+							<Typography variant="body2" sx={{ fontWeight: s.id === task.status_id ? 700 : 600, ml: 1 }}>{s.name}</Typography>
+						</Box>
+					))}
+				</Stack>
+			</Popover>
+
+			{/* Assignee Picker Popover */}
 			<Popover
 				open={popover?.key === 'assignee'}
 				anchorEl={popover?.anchorEl}
@@ -293,7 +487,7 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 						sx={{
 							display: 'flex', alignItems: 'center', px: 2.25, py: 1.25, cursor: 'pointer',
 							bgcolor: task.assignee_id === undefined ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-							'&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' },
+							'&:hover': { bgcolor: hoverBg },
 						}}
 					>
 						<Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic', fontWeight: 600 }}>
@@ -307,7 +501,7 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 							sx={{
 								display: 'flex', alignItems: 'center', gap: 1.5, px: 2.25, py: 1.25, cursor: 'pointer',
 								bgcolor: o.id === task.assignee_id ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-								'&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' },
+								'&:hover': { bgcolor: hoverBg },
 							}}
 						>
 							<Avatar sx={{ width: 24, height: 24, fontSize: '0.7rem', fontWeight: 700 }}>
@@ -321,7 +515,7 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 				</Stack>
 			</Popover>
 
-			{/* Priority Picker */}
+			{/* Priority Picker Popover */}
 			<Popover
 				open={popover?.key === 'priority'}
 				anchorEl={popover?.anchorEl}
@@ -337,17 +531,17 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 							sx={{
 								display: 'flex', alignItems: 'center', gap: 1.5, px: 2.25, py: 1.25, cursor: 'pointer',
 								bgcolor: p.value === task.priority ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-								'&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' },
+								'&:hover': { bgcolor: hoverBg },
 							}}
 						>
 							{dotIcon(p.color)}
-							<Typography variant="body2" sx={{ fontWeight: 600 }}>{p.label}</Typography>
+							<Typography variant="body2" sx={{ fontWeight: 600, ml: 1 }}>{p.label}</Typography>
 						</Box>
 					))}
 				</Stack>
 			</Popover>
 
-			{/* Start Date */}
+			{/* Start Date Popover */}
 			<Popover
 				open={popover?.key === 'startDate'}
 				anchorEl={popover?.anchorEl}
@@ -359,7 +553,7 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 				</Box>
 			</Popover>
 
-			{/* Due Date */}
+			{/* Due Date Popover */}
 			<Popover
 				open={popover?.key === 'dueDate'}
 				anchorEl={popover?.anchorEl}
@@ -367,11 +561,11 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 				anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
 			>
 				<Box sx={{ p: 2, width: 260 }}>
-					<DatePicker label="Due Date" value={task.due_date || null} onChange={(v) => { onUpdateField({ due_date: v || undefined }); closePopover(); }} format="DD-MMM-YYYY" minDate={task.start_date || undefined} />
+					<DatePicker label="Target Date" value={task.due_date || null} onChange={(v) => { onUpdateField({ due_date: v || undefined }); closePopover(); }} format="DD-MMM-YYYY" minDate={task.start_date || undefined} />
 				</Box>
 			</Popover>
 
-			{/* Estimate Hours */}
+			{/* Estimate Hours Popover */}
 			<Popover
 				open={popover?.key === 'estimatedHours'}
 				anchorEl={popover?.anchorEl}
@@ -420,7 +614,7 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 				</Stack>
 			</Popover>
 
-			{/* Billing */}
+			{/* Billing Popover */}
 			<Popover
 				open={popover?.key === 'billingType'}
 				anchorEl={popover?.anchorEl}
@@ -434,7 +628,7 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 						sx={{
 							px: 2.25, py: 1.25, cursor: 'pointer',
 							bgcolor: task.billing_type === 'billable' ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-							'&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' },
+							'&:hover': { bgcolor: hoverBg },
 						}}
 					>
 						<Typography variant="body2" sx={{ fontWeight: 600 }}>Billable</Typography>
@@ -444,7 +638,7 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 						sx={{
 							px: 2.25, py: 1.25, cursor: 'pointer',
 							bgcolor: task.billing_type === 'non_billable' ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-							'&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' },
+							'&:hover': { bgcolor: hoverBg },
 						}}
 					>
 						<Typography variant="body2" sx={{ fontWeight: 600 }}>Non-billable</Typography>
@@ -452,7 +646,7 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 				</Stack>
 			</Popover>
 
-			{/* Tags */}
+			{/* Tags Popover */}
 			<Popover
 				open={popover?.key === 'tags'}
 				anchorEl={popover?.anchorEl}

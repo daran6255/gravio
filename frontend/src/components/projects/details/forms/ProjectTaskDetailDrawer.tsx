@@ -5,11 +5,15 @@ import {
 	Stack,
 	Typography,
 	Button,
+	Avatar,
+	IconButton,
 	useTheme,
 } from '@mui/material';
 import {
 	EditOutlined,
+	MoreHorizOutlined,
 } from '@mui/icons-material';
+import dayjs from 'dayjs';
 import type { ProjectTask, ProjectTaskUpdate, ProjectTaskStatus, ProjectTaskTag } from '../../../../models/projects/projectTask';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
 import { RichTextEditor, RichTextViewer } from '../../../common/form';
@@ -26,6 +30,7 @@ interface ProjectTaskDetailDrawerProps {
 	onClose: () => void;
 	task: ProjectTask;
 	tasks: ProjectTask[];
+	projectName: string;
 	statuses: ProjectTaskStatus[];
 	owners: CRMOwnerOption[];
 	existingTags: ProjectTaskTag[];
@@ -39,6 +44,7 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 	onClose,
 	task,
 	tasks,
+	projectName,
 	statuses,
 	owners,
 	existingTags,
@@ -48,6 +54,10 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+
+	const borderColor = isDark ? '#30363d' : '#d0d7de';
+	const cardBg = isDark ? '#161b22' : '#ffffff';
+	const bgColor = isDark ? '#0d1117' : '#ffffff';
 
 	// Get latest version from source-of-truth list
 	const latestTask = tasks.find((t) => t.id === task.id) || task;
@@ -84,7 +94,7 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 					maxWidth: '100%',
 					borderTopLeftRadius: '16px',
 					borderBottomLeftRadius: '16px',
-					bgcolor: 'background.paper',
+					bgcolor: bgColor,
 					boxShadow: 'none',
 				},
 			}}
@@ -94,6 +104,8 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 				<TaskDrawerHeader
 					task={latestTask}
 					statuses={statuses}
+					tasks={tasks}
+					projectName={projectName}
 					onUpdateField={handleUpdateField}
 					onDelete={onDelete}
 					onClose={onClose}
@@ -102,15 +114,50 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 				{/* Two Column Scrollable Body */}
 				<Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
 					{/* Left Column (Main details) */}
-					<Box sx={{ flex: 1, p: 3.5, display: 'flex', flexDirection: 'column', gap: 3.5 }}>
+					<Box sx={{ flex: 1, p: 3.5, display: 'flex', flexDirection: 'column', gap: 3 }}>
+						
+						{/* Author Info Block */}
+						<Box
+							sx={{
+								display: 'flex',
+								alignItems: 'center',
+								justifyContent: 'space-between',
+								p: 1.5,
+								borderRadius: '8px',
+								border: '1px solid',
+								borderColor: borderColor,
+								bgcolor: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.005)',
+							}}
+						>
+							<Stack direction="row" alignItems="center" spacing={1.5}>
+								<Avatar sx={{ width: 26, height: 26, fontSize: '0.75rem', fontWeight: 700, bgcolor: 'primary.main', color: 'white' }}>
+									D
+								</Avatar>
+								<Typography variant="body2" sx={{ fontWeight: 650 }}>
+									daran6255 <span style={{ color: theme.palette.text.secondary, fontWeight: 500 }}>opened this on {dayjs(latestTask.created_at).format('MMM D, YYYY')}</span>
+								</Typography>
+								<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+									&bull; Last edited by daran6255
+								</Typography>
+							</Stack>
+							<Stack direction="row" alignItems="center" spacing={1}>
+								<Box sx={{ border: '1px solid', borderColor: borderColor, px: 1, py: 0.15, borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700, color: 'text.secondary' }}>
+									Member
+								</Box>
+								<IconButton size="small" sx={{ color: 'text.secondary' }}>
+									<MoreHorizOutlined fontSize="small" style={{ fontSize: 16 }} />
+								</IconButton>
+							</Stack>
+						</Box>
+
 						{/* Description Card */}
 						<Box
 							sx={{
 								border: '1px solid',
-								borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+								borderColor: borderColor,
 								borderRadius: '12px',
 								overflow: 'hidden',
-								bgcolor: 'background.paper',
+								bgcolor: cardBg,
 								boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.15)' : '0 4px 20px rgba(0,0,0,0.02)',
 							}}
 						>
@@ -186,7 +233,11 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 						<ActivityTimeline task={latestTask} />
 
 						{/* Comments Section */}
-						<CommentsSection task={latestTask} />
+						<CommentsSection
+							task={latestTask}
+							statuses={statuses}
+							onUpdateField={handleUpdateField}
+						/>
 					</Box>
 
 					{/* Right Column (Sidebar settings) */}
@@ -195,7 +246,9 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 						statuses={statuses}
 						owners={owners}
 						existingTags={existingTags}
+						projectName={projectName}
 						onUpdateField={handleUpdateField}
+						onDelete={onDelete}
 					/>
 				</Box>
 			</Box>

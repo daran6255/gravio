@@ -115,6 +115,7 @@ const ProjectDetailPage: React.FC = () => {
 								onClose={() => setTaskFormOpen(false)}
 								task={editingTask}
 								tasks={tasks}
+								projectName={project.name}
 								statuses={taskStatuses}
 								owners={owners}
 								existingTags={projectTags}
