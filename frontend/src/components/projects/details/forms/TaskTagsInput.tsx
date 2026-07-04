@@ -65,7 +65,7 @@ export const TaskTagsInput: React.FC<TaskTagsInputProps> = ({ value, onChange, e
 								pl: 0.75,
 								pr: 0.5,
 								py: 0.5,
-								borderRadius: '8px',
+								borderRadius: '100px',
 								bgcolor: alpha(tag.color, isDark ? 0.18 : 0.1),
 								border: '1px solid',
 								borderColor: alpha(tag.color, 0.35),

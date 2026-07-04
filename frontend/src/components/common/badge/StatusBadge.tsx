@@ -75,7 +75,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ label, status, type = 'generi
 				gap: 0.75,
 				px: 1.25,
 				py: 0.4,
-				borderRadius: '6px',
+				borderRadius: '100px',
 				bgcolor: isSolid ? paletteColor : alpha(paletteColor, 0.1),
 				border: isSolid ? 'none' : `1px solid ${alpha(paletteColor, 0.25)}`,
 			}}
