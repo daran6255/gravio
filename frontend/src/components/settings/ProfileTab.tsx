@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
 	Box,
 	Typography,
@@ -55,7 +55,17 @@ const ProfileTab: React.FC = () => {
 	const originalDob = user?.dob || null;
 	const originalAvatar = user?.avatar || null;
 	const originalEmail = user?.email || '';
-	const originalBillingAddress: BillingAddress = { ...EMPTY_ADDRESS, ...(user?.billing_address || {}) };
+	// Memoized so its reference only changes when the underlying server data
+	// does — otherwise this object literal is recreated every render, which
+	// retriggers the billingAddress dirty-tracking useEffect below on every
+	// render (its deps include this object), which calls markClean/markDirty,
+	// which changes SettingsContext state, which re-renders this component —
+	// an infinite render loop ("Maximum update depth exceeded") that starves
+	// React's update queue and can swallow an in-flight navigation.
+	const originalBillingAddress: BillingAddress = useMemo(
+		() => ({ ...EMPTY_ADDRESS, ...(user?.billing_address || {}) }),
+		[user?.billing_address]
+	);
 	const originalBillingReminder = user?.billing_reminder ?? false;
 
 	const [fullName, setFullName] = useState(originalFullName);
