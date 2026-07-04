@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Stack, TextField, MenuItem, Autocomplete, Button, CircularProgress, useTheme } from '@mui/material';
-import { BaseDialog } from '../../common/dialogbox';
-import { DatePicker } from '../../common/form';
+import { Stack, TextField, MenuItem, Autocomplete, Button, CircularProgress, useTheme, InputAdornment, Box, Divider } from '@mui/material';
+import { DetailDrawer } from '../../common/drawer/DetailDrawer';
+import { DatePicker, RichTextEditor } from '../../common/form';
 import useToast from '../../../hooks/useToast';
-import { getWorldCurrencies } from '../../../utils/currency';
+import { getWorldCurrencies, getCurrencySymbol } from '../../../utils/currency';
+import { NumericFormat } from 'react-number-format';
 import type { Project, ProjectStatus, ProjectCreate, ProjectUpdate } from '../../../models/projects/project';
 import type { CRMOwnerOption } from '../../../models/crm/owner';
 
@@ -38,8 +39,6 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({ open, onCl
 	const [endDate, setEndDate] = useState<string | null>(null);
 	const [budget, setBudget] = useState('');
 	const [currency, setCurrency] = useState('USD');
-	const [phase, setPhase] = useState('');
-	const [issues, setIssues] = useState('');
 	const [touched, setTouched] = useState(false);
 
 	// Reset the form whenever the dialog transitions from closed to open, same
@@ -57,8 +56,6 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({ open, onCl
 			setEndDate(project?.end_date || null);
 			setBudget(project?.budget != null ? String(project.budget) : '');
 			setCurrency(project?.currency || 'USD');
-			setPhase(project?.phase || '');
-			setIssues(project?.issues || '');
 			setTouched(false);
 		}
 	}
@@ -79,8 +76,6 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({ open, onCl
 				end_date: endDate || undefined,
 				budget: budget ? Number(budget) : undefined,
 				currency,
-				phase: phase.trim() || undefined,
-				issues: issues.trim() || undefined,
 			});
 		} catch (err: any) {
 			toast.error(err || 'Failed to save project');
@@ -90,22 +85,106 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({ open, onCl
 	const selectedOwner = owners.find((o) => o.id === ownerId) || null;
 
 	return (
-		<BaseDialog
+		<DetailDrawer
 			open={open}
 			onClose={onClose}
 			title={isEdit ? 'Edit Project' : 'New Project'}
 			subtitle={isEdit ? project?.name : 'Track a delivery project and its tasks'}
-			maxWidth="sm"
-			loading={submitting}
-			actions={
-				<>
+			width={550}
+		>
+			<Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+				{/* Scrollable Form Body */}
+				<Box sx={{ flex: 1, overflow: 'auto', mb: 3, pr: 0.5 }}>
+					<Stack spacing={2.5} sx={{ mt: 1 }}>
+						<TextField
+							label="Project Name"
+							value={name}
+							onChange={(e) => setName(e.target.value)}
+							required
+							fullWidth
+							error={!!nameError}
+							helperText={nameError}
+							placeholder="e.g. Acme Corp Website Revamp"
+						/>
+
+						<RichTextEditor
+							label="Description"
+							value={description}
+							onChange={(html) => setDescription(html)}
+							placeholder="What is this project about?"
+							minHeight={120}
+						/>
+
+						<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+							<TextField
+								select
+								label="Status"
+								value={status}
+								onChange={(e) => setStatus(e.target.value as ProjectStatus)}
+								fullWidth
+							>
+								{PROJECT_STATUSES.map((s) => (
+									<MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
+								))}
+							</TextField>
+
+							<Autocomplete
+								fullWidth
+								options={owners}
+								getOptionLabel={(o) => o.full_name || o.email}
+								isOptionEqualToValue={(o, v) => o.id === v.id}
+								value={selectedOwner}
+								onChange={(_, newValue) => setOwnerId(newValue?.id ?? null)}
+								renderInput={(params) => <TextField {...params} label="Owner" placeholder="Unassigned" />}
+							/>
+						</Stack>
+
+						<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+							<DatePicker label="Start Date" value={startDate} onChange={(v) => setStartDate(v || null)} format="DD-MMM-YYYY" />
+							<DatePicker label="End Date" value={endDate} onChange={(v) => setEndDate(v || null)} format="DD-MMM-YYYY" minDate={startDate || undefined} />
+						</Stack>
+
+
+						<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+							<NumericFormat
+								customInput={TextField}
+								label="Budget"
+								value={budget}
+								onValueChange={(values) => setBudget(values.value)}
+								thousandSeparator
+								decimalScale={2}
+								allowNegative={false}
+								fullWidth
+								InputProps={{
+									startAdornment: <InputAdornment position="start">{getCurrencySymbol(currency)}</InputAdornment>,
+								}}
+							/>
+							<TextField
+								select
+								label="Currency"
+								value={currency}
+								onChange={(e) => setCurrency(e.target.value)}
+								fullWidth
+							>
+								{currencyOptions.map((c) => (
+									<MenuItem key={c.code} value={c.code}>{c.code} — {c.name}</MenuItem>
+								))}
+							</TextField>
+						</Stack>
+					</Stack>
+				</Box>
+
+				<Divider sx={{ mb: 2, mx: { xs: -2.5, sm: -3.5 } }} />
+
+				{/* Footer Actions */}
+				<Box display="flex" justifyContent="flex-end" alignItems="center" gap={1.5}>
 					<Button onClick={onClose} disabled={submitting} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '10px' }}>
 						Cancel
 					</Button>
 					<Button
 						variant="contained"
 						onClick={handleSave}
-						disabled={submitting}
+						disabled={submitting || !isValid}
 						sx={{
 							color: 'white',
 							textTransform: 'none',
@@ -119,101 +198,11 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({ open, onCl
 							'&.Mui-disabled': { background: theme.palette.action.disabledBackground },
 						}}
 					>
-						{submitting ? <CircularProgress size={18} color="inherit" /> : isEdit ? 'Save Changes' : 'Create Project'}
+						{submitting ? <CircularProgress size={18} color="inherit" /> : 'Save Changes'}
 					</Button>
-				</>
-			}
-		>
-			<Stack spacing={2.5}>
-				<TextField
-					label="Project Name"
-					value={name}
-					onChange={(e) => setName(e.target.value)}
-					required
-					fullWidth
-					error={!!nameError}
-					helperText={nameError}
-					placeholder="e.g. Acme Corp Website Revamp"
-				/>
-
-				<TextField
-					label="Description"
-					value={description}
-					onChange={(e) => setDescription(e.target.value)}
-					fullWidth
-					multiline
-					rows={2}
-				/>
-
-				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-					<TextField
-						select
-						label="Status"
-						value={status}
-						onChange={(e) => setStatus(e.target.value as ProjectStatus)}
-						fullWidth
-					>
-						{PROJECT_STATUSES.map((s) => (
-							<MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
-						))}
-					</TextField>
-
-					<Autocomplete
-						fullWidth
-						options={owners}
-						getOptionLabel={(o) => o.full_name || o.email}
-						isOptionEqualToValue={(o, v) => o.id === v.id}
-						value={selectedOwner}
-						onChange={(_, newValue) => setOwnerId(newValue?.id ?? null)}
-						renderInput={(params) => <TextField {...params} label="Owner" placeholder="Unassigned" />}
-					/>
-				</Stack>
-
-				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-					<DatePicker label="Start Date" value={startDate} onChange={(v) => setStartDate(v || null)} format="DD-MMM-YYYY" />
-					<DatePicker label="End Date" value={endDate} onChange={(v) => setEndDate(v || null)} format="DD-MMM-YYYY" minDate={startDate || undefined} />
-				</Stack>
-
-				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-					<TextField
-						label="Phase"
-						value={phase}
-						onChange={(e) => setPhase(e.target.value)}
-						fullWidth
-						placeholder="e.g. Design, Development"
-					/>
-					<TextField
-						label="Issues"
-						value={issues}
-						onChange={(e) => setIssues(e.target.value)}
-						fullWidth
-						placeholder="e.g. None, Pending approval"
-					/>
-				</Stack>
-
-				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-					<TextField
-						label="Budget"
-						type="number"
-						value={budget}
-						onChange={(e) => setBudget(e.target.value)}
-						fullWidth
-						slotProps={{ htmlInput: { min: 0 } }}
-					/>
-					<TextField
-						select
-						label="Currency"
-						value={currency}
-						onChange={(e) => setCurrency(e.target.value)}
-						fullWidth
-					>
-						{currencyOptions.map((c) => (
-							<MenuItem key={c.code} value={c.code}>{c.code} — {c.name}</MenuItem>
-						))}
-					</TextField>
-				</Stack>
-			</Stack>
-		</BaseDialog>
+				</Box>
+			</Box>
+		</DetailDrawer>
 	);
 };
 

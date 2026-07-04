@@ -21,6 +21,7 @@ export const useProjectsManagement = () => {
 	const [refreshKey, setRefreshKey] = useState(0);
 
 	const [formOpen, setFormOpen] = useState(false);
+	const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
 	const [editingProject, setEditingProject] = useState<Project | null>(null);
 
 	const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
@@ -65,7 +66,7 @@ export const useProjectsManagement = () => {
 
 	const handleCreateClick = () => {
 		setEditingProject(null);
-		setFormOpen(true);
+		setCreateDrawerOpen(true);
 	};
 
 	const handleEdit = (project: Project) => {
@@ -98,11 +99,12 @@ export const useProjectsManagement = () => {
 		if (editingProject) {
 			await dispatch(updateProject({ publicId: editingProject.public_id, payload })).unwrap();
 			toast.success('Project updated');
+			setFormOpen(false);
 		} else {
 			await dispatch(createProject(payload as ProjectCreate)).unwrap();
 			toast.success('Project created');
+			setCreateDrawerOpen(false);
 		}
-		setFormOpen(false);
 	};
 
 	return {
@@ -125,6 +127,8 @@ export const useProjectsManagement = () => {
 
 		formOpen,
 		setFormOpen,
+		createDrawerOpen,
+		setCreateDrawerOpen,
 		editingProject,
 		projectMutating,
 		handleSubmit,

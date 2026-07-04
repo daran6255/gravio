@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Container } from '@mui/material';
 import PageHeader from '../../components/common/page-header';
 import { ConfirmationDialog } from '../../components/common/dialogbox';
-import { ProjectsTable, ProjectFormDialog, useProjectsManagement } from '../../components/projects';
+import { ProjectsTable, ProjectFormDialog, ProjectCreateDrawer, useProjectsManagement } from '../../components/projects';
 
 /**
  * Project Management — projects created from Won deals (or directly), each
@@ -25,6 +25,8 @@ const ProjectsListPage: React.FC = () => {
 		handleStatusFilterChange,
 		formOpen,
 		setFormOpen,
+		createDrawerOpen,
+		setCreateDrawerOpen,
 		editingProject,
 		projectMutating,
 		handleSubmit,
@@ -70,6 +72,14 @@ const ProjectsListPage: React.FC = () => {
 					open={formOpen}
 					onClose={() => setFormOpen(false)}
 					project={editingProject}
+					owners={owners}
+					submitting={projectMutating}
+					onSubmit={handleSubmit}
+				/>
+
+				<ProjectCreateDrawer
+					open={createDrawerOpen}
+					onClose={() => setCreateDrawerOpen(false)}
 					owners={owners}
 					submitting={projectMutating}
 					onSubmit={handleSubmit}

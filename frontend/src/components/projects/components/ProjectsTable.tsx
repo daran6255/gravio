@@ -67,7 +67,7 @@ export const ProjectsTable: React.FC<ProjectsTableProps> = ({
 	const columns: ColumnDefinition<Project>[] = [
 		{ id: 'name', label: 'Project' },
 		{ id: 'status', label: 'Status' },
-		{ id: 'owner', label: 'Owner', hideOnMobile: true },
+		{ id: 'owner_id', label: 'Owner', hideOnMobile: true },
 		{ id: 'task_count', label: 'Tasks', hideOnMobile: true },
 		{ id: 'phase', label: 'Phase', hideOnMobile: true },
 		{ id: 'issues', label: 'Issues', hideOnMobile: true },

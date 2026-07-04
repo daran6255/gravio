@@ -28,6 +28,7 @@ from app.services.audit import AuditService
 from app.services.currency import CurrencyConversionService
 from app.middleware.exceptions import NotFoundError, BadRequestError, ConflictError
 from app.core.context import tenant_context
+from app.services.project_templates import PROJECT_TEMPLATES
 
 
 class ProjectService:
@@ -107,7 +108,26 @@ class ProjectService:
 
     @staticmethod
     async def create_project(db: AsyncSession, payload: ProjectCreate) -> Project:
-        return await ProjectRepository.create(db, **payload.model_dump())
+        data = payload.model_dump()
+        template_key = data.pop("template_key", None)
+        
+        project = await ProjectRepository.create(db, **data)
+        
+        if template_key and template_key in PROJECT_TEMPLATES:
+            template = PROJECT_TEMPLATES[template_key]
+            initial_status = await ProjectTaskStatusRepository.get_initial(db)
+            if initial_status:
+                for idx, t in enumerate(template["tasks"]):
+                    await ProjectTaskRepository.create(
+                        db,
+                        project_id=project.id,
+                        parent_task_id=None,
+                        title=t["title"],
+                        description=t["description"],
+                        status_id=initial_status.id,
+                        order=idx,
+                    )
+        return project
 
     @staticmethod
     async def update_project(db: AsyncSession, public_id: uuid.UUID, payload: ProjectUpdate) -> Project:

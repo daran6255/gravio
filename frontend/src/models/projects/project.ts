@@ -38,6 +38,7 @@ export interface ProjectCreate {
 	currency?: string;
 	phase?: string;
 	issues?: string;
+	template_key?: string;
 	tags?: string[];
 	custom_fields?: Record<string, any>;
 }

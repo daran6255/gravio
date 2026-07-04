@@ -57,7 +57,7 @@ class ProjectBase(BaseModel):
 
 
 class ProjectCreate(ProjectBase):
-    pass
+    template_key: Optional[str] = None
 
 
 class ProjectUpdate(BaseModel):
