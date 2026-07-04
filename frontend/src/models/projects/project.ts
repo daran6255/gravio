@@ -1,6 +1,5 @@
 export type ProjectStatus = 'planning' | 'active' | 'on_hold' | 'completed' | 'archived';
 
-/** Matches backend's ProjectResponse exactly. */
 export interface Project {
 	id: number;
 	public_id: string;
@@ -15,12 +14,15 @@ export interface Project {
 	end_date?: string;
 	budget?: number;
 	currency: string;
+	phase?: string;
+	issues?: string;
 	tags?: string[];
 	custom_fields?: Record<string, any>;
 	created_at: string;
 	updated_at: string;
 	/** Only populated when the list/get endpoint eager-loads tasks. */
 	task_count?: number;
+	completed_task_count?: number;
 }
 
 /** Matches backend's ProjectCreate. */
@@ -34,6 +36,8 @@ export interface ProjectCreate {
 	end_date?: string;
 	budget?: number;
 	currency?: string;
+	phase?: string;
+	issues?: string;
 	tags?: string[];
 	custom_fields?: Record<string, any>;
 }

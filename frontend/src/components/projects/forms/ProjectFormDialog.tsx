@@ -38,6 +38,8 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({ open, onCl
 	const [endDate, setEndDate] = useState<string | null>(null);
 	const [budget, setBudget] = useState('');
 	const [currency, setCurrency] = useState('USD');
+	const [phase, setPhase] = useState('');
+	const [issues, setIssues] = useState('');
 	const [touched, setTouched] = useState(false);
 
 	// Reset the form whenever the dialog transitions from closed to open, same
@@ -55,6 +57,8 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({ open, onCl
 			setEndDate(project?.end_date || null);
 			setBudget(project?.budget != null ? String(project.budget) : '');
 			setCurrency(project?.currency || 'USD');
+			setPhase(project?.phase || '');
+			setIssues(project?.issues || '');
 			setTouched(false);
 		}
 	}
@@ -75,6 +79,8 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({ open, onCl
 				end_date: endDate || undefined,
 				budget: budget ? Number(budget) : undefined,
 				currency,
+				phase: phase.trim() || undefined,
+				issues: issues.trim() || undefined,
 			});
 		} catch (err: any) {
 			toast.error(err || 'Failed to save project');
@@ -166,6 +172,23 @@ export const ProjectFormDialog: React.FC<ProjectFormDialogProps> = ({ open, onCl
 				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
 					<DatePicker label="Start Date" value={startDate} onChange={(v) => setStartDate(v || null)} format="DD-MMM-YYYY" />
 					<DatePicker label="End Date" value={endDate} onChange={(v) => setEndDate(v || null)} format="DD-MMM-YYYY" minDate={startDate || undefined} />
+				</Stack>
+
+				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+					<TextField
+						label="Phase"
+						value={phase}
+						onChange={(e) => setPhase(e.target.value)}
+						fullWidth
+						placeholder="e.g. Design, Development"
+					/>
+					<TextField
+						label="Issues"
+						value={issues}
+						onChange={(e) => setIssues(e.target.value)}
+						fullWidth
+						placeholder="e.g. None, Pending approval"
+					/>
 				</Stack>
 
 				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

@@ -1,10 +1,11 @@
 import React from 'react';
-import { TableRow, TableCell, Typography, Stack, Avatar, TextField, MenuItem } from '@mui/material';
+import { TableRow, TableCell, Typography, Stack, Avatar, TextField, MenuItem, alpha, LinearProgress } from '@mui/material';
 import { Visibility, Edit, DeleteOutline } from '@mui/icons-material';
 import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../common/table';
 import StatusBadge from '../../common/badge/StatusBadge';
 import type { Project, ProjectStatus } from '../../../models/projects/project';
 import type { CRMOwnerOption } from '../../../models/crm/owner';
+import dayjs from 'dayjs';
 
 const PROJECT_STATUSES: { value: ProjectStatus; label: string }[] = [
 	{ value: 'planning', label: 'Planning' },
@@ -39,6 +40,11 @@ const formatBudget = (project: Project): string => {
 	return new Intl.NumberFormat(undefined, { style: 'currency', currency: project.currency }).format(project.budget);
 };
 
+const formatDate = (dateStr?: string): string => {
+	if (!dateStr) return '—';
+	return dayjs(dateStr).format('DD-MMM-YYYY');
+};
+
 export const ProjectsTable: React.FC<ProjectsTableProps> = ({
 	projects,
 	owners,
@@ -63,6 +69,10 @@ export const ProjectsTable: React.FC<ProjectsTableProps> = ({
 		{ id: 'status', label: 'Status' },
 		{ id: 'owner', label: 'Owner', hideOnMobile: true },
 		{ id: 'task_count', label: 'Tasks', hideOnMobile: true },
+		{ id: 'phase', label: 'Phase', hideOnMobile: true },
+		{ id: 'issues', label: 'Issues', hideOnMobile: true },
+		{ id: 'start_date', label: 'Start Date', hideOnMobile: true },
+		{ id: 'end_date', label: 'End Date', hideOnMobile: true },
 		{ id: 'budget', label: 'Budget', hideOnMobile: true },
 		{ id: 'actions', label: '', align: 'right', width: 60 },
 	];
@@ -101,7 +111,47 @@ export const ProjectsTable: React.FC<ProjectsTableProps> = ({
 						<Typography variant="body2" color="text.secondary">Unassigned</Typography>
 					)}
 				</TableCell>
-				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{project.task_count ?? 0}</TableCell>
+				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' }, minWidth: 120 }}>
+					<Stack spacing={0.5} sx={{ minWidth: 100 }}>
+						<Stack direction="row" justifyContent="space-between" alignItems="center">
+							<Typography variant="caption" sx={{ fontWeight: 700 }}>
+								{project.completed_task_count ?? 0} / {project.task_count ?? 0}
+							</Typography>
+							<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+								{project.task_count ? Math.round(((project.completed_task_count ?? 0) / project.task_count) * 100) : 0}%
+							</Typography>
+						</Stack>
+						<LinearProgress
+							variant="determinate"
+							value={project.task_count ? ((project.completed_task_count ?? 0) / project.task_count) * 100 : 0}
+							sx={{
+								height: 6,
+								borderRadius: 3,
+								bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+								'& .MuiLinearProgress-bar': {
+									borderRadius: 3,
+									background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
+								}
+							}}
+						/>
+					</Stack>
+				</TableCell>
+				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+					<Typography variant="body2" color={project.phase ? "text.primary" : "text.secondary"}>
+						{project.phase || '—'}
+					</Typography>
+				</TableCell>
+				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' }, maxWidth: 200 }}>
+					<Typography variant="body2" noWrap color={project.issues ? "error.main" : "text.secondary"} sx={{ fontWeight: project.issues ? 500 : 400 }}>
+						{project.issues || '—'}
+					</Typography>
+				</TableCell>
+				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+					<Typography variant="body2">{formatDate(project.start_date)}</Typography>
+				</TableCell>
+				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+					<Typography variant="body2">{formatDate(project.end_date)}</Typography>
+				</TableCell>
 				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{formatBudget(project)}</TableCell>
 				<TableCell align="right" onClick={(e) => e.stopPropagation()}>
 					<Stack direction="row" justifyContent="flex-end">
@@ -131,9 +181,25 @@ export const ProjectsTable: React.FC<ProjectsTableProps> = ({
 					size="small"
 					value={statusFilter}
 					onChange={(e) => onStatusFilterChange(e.target.value as ProjectStatus | '')}
-					sx={{ minWidth: 160 }}
+					SelectProps={{
+						displayEmpty: true
+					}}
+					sx={{
+						minWidth: 160,
+						'& .MuiOutlinedInput-root': {
+							borderRadius: '12px',
+							bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)',
+							transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+							'& fieldset': { borderColor: 'transparent' },
+							'&:hover fieldset': { borderColor: (theme) => alpha(theme.palette.primary.main, 0.3) },
+							'&.Mui-focused': {
+								boxShadow: (theme) => `0 0 0 3px ${alpha(theme.palette.primary.main, 0.12)}`
+							},
+							'&.Mui-focused fieldset': { borderColor: (theme) => theme.palette.primary.main },
+						}
+					}}
 				>
-					<MenuItem value="">All Statuses</MenuItem>
+					<MenuItem value="">All Status</MenuItem>
 					{PROJECT_STATUSES.map((s) => (
 						<MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
 					))}

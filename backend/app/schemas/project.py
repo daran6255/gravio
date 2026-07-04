@@ -50,6 +50,8 @@ class ProjectBase(BaseModel):
     end_date: Optional[date] = None
     budget: Optional[float] = Field(None, ge=0)
     currency: str = Field("USD", max_length=10)
+    phase: Optional[str] = Field(None, max_length=100)
+    issues: Optional[str] = None
     tags: Optional[list[str]] = None
     custom_fields: Optional[dict[str, Any]] = None
 
@@ -68,6 +70,8 @@ class ProjectUpdate(BaseModel):
     end_date: Optional[date] = None
     budget: Optional[float] = Field(None, ge=0)
     currency: Optional[str] = Field(None, max_length=10)
+    phase: Optional[str] = Field(None, max_length=100)
+    issues: Optional[str] = None
     tags: Optional[list[str]] = None
     custom_fields: Optional[dict[str, Any]] = None
 
@@ -80,15 +84,21 @@ class ProjectResponse(ProjectBase):
     created_at: datetime
     updated_at: datetime
     task_count: int = 0
+    completed_task_count: int = 0
 
     @model_validator(mode="before")
     @classmethod
-    def _attach_task_count(cls, data: Any) -> Any:
+    def _attach_task_counts(cls, data: Any) -> Any:
         # Only computed when `.tasks` was eagerly loaded (e.g. selectinload in list_all);
         # touching the relationship otherwise would trigger a lazy load and crash async sessions.
         if isinstance(data, dict) or "tasks" in sa_inspect(data).unloaded:
             return data
-        data.task_count = len(data.tasks)
+        non_deleted_tasks = [t for t in data.tasks if not t.is_deleted]
+        data.task_count = len(non_deleted_tasks)
+        data.completed_task_count = len([
+            t for t in non_deleted_tasks
+            if t.completed_at is not None
+        ])
         return data
 
 

@@ -91,6 +91,8 @@ class Project(BaseModel, TenantAwareMixin):
     end_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     budget: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
     currency: Mapped[str] = mapped_column(String(10), default="USD", nullable=False)
+    phase: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    issues: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     tags: Mapped[Optional[list[str]]] = mapped_column(JSON, nullable=True)
     custom_fields: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
