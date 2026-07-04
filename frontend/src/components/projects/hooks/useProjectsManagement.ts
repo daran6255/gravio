@@ -1,14 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchProjects, fetchProjectStats, createProject, updateProject, deleteProject } from '../../../store/slices/projectsSlice';
+import { fetchProjects, fetchProjectStats, createProject, deleteProject } from '../../../store/slices/projectsSlice';
 import { fetchOwners } from '../../../store/slices/crmSlice';
 import useToast from '../../../hooks/useToast';
-import type { Project, ProjectStatus, ProjectCreate, ProjectUpdate } from '../../../models/projects/project';
+import type { Project, ProjectStatus, ProjectCreate } from '../../../models/projects/project';
 
 export const useProjectsManagement = () => {
 	const dispatch = useAppDispatch();
-	const navigate = useNavigate();
 	const toast = useToast();
 	const { projects, projectsTotal, projectsLoading, projectMutating, projectStats, projectStatsLoading } = useAppSelector((state) => state.projects);
 	const { owners } = useAppSelector((state) => state.crm);
@@ -20,9 +19,7 @@ export const useProjectsManagement = () => {
 	const [statusFilter, setStatusFilter] = useState<ProjectStatus | ''>('');
 	const [refreshKey, setRefreshKey] = useState(0);
 
-	const [formOpen, setFormOpen] = useState(false);
 	const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
-	const [editingProject, setEditingProject] = useState<Project | null>(null);
 
 	const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
 	const [deleteLoading, setDeleteLoading] = useState(false);
@@ -69,19 +66,8 @@ export const useProjectsManagement = () => {
 	};
 
 	const handleCreateClick = () => {
-		setEditingProject(null);
 		setCreateDrawerOpen(true);
 	};
-
-	const handleEdit = (project: Project) => {
-		setEditingProject(project);
-		setFormOpen(true);
-	};
-
-	// Relative navigation (no leading slash) so it resolves under whichever base
-	// is currently active (/projects or /org/:orgId/projects), matching how the
-	// route pairs are defined in AppRouter.
-	const handleRowClick = (project: Project) => navigate(project.public_id);
 
 	const handleDeleteRequest = (project: Project) => setDeleteTarget(project);
 
@@ -99,16 +85,10 @@ export const useProjectsManagement = () => {
 		}
 	};
 
-	const handleSubmit = async (payload: ProjectCreate | ProjectUpdate) => {
-		if (editingProject) {
-			await dispatch(updateProject({ publicId: editingProject.public_id, payload })).unwrap();
-			toast.success('Project updated');
-			setFormOpen(false);
-		} else {
-			await dispatch(createProject(payload as ProjectCreate)).unwrap();
-			toast.success('Project created');
-			setCreateDrawerOpen(false);
-		}
+	const handleSubmit = async (payload: ProjectCreate) => {
+		await dispatch(createProject(payload)).unwrap();
+		toast.success('Project created');
+		setCreateDrawerOpen(false);
 	};
 
 	return {
@@ -132,11 +112,8 @@ export const useProjectsManagement = () => {
 		handleStatusFilterChange,
 		handleClearFilters,
 
-		formOpen,
-		setFormOpen,
 		createDrawerOpen,
 		setCreateDrawerOpen,
-		editingProject,
 		projectMutating,
 		handleSubmit,
 
@@ -145,8 +122,6 @@ export const useProjectsManagement = () => {
 		deleteLoading,
 
 		handleCreateClick,
-		handleEdit,
-		handleRowClick,
 		handleDeleteRequest,
 		handleConfirmDelete,
 	};

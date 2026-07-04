@@ -1,14 +1,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import projectService from '../../services/projectService';
 import crmService from '../../services/crmService';
-import type { Project, ProjectCreate, ProjectUpdate, DealConvertToProjectRequest, ProjectStats } from '../../models/projects/project';
-import type {
-	ProjectTask,
-	ProjectTaskCreate,
-	ProjectTaskUpdate,
-	ProjectTaskStatus,
-	ProjectTaskStatusUpsert,
-} from '../../models/projects/projectTask';
+import type { Project, ProjectCreate, DealConvertToProjectRequest, ProjectStats } from '../../models/projects/project';
 import type { PaginatedResponse } from '../../models/common';
 
 /** Backend errors are shaped { success, error: { code, message, detail } } - not a top-level `detail`. */
@@ -28,20 +21,8 @@ interface ProjectsState {
 	projectStatsLoading: boolean;
 	projectStatsError: string | null;
 
-	currentProject: Project | null;
-	currentProjectLoading: boolean;
 	projectMutating: boolean;
 	projectMutationError: string | null;
-
-	projectTasks: ProjectTask[];
-	projectTasksLoading: boolean;
-	taskMutating: boolean;
-	taskMutationError: string | null;
-
-	taskStatuses: ProjectTaskStatus[];
-	taskStatusesLoading: boolean;
-	taskStatusMutating: boolean;
-	taskStatusMutationError: string | null;
 
 	convertLoading: boolean;
 	convertError: string | null;
@@ -59,20 +40,8 @@ const initialState: ProjectsState = {
 	projectStatsLoading: false,
 	projectStatsError: null,
 
-	currentProject: null,
-	currentProjectLoading: false,
 	projectMutating: false,
 	projectMutationError: null,
-
-	projectTasks: [],
-	projectTasksLoading: false,
-	taskMutating: false,
-	taskMutationError: null,
-
-	taskStatuses: [],
-	taskStatusesLoading: false,
-	taskStatusMutating: false,
-	taskStatusMutationError: null,
 
 	convertLoading: false,
 	convertError: null,
@@ -104,17 +73,6 @@ export const fetchProjectStats = createAsyncThunk(
 	}
 );
 
-export const fetchProject = createAsyncThunk(
-	'projects/fetchProject',
-	async (publicId: string, { rejectWithValue }) => {
-		try {
-			return await projectService.getProject(publicId);
-		} catch (error: any) {
-			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch project'));
-		}
-	}
-);
-
 export const createProject = createAsyncThunk(
 	'projects/createProject',
 	async (payload: ProjectCreate, { rejectWithValue }) => {
@@ -122,17 +80,6 @@ export const createProject = createAsyncThunk(
 			return await projectService.createProject(payload);
 		} catch (error: any) {
 			return rejectWithValue(extractErrorMessage(error, 'Failed to create project'));
-		}
-	}
-);
-
-export const updateProject = createAsyncThunk(
-	'projects/updateProject',
-	async ({ publicId, payload }: { publicId: string; payload: ProjectUpdate }, { rejectWithValue }) => {
-		try {
-			return await projectService.updateProject(publicId, payload);
-		} catch (error: any) {
-			return rejectWithValue(extractErrorMessage(error, 'Failed to update project'));
 		}
 	}
 );
@@ -145,86 +92,6 @@ export const deleteProject = createAsyncThunk(
 			return publicId;
 		} catch (error: any) {
 			return rejectWithValue(extractErrorMessage(error, 'Failed to delete project'));
-		}
-	}
-);
-
-// --- Project Tasks (and sub-tasks) ---
-export const fetchProjectTasks = createAsyncThunk(
-	'projects/fetchProjectTasks',
-	async (projectPublicId: string, { rejectWithValue }) => {
-		try {
-			return await projectService.listProjectTasks(projectPublicId);
-		} catch (error: any) {
-			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch tasks'));
-		}
-	}
-);
-
-export const createProjectTask = createAsyncThunk(
-	'projects/createProjectTask',
-	async ({ projectPublicId, payload }: { projectPublicId: string; payload: ProjectTaskCreate }, { rejectWithValue }) => {
-		try {
-			return await projectService.createProjectTask(projectPublicId, payload);
-		} catch (error: any) {
-			return rejectWithValue(extractErrorMessage(error, 'Failed to create task'));
-		}
-	}
-);
-
-export const createSubtask = createAsyncThunk(
-	'projects/createSubtask',
-	async ({ parentTaskPublicId, payload }: { parentTaskPublicId: string; payload: ProjectTaskCreate }, { rejectWithValue }) => {
-		try {
-			return await projectService.createSubtask(parentTaskPublicId, payload);
-		} catch (error: any) {
-			return rejectWithValue(extractErrorMessage(error, 'Failed to create sub-task'));
-		}
-	}
-);
-
-export const updateProjectTask = createAsyncThunk(
-	'projects/updateProjectTask',
-	async ({ taskPublicId, payload }: { taskPublicId: string; payload: ProjectTaskUpdate }, { rejectWithValue }) => {
-		try {
-			return await projectService.updateProjectTask(taskPublicId, payload);
-		} catch (error: any) {
-			return rejectWithValue(extractErrorMessage(error, 'Failed to update task'));
-		}
-	}
-);
-
-export const deleteProjectTask = createAsyncThunk(
-	'projects/deleteProjectTask',
-	async (taskPublicId: string, { rejectWithValue }) => {
-		try {
-			await projectService.deleteProjectTask(taskPublicId);
-			return taskPublicId;
-		} catch (error: any) {
-			return rejectWithValue(extractErrorMessage(error, 'Failed to delete task'));
-		}
-	}
-);
-
-// --- Task Statuses (tenant-configurable) ---
-export const fetchTaskStatuses = createAsyncThunk(
-	'projects/fetchTaskStatuses',
-	async (_: void | undefined, { rejectWithValue }) => {
-		try {
-			return await projectService.listTaskStatuses();
-		} catch (error: any) {
-			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch task statuses'));
-		}
-	}
-);
-
-export const updateTaskStatuses = createAsyncThunk(
-	'projects/updateTaskStatuses',
-	async (statuses: ProjectTaskStatusUpsert[], { rejectWithValue }) => {
-		try {
-			return await projectService.updateTaskStatuses(statuses);
-		} catch (error: any) {
-			return rejectWithValue(extractErrorMessage(error, 'Failed to update task statuses'));
 		}
 	}
 );
@@ -246,10 +113,6 @@ const projectsSlice = createSlice({
 	name: 'projects',
 	initialState,
 	reducers: {
-		clearCurrentProject: (state) => {
-			state.currentProject = null;
-			state.projectTasks = [];
-		},
 		clearConvertError: (state) => {
 			state.convertError = null;
 		},
@@ -284,16 +147,6 @@ const projectsSlice = createSlice({
 				state.projectStatsLoading = false;
 				state.projectStatsError = action.payload;
 			})
-			.addCase(fetchProject.pending, (state) => {
-				state.currentProjectLoading = true;
-			})
-			.addCase(fetchProject.fulfilled, (state, action: PayloadAction<Project>) => {
-				state.currentProjectLoading = false;
-				state.currentProject = action.payload;
-			})
-			.addCase(fetchProject.rejected, (state) => {
-				state.currentProjectLoading = false;
-			})
 			.addCase(createProject.pending, (state) => { state.projectMutating = true; state.projectMutationError = null; })
 			.addCase(createProject.fulfilled, (state, action: PayloadAction<Project>) => {
 				state.projectMutating = false;
@@ -303,101 +156,8 @@ const projectsSlice = createSlice({
 				state.projectMutating = false;
 				state.projectMutationError = action.payload;
 			})
-			.addCase(updateProject.pending, (state) => { state.projectMutating = true; state.projectMutationError = null; })
-			.addCase(updateProject.fulfilled, (state, action: PayloadAction<Project>) => {
-				state.projectMutating = false;
-				state.projects = state.projects.map((p) => (p.public_id === action.payload.public_id ? action.payload : p));
-				if (state.currentProject?.public_id === action.payload.public_id) {
-					state.currentProject = action.payload;
-				}
-			})
-			.addCase(updateProject.rejected, (state, action: PayloadAction<any>) => {
-				state.projectMutating = false;
-				state.projectMutationError = action.payload;
-			})
 			.addCase(deleteProject.fulfilled, (state, action: PayloadAction<string>) => {
 				state.projects = state.projects.filter((p) => p.public_id !== action.payload);
-			})
-
-			// Project Tasks
-			.addCase(fetchProjectTasks.pending, (state) => {
-				state.projectTasksLoading = true;
-			})
-			.addCase(fetchProjectTasks.fulfilled, (state, action: PayloadAction<ProjectTask[]>) => {
-				state.projectTasksLoading = false;
-				state.projectTasks = action.payload;
-			})
-			.addCase(fetchProjectTasks.rejected, (state) => {
-				state.projectTasksLoading = false;
-			})
-			.addCase(createProjectTask.pending, (state) => { state.taskMutating = true; })
-			.addCase(createProjectTask.fulfilled, (state, action: PayloadAction<ProjectTask>) => {
-				state.taskMutating = false;
-				state.projectTasks = [...state.projectTasks, action.payload];
-			})
-			.addCase(createProjectTask.rejected, (state, action: PayloadAction<any>) => {
-				state.taskMutating = false;
-				state.taskMutationError = action.payload;
-			})
-			.addCase(createSubtask.pending, (state) => { state.taskMutating = true; })
-			.addCase(createSubtask.fulfilled, (state, action: PayloadAction<ProjectTask>) => {
-				state.taskMutating = false;
-				state.projectTasks = [...state.projectTasks, action.payload];
-			})
-			.addCase(createSubtask.rejected, (state, action: PayloadAction<any>) => {
-				state.taskMutating = false;
-				state.taskMutationError = action.payload;
-			})
-			.addCase(updateProjectTask.pending, (state) => { state.taskMutating = true; })
-			.addCase(updateProjectTask.fulfilled, (state, action: PayloadAction<ProjectTask>) => {
-				state.taskMutating = false;
-				state.projectTasks = state.projectTasks.map((t) =>
-					t.public_id === action.payload.public_id ? action.payload : t
-				);
-			})
-			.addCase(updateProjectTask.rejected, (state, action: PayloadAction<any>) => {
-				state.taskMutating = false;
-				state.taskMutationError = action.payload;
-			})
-			.addCase(deleteProjectTask.fulfilled, (state, action: PayloadAction<string>) => {
-				// Deleting a task also soft-deletes its sub-tasks server-side; walk
-				// parent_task_id (a numeric id, not public_id) to drop any task whose
-				// parent was just deleted too, so the list matches immediately without
-				// waiting for a refetch.
-				const deletedTask = state.projectTasks.find((t) => t.public_id === action.payload);
-				const deletedIds = new Set<number>(deletedTask ? [deletedTask.id] : []);
-				let changed = true;
-				while (changed) {
-					changed = false;
-					for (const t of state.projectTasks) {
-						if (t.parent_task_id != null && deletedIds.has(t.parent_task_id) && !deletedIds.has(t.id)) {
-							deletedIds.add(t.id);
-							changed = true;
-						}
-					}
-				}
-				state.projectTasks = state.projectTasks.filter((t) => !deletedIds.has(t.id));
-			})
-
-			// Task Statuses
-			.addCase(fetchTaskStatuses.pending, (state) => {
-				state.taskStatusesLoading = true;
-			})
-			.addCase(fetchTaskStatuses.fulfilled, (state, action: PayloadAction<ProjectTaskStatus[]>) => {
-				state.taskStatusesLoading = false;
-				state.taskStatuses = action.payload;
-			})
-			.addCase(fetchTaskStatuses.rejected, (state) => {
-				state.taskStatusesLoading = false;
-			})
-			.addCase(updateTaskStatuses.pending, (state) => { state.taskStatusMutating = true; })
-			.addCase(updateTaskStatuses.fulfilled, (state, action: PayloadAction<ProjectTaskStatus[]>) => {
-				state.taskStatusMutating = false;
-				state.taskStatuses = action.payload;
-			})
-			.addCase(updateTaskStatuses.rejected, (state, action: PayloadAction<any>) => {
-				state.taskStatusMutating = false;
-				state.taskStatusMutationError = action.payload;
 			})
 
 			// Deal -> Project conversion
@@ -416,5 +176,5 @@ const projectsSlice = createSlice({
 	},
 });
 
-export const { clearCurrentProject, clearConvertError } = projectsSlice.actions;
+export const { clearConvertError } = projectsSlice.actions;
 export default projectsSlice.reducer;

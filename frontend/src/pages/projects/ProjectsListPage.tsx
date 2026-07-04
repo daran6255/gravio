@@ -4,7 +4,6 @@ import PageHeader from '../../components/common/page-header';
 import { ConfirmationDialog } from '../../components/common/dialogbox';
 import {
 	ProjectsTable,
-	ProjectFormDialog,
 	ProjectCreateDrawer,
 	ProjectsStatsPanel,
 	ProjectAttentionPanel,
@@ -13,8 +12,7 @@ import {
 } from '../../components/projects';
 
 /**
- * Project Management — projects created from Won deals (or directly), each
- * tracked through to completion via its own task board.
+ * Project Management — projects created from Won deals (or directly).
  */
 const ProjectsListPage: React.FC = () => {
 	const {
@@ -32,19 +30,14 @@ const ProjectsListPage: React.FC = () => {
 		handleSearchChange,
 		statusFilter,
 		handleStatusFilterChange,
-		formOpen,
-		setFormOpen,
 		createDrawerOpen,
 		setCreateDrawerOpen,
-		editingProject,
 		projectMutating,
 		handleSubmit,
 		deleteTarget,
 		setDeleteTarget,
 		deleteLoading,
 		handleCreateClick,
-		handleEdit,
-		handleRowClick,
 		handleDeleteRequest,
 		handleConfirmDelete,
 	} = useProjectsManagement();
@@ -54,7 +47,7 @@ const ProjectsListPage: React.FC = () => {
 			<Container maxWidth="xl" sx={{ py: { xs: 2, sm: 4 } }}>
 				<PageHeader
 					title="Projects"
-					subtitle="Delivery projects converted from Won deals, tracked through to completion"
+					subtitle="Delivery projects converted from Won deals"
 				/>
 
 				<ProjectsStatsPanel stats={projectStats} />
@@ -86,21 +79,10 @@ const ProjectsListPage: React.FC = () => {
 							onStatusFilterChange={handleStatusFilterChange}
 							onRefresh={refreshData}
 							onCreateClick={handleCreateClick}
-							onRowClick={handleRowClick}
-							onEdit={handleEdit}
 							onDelete={handleDeleteRequest}
 						/>
 					</Grid>
 				</Grid>
-
-				<ProjectFormDialog
-					open={formOpen}
-					onClose={() => setFormOpen(false)}
-					project={editingProject}
-					owners={owners}
-					submitting={projectMutating}
-					onSubmit={handleSubmit}
-				/>
 
 				<ProjectCreateDrawer
 					open={createDrawerOpen}
