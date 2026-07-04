@@ -76,6 +76,13 @@ const userService = {
 		});
 		return response.data;
 	},
+
+	// Raises an in-app notification to Gravit Super Admins — only they can
+	// actually grant the extension (via the Admin Console).
+	requestTrialExtension: async (): Promise<{ success: boolean; message: string }> => {
+		const response = await api.post<{ success: boolean; message: string }>('/users/organization/request-trial-extension');
+		return response.data;
+	},
 };
 
 export default userService;

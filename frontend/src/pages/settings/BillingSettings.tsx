@@ -31,21 +31,26 @@ import PageHeader from '../../components/common/page-header';
 interface PlanDetail {
 	tier: 'free' | 'basic' | 'pro' | 'enterprise';
 	name: string;
-	price: string;
+	/** ₹ per user per month; 0 for the free tier */
+	pricePerUser: number;
 	seats: string;
 	aiLimit: string;
 	features: string[];
 	popular?: boolean;
 }
 
+// Per-user pricing, undercutting typical competitor per-seat rates in this
+// space (₹300–800+/user/month) — starts at ₹149/user and scales with a
+// straightforward 2x/3x ladder rather than opaque tiered seat blocks.
 const PLAN_CARDS: PlanDetail[] = [
 	{
 		tier: 'free',
 		name: 'Free Plan',
-		price: '$0',
-		seats: 'Max 10 users',
+		pricePerUser: 0,
+		seats: 'Up to 10 users',
 		aiLimit: '10 actions/mo',
 		features: [
+			'30-Day Free Trial Included',
 			'Project Management Module',
 			'10 AI Actions Per Month',
 			'Up to 10 Team Members',
@@ -54,49 +59,50 @@ const PLAN_CARDS: PlanDetail[] = [
 	},
 	{
 		tier: 'basic',
-		name: 'Basic Plan',
-		price: '$19',
-		seats: 'Max 20 users',
-		aiLimit: '100 actions/mo',
+		name: 'Starter Plan',
+		pricePerUser: 149,
+		seats: 'No seat limit — pay per user',
+		aiLimit: '200 actions/mo',
 		features: [
 			'Project & Timesheet Management',
-			'CRM Management & Reports',
-			'100 AI Actions Per Month',
-			'Up to 20 Team Members',
+			'CRM Management',
+			'200 AI Actions Per Month',
+			'Unlimited Team Members',
 			'Priority Email Support'
 		]
 	},
 	{
 		tier: 'pro',
-		name: 'Pro Plan',
-		price: '$49',
-		seats: 'Max 50 users',
+		name: 'Growth Plan',
+		pricePerUser: 299,
+		seats: 'No seat limit — pay per user',
 		aiLimit: '1,000 actions/mo',
 		features: [
-			'All Basic Features',
+			'All Starter Features',
 			'Candidate & Placement Modules',
+			'Advanced Reports',
 			'1,000 AI Actions Per Month',
-			'Up to 50 Team Members',
-			'Dedicated Chat Support'
+			'Priority Chat Support'
 		],
 		popular: true
 	},
 	{
 		tier: 'enterprise',
 		name: 'Enterprise Plan',
-		price: '$149',
-		seats: 'Unlimited users',
-		aiLimit: '10,000 actions/mo',
+		pricePerUser: 499,
+		seats: 'No seat limit — pay per user',
+		aiLimit: '5,000 actions/mo',
 		features: [
 			'Full Suite Modules Unlocked',
-			'Training & placement tracking',
-			'10,000 AI Actions Per Month',
-			'Unlimited Workspace Seats',
+			'Training & Placement Tracking',
+			'5,000 AI Actions Per Month',
 			'24/7 Phone & Email Support',
 			'Dedicated Account Manager'
 		]
 	}
 ];
+
+const formatINR = (amount: number) => `₹${amount.toLocaleString('en-IN')}`;
 
 const BillingSettings: React.FC = () => {
 	const theme = useTheme();
@@ -109,9 +115,15 @@ const BillingSettings: React.FC = () => {
 	const activePlanTier = organization?.plan?.tier || 'free';
 	const userCount = organization?.user_count || 1;
 	const userLimit = organization?.user_limit || 10;
-	
+
 	// Percentage of seats used
 	const seatPercentage = userLimit ? Math.min((userCount / userLimit) * 100, 100) : 0;
+
+	const isTrial = organization?.subscription_status === 'trial';
+	const trialDaysLeft = organization?.trial_expires_at
+		? Math.max(0, Math.ceil((new Date(organization.trial_expires_at).getTime() - Date.now()) / 86_400_000))
+		: null;
+	const [requestingExtension, setRequestingExtension] = useState(false);
 
 	const handleUpgrade = async (tier: string) => {
 		setLoadingTier(tier);
@@ -122,12 +134,28 @@ const BillingSettings: React.FC = () => {
 			dispatch(fetchCurrentUser());
 		} catch (error: any) {
 			toast.error(
-				error?.response?.data?.error?.message || 
-				error?.message || 
+				error?.response?.data?.error?.message ||
+				error?.message ||
 				'Failed to upgrade plan'
 			);
 		} finally {
 			setLoadingTier(null);
+		}
+	};
+
+	const handleRequestExtension = async () => {
+		setRequestingExtension(true);
+		try {
+			const result = await userService.requestTrialExtension();
+			toast.success(result.message || 'Your request has been sent.');
+		} catch (error: any) {
+			toast.error(
+				error?.response?.data?.error?.message ||
+				error?.message ||
+				'Failed to send your request'
+			);
+		} finally {
+			setRequestingExtension(false);
 		}
 	};
 
@@ -227,15 +255,30 @@ const BillingSettings: React.FC = () => {
 										<Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
 											{plan.name}
 										</Typography>
-										<Box sx={{ display: 'flex', alignItems: 'baseline', mb: 2 }}>
+										<Box sx={{ display: 'flex', alignItems: 'baseline', mb: plan.pricePerUser > 0 ? 0.5 : 2 }}>
 											<Typography variant="h3" sx={{ fontWeight: 800 }}>
-												{plan.price}
+												{formatINR(plan.pricePerUser)}
 											</Typography>
 											<Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
-												/ month
+												{plan.pricePerUser > 0 ? '/ user / month' : '/ month'}
 											</Typography>
 										</Box>
-										
+
+										{plan.pricePerUser > 0 && (
+											<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+												≈ {formatINR(plan.pricePerUser * userCount)}/month for your team of {userCount}
+											</Typography>
+										)}
+
+										{plan.tier === 'free' && isTrial && trialDaysLeft !== null && (
+											<Chip
+												label={`${trialDaysLeft} day${trialDaysLeft === 1 ? '' : 's'} left in your trial`}
+												size="small"
+												color="warning"
+												sx={{ mb: 2, fontWeight: 700, fontSize: '0.72rem' }}
+											/>
+										)}
+
 										<Chip label={plan.seats} size="small" variant="outlined" sx={{ mb: 1, fontWeight: 600, fontSize: '0.72rem' }} />
 										<Chip label={plan.aiLimit} size="small" variant="outlined" sx={{ mb: 2, ml: 1, fontWeight: 600, fontSize: '0.72rem' }} />
 										
@@ -255,7 +298,7 @@ const BillingSettings: React.FC = () => {
 											))}
 										</List>
 									</CardContent>
-									<CardActions sx={{ p: 3, pt: 0 }}>
+									<CardActions sx={{ p: 3, pt: 0, flexDirection: 'column', alignItems: 'stretch', gap: 1 }}>
 										<Button
 											fullWidth
 											variant={isActive ? 'outlined' : 'contained'}
@@ -273,6 +316,18 @@ const BillingSettings: React.FC = () => {
 										>
 											{isActive ? 'Current Plan' : loadingTier === plan.tier ? 'Switching...' : 'Switch Plan'}
 										</Button>
+
+										{plan.tier === 'free' && isActive && isTrial && (
+											<Button
+												fullWidth
+												variant="text"
+												disabled={requestingExtension}
+												onClick={handleRequestExtension}
+												sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.8rem' }}
+											>
+												{requestingExtension ? 'Sending request...' : 'Request Trial Extension'}
+											</Button>
+										)}
 									</CardActions>
 								</Card>
 							</Grid>

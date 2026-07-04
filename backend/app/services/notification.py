@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.notification import NotificationType
 from app.repositories.notification import NotificationRepository
 from app.middleware.exceptions import NotFoundError, ForbiddenError
+from app.core.context import tenant_context
 
 
 class NotificationService:
@@ -20,7 +21,16 @@ class NotificationService:
         message: str,
         entity_type: Optional[str] = None,
         entity_id: Optional[int] = None,
+        # Notification.organization_id is NOT NULL; defaults to the caller's own
+        # tenant (the requesting user's org) since that's correct for the vast
+        # majority of call sites. Pass this explicitly when notifying a user in
+        # a *different* org (e.g. a Super Admin about a tenant's request).
+        organization_id: Optional[int] = None,
     ):
+        org_id = organization_id if organization_id is not None else tenant_context.get()
+        if org_id is None:
+            raise ValueError("organization_id must be provided when tenant_context has no active organization")
+
         return await NotificationRepository.create(
             db,
             user_id=user_id,
@@ -29,6 +39,7 @@ class NotificationService:
             message=message,
             entity_type=entity_type,
             entity_id=entity_id,
+            organization_id=org_id,
         )
 
     @staticmethod

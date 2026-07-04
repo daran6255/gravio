@@ -216,3 +216,52 @@ async def update_organization_plan_endpoint(
         "subscription_status": org.subscription_status
     }
 
+
+@router.post(
+    "/organization/request-trial-extension",
+    summary="Request a trial extension for your organization (Org Admin)",
+    description=(
+        "Notifies Gravit Super Admins in-app that this organization would like its "
+        "free trial extended. Only a Super Admin can actually grant the extension "
+        "(via the Admin Console) — this endpoint just raises the request."
+    ),
+)
+async def request_trial_extension_endpoint(
+    current_user: User = Depends(require_org_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    from sqlalchemy.future import select
+    from app.models.notification import NotificationType
+    from app.repositories.organization import OrganizationRepository
+    from app.services.notification import NotificationService
+    from app.middleware.exceptions import BadRequestError, NotFoundError
+
+    org = await OrganizationRepository.get_by_id(db, current_user.organization_id)
+    if not org:
+        raise NotFoundError("Organization not found.")
+
+    if org.subscription_status != "trial":
+        raise BadRequestError("Your organization isn't currently on a trial, so there's nothing to extend.")
+
+    result = await db.execute(select(User).where(User.is_superuser.is_(True)))
+    superusers = result.scalars().all()
+
+    requester_name = current_user.full_name or current_user.email
+    for admin in superusers:
+        await NotificationService.notify(
+            db,
+            user_id=admin.id,
+            type=NotificationType.TRIAL_EXTENSION_REQUESTED,
+            title="Trial extension requested",
+            message=f"{requester_name} from '{org.name}' has requested a trial extension.",
+            entity_type="organization",
+            entity_id=org.id,
+        )
+
+    await db.commit()
+
+    return {
+        "success": True,
+        "message": "Your request has been sent to the Gravit team. We'll follow up shortly.",
+    }
+
