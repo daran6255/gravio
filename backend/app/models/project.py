@@ -151,7 +151,8 @@ class ProjectTask(BaseModel, TenantAwareMixin):
         default=BillingType.BILLABLE,
         nullable=False,
     )
-    tags: Mapped[Optional[list[str]]] = mapped_column(JSON, nullable=True)
+    # Each tag is stored as {"name": str, "color": str} -- see ProjectTaskTag schema.
+    tags: Mapped[Optional[list[dict]]] = mapped_column(JSON, nullable=True)
     custom_fields: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     # Relationships

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import {
@@ -15,7 +15,7 @@ import {
 import { fetchOwners } from '../../../../store/slices/crmSlice';
 import useToast from '../../../../hooks/useToast';
 import type { ProjectUpdate } from '../../../../models/projects/project';
-import type { ProjectTask, ProjectTaskCreate, ProjectTaskUpdate, ProjectTaskStatus } from '../../../../models/projects/projectTask';
+import type { ProjectTask, ProjectTaskCreate, ProjectTaskUpdate, ProjectTaskStatus, ProjectTaskTag } from '../../../../models/projects/projectTask';
 
 export const useProjectDetail = () => {
 	const { publicId } = useParams<{ publicId: string }>();
@@ -39,6 +39,21 @@ export const useProjectDetail = () => {
 	const [taskDeleteLoading, setTaskDeleteLoading] = useState(false);
 
 	const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+
+	// Every tag ever used on a task in this project, deduped by name (first
+	// occurrence wins the color) -- shown to every user on this project as
+	// reusable suggestions instead of everyone re-picking their own color for
+	// what's meant to be the same tag.
+	const projectTags = useMemo<ProjectTaskTag[]>(() => {
+		const seen = new Map<string, ProjectTaskTag>();
+		for (const t of projectTasks) {
+			for (const tag of t.tags ?? []) {
+				const key = tag.name.toLowerCase();
+				if (!seen.has(key)) seen.set(key, tag);
+			}
+		}
+		return Array.from(seen.values());
+	}, [projectTasks]);
 
 	useEffect(() => {
 		if (!publicId) return;
@@ -153,6 +168,7 @@ export const useProjectDetail = () => {
 		taskMutating,
 		taskStatuses,
 		taskStatusesLoading,
+		projectTags,
 
 		taskFormOpen,
 		setTaskFormOpen,

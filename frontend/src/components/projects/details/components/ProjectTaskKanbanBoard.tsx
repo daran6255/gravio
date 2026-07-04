@@ -116,6 +116,17 @@ export const ProjectTaskKanbanBoard: React.FC<ProjectTaskKanbanBoardProps> = ({
 								sx={{ fontSize: '0.65rem', height: 20, fontWeight: 600 }}
 							/>
 						)}
+						{task.tags?.map((tag) => (
+							<Chip
+								key={tag.name}
+								label={tag.name}
+								size="small"
+								sx={{
+									fontSize: '0.65rem', height: 20, fontWeight: 700,
+									bgcolor: alpha(tag.color, 0.1), color: tag.color, border: '1px solid', borderColor: alpha(tag.color, 0.3),
+								}}
+							/>
+						))}
 					</Stack>
 
 					<Stack direction="row" alignItems="center" justifyContent="space-between">

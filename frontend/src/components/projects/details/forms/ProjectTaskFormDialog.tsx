@@ -1,20 +1,12 @@
 import React, { useState } from 'react';
-import { Stack, TextField, MenuItem, Autocomplete, Button, CircularProgress, useTheme, Typography } from '@mui/material';
+import { Dialog, IconButton, Tooltip } from '@mui/material';
 import { NotificationsActiveOutlined } from '@mui/icons-material';
-import { BaseDialog } from '../../../common/dialogbox';
-import { DatePicker } from '../../../common/form';
+import { EnterpriseForm, type FormStep } from '../../../common/form';
 import { SetReminderDialog } from '../../../crm/shared';
-import useToast from '../../../../hooks/useToast';
-import type { ProjectTask, ProjectTaskCreate, ProjectTaskUpdate, ProjectTaskStatus, BillingType } from '../../../../models/projects/projectTask';
+import type { ProjectTask, ProjectTaskCreate, ProjectTaskUpdate, ProjectTaskStatus, ProjectTaskTag, BillingType } from '../../../../models/projects/projectTask';
 import type { LeadPriority } from '../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
-
-const PRIORITIES: { value: LeadPriority; label: string }[] = [
-	{ value: 'low', label: 'Low' },
-	{ value: 'medium', label: 'Medium' },
-	{ value: 'high', label: 'High' },
-	{ value: 'urgent', label: 'Urgent' },
-];
+import { TaskDetailsStep, TaskScheduleStep } from './steps';
 
 interface ProjectTaskFormDialogProps {
 	open: boolean;
@@ -23,15 +15,15 @@ interface ProjectTaskFormDialogProps {
 	parentTask?: ProjectTask | null;
 	statuses: ProjectTaskStatus[];
 	owners: CRMOwnerOption[];
+	/** Tags already used elsewhere in this project, offered as reusable suggestions. */
+	existingTags: ProjectTaskTag[];
 	submitting: boolean;
 	onSubmit: (payload: ProjectTaskCreate | ProjectTaskUpdate) => Promise<void>;
 }
 
 export const ProjectTaskFormDialog: React.FC<ProjectTaskFormDialogProps> = ({
-	open, onClose, task, parentTask, statuses, owners, submitting, onSubmit,
+	open, onClose, task, parentTask, statuses, owners, existingTags, submitting, onSubmit,
 }) => {
-	const theme = useTheme();
-	const toast = useToast();
 	const isEdit = !!task;
 
 	const [title, setTitle] = useState('');
@@ -44,7 +36,9 @@ export const ProjectTaskFormDialog: React.FC<ProjectTaskFormDialogProps> = ({
 	const [estimatedHours, setEstimatedHours] = useState('');
 	const [actualHours, setActualHours] = useState('');
 	const [billingType, setBillingType] = useState<BillingType>('billable');
+	const [tags, setTags] = useState<ProjectTaskTag[]>([]);
 	const [touched, setTouched] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 	const [reminderOpen, setReminderOpen] = useState(false);
 
 	const [prevOpen, setPrevOpen] = useState(open);
@@ -61,17 +55,19 @@ export const ProjectTaskFormDialog: React.FC<ProjectTaskFormDialogProps> = ({
 			setEstimatedHours(task?.estimated_hours != null ? String(task.estimated_hours) : '');
 			setActualHours(task?.actual_hours != null ? String(task.actual_hours) : '');
 			setBillingType(task?.billing_type || 'billable');
+			setTags(task?.tags || []);
 			setTouched(false);
+			setError(null);
 		}
 	}
 
 	const titleError = touched && !title.trim() ? 'Title is required' : '';
 	const isValid = !!title.trim();
-	const selectedAssignee = owners.find((o) => o.id === assigneeId) || null;
 
 	const handleSave = async () => {
 		setTouched(true);
 		if (!isValid) return;
+		setError(null);
 		try {
 			await onSubmit({
 				title: title.trim(),
@@ -84,159 +80,102 @@ export const ProjectTaskFormDialog: React.FC<ProjectTaskFormDialogProps> = ({
 				estimated_hours: estimatedHours ? Number(estimatedHours) : undefined,
 				actual_hours: actualHours ? Number(actualHours) : undefined,
 				billing_type: billingType,
+				tags: tags.length ? tags : undefined,
 			});
 		} catch (err: any) {
-			toast.error(err || 'Failed to save task');
+			setError(err || 'Failed to save task');
 		}
 	};
 
 	const title_ = isEdit ? 'Edit Task' : parentTask ? 'New Sub-task' : 'New Task';
-	const subtitle = isEdit ? task?.title : parentTask ? `Under "${parentTask.title}"` : undefined;
+	const subtitle = isEdit ? task?.title : parentTask ? `Under "${parentTask.title}"` : 'Add a task to this project';
+
+	const steps: FormStep[] = [
+		{
+			label: 'Task Details',
+			description: 'Title, description, status, priority, and assignee',
+			content: (
+				<TaskDetailsStep
+					title={title}
+					setTitle={setTitle}
+					titleError={titleError}
+					description={description}
+					setDescription={setDescription}
+					statusId={statusId}
+					setStatusId={setStatusId}
+					statuses={statuses}
+					priority={priority}
+					setPriority={setPriority}
+					assigneeId={assigneeId}
+					setAssigneeId={setAssigneeId}
+					owners={owners}
+					tags={tags}
+					setTags={setTags}
+					existingTags={existingTags}
+				/>
+			),
+		},
+		{
+			label: 'Schedule & Billing',
+			description: 'Dates, estimated/actual hours, and billing type',
+			content: (
+				<TaskScheduleStep
+					startDate={startDate}
+					setStartDate={setStartDate}
+					dueDate={dueDate}
+					setDueDate={setDueDate}
+					estimatedHours={estimatedHours}
+					setEstimatedHours={setEstimatedHours}
+					actualHours={actualHours}
+					setActualHours={setActualHours}
+					billingType={billingType}
+					setBillingType={setBillingType}
+				/>
+			),
+		},
+	];
 
 	return (
 		<>
-		<BaseDialog
-			open={open}
-			onClose={onClose}
-			title={title_}
-			subtitle={subtitle}
-			maxWidth="sm"
-			loading={submitting}
-			actions={
-				<>
-					{isEdit && (
-						<Button
-							startIcon={<NotificationsActiveOutlined fontSize="small" />}
-							onClick={() => setReminderOpen(true)}
-							sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '10px', mr: 'auto', color: 'text.secondary' }}
-						>
-							Set Reminder
-						</Button>
-					)}
-					<Button onClick={onClose} disabled={submitting} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '10px' }}>
-						Cancel
-					</Button>
-					<Button
-						variant="contained"
-						onClick={handleSave}
-						disabled={submitting}
-						sx={{
-							color: 'white', textTransform: 'none', fontWeight: 700, px: 4, minWidth: 140, borderRadius: '10px', boxShadow: 'none',
-							background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
-							'&:hover': { boxShadow: '0 4px 12px rgba(139,124,246,0.3)' },
-							'&.Mui-disabled': { background: theme.palette.action.disabledBackground },
-						}}
-					>
-						{submitting ? <CircularProgress size={18} color="inherit" /> : isEdit ? 'Save Changes' : 'Create'}
-					</Button>
-				</>
-			}
-		>
-			<Stack spacing={2.5}>
-				<TextField
-					label="Title"
-					value={title}
-					onChange={(e) => setTitle(e.target.value)}
-					required
-					fullWidth
-					error={!!titleError}
-					helperText={titleError}
+			<Dialog
+				open={open}
+				onClose={onClose}
+				maxWidth="sm"
+				fullWidth
+				PaperProps={{ sx: { borderRadius: 0, boxShadow: 'none', bgcolor: 'transparent' } }}
+			>
+				<EnterpriseForm
+					title={title_}
+					subtitle={subtitle}
+					mode={isEdit ? 'edit' : 'create'}
+					steps={steps}
+					onSave={handleSave}
+					onCancel={onClose}
+					isSubmitting={submitting}
+					saveButtonText={isEdit ? 'Save Changes' : 'Create'}
+					error={error}
+					headerActions={
+						isEdit && (
+							<Tooltip title="Set Reminder">
+								<IconButton size="small" onClick={() => setReminderOpen(true)}>
+									<NotificationsActiveOutlined fontSize="small" />
+								</IconButton>
+							</Tooltip>
+						)
+					}
 				/>
+			</Dialog>
 
-				<TextField
-					label="Description"
-					value={description}
-					onChange={(e) => setDescription(e.target.value)}
-					fullWidth
-					multiline
-					rows={2}
+			{task && (
+				<SetReminderDialog
+					open={reminderOpen}
+					onClose={() => setReminderOpen(false)}
+					entityType="project_task"
+					entityId={task.id}
+					entityLabel={task.title}
+					defaultDueDate={task.due_date}
 				/>
-
-				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-					<TextField
-						select
-						label="Status"
-						value={statusId}
-						onChange={(e) => setStatusId(Number(e.target.value))}
-						fullWidth
-					>
-						{statuses.map((s) => (
-							<MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
-						))}
-					</TextField>
-
-					<TextField
-						select
-						label="Priority"
-						value={priority}
-						onChange={(e) => setPriority(e.target.value as LeadPriority)}
-						fullWidth
-					>
-						{PRIORITIES.map((p) => (
-							<MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>
-						))}
-					</TextField>
-				</Stack>
-
-				<Autocomplete
-					fullWidth
-					options={owners}
-					getOptionLabel={(o) => o.full_name || o.email}
-					isOptionEqualToValue={(o, v) => o.id === v.id}
-					value={selectedAssignee}
-					onChange={(_, newValue) => setAssigneeId(newValue?.id ?? null)}
-					renderInput={(params) => <TextField {...params} label="Assignee" placeholder="Unassigned" />}
-				/>
-
-				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-					<DatePicker label="Start Date" value={startDate} onChange={(v) => setStartDate(v || null)} format="DD-MMM-YYYY" />
-					<DatePicker label="Due Date" value={dueDate} onChange={(v) => setDueDate(v || null)} format="DD-MMM-YYYY" minDate={startDate || undefined} />
-				</Stack>
-
-				<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.7rem' }}>
-					Time & Billing
-				</Typography>
-				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-					<TextField
-						label="Estimated Hours"
-						type="number"
-						value={estimatedHours}
-						onChange={(e) => setEstimatedHours(e.target.value)}
-						fullWidth
-						slotProps={{ htmlInput: { min: 0, step: 0.5 } }}
-					/>
-					<TextField
-						label="Actual Hours"
-						type="number"
-						value={actualHours}
-						onChange={(e) => setActualHours(e.target.value)}
-						fullWidth
-						slotProps={{ htmlInput: { min: 0, step: 0.5 } }}
-					/>
-					<TextField
-						select
-						label="Billing Type"
-						value={billingType}
-						onChange={(e) => setBillingType(e.target.value as BillingType)}
-						fullWidth
-					>
-						<MenuItem value="billable">Billable</MenuItem>
-						<MenuItem value="non_billable">Non-billable</MenuItem>
-					</TextField>
-				</Stack>
-			</Stack>
-		</BaseDialog>
-
-		{task && (
-			<SetReminderDialog
-				open={reminderOpen}
-				onClose={() => setReminderOpen(false)}
-				entityType="project_task"
-				entityId={task.id}
-				entityLabel={task.title}
-				defaultDueDate={task.due_date}
-			/>
-		)}
+			)}
 		</>
 	);
 };

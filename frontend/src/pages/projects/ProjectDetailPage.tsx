@@ -27,6 +27,7 @@ const ProjectDetailPage: React.FC = () => {
 		tasksLoading,
 		taskMutating,
 		taskStatuses,
+		projectTags,
 
 		taskFormOpen,
 		setTaskFormOpen,
@@ -114,6 +115,7 @@ const ProjectDetailPage: React.FC = () => {
 							parentTask={subtaskParent}
 							statuses={taskStatuses}
 							owners={owners}
+							existingTags={projectTags}
 							submitting={taskMutating}
 							onSubmit={handleTaskFormSubmit}
 						/>

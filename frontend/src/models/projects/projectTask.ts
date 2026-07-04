@@ -2,6 +2,12 @@ import type { LeadPriority } from '../crm/lead';
 
 export type BillingType = 'billable' | 'non_billable';
 
+/** A task tag with a user-chosen color. Matches backend's ProjectTaskTag. */
+export interface ProjectTaskTag {
+	name: string;
+	color: string;
+}
+
 /** A tenant-configurable task workflow column (e.g. "To Do", "In Progress").
  * Matches backend's ProjectTaskStatusResponse exactly. */
 export interface ProjectTaskStatus {
@@ -43,7 +49,7 @@ export interface ProjectTask {
 	estimated_hours?: number;
 	actual_hours?: number;
 	billing_type: BillingType;
-	tags?: string[];
+	tags?: ProjectTaskTag[];
 	custom_fields?: Record<string, any>;
 	created_at: string;
 	updated_at: string;
@@ -63,7 +69,7 @@ export interface ProjectTaskCreate {
 	estimated_hours?: number;
 	actual_hours?: number;
 	billing_type?: BillingType;
-	tags?: string[];
+	tags?: ProjectTaskTag[];
 	custom_fields?: Record<string, any>;
 }
 

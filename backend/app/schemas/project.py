@@ -178,6 +178,11 @@ class DealProjectConversionPreview(BaseModel):
 
 
 # --- Project Task Schemas (also used for sub-tasks -- same shape, just parented) ---
+class ProjectTaskTag(BaseModel):
+    name: str = Field(..., min_length=1, max_length=50)
+    color: str = Field(..., max_length=20)
+
+
 class ProjectTaskCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
@@ -190,7 +195,7 @@ class ProjectTaskCreate(BaseModel):
     estimated_hours: Optional[float] = Field(None, ge=0)
     actual_hours: Optional[float] = Field(None, ge=0)
     billing_type: BillingType = BillingType.BILLABLE
-    tags: Optional[list[str]] = None
+    tags: Optional[list[ProjectTaskTag]] = None
     custom_fields: Optional[dict[str, Any]] = None
 
 
@@ -207,7 +212,7 @@ class ProjectTaskUpdate(BaseModel):
     actual_hours: Optional[float] = Field(None, ge=0)
     billing_type: Optional[BillingType] = None
     parent_task_id: Optional[int] = None   # allows re-parenting a sub-task
-    tags: Optional[list[str]] = None
+    tags: Optional[list[ProjectTaskTag]] = None
     custom_fields: Optional[dict[str, Any]] = None
 
 
@@ -229,7 +234,7 @@ class ProjectTaskResponse(BaseModel):
     estimated_hours: Optional[float] = None
     actual_hours: Optional[float] = None
     billing_type: BillingType
-    tags: Optional[list[str]] = None
+    tags: Optional[list[ProjectTaskTag]] = None
     custom_fields: Optional[dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime
