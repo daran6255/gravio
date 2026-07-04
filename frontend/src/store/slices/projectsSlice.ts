@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import projectService from '../../services/projectService';
 import crmService from '../../services/crmService';
-import type { Project, ProjectCreate, DealConvertToProjectRequest, ProjectStats } from '../../models/projects/project';
+import type { Project, ProjectCreate, ProjectStatus, DealConvertToProjectRequest, ProjectStats } from '../../models/projects/project';
 import type { PaginatedResponse } from '../../models/common';
 
 /** Backend errors are shaped { success, error: { code, message, detail } } - not a top-level `detail`. */
@@ -24,6 +24,9 @@ interface ProjectsState {
 	projectMutating: boolean;
 	projectMutationError: string | null;
 
+	projectsBulkUpdateLoading: boolean;
+	projectsBulkUpdateError: string | null;
+
 	convertLoading: boolean;
 	convertError: string | null;
 }
@@ -42,6 +45,9 @@ const initialState: ProjectsState = {
 
 	projectMutating: false,
 	projectMutationError: null,
+
+	projectsBulkUpdateLoading: false,
+	projectsBulkUpdateError: null,
 
 	convertLoading: false,
 	convertError: null,
@@ -92,6 +98,17 @@ export const deleteProject = createAsyncThunk(
 			return publicId;
 		} catch (error: any) {
 			return rejectWithValue(extractErrorMessage(error, 'Failed to delete project'));
+		}
+	}
+);
+
+export const bulkUpdateProjects = createAsyncThunk(
+	'projects/bulkUpdateProjects',
+	async (params: { publicIds: string[]; ownerId?: number; status?: ProjectStatus }, { rejectWithValue }) => {
+		try {
+			return await projectService.bulkUpdateProjects(params.publicIds, { ownerId: params.ownerId, status: params.status });
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to update projects'));
 		}
 	}
 );
@@ -158,6 +175,21 @@ const projectsSlice = createSlice({
 			})
 			.addCase(deleteProject.fulfilled, (state, action: PayloadAction<string>) => {
 				state.projects = state.projects.filter((p) => p.public_id !== action.payload);
+			})
+			.addCase(bulkUpdateProjects.pending, (state) => {
+				state.projectsBulkUpdateLoading = true;
+				state.projectsBulkUpdateError = null;
+			})
+			.addCase(bulkUpdateProjects.fulfilled, (state, action: PayloadAction<Project[]>) => {
+				state.projectsBulkUpdateLoading = false;
+				for (const updated of action.payload) {
+					const idx = state.projects.findIndex((p) => p.public_id === updated.public_id);
+					if (idx !== -1) state.projects[idx] = updated;
+				}
+			})
+			.addCase(bulkUpdateProjects.rejected, (state, action: PayloadAction<any>) => {
+				state.projectsBulkUpdateLoading = false;
+				state.projectsBulkUpdateError = action.payload;
 			})
 
 			// Deal -> Project conversion

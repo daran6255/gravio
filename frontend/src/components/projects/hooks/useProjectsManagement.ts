@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchProjects, fetchProjectStats, createProject, deleteProject } from '../../../store/slices/projectsSlice';
+import { fetchProjects, fetchProjectStats, createProject, deleteProject, bulkUpdateProjects } from '../../../store/slices/projectsSlice';
 import { fetchOwners } from '../../../store/slices/crmSlice';
 import useToast from '../../../hooks/useToast';
 import type { Project, ProjectStatus, ProjectCreate } from '../../../models/projects/project';
@@ -9,9 +9,14 @@ import type { Project, ProjectStatus, ProjectCreate } from '../../../models/proj
 export const useProjectsManagement = () => {
 	const dispatch = useAppDispatch();
 	const toast = useToast();
-	const { projects, projectsTotal, projectsLoading, projectMutating, projectStats, projectStatsLoading } = useAppSelector((state) => state.projects);
+	const {
+		projects, projectsTotal, projectsLoading, projectMutating, projectStats, projectStatsLoading,
+		projectsBulkUpdateLoading,
+	} = useAppSelector((state) => state.projects);
 	const { owners } = useAppSelector((state) => state.crm);
+	const { user } = useAppSelector((state) => state.auth);
 	const [searchParams] = useSearchParams();
+	const canBulkActions = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'project_coordinator';
 
 	const [page, setPage] = useState(0);
 	const [rowsPerPage, setRowsPerPage] = useState(20);
@@ -23,6 +28,8 @@ export const useProjectsManagement = () => {
 
 	const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
 	const [deleteLoading, setDeleteLoading] = useState(false);
+
+	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
 	useEffect(() => {
 		dispatch(fetchProjects({
@@ -91,6 +98,42 @@ export const useProjectsManagement = () => {
 		setCreateDrawerOpen(false);
 	};
 
+	const handleToggleSelect = (publicId: string) => {
+		setSelectedIds((prev) => {
+			const next = new Set(prev);
+			if (next.has(publicId)) next.delete(publicId);
+			else next.add(publicId);
+			return next;
+		});
+	};
+
+	const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
+		setSelectedIds(event.target.checked ? new Set(projects.map((p) => p.public_id)) : new Set());
+	};
+
+	const handleClearSelection = () => setSelectedIds(new Set());
+
+	const handleBulkReassign = async (ownerId: number) => {
+		try {
+			await dispatch(bulkUpdateProjects({ publicIds: Array.from(selectedIds), ownerId })).unwrap();
+			toast.success(`Reassigned ${selectedIds.size} project(s)`);
+			handleClearSelection();
+		} catch (err: any) {
+			toast.error(err || 'Failed to reassign projects');
+		}
+	};
+
+	const handleBulkStatusChange = async (status: ProjectStatus) => {
+		try {
+			await dispatch(bulkUpdateProjects({ publicIds: Array.from(selectedIds), status })).unwrap();
+			toast.success(`Updated status for ${selectedIds.size} project(s)`);
+			handleClearSelection();
+			dispatch(fetchProjectStats());
+		} catch (err: any) {
+			toast.error(err || 'Failed to update project status');
+		}
+	};
+
 	return {
 		projects,
 		projectsTotal,
@@ -120,6 +163,15 @@ export const useProjectsManagement = () => {
 		deleteTarget,
 		setDeleteTarget,
 		deleteLoading,
+
+		canBulkActions,
+		selectedIds,
+		bulkUpdateLoading: projectsBulkUpdateLoading,
+		handleToggleSelect,
+		handleSelectAll,
+		handleClearSelection,
+		handleBulkReassign,
+		handleBulkStatusChange,
 
 		handleCreateClick,
 		handleDeleteRequest,

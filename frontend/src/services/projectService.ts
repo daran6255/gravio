@@ -32,6 +32,15 @@ const projectService = {
 	deleteProject: async (publicId: string): Promise<void> => {
 		await api.delete(`/projects/${publicId}`);
 	},
+
+	bulkUpdateProjects: async (publicIds: string[], updates: { ownerId?: number; status?: ProjectStatus }): Promise<Project[]> => {
+		const response = await api.patch<Project[]>('/projects/bulk', {
+			public_ids: publicIds,
+			owner_id: updates.ownerId,
+			status: updates.status,
+		});
+		return response.data;
+	},
 };
 
 export default projectService;

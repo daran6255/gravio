@@ -22,6 +22,7 @@ from app.schemas.project import (
     ProjectCreate,
     ProjectUpdate,
     ProjectResponse,
+    ProjectBulkUpdateRequest,
     ProjectStatsResponse,
     ProjectTaskCreate,
     ProjectTaskUpdate,
@@ -130,6 +131,21 @@ async def get_project_stats_endpoint(
 ) -> ProjectStatsResponse:
     stats = await ProjectService.get_stats(db)
     return ProjectStatsResponse(**stats)
+
+
+@router.patch(
+    "/bulk",
+    response_model=list[ProjectResponse],
+    summary="Bulk reassign owner and/or change status on multiple projects",
+)
+async def bulk_update_projects_endpoint(
+    payload: ProjectBulkUpdateRequest,
+    current_user: User = Depends(require_project_admin),
+    _pm: User = Depends(require_pm_module),
+    db: AsyncSession = Depends(get_db),
+) -> list[ProjectResponse]:
+    projects = await ProjectService.bulk_update_projects(db, payload.public_ids, payload.owner_id, payload.status)
+    return [ProjectResponse.model_validate(p) for p in projects]
 
 
 @router.get(

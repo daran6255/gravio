@@ -1,5 +1,5 @@
 import React from 'react';
-import { TableRow, TableCell, Typography, Stack, Avatar, TextField, MenuItem, alpha, LinearProgress, Box } from '@mui/material';
+import { TableRow, TableCell, Typography, Stack, Avatar, TextField, MenuItem, alpha, LinearProgress, Box, Checkbox } from '@mui/material';
 import { DeleteOutline } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../common/table';
@@ -24,6 +24,10 @@ interface ProjectsTableProps {
 	onRefresh: () => void;
 	onCreateClick: () => void;
 	onDelete: (project: Project) => void;
+	selectable?: boolean;
+	selectedIds?: Set<string>;
+	onToggleSelect?: (publicId: string) => void;
+	onSelectAll?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const formatBudget = (project: Project): string => {
@@ -59,6 +63,10 @@ export const ProjectsTable: React.FC<ProjectsTableProps> = ({
 	onRefresh,
 	onCreateClick,
 	onDelete,
+	selectable,
+	selectedIds,
+	onToggleSelect,
+	onSelectAll,
 }) => {
 	const columns: ColumnDefinition<Project>[] = [
 		{ id: 'name', label: 'Project' },
@@ -85,6 +93,15 @@ export const ProjectsTable: React.FC<ProjectsTableProps> = ({
 
 		return (
 			<TableRow key={project.public_id} hover>
+				{selectable && (
+					<TableCell padding="checkbox">
+						<Checkbox
+							size="small"
+							checked={selectedIds?.has(project.public_id) ?? false}
+							onChange={() => onToggleSelect?.(project.public_id)}
+						/>
+					</TableCell>
+				)}
 				<TableCell>
 					<Typography variant="body2" sx={{ fontWeight: 600 }}>{project.name}</Typography>
 				</TableCell>
@@ -196,6 +213,8 @@ export const ProjectsTable: React.FC<ProjectsTableProps> = ({
 			canCreate
 			renderRow={renderRow}
 			emptyMessage="No projects yet. Convert a Won deal or create one directly to get started."
+			numSelected={selectable ? selectedIds?.size : undefined}
+			onSelectAllClick={selectable ? onSelectAll : undefined}
 		/>
 	);
 };

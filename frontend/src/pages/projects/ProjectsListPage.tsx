@@ -8,6 +8,7 @@ import {
 	ProjectsStatsPanel,
 	ProjectAttentionPanel,
 	ProjectStatusBreakdown,
+	ProjectsBulkActionBar,
 	useProjectsManagement,
 } from '../../components/projects';
 
@@ -37,6 +38,14 @@ const ProjectsListPage: React.FC = () => {
 		deleteTarget,
 		setDeleteTarget,
 		deleteLoading,
+		canBulkActions,
+		selectedIds,
+		bulkUpdateLoading,
+		handleToggleSelect,
+		handleSelectAll,
+		handleClearSelection,
+		handleBulkReassign,
+		handleBulkStatusChange,
 		handleCreateClick,
 		handleDeleteRequest,
 		handleConfirmDelete,
@@ -64,6 +73,17 @@ const ProjectsListPage: React.FC = () => {
 					</Grid>
 
 					<Grid size={{ xs: 12, md: 9 }}>
+						{canBulkActions && (
+							<ProjectsBulkActionBar
+								selectedCount={selectedIds.size}
+								owners={owners}
+								loading={bulkUpdateLoading}
+								onReassign={handleBulkReassign}
+								onChangeStatus={handleBulkStatusChange}
+								onClear={handleClearSelection}
+							/>
+						)}
+
 						<ProjectsTable
 							projects={projects}
 							owners={owners}
@@ -80,6 +100,10 @@ const ProjectsListPage: React.FC = () => {
 							onRefresh={refreshData}
 							onCreateClick={handleCreateClick}
 							onDelete={handleDeleteRequest}
+							selectable={canBulkActions}
+							selectedIds={selectedIds}
+							onToggleSelect={handleToggleSelect}
+							onSelectAll={handleSelectAll}
 						/>
 					</Grid>
 				</Grid>

@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime, timezone, date as date_type
 from decimal import Decimal
-from typing import Optional
+from typing import Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import select
@@ -158,6 +158,28 @@ class ProjectService:
     @staticmethod
     async def get_stats(db: AsyncSession) -> dict:
         return await ProjectRepository.get_stats(db)
+
+    @staticmethod
+    async def bulk_update_projects(
+        db: AsyncSession, public_ids: list[uuid.UUID], owner_id: Optional[int], status: Optional[str],
+    ) -> list[Project]:
+        if owner_id is None and status is None:
+            raise BadRequestError("Provide at least one of owner_id or status to update")
+
+        result = await db.execute(
+            select(Project.id).where(Project.public_id.in_(public_ids), Project.is_deleted.is_(False))
+        )
+        project_ids = [row[0] for row in result.all()]
+        if len(project_ids) != len(set(public_ids)):
+            raise NotFoundError("One or more projects not found")
+
+        updates: dict[str, Any] = {}
+        if owner_id is not None:
+            updates["owner_id"] = owner_id
+        if status is not None:
+            updates["status"] = status
+
+        return await ProjectRepository.bulk_update(db, project_ids, **updates)
 
     # --- Project Task CRUD (also used for sub-tasks) ---
     @staticmethod

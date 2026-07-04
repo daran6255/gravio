@@ -102,6 +102,12 @@ class ProjectResponse(ProjectBase):
         return data
 
 
+class ProjectBulkUpdateRequest(BaseModel):
+    public_ids: list[uuid.UUID] = Field(..., min_length=1)
+    owner_id: Optional[int] = None
+    status: Optional[ProjectStatus] = None
+
+
 # --- Project Stats ---
 class ProjectBudgetByCurrency(BaseModel):
     currency: str

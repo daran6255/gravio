@@ -133,6 +133,20 @@ class ProjectRepository:
         )
         return list(result.scalars().all()), total
 
+    @staticmethod
+    async def bulk_update(db: AsyncSession, project_ids: list[int], **kwargs) -> list[Project]:
+        result = await db.execute(
+            select(Project).where(Project.id.in_(project_ids), Project.is_deleted.is_(False))
+        )
+        projects = list(result.scalars().all())
+        for project in projects:
+            for key, val in kwargs.items():
+                setattr(project, key, val)
+        await db.flush()
+        for project in projects:
+            await db.refresh(project)
+        return projects
+
     # Statuses still considered "in flight" -- eligible for overdue/upcoming-deadline
     # tracking. COMPLETED/APPROVED/INVOICED/CANCELED are terminal and excluded.
     OPEN_STATUSES = (
