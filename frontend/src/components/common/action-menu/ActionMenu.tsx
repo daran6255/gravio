@@ -83,71 +83,78 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
 					</Box>
 				)}
 
-				{actions.map((action, index) => {
+				{actions.flatMap((action, index) => {
 					const color = action.color || theme.palette.text.secondary;
-					return (
-						<React.Fragment key={index}>
-							{(action.divider || (index === 0 && header)) && (
-								<Divider 
-									sx={{ 
-										my: 0.75, 
-										mx: 1, 
-										borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)' 
-									}} 
-								/>
-							)}
-							<MenuItem
-								onClick={() => {
-									if (action.disabled) return;
-									action.onClick();
-									handleClose();
-								}}
-								disabled={action.disabled}
+					const items: React.ReactNode[] = [];
+
+					if (action.divider || (index === 0 && header)) {
+						items.push(
+							<Divider
+								key={`divider-${index}`}
 								sx={{
-									borderRadius: 2,
-									py: 0.75,
-									px: 1.25,
-									gap: 1.25,
-									mb: index < actions.length - 1 ? 0.25 : 0,
-									color: action.color || theme.palette.text.primary,
-									transition: 'background-color 0.15s ease',
-									'&:hover': {
-										bgcolor: alpha(color, 0.08)
+									my: 0.75,
+									mx: 1,
+									borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'
+								}}
+							/>
+						);
+					}
+
+					items.push(
+						<MenuItem
+							key={index}
+							onClick={() => {
+								if (action.disabled) return;
+								action.onClick();
+								handleClose();
+							}}
+							disabled={action.disabled}
+							sx={{
+								borderRadius: 2,
+								py: 0.75,
+								px: 1.25,
+								gap: 1.25,
+								mb: index < actions.length - 1 ? 0.25 : 0,
+								color: action.color || theme.palette.text.primary,
+								transition: 'background-color 0.15s ease',
+								'&:hover': {
+									bgcolor: alpha(color, 0.08)
+								}
+							}}
+						>
+							{action.icon && (
+								<ListItemIcon
+									sx={{
+										minWidth: '28px !important',
+										width: 28,
+										height: 28,
+										borderRadius: '6px',
+										bgcolor: alpha(color, 0.1),
+										color,
+										display: 'flex',
+										alignItems: 'center',
+										justifyContent: 'center'
+									}}
+								>
+									{action.icon}
+								</ListItemIcon>
+							)}
+							<ListItemText
+								primary={action.label}
+								slotProps={{
+									primary: {
+										sx: {
+											fontSize: '0.825rem',
+											fontWeight: 600,
+											color: action.color || 'text.primary'
+										}
 									}
 								}}
-							>
-								{action.icon && (
-									<ListItemIcon 
-										sx={{ 
-											minWidth: '28px !important',
-											width: 28,
-											height: 28,
-											borderRadius: '6px',
-											bgcolor: alpha(color, 0.1),
-											color,
-											display: 'flex',
-											alignItems: 'center',
-											justifyContent: 'center'
-										}}
-									>
-										{action.icon}
-									</ListItemIcon>
-								)}
-								<ListItemText 
-									primary={action.label} 
-									slotProps={{
-										primary: {
-											sx: { 
-												fontSize: '0.825rem', 
-												fontWeight: 600,
-												color: action.color || 'text.primary' 
-											}
-										}
-									}}
-								/>
-							</MenuItem>
-						</React.Fragment>
+							/>
+						</MenuItem>
 					);
+
+					return items;
 				})}
 			</Menu>
 		</>
