@@ -1,6 +1,6 @@
 import React from 'react';
 import { TableRow, TableCell, Typography, Stack, Avatar, TextField, MenuItem, alpha, LinearProgress, Box, Checkbox } from '@mui/material';
-import { DeleteOutline } from '@mui/icons-material';
+import { Visibility, DeleteOutline } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../../common/table';
 import StatusBadge from '../../../common/badge/StatusBadge';
@@ -23,6 +23,7 @@ interface ProjectsTableProps {
 	onStatusFilterChange: (value: ProjectStatus | '') => void;
 	onRefresh: () => void;
 	onCreateClick: () => void;
+	onRowClick: (project: Project) => void;
 	onDelete: (project: Project) => void;
 	selectable?: boolean;
 	selectedIds?: Set<string>;
@@ -62,6 +63,7 @@ export const ProjectsTable: React.FC<ProjectsTableProps> = ({
 	onStatusFilterChange,
 	onRefresh,
 	onCreateClick,
+	onRowClick,
 	onDelete,
 	selectable,
 	selectedIds,
@@ -83,18 +85,20 @@ export const ProjectsTable: React.FC<ProjectsTableProps> = ({
 		const ownerName = owner ? (owner.full_name || owner.email) : null;
 
 		const actions: TableMenuAction<Project>[] = [
+			{ label: 'View Details', icon: <Visibility fontSize="small" />, onClick: () => onRowClick(project) },
 			{
 				label: 'Delete',
 				icon: <DeleteOutline fontSize="small" />,
 				onClick: () => onDelete(project),
 				color: 'error.main',
+				divider: true,
 			},
 		];
 
 		return (
-			<TableRow key={project.public_id} hover>
+			<TableRow key={project.public_id} hover onClick={() => onRowClick(project)} sx={{ cursor: 'pointer' }}>
 				{selectable && (
-					<TableCell padding="checkbox">
+					<TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
 						<Checkbox
 							size="small"
 							checked={selectedIds?.has(project.public_id) ?? false}

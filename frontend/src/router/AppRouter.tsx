@@ -12,7 +12,7 @@ import NotFoundPage from '../pages/common/NotFoundPage';
 import MaintenancePage from '../pages/common/MaintenancePage';
 import BillingSettings from '../pages/settings/BillingSettings';
 import { LeadsPage, DealsPage, CompaniesPage, TasksPage } from '../pages/crm';
-import { ProjectsListPage } from '../pages/projects';
+import { ProjectsListPage, ProjectDetailPage } from '../pages/projects';
 
 // Legacy auth links (e.g. tokenized verify/invite/reset links already sent by
 // email before the /auth prefix existed) redirect here — preserve the query
@@ -64,6 +64,7 @@ const AppRouter: React.FC = () => {
 
 					{/* Project Management */}
 					<Route path="projects" element={<ProjectsListPage />} />
+					<Route path="projects/:publicId" element={<ProjectDetailPage />} />
 
 					{/* Prefixed Tenant Routes */}
 					<Route path="org/:orgId/dashboard" element={<Dashboard />} />
@@ -82,6 +83,7 @@ const AppRouter: React.FC = () => {
 					<Route path="org/:orgId/crm/tasks" element={<TasksPage />} />
 
 					<Route path="org/:orgId/projects" element={<ProjectsListPage />} />
+					<Route path="org/:orgId/projects/:publicId" element={<ProjectDetailPage />} />
 				</Route>
 			</Route>
 

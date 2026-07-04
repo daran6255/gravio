@@ -47,6 +47,10 @@ export interface Project {
 	/** Only populated when the list/get endpoint eager-loads tasks. */
 	task_count?: number;
 	completed_task_count?: number;
+	/** Only populated when the endpoint eager-loads the owner/company/deal relations. */
+	owner_name?: string;
+	company_name?: string;
+	deal_title?: string;
 }
 
 /** Matches backend's ProjectCreate. */

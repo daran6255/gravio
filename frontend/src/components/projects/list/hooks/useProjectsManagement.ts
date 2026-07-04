@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchProjects, fetchProjectStats, createProject, deleteProject, bulkUpdateProjects } from '../../../../store/slices/projectsSlice';
 import { fetchOwners } from '../../../../store/slices/crmSlice';
@@ -8,6 +8,7 @@ import type { Project, ProjectStatus, ProjectCreate } from '../../../../models/p
 
 export const useProjectsManagement = () => {
 	const dispatch = useAppDispatch();
+	const navigate = useNavigate();
 	const toast = useToast();
 	const {
 		projects, projectsTotal, projectsLoading, projectMutating, projectStats, projectStatsLoading,
@@ -75,6 +76,11 @@ export const useProjectsManagement = () => {
 	const handleCreateClick = () => {
 		setCreateDrawerOpen(true);
 	};
+
+	// Relative navigation (no leading slash) so it resolves under whichever base
+	// is currently active (/projects or /org/:orgId/projects), matching how the
+	// route pairs are defined in AppRouter.
+	const handleRowClick = (project: Project) => navigate(project.public_id);
 
 	const handleDeleteRequest = (project: Project) => setDeleteTarget(project);
 
@@ -174,6 +180,7 @@ export const useProjectsManagement = () => {
 		handleBulkStatusChange,
 
 		handleCreateClick,
+		handleRowClick,
 		handleDeleteRequest,
 		handleConfirmDelete,
 	};

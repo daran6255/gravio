@@ -85,6 +85,9 @@ class ProjectResponse(ProjectBase):
     updated_at: datetime
     task_count: int = 0
     completed_task_count: int = 0
+    owner_name: Optional[str] = None
+    company_name: Optional[str] = None
+    deal_title: Optional[str] = None
 
     @model_validator(mode="before")
     @classmethod
@@ -99,6 +102,22 @@ class ProjectResponse(ProjectBase):
             t for t in non_deleted_tasks
             if t.completed_at is not None
         ])
+        return data
+
+    @model_validator(mode="before")
+    @classmethod
+    def _attach_display_names(cls, data: Any) -> Any:
+        # Same eager-load guard as _attach_task_counts -- only set when the
+        # relationship was selectinload'd upfront (e.g. get_by_public_id).
+        if isinstance(data, dict):
+            return data
+        unloaded = sa_inspect(data).unloaded
+        if "owner" not in unloaded and data.owner is not None:
+            data.owner_name = data.owner.full_name or data.owner.email
+        if "company" not in unloaded and data.company is not None:
+            data.company_name = data.company.name
+        if "deal" not in unloaded and data.deal is not None:
+            data.deal_title = data.deal.title
         return data
 
 

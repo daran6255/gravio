@@ -21,6 +21,10 @@ interface ProjectsState {
 	projectStatsLoading: boolean;
 	projectStatsError: string | null;
 
+	currentProject: Project | null;
+	currentProjectLoading: boolean;
+	currentProjectError: string | null;
+
 	projectMutating: boolean;
 	projectMutationError: string | null;
 
@@ -42,6 +46,10 @@ const initialState: ProjectsState = {
 	projectStats: null,
 	projectStatsLoading: false,
 	projectStatsError: null,
+
+	currentProject: null,
+	currentProjectLoading: false,
+	currentProjectError: null,
 
 	projectMutating: false,
 	projectMutationError: null,
@@ -75,6 +83,17 @@ export const fetchProjectStats = createAsyncThunk(
 			return await projectService.getProjectStats();
 		} catch (error: any) {
 			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch project stats'));
+		}
+	}
+);
+
+export const fetchProject = createAsyncThunk(
+	'projects/fetchProject',
+	async (publicId: string, { rejectWithValue }) => {
+		try {
+			return await projectService.getProject(publicId);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch project'));
 		}
 	}
 );
@@ -130,6 +149,10 @@ const projectsSlice = createSlice({
 	name: 'projects',
 	initialState,
 	reducers: {
+		clearCurrentProject: (state) => {
+			state.currentProject = null;
+			state.currentProjectError = null;
+		},
 		clearConvertError: (state) => {
 			state.convertError = null;
 		},
@@ -163,6 +186,18 @@ const projectsSlice = createSlice({
 			.addCase(fetchProjectStats.rejected, (state, action: PayloadAction<any>) => {
 				state.projectStatsLoading = false;
 				state.projectStatsError = action.payload;
+			})
+			.addCase(fetchProject.pending, (state) => {
+				state.currentProjectLoading = true;
+				state.currentProjectError = null;
+			})
+			.addCase(fetchProject.fulfilled, (state, action: PayloadAction<Project>) => {
+				state.currentProjectLoading = false;
+				state.currentProject = action.payload;
+			})
+			.addCase(fetchProject.rejected, (state, action: PayloadAction<any>) => {
+				state.currentProjectLoading = false;
+				state.currentProjectError = action.payload;
 			})
 			.addCase(createProject.pending, (state) => { state.projectMutating = true; state.projectMutationError = null; })
 			.addCase(createProject.fulfilled, (state, action: PayloadAction<Project>) => {
@@ -208,5 +243,5 @@ const projectsSlice = createSlice({
 	},
 });
 
-export const { clearConvertError } = projectsSlice.actions;
+export const { clearCurrentProject, clearConvertError } = projectsSlice.actions;
 export default projectsSlice.reducer;

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Box, Paper, Stack, Typography, Chip, useTheme } from '@mui/material';
 import { NotificationImportantOutlined, WarningAmberOutlined } from '@mui/icons-material';
 import dayjs from 'dayjs';
@@ -10,10 +11,14 @@ interface ProjectAttentionPanelProps {
 }
 
 const DeadlineRow: React.FC<{ item: ProjectDeadlineItem; overdue?: boolean }> = ({ item, overdue }) => {
+	const navigate = useNavigate();
 	const daysDiff = dayjs(item.end_date).diff(dayjs(), 'day');
 
 	return (
-		<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+		<Box
+			onClick={() => navigate(item.public_id)}
+			sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+		>
 			<Box sx={{ maxWidth: '70%' }}>
 				<Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>
 					{item.name}

@@ -62,7 +62,14 @@ class ProjectRepository:
     @staticmethod
     async def get_by_public_id(db: AsyncSession, public_id: uuid.UUID) -> Optional[Project]:
         result = await db.execute(
-            select(Project).options(selectinload(Project.tasks)).where(Project.public_id == public_id)
+            select(Project)
+            .options(
+                selectinload(Project.tasks),
+                selectinload(Project.owner),
+                selectinload(Project.company),
+                selectinload(Project.deal),
+            )
+            .where(Project.public_id == public_id)
         )
         return result.scalars().first()
 

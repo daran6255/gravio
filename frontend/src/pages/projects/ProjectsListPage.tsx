@@ -47,6 +47,7 @@ const ProjectsListPage: React.FC = () => {
 		handleBulkReassign,
 		handleBulkStatusChange,
 		handleCreateClick,
+		handleRowClick,
 		handleDeleteRequest,
 		handleConfirmDelete,
 	} = useProjectsManagement();
@@ -99,6 +100,7 @@ const ProjectsListPage: React.FC = () => {
 							onStatusFilterChange={handleStatusFilterChange}
 							onRefresh={refreshData}
 							onCreateClick={handleCreateClick}
+							onRowClick={handleRowClick}
 							onDelete={handleDeleteRequest}
 							selectable={canBulkActions}
 							selectedIds={selectedIds}

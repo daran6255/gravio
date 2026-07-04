@@ -24,6 +24,11 @@ const projectService = {
 		return response.data;
 	},
 
+	getProject: async (publicId: string): Promise<Project> => {
+		const response = await api.get<Project>(`/projects/${publicId}`);
+		return response.data;
+	},
+
 	createProject: async (payload: ProjectCreate): Promise<Project> => {
 		const response = await api.post<Project>('/projects', payload);
 		return response.data;
