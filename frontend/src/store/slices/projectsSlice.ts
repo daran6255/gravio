@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import projectService from '../../services/projectService';
 import crmService from '../../services/crmService';
-import type { Project, ProjectCreate, ProjectStatus, DealConvertToProjectRequest, ProjectStats } from '../../models/projects/project';
+import type { Project, ProjectCreate, ProjectUpdate, ProjectStatus, DealConvertToProjectRequest, ProjectStats } from '../../models/projects/project';
 import type { PaginatedResponse } from '../../models/common';
 
 /** Backend errors are shaped { success, error: { code, message, detail } } - not a top-level `detail`. */
@@ -109,6 +109,17 @@ export const createProject = createAsyncThunk(
 	}
 );
 
+export const updateProject = createAsyncThunk(
+	'projects/updateProject',
+	async ({ publicId, payload }: { publicId: string; payload: ProjectUpdate }, { rejectWithValue }) => {
+		try {
+			return await projectService.updateProject(publicId, payload);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to update project'));
+		}
+	}
+);
+
 export const deleteProject = createAsyncThunk(
 	'projects/deleteProject',
 	async (publicId: string, { rejectWithValue }) => {
@@ -205,6 +216,18 @@ const projectsSlice = createSlice({
 				state.projects = [action.payload, ...state.projects];
 			})
 			.addCase(createProject.rejected, (state, action: PayloadAction<any>) => {
+				state.projectMutating = false;
+				state.projectMutationError = action.payload;
+			})
+			.addCase(updateProject.pending, (state) => { state.projectMutating = true; state.projectMutationError = null; })
+			.addCase(updateProject.fulfilled, (state, action: PayloadAction<Project>) => {
+				state.projectMutating = false;
+				state.projects = state.projects.map((p) => (p.public_id === action.payload.public_id ? action.payload : p));
+				if (state.currentProject?.public_id === action.payload.public_id) {
+					state.currentProject = action.payload;
+				}
+			})
+			.addCase(updateProject.rejected, (state, action: PayloadAction<any>) => {
 				state.projectMutating = false;
 				state.projectMutationError = action.payload;
 			})

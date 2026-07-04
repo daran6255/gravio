@@ -1,10 +1,20 @@
 import React from 'react';
 import { Box, Container, Paper, Typography, CircularProgress } from '@mui/material';
 import { ChecklistOutlined } from '@mui/icons-material';
-import { ProjectDetailHeader, useProjectDetail } from '../../components/projects';
+import { ProjectDetailHeader, ProjectEditDrawer, useProjectDetail } from '../../components/projects';
 
 const ProjectDetailPage: React.FC = () => {
-	const { project, loading, handleBack } = useProjectDetail();
+	const {
+		project,
+		loading,
+		owners,
+		editOpen,
+		setEditOpen,
+		projectMutating,
+		handleBack,
+		handleEditClick,
+		handleEditSubmit,
+	} = useProjectDetail();
 
 	return (
 		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
@@ -15,7 +25,16 @@ const ProjectDetailPage: React.FC = () => {
 					</Box>
 				) : project ? (
 					<>
-						<ProjectDetailHeader project={project} onBack={handleBack} />
+						<ProjectDetailHeader project={project} onBack={handleBack} onEdit={handleEditClick} />
+
+						<ProjectEditDrawer
+							open={editOpen}
+							onClose={() => setEditOpen(false)}
+							project={project}
+							owners={owners}
+							submitting={projectMutating}
+							onSubmit={handleEditSubmit}
+						/>
 
 						<Paper
 							variant="outlined"

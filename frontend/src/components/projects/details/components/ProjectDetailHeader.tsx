@@ -8,6 +8,7 @@ import {
 	CalendarMonthOutlined,
 	TaskAltOutlined,
 	TransformOutlined,
+	EditOutlined,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import StatusBadge from '../../../common/badge/StatusBadge';
@@ -16,6 +17,7 @@ import type { Project, ProjectStatus } from '../../../../models/projects/project
 interface ProjectDetailHeaderProps {
 	project: Project;
 	onBack: () => void;
+	onEdit: () => void;
 }
 
 const CLOSED_STATUSES: ProjectStatus[] = ['completed', 'approved', 'invoiced', 'canceled'];
@@ -80,7 +82,7 @@ const DetailTile: React.FC<{ icon: React.ReactNode; label: string; value: React.
 	);
 };
 
-export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ project, onBack }) => {
+export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ project, onBack, onEdit }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const track = getTrackInfo(project);
@@ -179,6 +181,18 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 						</Typography>
 					)}
 				</Box>
+
+				<IconButton
+					onClick={onEdit}
+					size="small"
+					sx={{
+						mt: 0.25,
+						bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+						'&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' },
+					}}
+				>
+					<EditOutlined fontSize="small" />
+				</IconButton>
 			</Stack>
 
 			<Box

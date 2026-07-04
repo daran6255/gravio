@@ -1,6 +1,6 @@
 import api from './api';
 import type { PaginatedResponse } from '../models/common';
-import type { Project, ProjectCreate, ProjectStatus, ProjectStats } from '../models/projects/project';
+import type { Project, ProjectCreate, ProjectUpdate, ProjectStatus, ProjectStats } from '../models/projects/project';
 
 const projectService = {
 	// --- Projects ---
@@ -31,6 +31,11 @@ const projectService = {
 
 	createProject: async (payload: ProjectCreate): Promise<Project> => {
 		const response = await api.post<Project>('/projects', payload);
+		return response.data;
+	},
+
+	updateProject: async (publicId: string, payload: ProjectUpdate): Promise<Project> => {
+		const response = await api.patch<Project>(`/projects/${publicId}`, payload);
 		return response.data;
 	},
 
