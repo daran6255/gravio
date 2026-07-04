@@ -21,6 +21,11 @@ export const store = configureStore({
 		getDefaultMiddleware({
 			serializableCheck: false,
 		}),
+	// Unbounded devtools history buffers a full state-tree snapshot per dispatched
+	// action for the whole tab session; over a long dev session with periodic
+	// polling (e.g. NotificationBell) and large slices (e.g. crmSlice), that grows
+	// until Chrome kills the renderer with "Aw, Snap! Out of Memory". Cap it.
+	devTools: import.meta.env.DEV && { maxAge: 25, trace: false },
 });
 
 export type RootState = ReturnType<typeof store.getState>;
