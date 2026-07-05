@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Container, ToggleButtonGroup, ToggleButton } from '@mui/material';
-import { ViewWeek, ViewList, TableChart } from '@mui/icons-material';
+import React, { useEffect } from 'react';
+import { Box, Container } from '@mui/material';
 import PageHeader from '../../components/common/page-header';
-import { ActivityFeedFilters, TaskKanbanBoard, TaskList, TaskTable, TasksStatsPanel, useActivityFeed } from '../../components/crm';
+import { ActivityFeedFilters, TaskKanbanBoard, TasksStatsPanel, useActivityFeed } from '../../components/crm';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchDeals, fetchAllDealTasks } from '../../store/slices/crmSlice';
 
 /**
  * CRM Tasks Page — a unified page to manage tasks, calls, meetings, and to-dos
- * across every CRM entity in either a Kanban board view or list timeline view.
+ * across every CRM entity in a Kanban board view.
  */
 const TasksPage: React.FC = () => {
 	const dispatch = useAppDispatch();
@@ -23,7 +22,6 @@ const TasksPage: React.FC = () => {
 	} = useActivityFeed();
 
 	const { deals, allDealTasks, allDealTasksLoading } = useAppSelector((state) => state.crm);
-	const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'table'>('kanban');
 
 	// Load all deals on mount
 	useEffect(() => {
@@ -69,47 +67,6 @@ const TasksPage: React.FC = () => {
 				<PageHeader
 					title="Tasks"
 					subtitle="Manage and track your CRM tasks, calls, meetings, and to-dos"
-					action={
-						<ToggleButtonGroup
-							value={viewMode}
-							exclusive
-							onChange={(_, mode) => mode && setViewMode(mode)}
-							size="small"
-							sx={{
-								bgcolor: 'background.paper',
-								border: '1px solid',
-								borderColor: 'divider',
-								borderRadius: '10px',
-								'& .MuiToggleButton-root': {
-									textTransform: 'none',
-									fontWeight: 700,
-									px: 2,
-									border: 'none',
-									borderRadius: '8px',
-									'&.Mui-selected': {
-										bgcolor: 'primary.main',
-										color: '#ffffff',
-										'&:hover': {
-											bgcolor: 'primary.dark',
-										}
-									}
-								}
-							}}
-						>
-							<ToggleButton value="kanban" aria-label="Kanban Board">
-								<ViewWeek sx={{ mr: 1, fontSize: 16 }} />
-								Kanban
-							</ToggleButton>
-							<ToggleButton value="list" aria-label="List Feed">
-								<ViewList sx={{ mr: 1, fontSize: 16 }} />
-								List
-							</ToggleButton>
-							<ToggleButton value="table" aria-label="Table View">
-								<TableChart sx={{ mr: 1, fontSize: 16 }} />
-								Table
-							</ToggleButton>
-						</ToggleButtonGroup>
-					}
 				/>
 
 				<TasksStatsPanel tasks={allDealTasks} />
@@ -127,24 +84,11 @@ const TasksPage: React.FC = () => {
 					hideType={true}
 				/>
 
-				{viewMode === 'kanban' ? (
-					<TaskKanbanBoard
-						tasks={filteredTasks}
-						loading={allDealTasksLoading}
-						owners={owners}
-					/>
-				) : viewMode === 'list' ? (
-					<TaskList
-						tasks={filteredTasks}
-						loading={allDealTasksLoading}
-						owners={owners}
-					/>
-				) : (
-					<TaskTable
-						tasks={filteredTasks}
-						loading={allDealTasksLoading}
-					/>
-				)}
+				<TaskKanbanBoard
+					tasks={filteredTasks}
+					loading={allDealTasksLoading}
+					owners={owners}
+				/>
 			</Container>
 		</Box>
 	);
