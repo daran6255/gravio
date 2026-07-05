@@ -3,7 +3,6 @@ import {
 	Box,
 	Stack,
 	Typography,
-	IconButton,
 	Avatar,
 	Divider,
 	Popover,
@@ -15,9 +14,6 @@ import {
 } from '@mui/material';
 import {
 	PersonOutline,
-	ArrowForwardOutlined,
-	ContentCopyOutlined,
-	DeleteOutline,
 	FolderOutlined,
 	SellOutlined,
 	CategoryOutlined,
@@ -29,7 +25,6 @@ import {
 	NotificationsNoneOutlined,
 	GroupOutlined,
 	AddOutlined,
-	MoreHorizOutlined,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import type { ProjectTask, ProjectTaskUpdate, ProjectTaskStatus, ProjectTaskTag } from '../../../../../models/projects/projectTask';
@@ -55,7 +50,6 @@ interface TaskDetailsPanelProps {
 	existingTags: ProjectTaskTag[];
 	projectName: string;
 	onUpdateField: (fields: ProjectTaskUpdate) => Promise<void>;
-	onDelete: () => void;
 }
 
 export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
@@ -66,7 +60,6 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 	existingTags,
 	projectName,
 	onUpdateField,
-	onDelete,
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
@@ -219,7 +212,7 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 					boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.15)' : '0 4px 20px rgba(0,0,0,0.02)',
 				}}
 			>
-				{/* Card header: section title + overflow menu */}
+				{/* Card header */}
 				<Stack
 					direction="row"
 					justifyContent="space-between"
@@ -235,9 +228,6 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 					<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.7rem' }}>
 						Details
 					</Typography>
-					<IconButton size="small" onClick={openPopover('moreActions')} sx={{ color: 'text.secondary', '&:hover': { bgcolor: hoverBg } }}>
-						<MoreHorizOutlined fontSize="small" />
-					</IconButton>
 				</Stack>
 
 				{/* Property list */}
@@ -408,41 +398,6 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 					})}
 				</Stack>
 			</Box>
-
-			{/* Overflow actions menu (moved out of the visible list to keep the panel clean) */}
-			<Popover
-				open={popover?.key === 'moreActions'}
-				anchorEl={popover?.anchorEl}
-				onClose={closePopover}
-				anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-				transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-				PaperProps={{ sx: { borderRadius: '10px', mt: 0.5, minWidth: 190, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' } }}
-			>
-				<Stack sx={{ py: 0.5 }}>
-					<Button
-						onClick={closePopover}
-						startIcon={<ArrowForwardOutlined fontSize="small" />}
-						sx={{ justifyContent: 'flex-start', textTransform: 'none', fontWeight: 600, color: 'text.primary', fontSize: '0.825rem', px: 2, py: 1, borderRadius: 0, '&:hover': { bgcolor: hoverBg } }}
-					>
-						Transfer task
-					</Button>
-					<Button
-						onClick={closePopover}
-						startIcon={<ContentCopyOutlined fontSize="small" />}
-						sx={{ justifyContent: 'flex-start', textTransform: 'none', fontWeight: 600, color: 'text.primary', fontSize: '0.825rem', px: 2, py: 1, borderRadius: 0, '&:hover': { bgcolor: hoverBg } }}
-					>
-						Clone task
-					</Button>
-					<Divider />
-					<Button
-						onClick={() => { closePopover(); onDelete(); }}
-						startIcon={<DeleteOutline fontSize="small" />}
-						sx={{ justifyContent: 'flex-start', textTransform: 'none', fontWeight: 600, color: 'error.main', fontSize: '0.825rem', px: 2, py: 1, borderRadius: 0, '&:hover': { bgcolor: isDark ? 'rgba(244,67,54,0.1)' : 'rgba(244,67,54,0.05)' } }}
-					>
-						Delete task
-					</Button>
-				</Stack>
-			</Popover>
 
 			{/* POPOVERS */}
 			{/* Status Picker Popover */}

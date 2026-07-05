@@ -13,6 +13,7 @@ import type { CRMOwnerOption } from '../../../../models/crm/owner';
 import { TaskDrawerHeader } from '../components/task-drawer/TaskDrawerHeader';
 import { TaskDetailsPanel } from '../components/task-drawer/TaskDetailsPanel';
 import { TaskAttachmentsCard } from '../components/task-drawer/TaskAttachmentsCard';
+import { TaskActionsCard } from '../components/task-drawer/TaskActionsCard';
 import { TaskDescriptionCard } from '../components/task-drawer/TaskDescriptionCard';
 import { SubtasksList } from '../components/task-drawer/SubtasksList';
 import { TaskHistoryTimeline } from '../components/task-drawer/TaskHistoryTimeline';
@@ -155,9 +156,9 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 							existingTags={existingTags}
 							projectName={projectName}
 							onUpdateField={handleUpdateField}
-							onDelete={onDelete}
 						/>
 						<TaskAttachmentsCard task={latestTask} />
+						<TaskActionsCard onDelete={onDelete} />
 					</Box>
 				</Box>
 			</Box>
