@@ -282,7 +282,7 @@ export const TaskAttachmentsCard: React.FC<TaskAttachmentsCardProps> = ({ task }
 											sx={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
 											onClick={() => projectService.viewTaskFile(task.public_id, file.public_id)}
 										>
-											<Typography noWrap sx={{ fontWeight: 600, fontSize: '0.8rem', '&:hover': { color: 'primary.main' } }}>
+											<Typography noWrap sx={{ fontWeight: 600, fontSize: '0.8rem', color: 'text.primary', '&:hover': { color: 'primary.main' } }}>
 												{file.file_name}
 											</Typography>
 											<Typography noWrap sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>

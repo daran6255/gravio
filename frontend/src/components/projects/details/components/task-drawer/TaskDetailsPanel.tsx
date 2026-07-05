@@ -276,7 +276,7 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 								<Avatar sx={{ width: 22, height: 22, fontSize: '0.68rem', fontWeight: 700, bgcolor: 'primary.main', color: 'white' }}>
 									{(selectedAssignee.full_name || selectedAssignee.email)[0]?.toUpperCase()}
 								</Avatar>
-								<Typography variant="body2" sx={{ fontSize: '0.825rem', fontWeight: 600 }}>
+								<Typography variant="body2" sx={{ fontSize: '0.825rem', fontWeight: 600, color: 'text.primary' }}>
 									{selectedAssignee.full_name || selectedAssignee.email}
 								</Typography>
 							</Stack>
@@ -344,7 +344,7 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 						popoverKey: 'estimatedHours',
 						children:
 							task.estimated_hours != null ? (
-								<Typography variant="body2" sx={{ fontSize: '0.825rem', fontWeight: 600 }}>
+								<Typography variant="body2" sx={{ fontSize: '0.825rem', fontWeight: 500, color: 'text.primary' }}>
 									{task.estimated_hours}h
 								</Typography>
 							) : (
@@ -357,7 +357,7 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 						label: 'Start Date',
 						popoverKey: 'startDate',
 						children: task.start_date ? (
-							<Typography variant="body2" sx={{ fontSize: '0.825rem', fontWeight: 600 }}>
+							<Typography variant="body2" sx={{ fontSize: '0.825rem', fontWeight: 500, color: 'text.primary' }}>
 								{dayjs(task.start_date).format('MMM D, YYYY')}
 							</Typography>
 						) : (
@@ -370,7 +370,7 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 						label: 'Due Date',
 						popoverKey: 'dueDate',
 						children: task.due_date ? (
-							<Typography variant="body2" sx={{ fontSize: '0.825rem', fontWeight: 600 }}>
+							<Typography variant="body2" sx={{ fontSize: '0.825rem', fontWeight: 500, color: 'text.primary' }}>
 								{dayjs(task.due_date).format('MMM D, YYYY')}
 							</Typography>
 						) : (
@@ -383,7 +383,7 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 						label: 'Billing',
 						popoverKey: 'billingType',
 						children: (
-							<Typography variant="body2" sx={{ fontSize: '0.825rem', fontWeight: 600 }}>
+							<Typography variant="body2" sx={{ fontSize: '0.825rem', fontWeight: 500, color: 'text.primary' }}>
 								{task.billing_type === 'billable' ? 'Billable' : 'Non-billable'}
 							</Typography>
 						),
@@ -415,7 +415,7 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 						icon: <FolderOutlined fontSize="inherit" />,
 						label: 'Project',
 						children: (
-							<Typography variant="body2" sx={{ fontSize: '0.825rem', fontWeight: 600 }}>
+							<Typography variant="body2" sx={{ fontSize: '0.825rem', fontWeight: 600, color: 'text.primary' }}>
 								{projectName}
 							</Typography>
 						),

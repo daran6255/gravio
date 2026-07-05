@@ -128,8 +128,11 @@ const ProjectDetailPage: React.FC = () => {
 								open={taskFormOpen}
 								onClose={handleCloseTaskForm}
 								parentTask={subtaskParent}
+								projectName={project.name}
+								tasks={tasks}
 								statuses={taskStatuses}
 								owners={owners}
+								existingTags={projectTags}
 								submitting={taskMutating}
 								onSubmit={handleTaskFormSubmit}
 							/>

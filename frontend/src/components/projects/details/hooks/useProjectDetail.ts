@@ -143,7 +143,7 @@ export const useProjectDetail = () => {
 		}
 	};
 
-	const handleTaskFormSubmit = async (payload: ProjectTaskCreate | ProjectTaskUpdate) => {
+	const handleTaskFormSubmit = async (payload: ProjectTaskCreate | ProjectTaskUpdate, keepOpen?: boolean) => {
 		if (!publicId) return;
 		if (editingTask) {
 			await dispatch(updateProjectTask({ taskPublicId: editingTask.public_id, payload })).unwrap();
@@ -155,7 +155,9 @@ export const useProjectDetail = () => {
 			await dispatch(createProjectTask({ projectPublicId: publicId, payload: payload as ProjectTaskCreate })).unwrap();
 			toast.success('Task created');
 		}
-		handleCloseTaskForm();
+		if (!keepOpen) {
+			handleCloseTaskForm();
+		}
 	};
 
 	const handleMoveTask = async (task: ProjectTask, targetStatus: ProjectTaskStatus) => {
