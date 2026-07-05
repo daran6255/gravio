@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
 	Drawer,
 	Box,
@@ -15,6 +15,7 @@ import { TaskDrawerSidebar } from '../components/task-drawer/TaskDrawerSidebar';
 import { TaskDescriptionCard } from '../components/task-drawer/TaskDescriptionCard';
 import { SubtasksList } from '../components/task-drawer/SubtasksList';
 import { TaskHistoryTimeline } from '../components/task-drawer/TaskHistoryTimeline';
+import { CommentsSection } from '../components/task-drawer/CommentsSection';
 
 interface ProjectTaskDetailDrawerProps {
 	open: boolean;
@@ -50,6 +51,8 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 	const isDark = theme.palette.mode === 'dark';
 	const bgColor = isDark ? '#0d1117' : '#ffffff';
 
+	const [commentText, setCommentText] = useState('');
+
 	// Get latest version from source-of-truth list
 	const latestTask = tasks.find((t) => t.id === task.id) || task;
 
@@ -71,8 +74,8 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 				sx: {
 					width: { xs: '100%', md: '70vw' },
 					maxWidth: '100%',
-					borderTopLeftRadius: '16px',
-					borderBottomLeftRadius: '16px',
+					borderTopLeftRadius: '8px',
+					borderBottomLeftRadius: '8px',
 					bgcolor: bgColor,
 					boxShadow: 'none',
 				},
@@ -98,6 +101,7 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 						<TaskDescriptionCard
 							task={latestTask}
 							onUpdateField={handleUpdateField}
+							setCommentText={setCommentText}
 						/>
 
 						{/* Sub-tasks checklist */}
@@ -117,6 +121,15 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 							statuses={statuses}
 							owners={owners}
 							projectName={projectName}
+						/>
+
+						{/* Comments Section */}
+						<CommentsSection
+							task={latestTask}
+							statuses={statuses}
+							onUpdateField={handleUpdateField}
+							commentText={commentText}
+							setCommentText={setCommentText}
 						/>
 					</Box>
 
