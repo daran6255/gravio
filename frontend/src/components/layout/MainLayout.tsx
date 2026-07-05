@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, CssBaseline } from '@mui/material';
 import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
@@ -20,14 +20,47 @@ const MainLayout: React.FC = () => {
 		location.pathname.startsWith('/settings/') ||
 		/^\/org\/[^/]+\/settings(\/|$)/.test(location.pathname);
 
+	useEffect(() => {
+		// Store original styles
+		const originalOverflow = document.body.style.overflow;
+		const originalHeight = document.body.style.height;
+		const originalHtmlOverflow = document.documentElement.style.overflow;
+		const originalHtmlHeight = document.documentElement.style.height;
+
+		// Set overflow hidden to body and html to avoid double/window scrollbars
+		document.body.style.overflow = 'hidden';
+		document.body.style.height = '100%';
+		document.documentElement.style.overflow = 'hidden';
+		document.documentElement.style.height = '100%';
+
+		return () => {
+			// Restore original styles on unmount (e.g. for standalone auth pages)
+			document.body.style.overflow = originalOverflow;
+			document.body.style.height = originalHeight;
+			document.documentElement.style.overflow = originalHtmlOverflow;
+			document.documentElement.style.height = originalHtmlHeight;
+		};
+	}, []);
+
 	// Settings pages: keep Navbar and Sidebar (Sidebar dynamically loads settings menus)
 	if (isSettingsRoute) {
 		return (
-			<Box sx={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
+			<Box sx={{ display: 'flex', height: '100vh', width: '100%', overflow: 'hidden' }}>
 				<CssBaseline />
 				<Navbar />
 				<Sidebar />
-				<Box sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', mt: '64px' }}>
+				<Box
+					sx={{
+						flexGrow: 1,
+						width: '100%',
+						display: 'flex',
+						flexDirection: 'column',
+						mt: '64px',
+						height: 'calc(100vh - 64px)',
+						overflowY: 'auto',
+						overflowX: 'hidden'
+					}}
+				>
 					<Outlet />
 				</Box>
 			</Box>
@@ -35,7 +68,7 @@ const MainLayout: React.FC = () => {
 	}
 
 	return (
-		<Box sx={{ display: 'flex', minHeight: '100vh' }}>
+		<Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
 			<CssBaseline />
 			<Navbar />
 			<Sidebar />
@@ -52,7 +85,8 @@ const MainLayout: React.FC = () => {
 					mt: '64px',
 					display: 'flex',
 					flexDirection: 'column',
-					minHeight: 'calc(100vh - 64px)',
+					height: 'calc(100vh - 64px)',
+					overflowY: 'auto',
 					overflowX: 'hidden'
 				}}
 			>
