@@ -7,17 +7,13 @@ import {
 	ListItemIcon,
 	ListItemText,
 	Box,
-	Collapse,
 	Tooltip,
-	alpha,
 	Avatar,
 	Divider,
 	Typography,
 	Button
 } from '@mui/material';
 import {
-	ExpandLess,
-	ExpandMore,
 	Person as ProfileIcon,
 	ExitToApp as LogoutIcon,
 } from '@mui/icons-material';
@@ -25,7 +21,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { useTheme, useMediaQuery } from '@mui/material';
 import { toggleSidebar } from '../../store/slices/uiSlice';
-import { topNavigation, bottomNavigation, settingsNavigation } from '../../config/navigation';
+import { topNavigation, settingsNavigation } from '../../config/navigation';
 import type { NavigationItem } from '../../config/navigation';
 import { useColorMode } from '../../theme/ThemeContext';
 import { logoutUser } from '../../store/slices/authSlice';
@@ -46,7 +42,6 @@ const Sidebar: React.FC = () => {
 	const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 	const open = useAppSelector((state) => state.ui.sidebarOpen);
 	const user = useAppSelector((state) => state.auth.user);
-	const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
 	const { mode } = useColorMode();
 
@@ -72,25 +67,6 @@ const Sidebar: React.FC = () => {
 			.toUpperCase()
 			.slice(0, 2)
 		: 'U';
-
-	// Auto-expand the group of the active path on mount or navigation
-	React.useEffect(() => {
-		if (drawerExpanded) {
-			const findAndExpandActiveGroup = (items: NavigationItem[]) => {
-				for (const item of items) {
-					if (item.children?.some(child => isActive(child.path))) {
-						if (item.label) {
-							setExpandedGroups(prev => ({ ...prev, [item.label!]: true }));
-						}
-						return true;
-					}
-				}
-				return false;
-			};
-			findAndExpandActiveGroup(topNavigation);
-			findAndExpandActiveGroup(bottomNavigation);
-		}
-	}, [location.pathname, drawerExpanded]);
 
 	const isSettingsRoute =
 		location.pathname === '/settings' ||
@@ -175,21 +151,6 @@ const Sidebar: React.FC = () => {
 		}
 	};
 
-	const toggleGroup = (label: string) => {
-		setExpandedGroups(prev => {
-			const isCurrentlyExpanded = prev[label];
-			const newState = Object.keys(prev).reduce((acc, key) => {
-				acc[key] = false;
-				return acc;
-			}, {} as Record<string, boolean>);
-
-			if (!isCurrentlyExpanded) {
-				newState[label] = true;
-			}
-			return newState;
-		});
-	};
-
 	const hasPermission = (item: NavigationItem): boolean => {
 		if (item.hidden) return false;
 		if (item.requiresSuperuser) return !!user?.is_superuser;
@@ -234,12 +195,12 @@ const Sidebar: React.FC = () => {
 				}}
 				selected={active}
 				sx={{
-					minHeight: 44,
-					px: drawerExpanded ? 2 : 0,
+					minHeight: 36,
+					px: drawerExpanded ? 1.5 : 0,
 					py: 0,
-					mx: drawerExpanded ? 1 : 0.5, // Floating block effect
+					mx: drawerExpanded ? 0.75 : 0.5, // Floating block effect
 					width: 'auto',
-					borderRadius: 1.5, // Enterprise rounded corner
+					borderRadius: 1.25, // Enterprise rounded corner
 					justifyContent: drawerExpanded ? 'initial' : 'center',
 					transition: theme.transitions.create(['background-color', 'color', 'margin']),
 					
@@ -247,6 +208,12 @@ const Sidebar: React.FC = () => {
 						bgcolor: 'primary.main',
 						'&:hover': {
 							bgcolor: 'primary.dark',
+							'& .MuiListItemText-primary': {
+								color: '#ffffff',
+							},
+							'& .MuiListItemIcon-root': {
+								color: '#ffffff',
+							},
 						},
 						'& .MuiListItemText-primary': {
 							color: '#ffffff',
@@ -271,13 +238,13 @@ const Sidebar: React.FC = () => {
 					<ListItemIcon
 						sx={{
 							minWidth: 0,
-							mr: drawerExpanded ? 1.5 : 0,
+							mr: drawerExpanded ? 1.25 : 0,
 							justifyContent: 'center',
 							color: active ? '#ffffff' : sidebarTextMuted,
 							transition: theme.transitions.create(['color', 'margin']),
 						}}
 					>
-						<Icon sx={{ fontSize: '1.25rem' }} />
+						<Icon sx={{ fontSize: '1.2rem' }} />
 					</ListItemIcon>
 				)}
 				<ListItemText
@@ -299,7 +266,7 @@ const Sidebar: React.FC = () => {
 		);
 
 		return (
-			<ListItem disablePadding sx={{ display: 'block', mb: 0.5 }}>
+			<ListItem disablePadding sx={{ display: 'block', mb: 0.25 }}>
 				{drawerExpanded ? content : (
 					<Tooltip title={item.label} placement="right" arrow>
 						<Box>{content}</Box>
@@ -309,94 +276,48 @@ const Sidebar: React.FC = () => {
 		);
 	};
 
-	const NavGroup = ({ group }: { group: NavigationItem }) => {
-		if (!hasPermission(group) || !group.label) return null;
+	const NavSection = ({ section }: { section: NavigationItem }) => {
+		if (!hasPermission(section) || !section.label) return null;
 
-		const isExpanded = expandedGroups[group.label];
-		const Icon = group.icon;
-		const activeChild = group.children?.some(child => isActive(child.path));
-
-		const content = (
-			<ListItemButton
-				onClick={() => {
-					if (!drawerExpanded) {
-						dispatch(toggleSidebar());
-					} else {
-						group.label && toggleGroup(group.label);
-					}
-				}}
-				sx={{
-					minHeight: 44,
-					px: drawerExpanded ? 2 : 0,
-					py: 0,
-					mx: drawerExpanded ? 1 : 0.5,
-					width: 'auto',
-					borderRadius: 1.5,
-					justifyContent: drawerExpanded ? 'initial' : 'center',
-					// Group active background
-					bgcolor: activeChild && !isExpanded ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
-					
-					'&:hover': {
-						bgcolor: sidebarHoverBg,
-					},
-				}}
-			>
-				{Icon && (
-					<ListItemIcon
-						sx={{
-							minWidth: 0,
-							mr: drawerExpanded ? 1.5 : 0,
-							justifyContent: 'center',
-							color: activeChild ? 'primary.main' : sidebarTextMuted,
-						}}
-					>
-						<Icon sx={{ fontSize: '1.25rem' }} />
-					</ListItemIcon>
-				)}
-				<Box
-					sx={{
-						display: drawerExpanded ? 'flex' : 'none',
-						alignItems: 'center',
-						justifyContent: 'space-between',
-						flexGrow: 1,
-						overflow: 'hidden'
-					}}
-				>
-					<ListItemText
-						primary={group.label}
-						sx={{
-							m: 0,
-							'& .MuiListItemText-primary': {
-								...theme.typography[activeChild ? 'sidebarActive' : 'sidebarItem'],
-								color: activeChild ? (isDarkSidebar ? '#ffffff' : 'primary.main') : sidebarTextMuted,
-							}
-						}}
-					/>
-					{isExpanded ?
-						<ExpandLess sx={{ fontSize: 16, opacity: 0.8, color: activeChild ? 'primary.main' : sidebarTextMuted }} /> :
-						<ExpandMore sx={{ fontSize: 16, opacity: 0.8, color: activeChild ? 'primary.main' : sidebarTextMuted }} />
-					}
-				</Box>
-			</ListItemButton>
-		);
+		const visibleChildren = section.children?.filter(child => hasPermission(child)) || [];
+		if (visibleChildren.length === 0) return null;
 
 		return (
-			<>
-				<ListItem disablePadding sx={{ display: 'block' }}>
-					{drawerExpanded ? content : (
-						<Tooltip title={group.label} placement="right" arrow>
-							<Box>{content}</Box>
-						</Tooltip>
-					)}
-				</ListItem>
-				<Collapse in={isExpanded && drawerExpanded} timeout="auto" unmountOnExit>
-					<List component="div" disablePadding>
-						{group.children?.map((child, index) => (
-							<NavItem key={index} item={child} />
-						))}
-					</List>
-				</Collapse>
-			</>
+			<Box sx={{ mb: drawerExpanded ? 1.5 : 1 }}>
+				{drawerExpanded ? (
+					<Typography
+						variant="caption"
+						sx={{
+							display: 'block',
+							px: 2.25,
+							pt: 1.5,
+							pb: 0.5,
+							fontSize: '0.6875rem',
+							fontWeight: 700,
+							letterSpacing: '0.12em',
+							color: sidebarTextMuted,
+							textTransform: 'uppercase',
+							opacity: 0.85,
+						}}
+					>
+						{section.label}
+					</Typography>
+				) : (
+					<Divider
+						sx={{
+							my: 1.25,
+							mx: 1.5,
+							borderColor: sidebarDivider,
+							opacity: 0.5,
+						}}
+					/>
+				)}
+				<List component="div" disablePadding>
+					{visibleChildren.map((child, index) => (
+						<NavItem key={index} item={child} />
+					))}
+				</List>
+			</Box>
 		);
 	};
 
@@ -478,8 +399,8 @@ const Sidebar: React.FC = () => {
 						{/* Real Navigation Items */}
 						{(isSettingsRoute ? settingsNavigation : topNavigation).map((item, index) => (
 							<React.Fragment key={index}>
-								{item.children ? (
-									<NavGroup group={item} />
+								{item.isSection ? (
+									<NavSection section={item} />
 								) : (
 									<NavItem item={item} />
 								)}

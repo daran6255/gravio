@@ -2,13 +2,16 @@ import {
 	Home as HomeIcon,
 	ManageAccounts as UserIcon,
 	CorporateFare as OrgIcon,
-	TrendingUp as CrmIcon,
 	ViewKanban as ProjectsIcon,
 	Person as ProfileIcon,
 	Tune as PreferencesIcon,
 	Shield as SecurityIcon,
 	Notifications as NotificationsIcon,
 	ArrowBack as BackIcon,
+	Business as BusinessIcon,
+	AssignmentInd as LeadsIcon,
+	Handshake as DealsIcon,
+	Assignment as TasksIcon,
 } from '@mui/icons-material';
 import type { SvgIconComponent } from '@mui/icons-material';
 
@@ -24,65 +27,82 @@ export interface NavigationItem {
 	divider?: boolean;
 	hidden?: boolean;
 	sectionId?: string;
+	isSection?: boolean;
 }
 
 export const topNavigation: NavigationItem[] = [
 	{
-		label: 'Home',
-		path: '/dashboard',
-		icon: HomeIcon,
-	},
-	{
-		label: 'Team',
-		path: '/users',
-		icon: UserIcon,
-		roles: ['admin'],
+		label: 'Workspace',
+		isSection: true,
+		children: [
+			{
+				label: 'Home',
+				path: '/dashboard',
+				icon: HomeIcon,
+			},
+			{
+				label: 'Projects',
+				path: '/projects',
+				icon: ProjectsIcon,
+				roles: ['admin', 'manager', 'project_coordinator', 'developer'],
+			},
+			{
+				label: 'Team',
+				path: '/users',
+				icon: UserIcon,
+				roles: ['admin'],
+			},
+			{
+				label: 'Billing',
+				path: '/billing',
+				roles: ['admin'],
+				hidden: true,
+			},
+		],
 	},
 	{
 		label: 'CRM',
-		icon: CrmIcon,
+		isSection: true,
 		roles: ['admin', 'manager', 'marketing', 'placement'],
 		children: [
 			{
 				label: 'Companies',
 				path: '/crm/companies',
+				icon: BusinessIcon,
 				roles: ['admin', 'manager', 'marketing', 'placement'],
 			},
 			{
 				label: 'Leads',
 				path: '/crm/leads',
+				icon: LeadsIcon,
 				roles: ['admin', 'manager', 'marketing', 'placement'],
 			},
 			{
 				label: 'Deals',
 				path: '/crm/deals',
+				icon: DealsIcon,
 				roles: ['admin', 'manager', 'marketing', 'placement'],
 			},
 			{
 				label: 'Tasks',
 				path: '/crm/tasks',
+				icon: TasksIcon,
 				roles: ['admin', 'manager', 'marketing', 'placement'],
 			},
 		],
 	},
-
 	{
-		label: 'Projects',
-		path: '/projects',
-		icon: ProjectsIcon,
-		roles: ['admin', 'manager', 'project_coordinator', 'developer'],
-	},
-	{
-		label: 'Organizations',
-		path: '/organizations',
-		icon: OrgIcon,
+		label: 'Administration',
+		isSection: true,
 		requiresSuperuser: true,
-	},
-	{
-		label: 'Billing',
-		path: '/billing',
-		roles: ['admin'],
-		hidden: true,
+		children: [
+			{
+				label: 'Organizations',
+				path: '/organizations',
+				icon: OrgIcon,
+				requiresSuperuser: true,
+			},
+		],
 	},
 ];
 
