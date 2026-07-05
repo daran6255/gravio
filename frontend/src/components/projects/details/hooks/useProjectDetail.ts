@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import {
 	fetchProject,
@@ -22,6 +22,7 @@ export const useProjectDetail = () => {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 	const location = useLocation();
+	const [searchParams, setSearchParams] = useSearchParams();
 	const toast = useToast();
 	const {
 		currentProject, currentProjectLoading, currentProjectError, projectMutating,
@@ -69,6 +70,21 @@ export const useProjectDetail = () => {
 		dispatch(fetchTaskStatuses());
 	}, [dispatch]);
 
+	// Deep-link support: a `?task=<public_id>` query param (written by the drawer's
+	// "Copy link" / "Open in new tab" actions) auto-opens that task's detail drawer
+	// once the project's tasks have loaded, so the copied/opened URL actually works.
+	useEffect(() => {
+		const taskPublicId = searchParams.get('task');
+		if (!taskPublicId || taskFormOpen) return;
+		const match = projectTasks.find((t) => t.public_id === taskPublicId);
+		if (match) {
+			setEditingTask(match);
+			setSubtaskParent(null);
+			setTaskFormOpen(true);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [projectTasks, searchParams]);
+
 	// `projects/:publicId` and `projects` are flat sibling routes (not nested), so
 	// `navigate('..')` resolves against the route tree and lands on the layout's
 	// own path ("/") instead of the projects list. Strip the trailing /:publicId
@@ -109,6 +125,22 @@ export const useProjectDetail = () => {
 		setEditingTask(task);
 		setSubtaskParent(null);
 		setTaskFormOpen(true);
+		setSearchParams((prev) => {
+			const next = new URLSearchParams(prev);
+			next.set('task', task.public_id);
+			return next;
+		}, { replace: true });
+	};
+
+	const handleCloseTaskForm = () => {
+		setTaskFormOpen(false);
+		if (searchParams.has('task')) {
+			setSearchParams((prev) => {
+				const next = new URLSearchParams(prev);
+				next.delete('task');
+				return next;
+			}, { replace: true });
+		}
 	};
 
 	const handleTaskFormSubmit = async (payload: ProjectTaskCreate | ProjectTaskUpdate) => {
@@ -123,7 +155,7 @@ export const useProjectDetail = () => {
 			await dispatch(createProjectTask({ projectPublicId: publicId, payload: payload as ProjectTaskCreate })).unwrap();
 			toast.success('Task created');
 		}
-		setTaskFormOpen(false);
+		handleCloseTaskForm();
 	};
 
 	const handleMoveTask = async (task: ProjectTask, targetStatus: ProjectTaskStatus) => {
@@ -177,6 +209,7 @@ export const useProjectDetail = () => {
 		handleCreateTaskClick,
 		handleAddSubtaskClick,
 		handleEditTaskClick,
+		handleCloseTaskForm,
 		handleTaskFormSubmit,
 		handleMoveTask,
 

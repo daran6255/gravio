@@ -31,12 +31,12 @@ const ProjectDetailPage: React.FC = () => {
 		projectTags,
 
 		taskFormOpen,
-		setTaskFormOpen,
 		editingTask,
 		subtaskParent,
 		handleCreateTaskClick,
 		handleAddSubtaskClick,
 		handleEditTaskClick,
+		handleCloseTaskForm,
 		handleTaskFormSubmit,
 		handleMoveTask,
 
@@ -112,7 +112,7 @@ const ProjectDetailPage: React.FC = () => {
 						{editingTask ? (
 							<ProjectTaskDetailDrawer
 								open={taskFormOpen}
-								onClose={() => setTaskFormOpen(false)}
+								onClose={handleCloseTaskForm}
 								task={editingTask}
 								tasks={tasks}
 								projectName={project.name}
@@ -126,7 +126,7 @@ const ProjectDetailPage: React.FC = () => {
 						) : (
 							<ProjectTaskCreateDialog
 								open={taskFormOpen}
-								onClose={() => setTaskFormOpen(false)}
+								onClose={handleCloseTaskForm}
 								parentTask={subtaskParent}
 								statuses={taskStatuses}
 								owners={owners}

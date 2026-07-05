@@ -175,7 +175,7 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 						}}
 					/>
 					<Typography sx={{ fontWeight: 650, fontSize: '0.85rem', color: 'text.primary' }}>
-						Sub-issues
+						Sub-tasks
 					</Typography>
 					
 					{/* Completion Badge */}
@@ -526,7 +526,7 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 				</Stack>
 			</Popover>
 
-			{/* Create sub-issue split button */}
+			{/* Create sub-task split button */}
 			<Box sx={{ display: 'flex' }}>
 				<Box
 					sx={{
@@ -559,7 +559,7 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 							}
 						}}
 					>
-						Create sub-issue
+						Create sub-task
 					</Button>
 					<Box sx={{ width: '1px', bgcolor: isDark ? '#30363d' : '#d0d7de' }} />
 					<Button

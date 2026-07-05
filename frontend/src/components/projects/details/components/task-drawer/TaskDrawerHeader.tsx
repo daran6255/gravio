@@ -5,6 +5,11 @@ import {
 	Typography,
 	IconButton,
 	Popover,
+	Menu,
+	MenuItem,
+	ListItemIcon,
+	ListItemText,
+	Divider,
 	TextField,
 	useTheme,
 	alpha,
@@ -13,7 +18,6 @@ import {
 	CloseOutlined,
 	CheckOutlined,
 	DeleteOutline,
-	ContentCopyOutlined,
 	OpenInNewOutlined,
 	MoreHorizOutlined,
 	CheckCircleOutline,
@@ -21,9 +25,11 @@ import {
 	AssignmentOutlined,
 	CalendarTodayOutlined,
 	ListAltOutlined,
+	TagOutlined,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import type { ProjectTask, ProjectTaskUpdate, ProjectTaskStatus } from '../../../../../models/projects/projectTask';
+import useToast from '../../../../../hooks/useToast';
 
 interface TaskDrawerHeaderProps {
 	task: ProjectTask;
@@ -45,10 +51,12 @@ export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
 	onClose,
 }) => {
 	const theme = useTheme();
+	const toast = useToast();
 
 	const [isEditingTitle, setIsEditingTitle] = useState(false);
 	const [editTitle, setEditTitle] = useState(task.title);
 	const [statusAnchor, setStatusAnchor] = useState<HTMLElement | null>(null);
+	const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
 
 	useEffect(() => {
 		setEditTitle(task.title);
@@ -60,6 +68,29 @@ export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
 			await onUpdateField({ title: editTitle.trim() });
 		}
 		setIsEditingTitle(false);
+	};
+
+	// The task drawer isn't itself a route -- it's opened over the project page via
+	// a `?task=<public_id>` query param (see useProjectDetail's deep-link effect),
+	// so that's what makes a copied/opened link actually reopen this exact task.
+	const buildTaskUrl = () => {
+		const url = new URL(window.location.href);
+		url.searchParams.set('task', task.public_id);
+		return url.toString();
+	};
+
+	const handleOpenInNewTab = () => {
+		window.open(buildTaskUrl(), '_blank', 'noopener,noreferrer');
+	};
+
+	const handleCopyTaskId = async () => {
+		try {
+			await navigator.clipboard.writeText(String(task.id));
+			toast.success('Task ID copied to clipboard');
+		} catch {
+			toast.error('Failed to copy task ID');
+		}
+		setMoreAnchor(null);
 	};
 
 	const selectedStatus = statuses.find((s) => s.id === task.status_id) || statuses[0];
@@ -141,16 +172,13 @@ export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
 
 				{/* Header Actions */}
 				<Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
-					<IconButton size="small" title="Copy link" sx={{ color: 'text.secondary', '&:hover': { bgcolor: theme.palette.action.hover } }}>
-						<ContentCopyOutlined fontSize="small" style={{ fontSize: 16 }} />
-					</IconButton>
-					<IconButton size="small" title="Open in new tab" sx={{ color: 'text.secondary', '&:hover': { bgcolor: theme.palette.action.hover } }}>
+					<IconButton size="small" title="Open in new tab" onClick={handleOpenInNewTab} sx={{ color: 'text.secondary', '&:hover': { bgcolor: theme.palette.action.hover } }}>
 						<OpenInNewOutlined fontSize="small" style={{ fontSize: 16 }} />
 					</IconButton>
-					<IconButton size="small" title="Delete issue" onClick={onDelete} sx={{ color: 'error.main', '&:hover': { bgcolor: theme.palette.action.hover } }}>
+					<IconButton size="small" title="Delete task" onClick={onDelete} sx={{ color: 'error.main', '&:hover': { bgcolor: theme.palette.action.hover } }}>
 						<DeleteOutline fontSize="small" style={{ fontSize: 16 }} />
 					</IconButton>
-					<IconButton size="small" title="More options" sx={{ color: 'text.secondary', '&:hover': { bgcolor: theme.palette.action.hover } }}>
+					<IconButton size="small" title="More options" onClick={(e) => setMoreAnchor(e.currentTarget)} sx={{ color: 'text.secondary', '&:hover': { bgcolor: theme.palette.action.hover } }}>
 						<MoreHorizOutlined fontSize="small" style={{ fontSize: 16 }} />
 					</IconButton>
 					<IconButton size="small" onClick={onClose} sx={{ color: 'text.primary', '&:hover': { bgcolor: theme.palette.action.hover } }}>
@@ -158,6 +186,30 @@ export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
 					</IconButton>
 				</Stack>
 			</Box>
+
+			{/* More Options Menu */}
+			<Menu
+				anchorEl={moreAnchor}
+				open={Boolean(moreAnchor)}
+				onClose={() => setMoreAnchor(null)}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+				transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+				MenuListProps={{ dense: true, sx: { py: 0.5 } }}
+				PaperProps={{ sx: { borderRadius: '10px', mt: 0.5, minWidth: 180, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' } }}
+			>
+				<MenuItem onClick={handleCopyTaskId} sx={{ py: 0.6, minHeight: 'auto' }}>
+					<ListItemIcon sx={{ minWidth: 30 }}><TagOutlined fontSize="small" /></ListItemIcon>
+					<ListItemText primary="Copy task ID" primaryTypographyProps={{ fontSize: '0.85rem' }} />
+				</MenuItem>
+				<Divider sx={{ my: 0.5 }} />
+				<MenuItem
+					onClick={() => { setMoreAnchor(null); onDelete(); }}
+					sx={{ py: 0.6, minHeight: 'auto' }}
+				>
+					<ListItemIcon sx={{ minWidth: 30 }}><DeleteOutline fontSize="small" color="error" /></ListItemIcon>
+					<ListItemText primary="Delete task" primaryTypographyProps={{ fontSize: '0.85rem', color: 'error' }} />
+				</MenuItem>
+			</Menu>
 
 			{/* Bottom Row: Metadata Summary Bar */}
 			<Stack direction="row" flexWrap="wrap" gap={1.25} alignItems="center">

@@ -174,7 +174,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 				id: 'subtasks-added',
 				icon: <FormatListBulleted sx={{ fontSize: 15, color: 'text.secondary' }} />,
 				user: 'dharani6255',
-				actionText: 'added sub-issues',
+				actionText: 'added sub-tasks',
 				date: latestSubtaskDate.format('MMM D, YYYY'),
 				dateObj: latestSubtaskDate,
 				nestedContent: (
