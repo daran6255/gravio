@@ -39,7 +39,12 @@ export const CompaniesStatsPanel: React.FC<CompaniesStatsPanelProps> = ({ stats 
 		},
 		{
 			title: 'OPEN PIPELINE VALUE',
-			value: new Intl.NumberFormat(undefined, { style: 'currency', currency: displayCurrency }).format(stats?.total_open_pipeline_value ?? 0),
+			value: new Intl.NumberFormat(undefined, {
+				style: 'currency',
+				currency: displayCurrency,
+				minimumFractionDigits: 2,
+				maximumFractionDigits: 2,
+			}).format(stats?.total_open_pipeline_value ?? 0),
 			subtitle: `${stats?.companies_with_open_deals ?? 0} companies with open deals`,
 			icon: <AttachMoney sx={{ color: '#4EA8FF', fontSize: 26 }} />,
 			color: '#4EA8FF',

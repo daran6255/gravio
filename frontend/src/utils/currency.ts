@@ -39,9 +39,14 @@ export const getCurrencySymbol = (code?: string): string => {
 	return getWorldCurrencies().find((c) => c.code === code)?.symbol || resolveSymbol(code);
 };
 
-/** Formats a numeric value as money in the given ISO 4217 currency (defaults to USD). */
+/** Formats a numeric value as money in the given ISO 4217 currency (defaults to USD) with exactly 2 decimal digits. */
 export const formatMoney = (value: number, currencyCode?: string): string => {
-	return new Intl.NumberFormat(undefined, { style: 'currency', currency: currencyCode || 'USD' }).format(value);
+	return new Intl.NumberFormat(undefined, {
+		style: 'currency',
+		currency: currencyCode || 'USD',
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	}).format(value);
 };
 
 /** Formats an exchange rate as "1 FROM = X.XXXX TO", e.g. "1 USD = 94.4000 INR". */

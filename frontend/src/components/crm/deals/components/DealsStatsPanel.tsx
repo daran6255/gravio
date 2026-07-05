@@ -22,7 +22,12 @@ export const DealsStatsPanel: React.FC<DealsStatsPanelProps> = ({ deals }) => {
 	const statsCards = [
 		{
 			title: 'TOTAL PIPELINE VALUE',
-			value: new Intl.NumberFormat(undefined, { style: 'currency', currency: displayCurrency }).format(totalValue),
+			value: new Intl.NumberFormat(undefined, {
+				style: 'currency',
+				currency: displayCurrency,
+				minimumFractionDigits: 2,
+				maximumFractionDigits: 2,
+			}).format(totalValue),
 			subtitle: 'Sum of all deal values',
 			icon: <ShowChart sx={{ color: '#8B7CF6', fontSize: 26 }} />,
 			color: '#8B7CF6',
@@ -30,7 +35,12 @@ export const DealsStatsPanel: React.FC<DealsStatsPanelProps> = ({ deals }) => {
 		},
 		{
 			title: 'WEIGHTED PIPELINE VALUE',
-			value: new Intl.NumberFormat(undefined, { style: 'currency', currency: displayCurrency }).format(weightedValue),
+			value: new Intl.NumberFormat(undefined, {
+				style: 'currency',
+				currency: displayCurrency,
+				minimumFractionDigits: 2,
+				maximumFractionDigits: 2,
+			}).format(weightedValue),
 			subtitle: 'Probability-adjusted forecast',
 			icon: <TrendingUp sx={{ color: '#10B981', fontSize: 26 }} />,
 			color: '#10B981',

@@ -16,7 +16,12 @@ export const ProjectsStatsPanel: React.FC<ProjectsStatsPanelProps> = ({ stats })
 	const primaryBudget = stats?.budget_by_currency[0];
 	const otherCurrencyCount = (stats?.budget_by_currency.length ?? 0) - 1;
 	const budgetValue = primaryBudget
-		? new Intl.NumberFormat(undefined, { style: 'currency', currency: primaryBudget.currency }).format(primaryBudget.total)
+		? new Intl.NumberFormat(undefined, {
+			style: 'currency',
+			currency: primaryBudget.currency,
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2,
+		}).format(primaryBudget.total)
 		: '—';
 	const taskCompletionPct = stats && stats.total_tasks > 0
 		? Math.round((stats.completed_tasks / stats.total_tasks) * 100)

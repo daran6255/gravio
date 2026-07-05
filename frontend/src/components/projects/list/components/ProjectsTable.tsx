@@ -33,7 +33,12 @@ interface ProjectsTableProps {
 
 const formatBudget = (project: Project): string => {
 	if (project.budget == null) return '—';
-	return new Intl.NumberFormat(undefined, { style: 'currency', currency: project.currency }).format(project.budget);
+	return new Intl.NumberFormat(undefined, {
+		style: 'currency',
+		currency: project.currency,
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	}).format(project.budget);
 };
 
 const CLOSED_STATUSES: ProjectStatus[] = ['completed', 'approved', 'invoiced', 'canceled'];

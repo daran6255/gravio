@@ -125,7 +125,7 @@ export const NotesTimeline: React.FC<NotesTimelineProps> = ({ activities, loadin
 			secondaryParts.push(`On ${activity.entity_type} #${activity.entity_id}`);
 		}
 		
-		if (activity.due_date) {
+		if (activity.type !== 'note' && activity.due_date) {
 			const diffMinutes = Math.abs(new Date(activity.created_at).getTime() - new Date(activity.due_date).getTime()) / 60000;
 			if (diffMinutes > 1) {
 				secondaryParts.push(`Logged on ${formatDateTime(activity.created_at)}`);
@@ -229,6 +229,7 @@ export const NotesTimeline: React.FC<NotesTimelineProps> = ({ activities, loadin
 				items={timelineItems}
 				loading={loading}
 				emptyMessage="No activity yet. Log a call, note, or task above."
+				variant="card"
 			/>
 			{reminderActivity && (
 				<SetReminderDialog

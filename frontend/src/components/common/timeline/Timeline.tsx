@@ -20,15 +20,18 @@ interface TimelineProps {
 	items: TimelineItemDef[];
 	loading?: boolean;
 	emptyMessage?: string;
+	variant?: 'default' | 'card';
 }
 
 export const Timeline: React.FC<TimelineProps> = ({
 	items,
 	loading = false,
 	emptyMessage = 'No timeline events to display.',
+	variant = 'default',
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const isCard = variant === 'card';
 
 	if (loading) {
 		return (
@@ -59,7 +62,7 @@ export const Timeline: React.FC<TimelineProps> = ({
 						sx={{
 							display: 'flex',
 							position: 'relative',
-							pb: isLast ? 0 : 3.5,
+							pb: isLast ? 0 : (isCard ? 2.5 : 3.5),
 							opacity: item.isCompleted ? 0.6 : 1,
 							transition: 'opacity 0.2s ease',
 						}}
@@ -102,7 +105,32 @@ export const Timeline: React.FC<TimelineProps> = ({
 						</Box>
 
 						{/* Content Block */}
-						<Box sx={{ flex: 1, ml: 2, minWidth: 0, pt: 0.25 }}>
+						<Box
+							sx={{
+								flex: 1,
+								ml: 2,
+								minWidth: 0,
+								pt: 0.25,
+								...(isCard && {
+									bgcolor: isDark ? 'rgba(255, 255, 255, 0.02)' : '#ffffff',
+									border: '1px solid',
+									borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+									borderRadius: '12px',
+									p: 2,
+									mb: 0.5,
+									boxShadow: isDark 
+										? '0 2px 8px rgba(0,0,0,0.15)' 
+										: '0 2px 8px rgba(24, 28, 48, 0.02)',
+									transition: 'all 0.2s ease',
+									'&:hover': {
+										borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)',
+										boxShadow: isDark 
+											? '0 4px 16px rgba(0,0,0,0.3)' 
+											: '0 4px 16px rgba(24, 28, 48, 0.04)',
+									}
+								})
+							}}
+						>
 							<Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
 								<Box sx={{ minWidth: 0 }}>
 									<Typography
