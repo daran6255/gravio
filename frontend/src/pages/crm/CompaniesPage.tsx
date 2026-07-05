@@ -70,7 +70,7 @@ const CompaniesPage: React.FC = () => {
 
 	return (
 		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
-			<Container maxWidth="xl" sx={{ py: { xs: 2, sm: 4 } }}>
+			<Container maxWidth={false} sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 1.5, sm: 2, md: 3 } }}>
 				<PageHeader
 					title="Companies"
 					subtitle="Account records for your sales pipeline"

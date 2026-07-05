@@ -65,7 +65,7 @@ const TasksPage: React.FC = () => {
 
 	return (
 		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
-			<Container maxWidth={false} sx={{ py: { xs: 2, sm: 4 }, px: { md: 4 } }}>
+			<Container maxWidth={false} sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 1.5, sm: 2, md: 3 } }}>
 				<PageHeader
 					title="Tasks"
 					subtitle="Manage and track your CRM tasks, calls, meetings, and to-dos"
