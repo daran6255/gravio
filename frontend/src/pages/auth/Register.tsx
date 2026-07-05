@@ -33,7 +33,7 @@ const Register: React.FC = () => {
 					justifyContent: 'center',
 					position: 'relative',
 					pt: { xs: '84px', md: '96px' },
-					pb: { xs: '130px', md: '76px' },
+					pb: { xs: 3, md: '76px' },
 					px: 2,
 					zIndex: 5,
 				}}

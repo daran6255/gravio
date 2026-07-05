@@ -18,6 +18,10 @@ import {
 	ExitToApp as LogoutIcon,
 	ChevronLeftOutlined,
 	ChevronRightOutlined,
+	HourglassEmpty as HourglassIcon,
+	AutoAwesome as PremiumIcon,
+	Warning as WarningIcon,
+	HeadsetMicOutlined as SupportIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
@@ -59,6 +63,112 @@ const Sidebar: React.FC = () => {
 	const handleLogout = () => {
 		dispatch(logoutUser());
 		navigate('/auth/login');
+	};
+
+	const getTrialDaysLeft = (expiryDateStr?: string) => {
+		if (!expiryDateStr) return 0;
+		const expiry = new Date(expiryDateStr);
+		const today = new Date();
+		expiry.setHours(0, 0, 0, 0);
+		today.setHours(0, 0, 0, 0);
+		return Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+	};
+
+	const renderMobileSubscriptionBadge = () => {
+		if (!user || !isMobile) return null;
+		const org = user.organization;
+		if (!org && user.is_superuser) {
+			return (
+				<Box sx={{
+					display: 'flex', alignItems: 'center', gap: 1,
+					px: 1.5, py: 1,
+					borderRadius: '10px',
+					background: isDarkSidebar ? 'rgba(139,124,246,0.15)' : 'rgba(139,124,246,0.1)',
+					border: '1px solid rgba(139,124,246,0.3)',
+				}}>
+					<PremiumIcon sx={{ fontSize: '1rem', color: '#8B7CF6' }} />
+					<Typography variant="caption" sx={{ fontWeight: 700, color: '#A78BFA' }}>Super Admin</Typography>
+				</Box>
+			);
+		}
+		if (!org) return null;
+		const status = org.subscription_status || 'trial';
+		const daysLeft = getTrialDaysLeft(org.trial_expires_at);
+
+		let icon = null;
+		let label = '';
+		let sublabel = '';
+		let badgeBg = '';
+		let badgeBorder = '';
+		let badgeColor = '';
+
+		if (status === 'trial') {
+			if (daysLeft < 0) {
+				icon = <WarningIcon sx={{ fontSize: '1.1rem', color: '#EF4444' }} />;
+				label = 'Trial Expired';
+				sublabel = 'Upgrade to restore access';
+				badgeBg = isDarkSidebar ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.08)';
+				badgeBorder = 'rgba(239,68,68,0.3)';
+				badgeColor = '#EF4444';
+			} else if (daysLeft === 0) {
+				icon = <WarningIcon sx={{ fontSize: '1.1rem', color: '#F59E0B' }} />;
+				label = 'Expires Today';
+				sublabel = 'Upgrade now to keep access';
+				badgeBg = isDarkSidebar ? 'rgba(245,158,11,0.12)' : 'rgba(245,158,11,0.08)';
+				badgeBorder = 'rgba(245,158,11,0.3)';
+				badgeColor = '#F59E0B';
+			} else {
+				icon = <HourglassIcon sx={{ fontSize: '1.1rem', color: '#F59E0B' }} />;
+				label = `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`;
+				sublabel = `Free trial · Expires ${new Date(org.trial_expires_at!).toLocaleDateString()}`;
+				badgeBg = isDarkSidebar ? 'rgba(245,158,11,0.12)' : 'rgba(245,158,11,0.08)';
+				badgeBorder = 'rgba(245,158,11,0.3)';
+				badgeColor = '#F59E0B';
+			}
+		} else if (status === 'active' || status === 'paid') {
+			const planName = org.plan_name || org.plan?.name || 'Pro';
+			icon = <PremiumIcon sx={{ fontSize: '1.1rem', color: '#8B7CF6' }} />;
+			label = planName;
+			sublabel = 'Active plan';
+			badgeBg = isDarkSidebar ? 'rgba(139,124,246,0.15)' : 'rgba(139,124,246,0.1)';
+			badgeBorder = 'rgba(139,124,246,0.3)';
+			badgeColor = isDarkSidebar ? '#A78BFA' : '#7C3AED';
+		} else if (status === 'expired') {
+			icon = <WarningIcon sx={{ fontSize: '1.1rem', color: '#EF4444' }} />;
+			label = 'Subscription Expired';
+			sublabel = 'Renew to restore access';
+			badgeBg = isDarkSidebar ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.08)';
+			badgeBorder = 'rgba(239,68,68,0.3)';
+			badgeColor = '#EF4444';
+		} else {
+			return null;
+		}
+
+		return (
+			<Box
+				onClick={() => navigate('/billing')}
+				sx={{
+					display: 'flex', alignItems: 'center', gap: 1.5,
+					px: 1.5, py: 1.25,
+					borderRadius: '10px',
+					background: badgeBg,
+					border: `1px solid ${badgeBorder}`,
+					cursor: 'pointer',
+					transition: 'opacity 0.2s',
+					'&:hover': { opacity: 0.85 },
+				}}
+			>
+				{icon}
+				<Box sx={{ minWidth: 0 }}>
+					<Typography variant="caption" sx={{ fontWeight: 700, color: badgeColor, display: 'block', lineHeight: 1.2 }}>
+						{label}
+					</Typography>
+					<Typography variant="caption" sx={{ color: sidebarTextMuted, fontSize: '0.68rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+						{sublabel}
+					</Typography>
+				</Box>
+			</Box>
+		);
 	};
 
 	const userInitials = user
@@ -483,8 +593,45 @@ const Sidebar: React.FC = () => {
 					</Box>
 				)}
 
-				{/* User Profile Block or Settings Bottom Controls */}
-				{isSettingsRoute ? (
+				{/* Mobile-only: Trial/Plan Badge + Help & Support */}
+			{isMobile && !isSettingsRoute && user && (
+				<Box sx={{
+					flexShrink: 0,
+					borderTop: `1px solid ${sidebarDivider}`,
+					p: 1.5,
+					display: 'flex',
+					flexDirection: 'column',
+					gap: 1,
+				}}>
+					{renderMobileSubscriptionBadge()}
+					<Button
+						fullWidth
+						variant="contained"
+						startIcon={<SupportIcon sx={{ fontSize: '1rem' }} />}
+						onClick={() => { navigate('/support'); dispatch(toggleSidebar()); }}
+						sx={(muiTheme) => ({
+							textTransform: 'none',
+							fontWeight: 700,
+							fontSize: '0.825rem',
+							borderRadius: '10px',
+							py: 1,
+							justifyContent: 'flex-start',
+							background: muiTheme.gradients?.brandDiagonal ?? 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
+							boxShadow: '0 2px 10px rgba(139, 124, 246, 0.3)',
+							color: '#ffffff',
+							'&:hover': {
+								background: muiTheme.gradients?.brandDiagonalHover ?? 'linear-gradient(135deg, #9C8FFF 0%, #7062E9 100%)',
+								boxShadow: '0 4px 14px rgba(139, 124, 246, 0.5)',
+							},
+						})}
+					>
+						Help & Support
+					</Button>
+				</Box>
+			)}
+
+			{/* User Profile Block or Settings Bottom Controls */}
+			{isSettingsRoute ? (
 					<Box sx={{
 						flexShrink: 0,
 						borderTop: `1px solid ${sidebarDivider}`,

@@ -94,7 +94,7 @@ const Navbar: React.FC = () => {
 			if (daysLeft < 0) {
 				badgeText = 'Trial Expired';
 				tooltipText = 'Your free trial has expired. Click to upgrade and resume access.';
-				icon = <WarningIcon sx={{ fontSize: '1rem', mr: { xs: 0, sm: 0.5 }, color: '#EF4444' }} />;
+				icon = <WarningIcon sx={{ fontSize: '1rem', mr: 0.5, color: '#EF4444' }} />;
 				badgeStyles = {
 					background: mode === 'light' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.15)',
 					border: '1px solid rgba(239, 68, 68, 0.3)',
@@ -103,7 +103,7 @@ const Navbar: React.FC = () => {
 			} else if (daysLeft === 0) {
 				badgeText = 'Expires Today';
 				tooltipText = 'Your free trial expires today! Click here to upgrade.';
-				icon = <WarningIcon sx={{ fontSize: '1rem', mr: { xs: 0, sm: 0.5 }, color: '#F59E0B' }} />;
+				icon = <WarningIcon sx={{ fontSize: '1rem', mr: 0.5, color: '#F59E0B' }} />;
 				badgeStyles = {
 					background: mode === 'light' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.15)',
 					border: '1px solid rgba(245, 158, 11, 0.3)',
@@ -111,9 +111,9 @@ const Navbar: React.FC = () => {
 				};
 				dotColor = '#F59E0B';
 			} else {
-				badgeText = `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`;
+				badgeText = `${daysLeft}d`;
 				tooltipText = `Free Trial: ${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining (Expires ${new Date(org.trial_expires_at!).toLocaleDateString()}). Click to upgrade.`;
-				icon = <HourglassIcon sx={{ fontSize: '1rem', mr: { xs: 0, sm: 0.5 }, color: '#F59E0B' }} />;
+				icon = <HourglassIcon sx={{ fontSize: '1rem', mr: 0.5, color: '#F59E0B' }} />;
 				badgeStyles = {
 					background: mode === 'light' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.15)',
 					border: '1px solid rgba(245, 158, 11, 0.3)',
@@ -125,7 +125,7 @@ const Navbar: React.FC = () => {
 			const planName = org.plan_name || (org.plan?.name) || 'Pro';
 			badgeText = planName;
 			tooltipText = `Active ${planName} Plan. Click to view billing options.`;
-			icon = <PremiumIcon sx={{ fontSize: '1rem', mr: { xs: 0, sm: 0.5 }, color: '#8B7CF6' }} />;
+			icon = <PremiumIcon sx={{ fontSize: '1rem', mr: 0.5, color: '#8B7CF6' }} />;
 			badgeStyles = {
 				background: mode === 'light' ? 'rgba(139, 124, 246, 0.1)' : 'rgba(139, 124, 246, 0.15)',
 				border: '1px solid rgba(139, 124, 246, 0.3)',
@@ -134,7 +134,7 @@ const Navbar: React.FC = () => {
 		} else if (status === 'expired') {
 			badgeText = 'Expired';
 			tooltipText = 'Your subscription has expired. Click here to renew.';
-			icon = <WarningIcon sx={{ fontSize: '1rem', mr: { xs: 0, sm: 0.5 }, color: '#EF4444' }} />;
+			icon = <WarningIcon sx={{ fontSize: '1rem', mr: 0.5, color: '#EF4444' }} />;
 			badgeStyles = {
 				background: mode === 'light' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.15)',
 				border: '1px solid rgba(239, 68, 68, 0.3)',
@@ -152,13 +152,13 @@ const Navbar: React.FC = () => {
 						display: 'flex',
 						alignItems: 'center',
 						textTransform: 'none',
-						fontSize: '0.8125rem',
+						fontSize: { xs: '0.7rem', sm: '0.8125rem' },
 						fontWeight: 700,
 						borderRadius: '10px',
-						px: { xs: 1, sm: 2 },
+						px: { xs: 0.75, sm: 2 },
 						py: 0.5,
 						minWidth: 0,
-						mr: 1.5,
+						mr: { xs: 0.5, sm: 1.5 },
 						transition: 'all 0.2s ease-in-out',
 						...badgeStyles,
 						'&:hover': {
@@ -176,7 +176,7 @@ const Navbar: React.FC = () => {
 					<Box
 						component="span"
 						sx={{
-							display: { xs: 'none', sm: 'inline-flex' },
+							display: 'inline-flex',
 							alignItems: 'center',
 							gap: 0.75
 						}}
@@ -262,8 +262,10 @@ const Navbar: React.FC = () => {
 
 				{/* Right Side: Theme Toggle, Notifications, Help, Divider, Action Button */}
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-					{/* Subscription Plan / Trial Badge */}
-					{renderSubscriptionBadge()}
+					{/* Subscription Plan / Trial Badge — desktop only (moved to Sidebar on mobile) */}
+					<Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center' }}>
+						{renderSubscriptionBadge()}
+					</Box>
 
 					{/* Preferred Display Currency */}
 					{user?.currency && (
@@ -315,16 +317,17 @@ const Navbar: React.FC = () => {
 						}}
 					/>
 
-					{/* Help & Support Button */}
+					{/* Help & Support Button — desktop only (moved to Sidebar on mobile) */}
 					<Button
 						variant="contained"
 						aria-label="Help and support"
 						sx={(theme) => ({
+							display: { xs: 'none', sm: 'inline-flex' },
 							borderRadius: '10px',
 							fontWeight: 700,
 							textTransform: 'none',
 							fontSize: '0.8125rem',
-							px: { xs: 1.5, sm: 2.5 },
+							px: 2.5,
 							py: 0.85,
 							minWidth: 0,
 							color: '#ffffff',
@@ -339,10 +342,8 @@ const Navbar: React.FC = () => {
 							}
 						})}
 					>
-						<SupportIcon sx={{ mr: { xs: 0, sm: 0.75 }, fontSize: '1.1rem' }} />
-						<Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-							Help & Support
-						</Box>
+						<SupportIcon sx={{ mr: 0.75, fontSize: '1.1rem' }} />
+						Help & Support
 					</Button>
 				</Box>
 			</Toolbar>

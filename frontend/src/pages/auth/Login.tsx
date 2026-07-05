@@ -72,8 +72,8 @@ const Login: React.FC = () => {
 					alignItems: 'center',
 					justifyContent: 'center',
 					position: 'relative',
-					pt: { xs: '100px', md: '120px' },
-					pb: { xs: '140px', md: '100px' },
+					pt: { xs: '84px', md: '120px' },
+					pb: { xs: 3, md: '100px' },
 					px: 2,
 					zIndex: 5,
 				}}

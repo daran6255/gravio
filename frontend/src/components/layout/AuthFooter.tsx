@@ -7,20 +7,21 @@ const AuthFooter: React.FC = () => {
 		<Box
 			component="footer"
 			sx={{
-				position: 'fixed',
-				bottom: 0,
-				left: 0,
-				right: 0,
+				position: { xs: 'static', md: 'fixed' },
+				bottom: { xs: 'auto', md: 0 },
+				left: { xs: 'auto', md: 0 },
+				right: { xs: 'auto', md: 0 },
 				display: 'flex',
 				flexDirection: { xs: 'column', md: 'row' },
 				alignItems: 'center',
 				justifyContent: 'space-between',
-				py: 3,
+				py: { xs: 2, md: 3 },
 				px: { xs: 3, md: 6 },
 				borderTop: '1px solid rgba(255, 255, 255, 0.05)',
 				bgcolor: '#08090d',
-				gap: 2,
+				gap: { xs: 1.5, md: 2 },
 				zIndex: 1000,
+				mt: { xs: 2, md: 0 },
 			}}
 		>
 			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
