@@ -17,13 +17,13 @@ import GlobalSearch from '../common/GlobalSearch';
 import NotificationBell from './NotificationBell';
 import { getCurrencySymbol } from '../../utils/currency';
 
-const DRAWER_WIDTH = 260;
-
 const Navbar: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 	const { mode, toggleColorMode } = useColorMode();
 	const user = useAppSelector((state) => state.auth.user);
+	const sidebarOpen = useAppSelector((state) => state.ui.sidebarOpen);
+	const currentDrawerWidth = sidebarOpen ? 260 : 64;
 
 	// Calculate trial days left
 	const getTrialDaysLeft = (expiryDateStr?: string) => {
@@ -222,11 +222,11 @@ const Navbar: React.FC = () => {
 			sx={{
 				width: {
 					xs: '100%',
-					md: `calc(100% - ${DRAWER_WIDTH}px)`
+					md: `calc(100% - ${currentDrawerWidth}px)`
 				},
 				ml: {
 					xs: 0,
-					md: `${DRAWER_WIDTH}px`
+					md: `${currentDrawerWidth}px`
 				},
 				left: 0,
 				right: 0,
@@ -252,7 +252,7 @@ const Navbar: React.FC = () => {
 						sx={{
 							mr: 2,
 							color: mode === 'light' ? '#64748b' : '#94A3B8',
-							display: { xs: 'inline-flex', md: 'none' }
+							display: 'inline-flex'
 						}}
 					>
 						<MenuIcon aria-hidden="true" />

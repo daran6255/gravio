@@ -16,6 +16,8 @@ import {
 import {
 	Person as ProfileIcon,
 	ExitToApp as LogoutIcon,
+	ChevronLeftOutlined,
+	ChevronRightOutlined,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
@@ -52,7 +54,7 @@ const Sidebar: React.FC = () => {
 	const sidebarTextMuted = isDarkSidebar ? '#94A3B8' : '#64748b';
 	const sidebarDivider = isDarkSidebar ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)';
 	const sidebarHoverBg = isDarkSidebar ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)';
-	const drawerExpanded = isMobile ? open : true; // Always expanded on desktop
+	const drawerExpanded = open;
 
 	const handleLogout = () => {
 		dispatch(logoutUser());
@@ -361,21 +363,45 @@ const Sidebar: React.FC = () => {
 						height: 64,
 						display: 'flex',
 						alignItems: 'center',
-						justifyContent: 'flex-start',
-						px: 3, // Premium padding
+						justifyContent: drawerExpanded ? 'flex-start' : 'center',
+						px: drawerExpanded ? 3 : 0, // Premium padding
 						borderBottom: `1px solid ${sidebarDivider}`,
 					}}
 				>
-					<Box
-						component="img"
-						src={isDarkSidebar ? '/assets/img/logo/gravit-dark.svg' : '/assets/img/logo/gravit-light.svg'}
-						alt="Gravit logo"
-						sx={{
-							height: 62, // Enlarged logo
-							cursor: 'pointer'
-						}}
-						onClick={() => navigate('/')}
-					/>
+					{drawerExpanded ? (
+						<Box
+							component="img"
+							src={isDarkSidebar ? '/assets/img/logo/gravit-dark.svg' : '/assets/img/logo/gravit-light.svg'}
+							alt="Gravit logo"
+							sx={{
+								height: 62, // Enlarged logo
+								cursor: 'pointer'
+							}}
+							onClick={() => navigate('/')}
+						/>
+					) : (
+						<Box
+							onClick={() => navigate('/')}
+							sx={{
+								width: 36,
+								height: 36,
+								borderRadius: '8px',
+								background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
+								display: 'flex',
+								alignItems: 'center',
+								justifyContent: 'center',
+								cursor: 'pointer',
+								boxShadow: '0 2px 8px rgba(139, 124, 246, 0.3)',
+							}}
+						>
+							<svg width="22" height="22" viewBox="-75 -80 150 155" xmlns="http://www.w3.org/2000/svg">
+								<g>
+									<path d="M 36 -54 A 65 65 0 1 0 65 12 L 18 12" fill="none" stroke="#ffffff" strokeWidth="13" strokeLinecap="round"/>
+									<circle cx="58" cy="-66" r="10" fill="#ffffff"/>
+								</g>
+							</svg>
+						</Box>
+					)}
 				</Box>
 
 				{/* Navigation Links List */}
@@ -417,6 +443,44 @@ const Sidebar: React.FC = () => {
 						))}
 					</List>
 				</Box>
+
+				{/* Collapse / Expand Toggle Button for Desktop */}
+				{!isMobile && (
+					<Box sx={{ flexShrink: 0, borderTop: `1px solid ${sidebarDivider}`, p: 0.5 }}>
+						<ListItemButton
+							onClick={() => dispatch(toggleSidebar())}
+							sx={{
+								minHeight: 36,
+								px: drawerExpanded ? 1.5 : 0,
+								py: 0.5,
+								mx: drawerExpanded ? 0.75 : 0.5,
+								borderRadius: 1.25,
+								justifyContent: drawerExpanded ? 'initial' : 'center',
+								transition: theme.transitions.create(['background-color', 'color', 'margin']),
+								'&:hover': {
+									bgcolor: sidebarHoverBg,
+								},
+							}}
+						>
+							<ListItemIcon sx={{ minWidth: 0, mr: drawerExpanded ? 1.25 : 0, color: sidebarTextMuted, justifyContent: 'center' }}>
+								{drawerExpanded ? <ChevronLeftOutlined sx={{ fontSize: '1.2rem' }} /> : <ChevronRightOutlined sx={{ fontSize: '1.2rem' }} />}
+							</ListItemIcon>
+							<ListItemText
+								primary="Collapse sidebar"
+								sx={{
+									opacity: drawerExpanded ? 1 : 0,
+									display: drawerExpanded ? 'block' : 'none',
+									m: 0,
+									'& .MuiListItemText-primary': {
+										...theme.typography.sidebarItem,
+										color: sidebarTextMuted,
+										whiteSpace: 'nowrap',
+									}
+								}}
+							/>
+						</ListItemButton>
+					</Box>
+				)}
 
 				{/* User Profile Block or Settings Bottom Controls */}
 				{isSettingsRoute ? (
