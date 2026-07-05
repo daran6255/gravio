@@ -97,7 +97,7 @@ export const TaskDescriptionCard: React.FC<TaskDescriptionCardProps> = ({
 	const saveDescription = async () => {
 		if (editDesc !== (task.description || '')) {
 			await onUpdateField({
-				description: editDesc.trim() || undefined,
+				description: editDesc.trim() || null,
 				custom_fields: {
 					...task.custom_fields,
 					last_edited_by: user?.username || 'dharani6255'

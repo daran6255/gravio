@@ -28,7 +28,7 @@ interface ProjectTaskDetailDrawerProps {
 	statuses: ProjectTaskStatus[];
 	owners: CRMOwnerOption[];
 	existingTags: ProjectTaskTag[];
-	onSubmit: (payload: ProjectTaskUpdate) => Promise<void>;
+	onSubmit: (payload: ProjectTaskUpdate, keepOpen?: boolean) => Promise<void>;
 	onDelete: () => void;
 	onAddSubtask: (parent: ProjectTask) => void;
 }
@@ -59,7 +59,7 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 	const latestTask = tasks.find((t) => t.id === task.id) || task;
 
 	const handleUpdateField = async (fields: ProjectTaskUpdate) => {
-		await onSubmit(fields);
+		await onSubmit(fields, true);
 	};
 
 	const handleUpdateSubtask = async (subtaskPublicId: string, fields: ProjectTaskUpdate) => {

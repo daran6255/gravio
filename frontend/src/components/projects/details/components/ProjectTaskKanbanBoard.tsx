@@ -75,11 +75,6 @@ export const ProjectTaskKanbanBoard: React.FC<ProjectTaskKanbanBoardProps> = ({
 
 		const currentType = task.custom_fields?.task_type || { name: 'Task', color: '#FF9800' };
 
-		// Truncated description text (clean text, no HTML tags)
-		const cleanDescription = task.description 
-			? task.description.replace(/<[^>]*>/g, '').trim() 
-			: '';
-
 		const dateText = (() => {
 			if (!task.due_date) return null;
 			const formattedDue = formatDate(task.due_date);
@@ -157,29 +152,9 @@ export const ProjectTaskKanbanBoard: React.FC<ProjectTaskKanbanBoardProps> = ({
 					</Stack>
 
 					{/* Title */}
-					<Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem', color: 'text.primary', mb: 0.75, lineHeight: 1.4, wordBreak: 'break-word' }}>
+					<Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem', color: 'text.primary', mb: 1.25, lineHeight: 1.4, wordBreak: 'break-word' }}>
 						{task.title}
 					</Typography>
-
-					{/* Description Preview (up to 2 lines) */}
-					{cleanDescription && (
-						<Typography
-							variant="body2"
-							sx={{
-								fontSize: '0.75rem',
-								color: 'text.secondary',
-								mb: 1.5,
-								overflow: 'hidden',
-								textOverflow: 'ellipsis',
-								display: '-webkit-box',
-								WebkitLineClamp: 2,
-								WebkitBoxDirection: 'vertical',
-								lineHeight: 1.4,
-							}}
-						>
-							{cleanDescription}
-						</Typography>
-					)}
 
 					{/* Metadata Chips: Priority, Labels, Estimate */}
 					<Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mb: 1.5 }}>

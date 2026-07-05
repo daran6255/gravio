@@ -38,7 +38,7 @@ export interface ProjectTask {
 	project_id: number;
 	parent_task_id?: number;
 	title: string;
-	description?: string;
+	description?: string | null;
 	status_id: number;
 	priority: LeadPriority;
 	assignee_id?: number;
@@ -59,7 +59,7 @@ export interface ProjectTask {
  * (parent_task_id is derived from the URL, not this payload). */
 export interface ProjectTaskCreate {
 	title: string;
-	description?: string;
+	description?: string | null;
 	status_id?: number;
 	priority?: LeadPriority;
 	assignee_id?: number;
