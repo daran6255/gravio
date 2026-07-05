@@ -23,6 +23,19 @@ declare module '@mui/material/styles' {
 	interface PaletteOptions {
 		accent?: PaletteOptions['primary'];
 	}
+	interface Theme {
+		gradients: {
+			/** Horizontal brand gradient — primary CTA buttons */
+			brand: string;
+			/** Diagonal brand gradient — badges, highlights */
+			brandDiagonal: string;
+			/** Hover state of the diagonal brand gradient */
+			brandDiagonalHover: string;
+		};
+	}
+	interface ThemeOptions {
+		gradients?: Theme['gradients'];
+	}
 }
 
 declare module '@mui/material/Typography' {
@@ -41,6 +54,11 @@ export const getThemeByMode = (mode: 'light' | 'dark'): Theme => {
 	return createTheme({
 		breakpoints: {
 			values: breakpointValues,
+		},
+		gradients: {
+			brand: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
+			brandDiagonal: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
+			brandDiagonalHover: 'linear-gradient(135deg, #9C8FFF 0%, #7062E9 100%)',
 		},
 		palette: {
 			mode,

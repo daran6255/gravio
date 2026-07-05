@@ -35,8 +35,8 @@ const SettingsLayoutInner: React.FC = () => {
 					id="settings-scroll-container"
 					sx={{
 						flexGrow: 1,
-						px: { xs: 3, sm: 5 },
-						py: 4,
+						px: { xs: 1.5, sm: 3, md: 5 },
+						py: { xs: 2, sm: 4 },
 						pb: hasChanges ? 10 : 4,
 						overflowY: 'auto',
 						scrollPaddingTop: '24px',
@@ -73,10 +73,12 @@ const SettingsLayoutInner: React.FC = () => {
 						sx={{
 							position: 'fixed',
 							bottom: 0,
-							left: 260,
+							left: { xs: 0, md: 260 },
 							right: 0,
-							px: 4,
+							px: { xs: 2, sm: 4 },
 							py: 1.5,
+							flexWrap: 'wrap',
+							gap: 1,
 							bgcolor: isDark ? '#0B0D12' : '#1e293b',
 							borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
 							display: 'flex',

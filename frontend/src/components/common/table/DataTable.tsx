@@ -92,7 +92,7 @@ const DataTable = <T,>({
 				headerActions={headerActions}
 			/>
 
-			<TableContainer>
+			<TableContainer sx={{ WebkitOverflowScrolling: 'touch' }}>
 				<Table sx={{ minWidth: 650 }}>
 					<DataTableHead
 						columns={columns}

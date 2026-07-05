@@ -5,5 +5,6 @@ export {
 	media,
 	useResponsive,
 	responsiveStyles,
+	fieldWidth,
 	type BreakpointKey,
 } from './responsive';

@@ -80,7 +80,16 @@ export function KanbanBoard<T>({
 
 	return (
 		<DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-			<Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 2 }}>
+			<Box
+				sx={{
+					display: 'flex',
+					gap: { xs: 1.5, md: 2 },
+					overflowX: 'auto',
+					WebkitOverflowScrolling: 'touch',
+					scrollSnapType: { xs: 'x proximity', md: 'none' },
+					pb: 2,
+				}}
+			>
 				{columns.map((column) => {
 					const columnItems = itemsByColumn(column.id);
 					return (

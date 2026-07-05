@@ -98,7 +98,7 @@ export const LeadsBulkActionBar: React.FC<LeadsBulkActionBarProps> = ({
 					</Typography>
 				</Stack>
 
-				<Stack direction="row" spacing={1.5} sx={{ ml: { xs: 0, sm: 2 } }}>
+				<Stack direction="row" spacing={1.5} useFlexGap flexWrap="wrap" sx={{ ml: { xs: 0, sm: 2 } }}>
 					{/* Reassign Button */}
 					<Button
 						variant="outlined"

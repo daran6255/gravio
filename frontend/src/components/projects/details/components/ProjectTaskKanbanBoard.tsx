@@ -301,7 +301,6 @@ export const ProjectTaskKanbanBoard: React.FC<ProjectTaskKanbanBoardProps> = ({
 			renderCard={renderCard}
 			onMoveItem={handleMoveItem}
 			loading={loading}
-			columnWidth={290}
 			emptyMessage="No task statuses configured for this organization yet."
 		/>
 	);

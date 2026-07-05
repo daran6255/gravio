@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Box, Container } from '@mui/material';
+import { responsiveStyles } from '../../theme';
 import PageHeader from '../../components/common/page-header';
 import { ActivityFeedFilters, TaskKanbanBoard, TasksStatsPanel, useActivityFeed } from '../../components/crm';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -63,7 +64,7 @@ const TasksPage: React.FC = () => {
 
 	return (
 		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
-			<Container maxWidth={false} sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 1.5, sm: 2, md: 3 } }}>
+			<Container maxWidth={false} sx={responsiveStyles.pageContainer}>
 				<PageHeader
 					title="Tasks"
 					subtitle="Manage and track your CRM tasks, calls, meetings, and to-dos"

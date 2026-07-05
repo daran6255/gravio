@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Container, Stack, Button, Typography, CircularProgress } from '@mui/material';
 import { AddOutlined, TuneOutlined } from '@mui/icons-material';
+import { responsiveStyles } from '../../theme';
 import { ConfirmationDialog } from '../../components/common/dialogbox';
 import {
 	ProjectDetailHeader,
@@ -52,7 +53,7 @@ const ProjectDetailPage: React.FC = () => {
 
 	return (
 		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
-			<Container maxWidth={false} sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 1.5, sm: 2, md: 3 } }}>
+			<Container maxWidth={false} sx={responsiveStyles.pageContainer}>
 				{loading && !project ? (
 					<Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
 						<CircularProgress size={40} thickness={3} />
@@ -74,7 +75,7 @@ const ProjectDetailPage: React.FC = () => {
 							<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.01em' }}>
 								Task Board
 							</Typography>
-							<Stack direction="row" spacing={1.5}>
+							<Box sx={responsiveStyles.headerActionRow}>
 								<Button
 									variant="outlined"
 									startIcon={<TuneOutlined />}
@@ -87,15 +88,15 @@ const ProjectDetailPage: React.FC = () => {
 									variant="contained"
 									startIcon={<AddOutlined />}
 									onClick={handleCreateTaskClick}
-									sx={{
+									sx={(theme) => ({
 										color: 'white', textTransform: 'none', fontWeight: 700, borderRadius: '8px', boxShadow: 'none',
-										background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
+										background: theme.gradients.brand,
 										'&:hover': { boxShadow: '0 4px 12px rgba(139,124,246,0.3)' },
-									}}
+									})}
 								>
 									Add Task
 								</Button>
-							</Stack>
+							</Box>
 						</Stack>
 
 						<ProjectTaskKanbanBoard

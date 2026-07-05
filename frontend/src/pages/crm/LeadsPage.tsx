@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box, Container, Grid, Stack, Button, useTheme, Typography } from '@mui/material';
 import { HelpOutline, FileUploadOutlined, LockOutlined } from '@mui/icons-material';
 import PageHeader from '../../components/common/page-header';
+import { responsiveStyles } from '../../theme';
 import { PremiumTooltip } from '../../components/common/PremiumTooltip';
 import { useAppSelector } from '../../store/hooks';
 import { isFreeTier } from '../../utils/plan';
@@ -102,12 +103,12 @@ const LeadsPage: React.FC = () => {
 
 	return (
 		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
-			<Container maxWidth={false} sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 1.5, sm: 2, md: 3 } }}>
+			<Container maxWidth={false} sx={responsiveStyles.pageContainer}>
 				<PageHeader
 					title="Leads"
 					subtitle="Capture, qualify, and convert your sales pipeline"
 					action={
-						<Stack direction="row" spacing={1.5}>
+						<Stack direction="row" spacing={1.5} useFlexGap flexWrap="wrap">
 							<PremiumTooltip
 								title={locked ? 'Upgrade to a paid plan to import leads from CSV' : ''}
 								arrow
@@ -242,9 +243,9 @@ const LeadsPage: React.FC = () => {
 					</Box>
 				)}
 
-				<Grid container spacing={3}>
+				<Grid container spacing={responsiveStyles.statsGridSpacing}>
 					<Grid size={{ xs: 12, md: 3 }}>
-						<Stack spacing={3}>
+						<Stack spacing={responsiveStyles.statsGridSpacing}>
 							<LeadsFilterPanel
 								stats={leadStats}
 								status={statusFilter}

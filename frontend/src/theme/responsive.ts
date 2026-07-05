@@ -88,10 +88,41 @@ export const useResponsive = () => {
 };
 
 /**
+ * Field width helper — full-width on phones, fixed min-width from sm up.
+ *   <TextField sx={fieldWidth(180)} />
+ */
+export const fieldWidth = (smMinWidth: number) => ({
+	minWidth: { xs: '100%', sm: smMinWidth },
+});
+
+/**
  * Reusable responsive style presets. Spread into sx:
  *   <Box sx={{ ...responsiveStyles.pagePadding }}>
  */
 export const responsiveStyles = {
+	/** Page-level Container padding (all list/detail pages) */
+	pageContainer: {
+		py: { xs: 1.5, sm: 2 },
+		px: { xs: 1.5, sm: 2, md: 3 },
+	},
+	/** Header action cluster: wraps, full-width on phones */
+	headerActionRow: {
+		display: 'flex',
+		flexDirection: 'row' as const,
+		flexWrap: 'wrap' as const,
+		alignItems: 'center',
+		gap: 1.5,
+		width: { xs: '100%', sm: 'auto' },
+	},
+	/** Filter/toolbar row: stacks on phones, inline from sm up */
+	filterRow: {
+		display: 'flex',
+		flexDirection: { xs: 'column', sm: 'row' } as const,
+		gap: { xs: 1.5, sm: 2 },
+		width: { xs: '100%', sm: 'auto' },
+	},
+	/** Stats grid container spacing */
+	statsGridSpacing: { xs: 2, md: 3 },
 	/** Standard page gutter that tightens on smaller screens */
 	pagePadding: {
 		px: { xs: 1.5, sm: 2, md: 3, xl: 4 },

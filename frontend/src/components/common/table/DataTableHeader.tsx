@@ -43,16 +43,16 @@ const DataTableHeader: React.FC<DataTableHeaderProps> = memo(({
 
 	return (
 		<Box sx={{
-			p: 2.5,
+			p: { xs: 1.5, sm: 2.5 },
 			display: 'flex',
-			flexDirection: { xs: 'column', sm: 'row' },
+			flexDirection: { xs: 'column', md: 'row' },
 			justifyContent: 'space-between',
-			alignItems: { xs: 'stretch', sm: 'center' },
+			alignItems: { xs: 'stretch', md: 'center' },
 			borderBottom: '1px solid',
 			borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
-			gap: 2
+			gap: { xs: 1.5, sm: 2 }
 		}}>
-			<Box sx={{ display: 'flex', flex: 1, gap: 2, alignItems: 'center' }}>
+			<Box sx={{ display: 'flex', flex: 1, gap: { xs: 1.5, sm: 2 }, alignItems: 'center', flexWrap: { xs: 'wrap', sm: 'nowrap' }, minWidth: 0 }}>
 				{onSearchChange && (
 					<TextField
 						placeholder={searchPlaceholder}
@@ -90,7 +90,7 @@ const DataTableHeader: React.FC<DataTableHeaderProps> = memo(({
 				{headerActions}
 			</Box>
 
-			<Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'space-between', sm: 'flex-end' } }}>
+			<Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: { xs: 'space-between', md: 'flex-end' } }}>
 				<Box sx={{ display: 'flex', gap: 1 }}>
 					{onRefresh && (
 						<Tooltip title="Refresh data">
@@ -151,7 +151,7 @@ const DataTableHeader: React.FC<DataTableHeaderProps> = memo(({
 							fontWeight: 700,
 							borderRadius: '10px',
 							boxShadow: 'none',
-							background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
+							background: theme.gradients.brand,
 							'&:hover': {
 								boxShadow: '0 4px 12px rgba(139,124,246,0.3)',
 							}

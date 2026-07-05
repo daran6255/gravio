@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Container, Grid, Stack } from '@mui/material';
+import { responsiveStyles } from '../../theme';
 import PageHeader from '../../components/common/page-header';
 import { ConfirmationDialog } from '../../components/common/dialogbox';
 import {
@@ -54,7 +55,7 @@ const ProjectsListPage: React.FC = () => {
 
 	return (
 		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
-			<Container maxWidth={false} sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 1.5, sm: 2, md: 3 } }}>
+			<Container maxWidth={false} sx={responsiveStyles.pageContainer}>
 				<PageHeader
 					title="Projects"
 					subtitle="Delivery projects converted from Won deals"
@@ -62,9 +63,9 @@ const ProjectsListPage: React.FC = () => {
 
 				<ProjectsStatsPanel stats={projectStats} />
 
-				<Grid container spacing={3}>
+				<Grid container spacing={responsiveStyles.statsGridSpacing}>
 					<Grid size={{ xs: 12, md: 3 }}>
-						<Stack spacing={3}>
+						<Stack spacing={responsiveStyles.statsGridSpacing}>
 							<ProjectStatusBreakdown statusCounts={projectStats?.status_counts ?? []} />
 							<ProjectAttentionPanel
 								upcomingDeadlines={projectStats?.upcoming_deadlines ?? []}

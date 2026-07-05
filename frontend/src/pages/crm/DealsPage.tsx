@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Container, Button, MenuItem, TextField, Stack } from '@mui/material';
 import { Settings, Add } from '@mui/icons-material';
+import { responsiveStyles, fieldWidth } from '../../theme';
 import PageHeader from '../../components/common/page-header';
 import {
 	DealsKanbanBoard,
@@ -60,14 +61,14 @@ const DealsPage: React.FC = () => {
 	const { companyOptions, owners } = useAppSelector((state) => state.crm);
 
 	const headerAction = (
-		<Stack direction="row" spacing={1.5} alignItems="center">
+		<Box sx={responsiveStyles.headerActionRow}>
 			{pipelines.length > 1 && (
 				<TextField
 					select
 					size="small"
 					value={activePipelineId ?? ''}
 					onChange={(e) => setActivePipelineId(Number(e.target.value))}
-					sx={{ minWidth: 180 }}
+					sx={fieldWidth(180)}
 				>
 					{pipelines.map((p) => (
 						<MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
@@ -88,27 +89,27 @@ const DealsPage: React.FC = () => {
 				variant="contained"
 				startIcon={<Add />}
 				onClick={handleCreateClick}
-				sx={{
+				sx={(theme) => ({
 					color: 'white',
 					textTransform: 'none',
 					fontWeight: 700,
 					borderRadius: '10px',
 					height: 40,
 					boxShadow: 'none',
-					background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
+					background: theme.gradients.brand,
 					'&:hover': {
 						boxShadow: '0 4px 12px rgba(139,124,246,0.3)',
 					}
-				}}
+				})}
 			>
 				New Deal
 			</Button>
-		</Stack>
+		</Box>
 	);
 
 	return (
 		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
-			<Container maxWidth={false} sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 1.5, sm: 2, md: 3 } }}>
+			<Container maxWidth={false} sx={responsiveStyles.pageContainer}>
 				<PageHeader
 					title="Deals"
 					subtitle="Drag a card to move it through your pipeline"
@@ -124,13 +125,13 @@ const DealsPage: React.FC = () => {
 					justifyContent="space-between"
 					sx={{ mb: 3 }}
 				>
-					<Stack direction="row" spacing={2} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+					<Box sx={responsiveStyles.filterRow}>
 						<TextField
 							size="small"
 							placeholder="Search deals..."
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
-							sx={{ minWidth: 240 }}
+							sx={fieldWidth(240)}
 						/>
 						<TextField
 							select
@@ -138,7 +139,7 @@ const DealsPage: React.FC = () => {
 							label="Owner"
 							value={ownerFilter}
 							onChange={(e) => setOwnerFilter(e.target.value ? Number(e.target.value) : '')}
-							sx={{ minWidth: 160 }}
+							sx={fieldWidth(160)}
 						>
 							<MenuItem value="">All Owners</MenuItem>
 							{owners.map((o) => (
@@ -147,7 +148,7 @@ const DealsPage: React.FC = () => {
 								</MenuItem>
 							))}
 						</TextField>
-					</Stack>
+					</Box>
 				</Stack>
 
 				<DealsKanbanBoard

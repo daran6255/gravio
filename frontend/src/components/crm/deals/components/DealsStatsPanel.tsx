@@ -57,9 +57,9 @@ export const DealsStatsPanel: React.FC<DealsStatsPanelProps> = ({ deals }) => {
 	];
 
 	return (
-		<Grid container spacing={3} sx={{ mb: 3 }}>
+		<Grid container spacing={{ xs: 2, md: 3 }} sx={{ mb: 3 }}>
 			{statsCards.map((card, idx) => (
-				<Grid size={{ xs: 12, md: 4 }} key={idx}>
+				<Grid size={{ xs: 12, sm: 6, md: 4 }} key={idx}>
 					<StatCard {...card} />
 				</Grid>
 			))}

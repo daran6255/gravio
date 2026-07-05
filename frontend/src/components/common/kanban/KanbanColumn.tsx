@@ -12,7 +12,7 @@ export interface KanbanColumnProps {
 	children: React.ReactNode;
 }
 
-export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, label, color, count, footer, width = 280, children }) => {
+export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, label, color, count, footer, width, children }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const { setNodeRef, isOver } = useDroppable({ id });
@@ -23,11 +23,12 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, label, color, co
 				display: 'flex',
 				flexDirection: 'column',
 				width: '100%',
-				minWidth: width,
+				minWidth: width ?? { xs: 250, sm: 270, md: 280 },
 				flex: 1,
-				height: 'calc(100vh - 430px)',
-				minHeight: 380,
+				height: { xs: 'calc(100dvh - 340px)', sm: 'calc(100vh - 430px)' },
+				minHeight: { xs: 320, sm: 380 },
 				flexShrink: 0,
+				scrollSnapAlign: { xs: 'start', md: 'none' },
 				borderRadius: '16px',
 				border: '1px solid',
 				borderColor: isOver ? alpha(theme.palette.primary.main, 0.5) : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'),

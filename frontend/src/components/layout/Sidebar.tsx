@@ -342,6 +342,7 @@ const Sidebar: React.FC = () => {
 				}),
 				'& .MuiDrawer-paper': {
 					width: drawerExpanded ? DRAWER_WIDTH : (isMobile ? 0 : COLLAPSED_WIDTH),
+					maxWidth: '85vw', // Never cover the full screen on small phones
 					overflowX: 'hidden',
 					transition: theme.transitions.create('width', {
 						easing: theme.transitions.easing.sharp,

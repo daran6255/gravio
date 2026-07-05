@@ -7,6 +7,7 @@ import {
 	MailOutline as MailOutlineIcon,
 	ManageAccounts as ManageAccountsIcon
 } from '@mui/icons-material';
+import { responsiveStyles } from '../../theme';
 import PageHeader from '../../components/common/page-header';
 import {
 	OrgManagementTable,
@@ -116,23 +117,23 @@ const OrgManagement: React.FC = () => {
 			variant="contained"
 			startIcon={<AddIcon />}
 			onClick={handleAddUser}
-			sx={{
+			sx={(theme) => ({
 				borderRadius: '10px',
 				fontWeight: 700,
 				textTransform: 'none',
 				px: 3,
 				py: 1,
 				color: '#ffffff',
-				background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
+				background: theme.gradients.brandDiagonal,
 				boxShadow: '0 4px 14px 0 rgba(139, 124, 246, 0.4)',
 				border: 'none',
 				transition: 'all 0.2s ease',
 				'&:hover': {
-					background: 'linear-gradient(135deg, #9C8FFF 0%, #7062E9 100%)',
+					background: theme.gradients.brandDiagonalHover,
 					boxShadow: '0 6px 20px 0 rgba(139, 124, 246, 0.6)',
 					transform: 'translateY(-1px)',
 				}
-			}}
+			})}
 		>
 			Invite Teammate
 		</Button>
@@ -140,7 +141,7 @@ const OrgManagement: React.FC = () => {
 
 	return (
 		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
-			<Container maxWidth={false} sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 1.5, sm: 2, md: 3 } }}>
+			<Container maxWidth={false} sx={responsiveStyles.pageContainer}>
 
 				<PageHeader
 					title="Team"
@@ -148,7 +149,7 @@ const OrgManagement: React.FC = () => {
 					action={headerAction}
 				/>
 
-				<Grid container spacing={3} sx={{ mb: 4, position: 'relative', zIndex: 1 }}>
+				<Grid container spacing={responsiveStyles.statsGridSpacing} sx={{ mb: 4, position: 'relative', zIndex: 1 }}>
 					{statsCards.map((card, idx) => (
 						<Grid size={{ xs: 12, sm: 6, md: 3 }} key={idx}>
 							<StatCard {...card} />
@@ -156,7 +157,7 @@ const OrgManagement: React.FC = () => {
 					))}
 				</Grid>
 
-				<Grid container spacing={3} sx={{ alignItems: 'stretch' }}>
+				<Grid container spacing={responsiveStyles.statsGridSpacing} sx={{ alignItems: 'stretch' }}>
 					{/* Left: Org Summary Card (1/4 space) */}
 					<Grid size={{ xs: 12, md: 3 }}>
 						<OrgSummaryCard />

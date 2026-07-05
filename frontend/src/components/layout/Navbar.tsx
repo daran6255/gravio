@@ -48,7 +48,7 @@ const Navbar: React.FC = () => {
 				<Tooltip title="You are logged in as a System Super Administrator. Click to view settings." arrow>
 					<Button
 						onClick={() => navigate('/settings')}
-						sx={{
+						sx={(theme) => ({
 							display: 'flex',
 							alignItems: 'center',
 							textTransform: 'none',
@@ -60,7 +60,7 @@ const Navbar: React.FC = () => {
 							minWidth: 0,
 							mr: 1.5,
 							transition: 'all 0.2s ease-in-out',
-							background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
+							background: theme.gradients.brandDiagonal,
 							border: 'none',
 							color: '#ffffff',
 							boxShadow: '0 2px 10px rgba(139, 124, 246, 0.3)',
@@ -69,7 +69,7 @@ const Navbar: React.FC = () => {
 								boxShadow: '0 4px 14px rgba(139, 124, 246, 0.5)',
 								opacity: 0.95,
 							},
-						}}
+						})}
 					>
 						<PremiumIcon sx={{ fontSize: '1rem', mr: { xs: 0, sm: 0.5 }, color: '#ffffff' }} />
 						<Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
@@ -319,7 +319,7 @@ const Navbar: React.FC = () => {
 					<Button
 						variant="contained"
 						aria-label="Help and support"
-						sx={{
+						sx={(theme) => ({
 							borderRadius: '10px',
 							fontWeight: 700,
 							textTransform: 'none',
@@ -328,16 +328,16 @@ const Navbar: React.FC = () => {
 							py: 0.85,
 							minWidth: 0,
 							color: '#ffffff',
-							background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
+							background: theme.gradients.brandDiagonal,
 							boxShadow: '0 4px 14px 0 rgba(139, 124, 246, 0.4)',
 							border: 'none',
 							transition: 'all 0.2s ease',
 							'&:hover': {
-								background: 'linear-gradient(135deg, #9C8FFF 0%, #7062E9 100%)',
+								background: theme.gradients.brandDiagonalHover,
 								boxShadow: '0 6px 20px 0 rgba(139, 124, 246, 0.6)',
 								transform: 'translateY(-1px)',
 							}
-						}}
+						})}
 					>
 						<SupportIcon sx={{ mr: { xs: 0, sm: 0.75 }, fontSize: '1.1rem' }} />
 						<Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>

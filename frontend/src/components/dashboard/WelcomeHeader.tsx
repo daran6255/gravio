@@ -34,7 +34,7 @@ const WelcomeHeader: React.FC = () => {
                         {getGreeting()}, {user?.full_name?.split(' ')[0] || user?.username}! 👋
                     </Typography>
                 </Box>
-                <Typography variant="body1" sx={{ color: '#545b64', fontWeight: 500 }}>
+                <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 500 }}>
                     Welcome back to Gravit. Here's what's happening today, {formattedDate}.
                 </Typography>
             </Box>

@@ -55,8 +55,15 @@ const SearchContainer = styled('div')(({ theme }) => ({
 	maxWidth: '400px',
 	transition: 'all 0.2s ease-in-out',
 	[theme.breakpoints.up('sm')]: {
-		marginLeft: theme.spacing(3),
+		marginLeft: theme.spacing(2),
 		width: 'auto',
+		minWidth: '200px',
+	},
+	[theme.breakpoints.up('md')]: {
+		marginLeft: theme.spacing(3),
+		minWidth: '320px',
+	},
+	[theme.breakpoints.up('lg')]: {
 		minWidth: '400px',
 	},
 }));

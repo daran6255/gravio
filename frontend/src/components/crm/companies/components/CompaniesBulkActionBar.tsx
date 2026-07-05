@@ -97,7 +97,7 @@ export const CompaniesBulkActionBar: React.FC<CompaniesBulkActionBarProps> = ({
 					</Typography>
 				</Stack>
 
-				<Stack direction="row" spacing={1.5} sx={{ ml: { xs: 0, sm: 2 } }}>
+				<Stack direction="row" spacing={1.5} useFlexGap flexWrap="wrap" sx={{ ml: { xs: 0, sm: 2 } }}>
 					<Button
 						variant="outlined"
 						size="small"
