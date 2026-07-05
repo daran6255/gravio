@@ -52,12 +52,12 @@ const DetailTile: React.FC<{ icon: React.ReactNode; label: string; value: React.
 	const isDark = theme.palette.mode === 'dark';
 
 	return (
-		<Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0 }}>
+		<Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
 			<Box
 				sx={{
-					width: 38,
-					height: 38,
-					borderRadius: '12px',
+					width: 32,
+					height: 32,
+					borderRadius: '8px',
 					display: 'flex',
 					alignItems: 'center',
 					justifyContent: 'center',
@@ -71,10 +71,10 @@ const DetailTile: React.FC<{ icon: React.ReactNode; label: string; value: React.
 				{icon}
 			</Box>
 			<Box sx={{ minWidth: 0 }}>
-				<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.68rem', display: 'block' }}>
+				<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.65rem', display: 'block' }}>
 					{label}
 				</Typography>
-				<Box sx={{ fontWeight: 700, fontSize: '0.875rem', color: 'text.primary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+				<Box sx={{ fontWeight: 700, fontSize: '0.825rem', color: 'text.primary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
 					{value}
 				</Box>
 			</Box>
@@ -101,17 +101,17 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 			sx={{
 				position: 'relative',
 				overflow: 'hidden',
-				borderRadius: '24px',
+				borderRadius: '16px',
 				border: '1px solid',
 				borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
 				background: isDark
 					? 'linear-gradient(135deg, rgba(139,124,246,0.12) 0%, rgba(20,24,34,0.6) 55%)'
 					: 'linear-gradient(135deg, rgba(139,124,246,0.08) 0%, #ffffff 55%)',
 				boxShadow: isDark
-					? '0 20px 48px -12px rgba(0,0,0,0.5)'
-					: '0 20px 48px -16px rgba(24,28,48,0.12)',
-				p: { xs: 2.5, sm: 3.5 },
-				mb: 3,
+					? '0 12px 32px -12px rgba(0,0,0,0.4)'
+					: '0 12px 32px -16px rgba(24,28,48,0.08)',
+				p: { xs: 1.5, sm: 2 },
+				mb: 1.5,
 			}}
 		>
 			{/* Decorative glow */}
@@ -128,7 +128,7 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 				}}
 			/>
 
-			<Stack direction="row" alignItems="flex-start" spacing={1.5} sx={{ position: 'relative', mb: 2.5 }}>
+			<Stack direction="row" alignItems="flex-start" spacing={1.5} sx={{ position: 'relative', mb: 1.5 }}>
 				<IconButton
 					onClick={onBack}
 					size="small"
@@ -143,7 +143,7 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 
 				<Box sx={{ minWidth: 0, flex: 1 }}>
 					<Stack direction="row" spacing={1.25} alignItems="center" flexWrap="wrap" sx={{ mb: 0.75, rowGap: 1 }}>
-						<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }} noWrap>
+						<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }} noWrap>
 							{project.name}
 						</Typography>
 						<StatusBadge label={project.status.replace('_', ' ')} status={project.status} type="project" />
@@ -199,9 +199,9 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 				sx={{
 					display: 'grid',
 					gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', md: 'repeat(5, 1fr)' },
-					gap: { xs: 2, sm: 3 },
+					gap: { xs: 1.5, sm: 2 },
 					position: 'relative',
-					pt: 2.5,
+					pt: 1.5,
 					borderTop: '1px solid',
 					borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
 				}}
@@ -253,12 +253,12 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 				/>
 
 				<Box sx={{ gridColumn: { xs: '1 / -1', sm: 'auto' } }}>
-					<Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0 }}>
+					<Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
 						<Box
 							sx={{
-								width: 38,
-								height: 38,
-								borderRadius: '12px',
+								width: 32,
+								height: 32,
+								borderRadius: '8px',
 								display: 'flex',
 								alignItems: 'center',
 								justifyContent: 'center',

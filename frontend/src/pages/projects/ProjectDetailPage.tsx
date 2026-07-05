@@ -52,7 +52,7 @@ const ProjectDetailPage: React.FC = () => {
 
 	return (
 		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
-			<Container maxWidth="xl" sx={{ py: { xs: 2, sm: 4 } }}>
+			<Container maxWidth={false} sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 1.5, sm: 2, md: 3 } }}>
 				{loading && !project ? (
 					<Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
 						<CircularProgress size={40} thickness={3} />
@@ -70,7 +70,7 @@ const ProjectDetailPage: React.FC = () => {
 							onSubmit={handleEditSubmit}
 						/>
 
-						<Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1.5} sx={{ mb: 2.5 }}>
+						<Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1.5} sx={{ mb: 1.5 }}>
 							<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.01em' }}>
 								Task Board
 							</Typography>

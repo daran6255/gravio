@@ -51,10 +51,16 @@ class ProjectService:
                 return existing
 
             statuses_data = [
-                {"name": "To Do", "order": 0, "color": "#2196F3", "is_initial_status": True},
-                {"name": "In Progress", "order": 1, "color": "#FF9800"},
-                {"name": "In Review", "order": 2, "color": "#9C27B0"},
-                {"name": "Done", "order": 3, "color": "#4CAF50", "is_done_status": True},
+                {"name": "Planning", "order": 0, "color": "#9E9E9E", "is_initial_status": True},
+                {"name": "Active", "order": 1, "color": "#2196F3"},
+                {"name": "In Progress", "order": 2, "color": "#FF9800"},
+                {"name": "Delayed", "order": 3, "color": "#F44336"},
+                {"name": "In Testing", "order": 4, "color": "#00BCD4"},
+                {"name": "On Hold", "order": 5, "color": "#E91E63"},
+                {"name": "Completed", "order": 6, "color": "#4CAF50", "is_done_status": True},
+                {"name": "Approved", "order": 7, "color": "#009688", "is_done_status": True},
+                {"name": "Invoiced", "order": 8, "color": "#3F51B5", "is_done_status": True},
+                {"name": "Canceled", "order": 9, "color": "#757575", "is_done_status": True},
             ]
 
             created = []

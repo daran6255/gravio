@@ -33,9 +33,7 @@ import {
 	FormatQuote,
 	Code,
 	Link as LinkIcon,
-	AlternateEmail,
 	AttachFile,
-	Undo,
 	FormatListNumbered,
 	FormatListBulleted,
 	PlaylistAddCheck,
@@ -378,7 +376,7 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 									'& .MuiTabs-flexContainer': { gap: '4px', pt: '6px' },
 								}}
 							>
-								{['Write', 'Preview'].map((label, idx) => (
+								{['Write', 'Preview'].map((label) => (
 									<Tab
 										key={label}
 										label={label}

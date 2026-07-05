@@ -25,6 +25,9 @@ import {
 	NotificationsNoneOutlined,
 	GroupOutlined,
 	AddOutlined,
+	WorkspacePremiumOutlined,
+	ExtensionOutlined,
+	CheckOutlined,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import type { ProjectTask, ProjectTaskUpdate, ProjectTaskStatus, ProjectTaskTag } from '../../../../../models/projects/projectTask';
@@ -69,6 +72,10 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 	const isDark = theme.palette.mode === 'dark';
 
 	const [newTypeName, setNewTypeName] = useState('');
+	const [newMilestoneName, setNewMilestoneName] = useState('');
+	const [newFieldName, setNewFieldName] = useState('');
+	const [newFieldValue, setNewFieldValue] = useState('');
+	const [editFieldValue, setEditFieldValue] = useState('');
 
 	const taskTypes = React.useMemo(() => {
 		const typesMap = new Map<string, string>();
@@ -89,15 +96,42 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 		return Array.from(typesMap.entries()).map(([name, color]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), color }));
 	}, [tasks]);
 
+	const milestones = React.useMemo(() => {
+		const milestonesMap = new Map<string, string>();
+		milestonesMap.set('general', '#9C27B0');
+		milestonesMap.set('v1.0-release', '#E91E63');
+		milestonesMap.set('q3-milestone', '#00BCD4');
+
+		tasks.forEach((t) => {
+			const m = t.custom_fields?.milestone;
+			if (m && m.name && m.color) {
+				milestonesMap.set(m.name.toLowerCase(), m.color);
+			}
+		});
+
+		return Array.from(milestonesMap.entries()).map(([name, color]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), color }));
+	}, [tasks]);
+
+	const userCustomFields = React.useMemo(() => {
+		if (!task.custom_fields) return [];
+		const systemKeys = ['task_type', 'reminder_date', 'last_edited_by', 'milestone'];
+		return Object.entries(task.custom_fields)
+			.filter(([key]) => !systemKeys.includes(key))
+			.map(([key, val]) => ({ name: key, value: String(val) }));
+	}, [task.custom_fields]);
+
 	const hoverBg = isDark ? '#21262d' : '#f3f4f6';
 	const borderColor = isDark ? '#30363d' : '#d0d7de';
 	const cardBg = isDark ? '#161b22' : '#ffffff';
 	const iconChipBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.045)';
 
-	const [popover, setPopover] = useState<{ key: string; anchorEl: HTMLElement } | null>(null);
+	const [popover, setPopover] = useState<{ key: string; anchorEl: HTMLElement; data?: any } | null>(null);
 
-	const openPopover = (key: string) => (e: React.MouseEvent<HTMLElement>) => {
-		setPopover({ key, anchorEl: e.currentTarget });
+	const openPopover = (key: string, data?: any) => (e: React.MouseEvent<HTMLElement>) => {
+		setPopover({ key, anchorEl: e.currentTarget, data });
+		if (key === 'editCustomField' && data) {
+			setEditFieldValue(String(task.custom_fields?.[data] || ''));
+		}
 	};
 	const closePopover = () => setPopover(null);
 
@@ -172,7 +206,7 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 		label: string;
 		popoverKey?: string;
 		/** Use instead of popoverKey when the row opens something other than the shared popover (e.g. a dialog). */
-		onRowClick?: () => void;
+		onRowClick?: (e: React.MouseEvent<HTMLElement>) => void;
 		children: React.ReactNode;
 		alignTop?: boolean;
 	}) => {
@@ -409,6 +443,17 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 						),
 					})}
 
+					{renderPropertyRow({
+						icon: <WorkspacePremiumOutlined fontSize="inherit" />,
+						label: 'Milestone',
+						popoverKey: 'milestone',
+						children: task.custom_fields?.milestone ? (
+							pillValue(task.custom_fields.milestone.color, task.custom_fields.milestone.name.toUpperCase())
+						) : (
+							emptyValue('Add milestone')
+						),
+					})}
+
 					<Divider sx={{ my: 1 }} />
 
 					{renderPropertyRow({
@@ -438,7 +483,46 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 							</Stack>
 						),
 					})}
+
+					{userCustomFields.length > 0 && <Divider sx={{ my: 1 }} />}
+
+					{userCustomFields.map((field) => (
+						renderPropertyRow({
+							icon: <ExtensionOutlined fontSize="inherit" />,
+							label: field.name,
+							onRowClick: openPopover('editCustomField', field.name),
+							children: (
+								<Typography variant="body2" sx={{ fontSize: '0.825rem', fontWeight: 500, color: 'text.primary' }}>
+									{field.value}
+								</Typography>
+							),
+						})
+					))}
 				</Stack>
+
+				<Divider />
+
+				{/* Add Custom Field Button */}
+				<Box sx={{ p: 1.5, pt: 1, pb: 1.5 }}>
+					<Button
+						variant="outlined"
+						size="small"
+						startIcon={<AddOutlined style={{ fontSize: 15 }} />}
+						onClick={openPopover('addCustomField')}
+						fullWidth
+						sx={{
+							textTransform: 'none',
+							fontWeight: 700,
+							fontSize: '0.8rem',
+							borderRadius: '6px',
+							color: 'text.secondary',
+							borderColor,
+							'&:hover': { bgcolor: hoverBg, borderColor },
+						}}
+					>
+						Add custom field
+					</Button>
+				</Box>
 			</Box>
 
 			{/* POPOVERS */}
@@ -768,6 +852,223 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 								Add
 							</Button>
 						</Stack>
+					</Stack>
+				</Stack>
+			</Popover>
+
+			{/* Milestone Picker Popover */}
+			<Popover
+				open={popover?.key === 'milestone'}
+				anchorEl={popover?.anchorEl}
+				onClose={closePopover}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+				PaperProps={{ sx: { borderRadius: '10px', mt: 0.5, bgcolor: cardBg, border: '1px solid', borderColor, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', p: 1.5 } }}
+			>
+				<Stack sx={{ minWidth: 220, gap: 1.5 }}>
+					<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.7rem' }}>
+						Select Milestone
+					</Typography>
+
+					<Stack spacing={0.5}>
+						{milestones.map((m) => {
+							const isSelected = (task.custom_fields?.milestone?.name || '').toLowerCase() === m.name.toLowerCase();
+							return (
+								<Box
+									key={m.name}
+									onClick={() => {
+										onUpdateField({
+											custom_fields: {
+												...task.custom_fields,
+												milestone: { name: m.name, color: m.color }
+											}
+										});
+										closePopover();
+									}}
+									sx={{
+										display: 'flex',
+										alignItems: 'center',
+										justifyContent: 'space-between',
+										px: 1.5,
+										py: 1,
+										borderRadius: '6px',
+										cursor: 'pointer',
+										bgcolor: isSelected ? alpha(m.color, 0.1) : 'transparent',
+										'&:hover': { bgcolor: hoverBg },
+									}}
+								>
+									<Box
+										sx={{
+											bgcolor: alpha(m.color, 0.12),
+											border: '1px solid',
+											borderColor: m.color,
+											color: m.color,
+											px: 1.25,
+											py: 0.25,
+											borderRadius: '100px',
+											fontSize: '0.7rem',
+											fontWeight: 800,
+											letterSpacing: '0.03em',
+										}}
+									>
+										{m.name.toUpperCase()}
+									</Box>
+									{isSelected && <CheckOutlined sx={{ fontSize: 16, color: 'primary.main' }} />}
+								</Box>
+							);
+						})}
+					</Stack>
+
+					<Divider />
+
+					{/* Custom Milestone Creator */}
+					<Stack spacing={1}>
+						<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.7rem' }}>
+							Create Custom Milestone
+						</Typography>
+						<Stack direction="row" spacing={1} alignItems="center">
+							<TextField
+								size="small"
+								placeholder="e.g. Release v1.0"
+								value={newMilestoneName}
+								onChange={(e) => setNewMilestoneName(e.target.value)}
+								sx={{
+									'& .MuiInputBase-input': { py: 0.75, fontSize: '0.8rem' }
+								}}
+							/>
+							<Button
+								variant="contained"
+								size="small"
+								onClick={() => {
+									if (newMilestoneName.trim()) {
+										const color = PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)];
+										onUpdateField({
+											custom_fields: {
+												...task.custom_fields,
+												milestone: { name: newMilestoneName.trim(), color }
+											}
+										});
+										setNewMilestoneName('');
+										closePopover();
+									}
+								}}
+								sx={{ textTransform: 'none', fontWeight: 700, px: 2, height: '32px' }}
+							>
+								Add
+							</Button>
+						</Stack>
+					</Stack>
+				</Stack>
+			</Popover>
+
+			{/* Add Custom Field Popover */}
+			<Popover
+				open={popover?.key === 'addCustomField'}
+				anchorEl={popover?.anchorEl}
+				onClose={() => { closePopover(); setNewFieldName(''); setNewFieldValue(''); }}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+				PaperProps={{ sx: { borderRadius: '10px', mt: 0.5, bgcolor: cardBg, border: '1px solid', borderColor, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', p: 2, width: 240 } }}
+			>
+				<Stack spacing={2}>
+					<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.7rem' }}>
+						Add Custom Field
+					</Typography>
+					<TextField
+						label="Field Name"
+						placeholder="e.g. Platform"
+						value={newFieldName}
+						onChange={(e) => setNewFieldName(e.target.value)}
+						fullWidth
+						size="small"
+					/>
+					<TextField
+						label="Value"
+						placeholder="e.g. Chrome"
+						value={newFieldValue}
+						onChange={(e) => setNewFieldValue(e.target.value)}
+						fullWidth
+						size="small"
+					/>
+					<Button
+						variant="contained"
+						size="small"
+						onClick={() => {
+							if (newFieldName.trim() && newFieldValue.trim()) {
+								onUpdateField({
+									custom_fields: {
+										...task.custom_fields,
+										[newFieldName.trim()]: newFieldValue.trim()
+									}
+								});
+								setNewFieldName('');
+								setNewFieldValue('');
+								closePopover();
+							}
+						}}
+						sx={{ textTransform: 'none', fontWeight: 700 }}
+						fullWidth
+					>
+						Add Field
+					</Button>
+				</Stack>
+			</Popover>
+
+			{/* Edit Custom Field Popover */}
+			<Popover
+				open={popover?.key === 'editCustomField'}
+				anchorEl={popover?.anchorEl}
+				onClose={() => { closePopover(); setEditFieldValue(''); }}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+				PaperProps={{ sx: { borderRadius: '10px', mt: 0.5, bgcolor: cardBg, border: '1px solid', borderColor, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', p: 2, width: 240 } }}
+			>
+				<Stack spacing={2}>
+					<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.7rem' }}>
+						Edit Custom Field: {popover?.data}
+					</Typography>
+					<TextField
+						label="Value"
+						value={editFieldValue}
+						onChange={(e) => setEditFieldValue(e.target.value)}
+						fullWidth
+						size="small"
+						autoFocus
+					/>
+					<Stack direction="row" spacing={1}>
+						<Button
+							variant="outlined"
+							color="error"
+							size="small"
+							onClick={() => {
+								if (popover?.data) {
+									const updated = { ...task.custom_fields };
+									delete updated[popover.data];
+									onUpdateField({ custom_fields: updated });
+									closePopover();
+								}
+							}}
+							sx={{ textTransform: 'none', fontWeight: 700 }}
+							fullWidth
+						>
+							Delete
+						</Button>
+						<Button
+							variant="contained"
+							size="small"
+							onClick={() => {
+								if (popover?.data && editFieldValue.trim()) {
+									onUpdateField({
+										custom_fields: {
+											...task.custom_fields,
+											[popover.data]: editFieldValue.trim()
+										}
+									});
+									closePopover();
+								}
+							}}
+							sx={{ textTransform: 'none', fontWeight: 700 }}
+							fullWidth
+						>
+							Save
+						</Button>
 					</Stack>
 				</Stack>
 			</Popover>
