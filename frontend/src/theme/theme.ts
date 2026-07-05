@@ -1,4 +1,5 @@
 import { createTheme, type Theme } from '@mui/material/styles';
+import { breakpointValues, media } from './responsive';
 import './smoothScroll';
 
 declare module '@mui/material/styles' {
@@ -38,6 +39,9 @@ export const getThemeByMode = (mode: 'light' | 'dark'): Theme => {
 	const isDark = mode === 'dark';
 
 	return createTheme({
+		breakpoints: {
+			values: breakpointValues,
+		},
 		palette: {
 			mode,
 			primary: {
@@ -79,19 +83,45 @@ export const getThemeByMode = (mode: 'light' | 'dark'): Theme => {
 		},
 		typography: {
 			fontFamily: '"Inter", "Inter UI", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+			h1: {
+				fontWeight: 700,
+				letterSpacing: '-0.02em',
+				fontSize: '2.5rem',
+				[media.down('md')]: { fontSize: '2.125rem' },
+				[media.down('sm')]: { fontSize: '1.875rem' },
+			},
+			h2: {
+				fontWeight: 700,
+				letterSpacing: '-0.02em',
+				fontSize: '2.125rem',
+				[media.down('md')]: { fontSize: '1.875rem' },
+				[media.down('sm')]: { fontSize: '1.625rem' },
+			},
+			h3: {
+				fontWeight: 700,
+				letterSpacing: '-0.02em',
+				fontSize: '1.875rem',
+				[media.down('md')]: { fontSize: '1.625rem' },
+				[media.down('sm')]: { fontSize: '1.5rem' },
+			},
 			h4: {
 				fontWeight: 700,
 				letterSpacing: '-0.02em',
 				fontSize: '1.75rem',
+				[media.down('md')]: { fontSize: '1.5rem' },
+				[media.down('sm')]: { fontSize: '1.375rem' },
 			},
 			h5: {
 				fontWeight: 600,
 				letterSpacing: '-0.01em',
 				fontSize: '1.5rem',
+				[media.down('md')]: { fontSize: '1.3125rem' },
+				[media.down('sm')]: { fontSize: '1.1875rem' },
 			},
 			h6: {
 				fontWeight: 500,
 				fontSize: '1.125rem',
+				[media.down('sm')]: { fontSize: '1.0625rem' },
 			},
 			button: {
 				textTransform: 'none',
@@ -147,7 +177,11 @@ export const getThemeByMode = (mode: 'light' | 'dark'): Theme => {
 						boxShadow: 'none',
 						'&:hover': {
 							boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-						}
+						},
+						// 40px minimum tap target on touch devices (a11y)
+						[media.touch]: {
+							minHeight: 40,
+						},
 					},
 					containedPrimary: {
 						backgroundColor: '#8B7CF6',
@@ -160,6 +194,62 @@ export const getThemeByMode = (mode: 'light' | 'dark'): Theme => {
 				defaultProps: {
 					disableElevation: false,
 				}
+			},
+			MuiContainer: {
+				styleOverrides: {
+					root: {
+						paddingLeft: 24,
+						paddingRight: 24,
+						[media.down('md')]: {
+							paddingLeft: 16,
+							paddingRight: 16,
+						},
+						[media.down('sm')]: {
+							paddingLeft: 12,
+							paddingRight: 12,
+						},
+					},
+				},
+			},
+			MuiDialog: {
+				styleOverrides: {
+					paper: {
+						[media.down('sm')]: {
+							margin: 12,
+							width: 'calc(100% - 24px)',
+							maxWidth: 'calc(100% - 24px)',
+							maxHeight: 'calc(100% - 24px)',
+						},
+					},
+				},
+			},
+			MuiDialogContent: {
+				styleOverrides: {
+					root: {
+						[media.down('sm')]: {
+							padding: 16,
+						},
+					},
+				},
+			},
+			MuiTableCell: {
+				styleOverrides: {
+					root: {
+						[media.down('md')]: {
+							padding: '8px 10px',
+						},
+					},
+				},
+			},
+			MuiToolbar: {
+				styleOverrides: {
+					root: {
+						[media.down('sm')]: {
+							paddingLeft: 12,
+							paddingRight: 12,
+						},
+					},
+				},
 			},
 			MuiAppBar: {
 				defaultProps: {
