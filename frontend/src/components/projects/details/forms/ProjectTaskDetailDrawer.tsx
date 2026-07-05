@@ -81,7 +81,7 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 				},
 			}}
 		>
-			<Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+			<Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 				{/* Header */}
 				<TaskDrawerHeader
 					task={latestTask}
@@ -94,9 +94,9 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 				/>
 
 				{/* Two Column Scrollable Body */}
-				<Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 0 }}>
-					{/* Left Column (Main description card & subtasks) - 50% width on Desktop */}
-					<Box sx={{ width: { xs: '100%', md: '50vw' }, p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
+				<Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start', minHeight: 0 }}>
+					{/* Left Column (Main description card & subtasks) - 70% width on Desktop */}
+					<Box sx={{ width: { xs: '100%', md: '70%' }, flexShrink: 0, p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
 						{/* Task Description Card Component */}
 						<TaskDescriptionCard
 							task={latestTask}
@@ -133,8 +133,8 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 						/>
 					</Box>
 
-					{/* Right Column (Sidebar settings) - 20% width on Desktop */}
-					<Box sx={{ width: { xs: '100%', md: '20vw' } }}>
+					{/* Right Column (Sidebar settings) - 30% width on Desktop */}
+					<Box sx={{ width: { xs: '100%', md: '30%' }, flexShrink: 0, minHeight: { md: '100%' } }}>
 						<TaskDrawerSidebar
 							task={latestTask}
 							tasks={tasks}
