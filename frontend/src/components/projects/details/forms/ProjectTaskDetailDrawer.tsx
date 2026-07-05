@@ -4,6 +4,8 @@ import {
 	Box,
 	useTheme,
 } from '@mui/material';
+import { useAppDispatch } from '../../../../store/hooks';
+import { updateProjectTask } from '../../../../store/slices/projectsSlice';
 import type { ProjectTask, ProjectTaskUpdate, ProjectTaskStatus, ProjectTaskTag } from '../../../../models/projects/projectTask';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
 
@@ -11,6 +13,8 @@ import type { CRMOwnerOption } from '../../../../models/crm/owner';
 import { TaskDrawerHeader } from '../components/task-drawer/TaskDrawerHeader';
 import { TaskDrawerSidebar } from '../components/task-drawer/TaskDrawerSidebar';
 import { TaskDescriptionCard } from '../components/task-drawer/TaskDescriptionCard';
+import { SubtasksList } from '../components/task-drawer/SubtasksList';
+import { TaskHistoryTimeline } from '../components/task-drawer/TaskHistoryTimeline';
 
 interface ProjectTaskDetailDrawerProps {
 	open: boolean;
@@ -38,8 +42,10 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 		existingTags,
 		onSubmit,
 		onDelete,
+		onAddSubtask,
 	} = props;
 
+	const dispatch = useAppDispatch();
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const bgColor = isDark ? '#0d1117' : '#ffffff';
@@ -50,6 +56,11 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 	const handleUpdateField = async (fields: ProjectTaskUpdate) => {
 		await onSubmit(fields);
 	};
+
+	const handleUpdateSubtask = async (subtaskPublicId: string, fields: ProjectTaskUpdate) => {
+		await dispatch(updateProjectTask({ taskPublicId: subtaskPublicId, payload: fields })).unwrap();
+	};
+
 
 	return (
 		<Drawer
@@ -81,12 +92,31 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 
 				{/* Two Column Scrollable Body */}
 				<Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 0 }}>
-					{/* Left Column (Main description card) - 50% width on Desktop */}
+					{/* Left Column (Main description card & subtasks) - 50% width on Desktop */}
 					<Box sx={{ width: { xs: '100%', md: '50vw' }, p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
 						{/* Task Description Card Component */}
 						<TaskDescriptionCard
 							task={latestTask}
 							onUpdateField={handleUpdateField}
+						/>
+
+						{/* Sub-tasks checklist */}
+						<SubtasksList
+							task={latestTask}
+							tasks={tasks}
+							statuses={statuses}
+							owners={owners}
+							onAddSubtask={onAddSubtask}
+							onUpdateSubtask={handleUpdateSubtask}
+						/>
+
+						{/* Task History Timeline */}
+						<TaskHistoryTimeline
+							task={latestTask}
+							tasks={tasks}
+							statuses={statuses}
+							owners={owners}
+							projectName={projectName}
 						/>
 					</Box>
 
@@ -94,6 +124,7 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 					<Box sx={{ width: { xs: '100%', md: '20vw' } }}>
 						<TaskDrawerSidebar
 							task={latestTask}
+							tasks={tasks}
 							statuses={statuses}
 							owners={owners}
 							existingTags={existingTags}

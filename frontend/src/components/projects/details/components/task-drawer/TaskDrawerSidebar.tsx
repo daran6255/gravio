@@ -37,8 +37,11 @@ const PRIORITIES: { value: LeadPriority; label: string; color: string }[] = [
 	{ value: 'urgent', label: 'Urgent', color: '#F44336' },
 ];
 
+const PRESET_COLORS = ['#FF9800', '#F44336', '#4CAF50', '#2196F3', '#9C27B0', '#E91E63', '#00BCD4', '#009688', '#3F51B5'];
+
 interface TaskDrawerSidebarProps {
 	task: ProjectTask;
+	tasks: ProjectTask[];
 	statuses: ProjectTaskStatus[];
 	owners: CRMOwnerOption[];
 	existingTags: ProjectTaskTag[];
@@ -49,6 +52,7 @@ interface TaskDrawerSidebarProps {
 
 export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 	task,
+	tasks,
 	statuses,
 	owners,
 	existingTags,
@@ -58,6 +62,27 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+
+	const [newTypeName, setNewTypeName] = useState('');
+
+	const taskTypes = React.useMemo(() => {
+		const typesMap = new Map<string, string>();
+		// Seed with defaults
+		typesMap.set('task', '#FF9800');
+		typesMap.set('bug', '#F44336');
+		typesMap.set('feature', '#4CAF50');
+		typesMap.set('story', '#2196F3');
+
+		// Scan all tasks in project for custom task types
+		tasks.forEach((t) => {
+			const tt = t.custom_fields?.task_type;
+			if (tt && tt.name && tt.color) {
+				typesMap.set(tt.name.toLowerCase(), tt.color);
+			}
+		});
+
+		return Array.from(typesMap.entries()).map(([name, color]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), color }));
+	}, [tasks]);
 
 	const borderColor = isDark ? '#30363d' : '#d0d7de';
 	const cardBg = isDark ? '#161b22' : '#ffffff';
@@ -244,33 +269,45 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 					</Typography>
 				</Stack>
 				<Box
+					onClick={openPopover('type')}
 					sx={{
 						p: 1.25,
 						borderRadius: '10px',
-						border: '1px solid',
+						border: '1px dashed',
 						borderColor: borderColor,
 						bgcolor: 'background.paper',
 						display: 'flex',
 						alignItems: 'center',
 						gap: 1,
+						cursor: 'pointer',
+						transition: 'all 0.15s',
+						'&:hover': {
+							borderColor: 'primary.main',
+							bgcolor: hoverBg,
+						}
 					}}
 				>
-					<Box
-						sx={{
-							bgcolor: isDark ? 'rgba(255,152,0,0.15)' : 'rgba(255,152,0,0.08)',
-							border: '1px solid',
-							borderColor: '#FF9800',
-							color: '#FF9800',
-							px: 1.25,
-							py: 0.25,
-							borderRadius: '100px',
-							fontSize: '0.7rem',
-							fontWeight: 800,
-							letterSpacing: '0.03em',
-						}}
-					>
-						TASK
-					</Box>
+					{(() => {
+						const currentType = task.custom_fields?.task_type || { name: 'Task', color: '#FF9800' };
+						return (
+							<Box
+								sx={{
+									bgcolor: alpha(currentType.color, 0.12),
+									border: '1px solid',
+									borderColor: currentType.color,
+									color: currentType.color,
+									px: 1.25,
+									py: 0.25,
+									borderRadius: '100px',
+									fontSize: '0.7rem',
+									fontWeight: 800,
+									letterSpacing: '0.03em',
+								}}
+							>
+								{currentType.name.toUpperCase()}
+							</Box>
+						);
+					})()}
 				</Box>
 			</Box>
 
@@ -357,6 +394,15 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 							valueElement={
 								<Typography variant="body2" sx={{ fontWeight: 600 }}>
 									{task.billing_type === 'billable' ? 'Billable' : 'Non-billable'}
+								</Typography>
+							}
+						/>
+						<CardRow
+							label="Reminder"
+							popoverKey="reminder"
+							valueElement={
+								<Typography variant="body2" sx={{ fontWeight: 600, color: task.custom_fields?.reminder_date ? 'primary.main' : 'text.primary' }}>
+									{task.custom_fields?.reminder_date ? dayjs(task.custom_fields.reminder_date).format('MMM D, YYYY') : '—'}
 								</Typography>
 							}
 						/>
@@ -564,6 +610,31 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 				</Box>
 			</Popover>
 
+			{/* Reminder Picker Popover */}
+			<Popover
+				open={popover?.key === 'reminder'}
+				anchorEl={popover?.anchorEl}
+				onClose={closePopover}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+			>
+				<Box sx={{ p: 2, width: 260 }}>
+					<DatePicker
+						label="Reminder Date"
+						value={task.custom_fields?.reminder_date || null}
+						onChange={(v) => {
+							onUpdateField({
+								custom_fields: {
+									...task.custom_fields,
+									reminder_date: v || undefined
+								}
+							});
+							closePopover();
+						}}
+						format="DD-MMM-YYYY"
+					/>
+				</Box>
+			</Popover>
+
 			{/* Estimate Hours Popover */}
 			<Popover
 				open={popover?.key === 'estimatedHours'}
@@ -656,6 +727,109 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 				<Box sx={{ p: 2, width: 320 }}>
 					<TaskTagsInput value={task.tags || []} onChange={(newTags: ProjectTaskTag[]) => onUpdateField({ tags: newTags })} existingTags={existingTags} />
 				</Box>
+			</Popover>
+
+			{/* Type Picker Popover */}
+			<Popover
+				open={popover?.key === 'type'}
+				anchorEl={popover?.anchorEl}
+				onClose={closePopover}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+				PaperProps={{ sx: { borderRadius: '10px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', p: 1.5 } }}
+			>
+				<Stack sx={{ minWidth: 220, gap: 1.5 }}>
+					<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.7rem' }}>
+						Select Task Type
+					</Typography>
+					
+					<Stack spacing={0.5}>
+						{taskTypes.map((t) => {
+							const isSelected = (task.custom_fields?.task_type?.name || 'Task').toLowerCase() === t.name.toLowerCase();
+							return (
+								<Box
+									key={t.name}
+									onClick={() => {
+										onUpdateField({
+											custom_fields: {
+												...task.custom_fields,
+												task_type: { name: t.name, color: t.color }
+											}
+										});
+										closePopover();
+									}}
+									sx={{
+										display: 'flex',
+										alignItems: 'center',
+										justifyContent: 'space-between',
+										px: 1.5,
+										py: 1,
+										borderRadius: '6px',
+										cursor: 'pointer',
+										bgcolor: isSelected ? alpha(t.color, 0.1) : 'transparent',
+										'&:hover': { bgcolor: hoverBg },
+									}}
+								>
+									<Box
+										sx={{
+											bgcolor: alpha(t.color, 0.12),
+											border: '1px solid',
+											borderColor: t.color,
+											color: t.color,
+											px: 1.25,
+											py: 0.25,
+											borderRadius: '100px',
+											fontSize: '0.7rem',
+											fontWeight: 800,
+											letterSpacing: '0.03em',
+										}}
+									>
+										{t.name.toUpperCase()}
+									</Box>
+								</Box>
+							);
+						})}
+					</Stack>
+
+					<Divider />
+
+					{/* Custom Type Creator */}
+					<Stack spacing={1}>
+						<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.7rem' }}>
+							Create Custom Type
+						</Typography>
+						<Stack direction="row" spacing={1} alignItems="center">
+							<TextField
+								size="small"
+								placeholder="e.g. Design, Research"
+								value={newTypeName}
+								onChange={(e) => setNewTypeName(e.target.value)}
+								sx={{
+									'& .MuiInputBase-input': { py: 0.75, fontSize: '0.8rem' }
+								}}
+							/>
+							<Button
+								variant="contained"
+								size="small"
+								onClick={() => {
+									if (newTypeName.trim()) {
+										const color = PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)];
+										onUpdateField({
+											custom_fields: {
+												...task.custom_fields,
+												task_type: { name: newTypeName.trim(), color }
+											}
+										});
+										setNewTypeName('');
+										closePopover();
+									}
+								}}
+								sx={{ textTransform: 'none', fontWeight: 700, px: 2, height: '32px' }}
+							>
+								Add
+							</Button>
+						</Stack>
+					</Stack>
+				</Stack>
 			</Popover>
 		</Box>
 	);
