@@ -221,7 +221,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 					<>
 						added this to the{' '}
 						<span style={{ fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}>
-							{task.custom_fields.milestone}
+							{task.custom_fields.milestone.name}
 						</span>{' '}
 						milestone
 					</>

@@ -387,6 +387,20 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 					})}
 
 					{renderPropertyRow({
+						icon: <ScheduleOutlined fontSize="inherit" />,
+						label: 'Logged',
+						popoverKey: 'actualHours',
+						children:
+							task.actual_hours != null ? (
+								<Typography variant="body2" sx={{ fontSize: '0.825rem', fontWeight: 500, color: 'text.primary' }}>
+									{task.actual_hours}h
+								</Typography>
+							) : (
+								emptyValue('Log time')
+							),
+					})}
+
+					{renderPropertyRow({
 						icon: <CalendarTodayOutlined fontSize="inherit" />,
 						label: 'Start Date',
 						popoverKey: 'startDate',
@@ -698,6 +712,55 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 						type="number"
 						value={task.estimated_hours || ''}
 						onChange={(e) => onUpdateField({ estimated_hours: e.target.value ? Number(e.target.value) : undefined })}
+						fullWidth
+						size="small"
+						autoComplete="off"
+						slotProps={{ htmlInput: { min: 0, step: 0.5, autoComplete: 'new-password' } }}
+						autoFocus
+						onKeyDown={(e) => { if (e.key === 'Enter') closePopover(); }}
+					/>
+				</Stack>
+			</Popover>
+
+			{/* Logged / Actual Hours Popover */}
+			<Popover
+				open={popover?.key === 'actualHours'}
+				anchorEl={popover?.anchorEl}
+				onClose={closePopover}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+				PaperProps={{ sx: { borderRadius: '12px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' } }}
+			>
+				<Stack spacing={1.5} sx={{ p: 2, width: 220 }}>
+					<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.7rem' }}>
+						Quick Log Time
+					</Typography>
+					<Grid container spacing={1}>
+						{[0.5, 1, 2, 4, 8, 12].map((h) => (
+							<Grid size={4} key={h}>
+								<Button
+									variant="outlined"
+									size="small"
+									fullWidth
+									onClick={() => { onUpdateField({ actual_hours: h }); closePopover(); }}
+									sx={{
+										borderRadius: '100px',
+										fontSize: '0.75rem',
+										py: 0.5,
+										borderColor: task.actual_hours === h ? 'primary.main' : 'divider',
+										bgcolor: task.actual_hours === h ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
+										color: task.actual_hours === h ? 'primary.main' : 'text.primary',
+									}}
+								>
+									{h}h
+								</Button>
+							</Grid>
+						))}
+					</Grid>
+					<TextField
+						label="Custom Logged Hours"
+						type="number"
+						value={task.actual_hours || ''}
+						onChange={(e) => onUpdateField({ actual_hours: e.target.value ? Number(e.target.value) : undefined })}
 						fullWidth
 						size="small"
 						autoComplete="off"
