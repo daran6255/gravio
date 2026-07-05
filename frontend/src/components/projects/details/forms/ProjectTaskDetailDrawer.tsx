@@ -11,7 +11,8 @@ import type { CRMOwnerOption } from '../../../../models/crm/owner';
 
 // Import Decomposed task drawer sub-components
 import { TaskDrawerHeader } from '../components/task-drawer/TaskDrawerHeader';
-import { TaskDrawerSidebar } from '../components/task-drawer/TaskDrawerSidebar';
+import { TaskDetailsPanel } from '../components/task-drawer/TaskDetailsPanel';
+import { TaskAttachmentsCard } from '../components/task-drawer/TaskAttachmentsCard';
 import { TaskDescriptionCard } from '../components/task-drawer/TaskDescriptionCard';
 import { SubtasksList } from '../components/task-drawer/SubtasksList';
 import { TaskHistoryTimeline } from '../components/task-drawer/TaskHistoryTimeline';
@@ -134,8 +135,19 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 					</Box>
 
 					{/* Right Column (Sidebar settings) - 30% width on Desktop */}
-					<Box sx={{ width: { xs: '100%', md: '30%' }, flexShrink: 0, minHeight: { md: '100%' } }}>
-						<TaskDrawerSidebar
+					<Box
+						sx={{
+							width: { xs: '100%', md: '30%' },
+							flexShrink: 0,
+							minHeight: { md: '100%' },
+							p: 2.5,
+							bgcolor: isDark ? '#0d1117' : '#f6f8fa',
+							display: 'flex',
+							flexDirection: 'column',
+							gap: 2.5,
+						}}
+					>
+						<TaskDetailsPanel
 							task={latestTask}
 							tasks={tasks}
 							statuses={statuses}
@@ -145,6 +157,7 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 							onUpdateField={handleUpdateField}
 							onDelete={onDelete}
 						/>
+						<TaskAttachmentsCard task={latestTask} />
 					</Box>
 				</Box>
 			</Box>

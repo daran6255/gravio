@@ -77,3 +77,17 @@ export interface ProjectTaskUpdate extends Partial<ProjectTaskCreate> {
 	/** Allows re-parenting a sub-task. */
 	parent_task_id?: number;
 }
+
+/** A file attached to a task. Matches backend's ProjectTaskFileResponse. */
+export interface ProjectTaskFile {
+	id: number;
+	public_id: string;
+	task_id: number;
+	file_name: string;
+	file_size: number;
+	mime_type: string;
+	owner_id?: number;
+	owner_name?: string;
+	created_at: string;
+	updated_at: string;
+}

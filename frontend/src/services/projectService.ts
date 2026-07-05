@@ -7,6 +7,7 @@ import type {
 	ProjectTaskUpdate,
 	ProjectTaskStatus,
 	ProjectTaskStatusUpsert,
+	ProjectTaskFile,
 } from '../models/projects/projectTask';
 
 const projectService = {
@@ -93,6 +94,52 @@ const projectService = {
 	updateTaskStatuses: async (statuses: ProjectTaskStatusUpsert[]): Promise<ProjectTaskStatus[]> => {
 		const response = await api.patch<ProjectTaskStatus[]>('/project-task-statuses', { statuses });
 		return response.data;
+	},
+
+	// --- Task File Attachments ---
+	listTaskFiles: async (taskPublicId: string): Promise<ProjectTaskFile[]> => {
+		const response = await api.get<ProjectTaskFile[]>(`/project-tasks/${taskPublicId}/files`);
+		return response.data;
+	},
+
+	uploadTaskFile: async (taskPublicId: string, file: File): Promise<ProjectTaskFile> => {
+		const formData = new FormData();
+		formData.append('file', file);
+		const response = await api.post<ProjectTaskFile>(`/project-tasks/${taskPublicId}/files`, formData, {
+			headers: { 'Content-Type': 'multipart/form-data' },
+		});
+		return response.data;
+	},
+
+	deleteTaskFile: async (taskPublicId: string, filePublicId: string): Promise<void> => {
+		await api.delete(`/project-tasks/${taskPublicId}/files/${filePublicId}`);
+	},
+
+	viewTaskFile: async (taskPublicId: string, filePublicId: string): Promise<void> => {
+		const response = await api.get(`/project-tasks/${taskPublicId}/files/${filePublicId}/download`, {
+			responseType: 'blob',
+		});
+		const blob = new Blob([response.data], { type: response.headers['content-type'] });
+		const viewUrl = window.URL.createObjectURL(blob);
+		// Opened as a real tab (not a popup) so the browser's native viewer (images, PDFs)
+		// takes over; the object URL is revoked after a delay to give that tab time to load it.
+		window.open(viewUrl, '_blank', 'noopener,noreferrer');
+		setTimeout(() => window.URL.revokeObjectURL(viewUrl), 60_000);
+	},
+
+	downloadTaskFile: async (taskPublicId: string, filePublicId: string, fileName: string): Promise<void> => {
+		const response = await api.get(`/project-tasks/${taskPublicId}/files/${filePublicId}/download`, {
+			responseType: 'blob',
+		});
+		const blob = new Blob([response.data], { type: response.headers['content-type'] });
+		const downloadUrl = window.URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = downloadUrl;
+		link.download = fileName;
+		document.body.appendChild(link);
+		link.click();
+		link.remove();
+		window.URL.revokeObjectURL(downloadUrl);
 	},
 };
 

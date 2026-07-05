@@ -238,3 +238,29 @@ class ProjectTaskResponse(BaseModel):
     custom_fields: Optional[dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime
+
+
+# --- Task File/Attachment Schemas ---
+class ProjectTaskFileResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    public_id: uuid.UUID
+    task_id: int
+    file_name: str
+    file_size: int
+    mime_type: str
+    owner_id: Optional[int] = None
+    owner_name: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    @model_validator(mode="before")
+    @classmethod
+    def _attach_owner_name(cls, data: Any) -> Any:
+        # Only computed when `.owner` was eagerly loaded (selectinload) -- touching
+        # the relationship otherwise would trigger a lazy load and crash async sessions.
+        if isinstance(data, dict):
+            return data
+        if "owner" not in sa_inspect(data).unloaded and data.owner is not None:
+            data.owner_name = data.owner.full_name or data.owner.email
+        return data

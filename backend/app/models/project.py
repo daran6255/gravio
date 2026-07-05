@@ -165,6 +165,37 @@ class ProjectTask(BaseModel, TenantAwareMixin):
     subtasks: Mapped[list["ProjectTask"]] = relationship(
         "ProjectTask", back_populates="parent", cascade="all, delete-orphan"
     )
+    files: Mapped[list["ProjectTaskFile"]] = relationship(
+        "ProjectTaskFile", back_populates="task", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<ProjectTask(id={self.id}, title='{self.title}', project_id={self.project_id})>"
+
+
+class ProjectTaskFile(BaseModel, TenantAwareMixin):
+    """An uploaded attachment associated with a project task. Mirrors CRMFile,
+    but scoped directly to a task_id rather than a generic entity_type/entity_id
+    pair, since attachments here only ever belong to a project task."""
+    __tablename__ = "project_task_files"
+
+    public_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, unique=True, index=True, nullable=False, default=uuid.uuid4
+    )
+    task_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("project_tasks.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    file_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    file_path: Mapped[str] = mapped_column(String(512), nullable=False)
+    file_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    owner_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+
+    # Relationships
+    task: Mapped[ProjectTask] = relationship("ProjectTask", back_populates="files")
+    owner: Mapped[Optional[User]] = relationship("User", foreign_keys=[owner_id])
+
+    def __repr__(self) -> str:
+        return f"<ProjectTaskFile(id={self.id}, file_name='{self.file_name}', task_id={self.task_id})>"

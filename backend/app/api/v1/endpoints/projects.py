@@ -6,9 +6,11 @@ sub-tasks share one flat "project-tasks" resource; a sub-task is just a task
 with parent_task_id set.
 """
 
+import os
 import uuid
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, status, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -29,7 +31,10 @@ from app.schemas.project import (
     ProjectTaskResponse,
     ProjectTaskStatusResponse,
     ProjectTaskStatusesUpdateRequest,
+    ProjectTaskFileResponse,
 )
+from app.utils.file_validation import validate_upload
+from app.middleware.exceptions import NotFoundError
 
 router = APIRouter(prefix="/projects", tags=["Project Management"])
 
@@ -277,3 +282,104 @@ async def delete_project_task_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     await ProjectService.delete_task(db, task_public_id)
+
+
+# --- Task File Attachments ---
+@router_tasks.post(
+    "/{task_public_id}/files",
+    response_model=ProjectTaskFileResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload a file attachment to a task",
+)
+async def upload_task_file_endpoint(
+    task_public_id: uuid.UUID,
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_project_access),
+    _pm: User = Depends(require_pm_module),
+    db: AsyncSession = Depends(get_db),
+) -> ProjectTaskFileResponse:
+    # 404s early (before touching disk) if the task doesn't exist / isn't in this org
+    task = await ProjectService.get_task(db, task_public_id)
+
+    org_id = current_user.organization_id
+    upload_dir = os.path.join("uploads", f"org_{org_id}", "project_tasks", str(task.id))
+    os.makedirs(upload_dir, exist_ok=True)
+
+    file_uuid = uuid.uuid4()
+    safe_filename = f"{file_uuid}_{file.filename}"
+    file_path = os.path.join(upload_dir, safe_filename)
+
+    content = await file.read()
+    mime_type = validate_upload(file, content)
+
+    with open(file_path, "wb") as f:
+        f.write(content)
+
+    try:
+        task_file = await ProjectService.create_task_file(
+            db,
+            task_public_id,
+            file_name=file.filename,
+            file_path=file_path,
+            file_size=len(content),
+            mime_type=mime_type,
+            owner_id=current_user.id,
+        )
+        return ProjectTaskFileResponse.model_validate(task_file)
+    except Exception:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        raise
+
+
+@router_tasks.get(
+    "/{task_public_id}/files",
+    response_model=list[ProjectTaskFileResponse],
+    summary="List files attached to a task",
+)
+async def list_task_files_endpoint(
+    task_public_id: uuid.UUID,
+    current_user: User = Depends(require_project_access),
+    _pm: User = Depends(require_pm_module),
+    db: AsyncSession = Depends(get_db),
+) -> list[ProjectTaskFileResponse]:
+    files = await ProjectService.list_task_files(db, task_public_id)
+    return [ProjectTaskFileResponse.model_validate(f) for f in files]
+
+
+@router_tasks.get(
+    "/{task_public_id}/files/{file_public_id}/download",
+    summary="Download a task file attachment",
+)
+async def download_task_file_endpoint(
+    task_public_id: uuid.UUID,
+    file_public_id: uuid.UUID,
+    current_user: User = Depends(require_project_access),
+    _pm: User = Depends(require_pm_module),
+    db: AsyncSession = Depends(get_db),
+):
+    task_file = await ProjectService.get_task_file(db, task_public_id, file_public_id)
+
+    if not os.path.exists(task_file.file_path):
+        raise NotFoundError("Physical file not found on server storage")
+
+    return FileResponse(
+        path=task_file.file_path,
+        filename=task_file.file_name,
+        media_type=task_file.mime_type,
+    )
+
+
+@router_tasks.delete(
+    "/{task_public_id}/files/{file_public_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a task file attachment",
+)
+async def delete_task_file_endpoint(
+    task_public_id: uuid.UUID,
+    file_public_id: uuid.UUID,
+    current_user: User = Depends(require_project_access),
+    _pm: User = Depends(require_pm_module),
+    db: AsyncSession = Depends(get_db),
+):
+    await ProjectService.delete_task_file(db, task_public_id, file_public_id)

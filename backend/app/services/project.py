@@ -8,10 +8,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import select
 
-from app.models.project import Project, ProjectTask, ProjectTaskStatus
+from app.models.project import Project, ProjectTask, ProjectTaskStatus, ProjectTaskFile
 from app.models.crm import CRMDeal, DealStatus
 from app.models.organization import Organization
-from app.repositories.project import ProjectRepository, ProjectTaskRepository, ProjectTaskStatusRepository
+from app.repositories.project import (
+    ProjectRepository,
+    ProjectTaskRepository,
+    ProjectTaskStatusRepository,
+    ProjectTaskFileRepository,
+)
 from app.repositories.crm import CRMDealRepository
 from app.repositories.audit import AuditLogRepository
 from app.schemas.project import (
@@ -247,6 +252,56 @@ class ProjectService:
     async def delete_task(db: AsyncSession, public_id: uuid.UUID) -> None:
         task = await ProjectService.get_task(db, public_id)
         await ProjectTaskRepository.delete(db, task)
+
+    # --- Task file attachments ---
+    @staticmethod
+    async def list_task_files(db: AsyncSession, task_public_id: uuid.UUID) -> list[ProjectTaskFile]:
+        task = await ProjectService.get_task(db, task_public_id)
+        return await ProjectTaskFileRepository.list_by_task(db, task_id=task.id)
+
+    @staticmethod
+    async def create_task_file(
+        db: AsyncSession,
+        task_public_id: uuid.UUID,
+        *,
+        file_name: str,
+        file_path: str,
+        file_size: int,
+        mime_type: str,
+        owner_id: Optional[int] = None,
+    ) -> ProjectTaskFile:
+        task = await ProjectService.get_task(db, task_public_id)
+        return await ProjectTaskFileRepository.create(
+            db,
+            task_id=task.id,
+            file_name=file_name,
+            file_path=file_path,
+            file_size=file_size,
+            mime_type=mime_type,
+            owner_id=owner_id,
+        )
+
+    @staticmethod
+    async def get_task_file(db: AsyncSession, task_public_id: uuid.UUID, file_public_id: uuid.UUID) -> ProjectTaskFile:
+        task = await ProjectService.get_task(db, task_public_id)
+        task_file = await ProjectTaskFileRepository.get_by_public_id(db, file_public_id)
+        if not task_file or task_file.is_deleted or task_file.task_id != task.id:
+            raise NotFoundError("File not found")
+        return task_file
+
+    @staticmethod
+    async def delete_task_file(db: AsyncSession, task_public_id: uuid.UUID, file_public_id: uuid.UUID) -> None:
+        task_file = await ProjectService.get_task_file(db, task_public_id, file_public_id)
+
+        import os
+        if os.path.exists(task_file.file_path):
+            try:
+                os.remove(task_file.file_path)
+            except Exception as e:
+                from loguru import logger
+                logger.error(f"Failed to remove file from disk: {e}")
+
+        await ProjectTaskFileRepository.delete(db, task_file)
 
     # --- Deal -> Project conversion ---
     @staticmethod

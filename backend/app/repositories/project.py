@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
-from app.models.project import Project, ProjectStatus, ProjectTask, ProjectTaskStatus
+from app.models.project import Project, ProjectStatus, ProjectTask, ProjectTaskStatus, ProjectTaskFile
 
 
 class ProjectTaskStatusRepository:
@@ -305,4 +305,55 @@ class ProjectTaskRepository:
         for descendant in await ProjectTaskRepository._list_descendants(db, task.id):
             descendant.soft_delete()
         task.soft_delete()
+        await db.flush()
+
+
+class ProjectTaskFileRepository:
+    @staticmethod
+    async def get_by_public_id(db: AsyncSession, public_id: uuid.UUID) -> Optional[ProjectTaskFile]:
+        result = await db.execute(
+            select(ProjectTaskFile)
+            .options(selectinload(ProjectTaskFile.owner))
+            .where(ProjectTaskFile.public_id == public_id)
+        )
+        return result.scalars().first()
+
+    @staticmethod
+    async def create(
+        db: AsyncSession,
+        *,
+        task_id: int,
+        file_name: str,
+        file_path: str,
+        file_size: int,
+        mime_type: str,
+        owner_id: Optional[int] = None,
+    ) -> ProjectTaskFile:
+        task_file = ProjectTaskFile(
+            task_id=task_id,
+            file_name=file_name,
+            file_path=file_path,
+            file_size=file_size,
+            mime_type=mime_type,
+            owner_id=owner_id,
+        )
+        db.add(task_file)
+        await db.flush()
+        # Re-fetch with `owner` eagerly loaded (selectinload) so the response schema's
+        # owner_name can safely read it without triggering a lazy load.
+        return await ProjectTaskFileRepository.get_by_public_id(db, task_file.public_id)
+
+    @staticmethod
+    async def list_by_task(db: AsyncSession, *, task_id: int) -> list[ProjectTaskFile]:
+        result = await db.execute(
+            select(ProjectTaskFile)
+            .options(selectinload(ProjectTaskFile.owner))
+            .where(ProjectTaskFile.task_id == task_id, ProjectTaskFile.is_deleted.is_(False))
+            .order_by(ProjectTaskFile.created_at.desc())
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def delete(db: AsyncSession, task_file: ProjectTaskFile) -> None:
+        task_file.soft_delete()
         await db.flush()
