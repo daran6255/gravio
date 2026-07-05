@@ -30,17 +30,20 @@ interface CommentsSectionProps {
 	task: ProjectTask;
 	statuses: ProjectTaskStatus[];
 	onUpdateField: (fields: { status_id: number }) => Promise<void>;
+	commentText: string;
+	setCommentText: (val: string) => void;
 }
 
 export const CommentsSection: React.FC<CommentsSectionProps> = ({
 	task,
 	statuses,
 	onUpdateField,
+	commentText,
+	setCommentText,
 }) => {
 	const theme = useTheme();
 
 	const [commentTab, setCommentTab] = useState(0);
-	const [commentText, setCommentText] = useState('');
 
 	const selectedStatus = statuses.find((s) => s.id === task.status_id) || statuses[0];
 	const isClosed = selectedStatus.is_done_status;
@@ -109,6 +112,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 				{commentTab === 0 ? (
 					<Stack spacing={1.5}>
 						<TextField
+							id="task-comment-input"
 							placeholder="Leave a comment..."
 							multiline
 							rows={4}

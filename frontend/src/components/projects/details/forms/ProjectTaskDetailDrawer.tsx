@@ -1,29 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
 	Drawer,
 	Box,
-	Stack,
-	Typography,
-	Button,
-	Avatar,
-	IconButton,
 	useTheme,
 } from '@mui/material';
-import {
-	EditOutlined,
-	MoreHorizOutlined,
-} from '@mui/icons-material';
-import dayjs from 'dayjs';
 import type { ProjectTask, ProjectTaskUpdate, ProjectTaskStatus, ProjectTaskTag } from '../../../../models/projects/projectTask';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
-import { RichTextEditor, RichTextViewer } from '../../../common/form';
 
 // Import Decomposed task drawer sub-components
 import { TaskDrawerHeader } from '../components/task-drawer/TaskDrawerHeader';
 import { TaskDrawerSidebar } from '../components/task-drawer/TaskDrawerSidebar';
-import { SubtasksList } from '../components/task-drawer/SubtasksList';
-import { ActivityTimeline } from '../components/task-drawer/ActivityTimeline';
-import { CommentsSection } from '../components/task-drawer/CommentsSection';
+import { TaskDescriptionCard } from '../components/task-drawer/TaskDescriptionCard';
 
 interface ProjectTaskDetailDrawerProps {
 	open: boolean;
@@ -39,48 +26,29 @@ interface ProjectTaskDetailDrawerProps {
 	onAddSubtask: (parent: ProjectTask) => void;
 }
 
-export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = ({
-	open,
-	onClose,
-	task,
-	tasks,
-	projectName,
-	statuses,
-	owners,
-	existingTags,
-	onSubmit,
-	onDelete,
-	onAddSubtask,
-}) => {
+export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (props) => {
+	const {
+		open,
+		onClose,
+		task,
+		tasks,
+		projectName,
+		statuses,
+		owners,
+		existingTags,
+		onSubmit,
+		onDelete,
+	} = props;
+
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
-
-	const borderColor = isDark ? '#30363d' : '#d0d7de';
-	const cardBg = isDark ? '#161b22' : '#ffffff';
 	const bgColor = isDark ? '#0d1117' : '#ffffff';
 
 	// Get latest version from source-of-truth list
 	const latestTask = tasks.find((t) => t.id === task.id) || task;
 
-	const [isEditingDesc, setIsEditingDesc] = useState(false);
-	const [editDesc, setEditDesc] = useState(latestTask.description || '');
-
-	useEffect(() => {
-		if (open) {
-			setEditDesc(latestTask.description || '');
-			setIsEditingDesc(false);
-		}
-	}, [open, latestTask.id, latestTask.description]);
-
 	const handleUpdateField = async (fields: ProjectTaskUpdate) => {
 		await onSubmit(fields);
-	};
-
-	const saveDescription = async () => {
-		if (editDesc !== (latestTask.description || '')) {
-			await handleUpdateField({ description: editDesc.trim() || undefined });
-		}
-		setIsEditingDesc(false);
 	};
 
 	return (
@@ -90,7 +58,7 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 			onClose={onClose}
 			PaperProps={{
 				sx: {
-					width: { xs: '100%', md: '850px', lg: '1050px' },
+					width: { xs: '100%', md: '70vw' },
 					maxWidth: '100%',
 					borderTopLeftRadius: '16px',
 					borderBottomLeftRadius: '16px',
@@ -112,144 +80,28 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 				/>
 
 				{/* Two Column Scrollable Body */}
-				<Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
-					{/* Left Column (Main details) */}
-					<Box sx={{ flex: 1, p: 3.5, display: 'flex', flexDirection: 'column', gap: 3 }}>
-						
-						{/* Author Info Block */}
-						<Box
-							sx={{
-								display: 'flex',
-								alignItems: 'center',
-								justifyContent: 'space-between',
-								p: 1.5,
-								borderRadius: '8px',
-								border: '1px solid',
-								borderColor: borderColor,
-								bgcolor: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.005)',
-							}}
-						>
-							<Stack direction="row" alignItems="center" spacing={1.5}>
-								<Avatar sx={{ width: 26, height: 26, fontSize: '0.75rem', fontWeight: 700, bgcolor: 'primary.main', color: 'white' }}>
-									D
-								</Avatar>
-								<Typography variant="body2" sx={{ fontWeight: 650 }}>
-									daran6255 <span style={{ color: theme.palette.text.secondary, fontWeight: 500 }}>opened this on {dayjs(latestTask.created_at).format('MMM D, YYYY')}</span>
-								</Typography>
-								<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-									&bull; Last edited by daran6255
-								</Typography>
-							</Stack>
-							<Stack direction="row" alignItems="center" spacing={1}>
-								<Box sx={{ border: '1px solid', borderColor: borderColor, px: 1, py: 0.15, borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700, color: 'text.secondary' }}>
-									Member
-								</Box>
-								<IconButton size="small" sx={{ color: 'text.secondary' }}>
-									<MoreHorizOutlined fontSize="small" style={{ fontSize: 16 }} />
-								</IconButton>
-							</Stack>
-						</Box>
-
-						{/* Description Card */}
-						<Box
-							sx={{
-								border: '1px solid',
-								borderColor: borderColor,
-								borderRadius: '12px',
-								overflow: 'hidden',
-								bgcolor: cardBg,
-								boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.15)' : '0 4px 20px rgba(0,0,0,0.02)',
-							}}
-						>
-							<Box
-								sx={{
-									px: 2.25,
-									py: 1.5,
-									borderBottom: '1px solid',
-									borderColor: 'divider',
-									display: 'flex',
-									justifyContent: 'space-between',
-									alignItems: 'center',
-									bgcolor: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.005)',
-								}}
-							>
-								<Typography variant="subtitle2" sx={{ fontWeight: 750, letterSpacing: '-0.01em' }}>
-									Description
-								</Typography>
-								{!isEditingDesc && (
-									<Button
-										startIcon={<EditOutlined fontSize="small" />}
-										size="small"
-										onClick={() => setIsEditingDesc(true)}
-										sx={{ textTransform: 'none', fontWeight: 700 }}
-									>
-										Edit
-									</Button>
-								)}
-							</Box>
-							<Box sx={{ p: 2.5 }}>
-								{isEditingDesc ? (
-									<Stack spacing={2}>
-										<RichTextEditor
-											value={editDesc}
-											onChange={setEditDesc}
-											variant="standard"
-											minHeight={150}
-										/>
-										<Stack direction="row" spacing={1.5} justifyContent="flex-end">
-											<Button onClick={() => setIsEditingDesc(false)} size="small" sx={{ textTransform: 'none', fontWeight: 700 }}>
-												Cancel
-											</Button>
-											<Button
-												variant="contained"
-												onClick={saveDescription}
-												size="small"
-												sx={{ color: 'white', textTransform: 'none', fontWeight: 700 }}
-											>
-												Save Changes
-											</Button>
-										</Stack>
-									</Stack>
-								) : latestTask.description ? (
-									<RichTextViewer html={latestTask.description} />
-								) : (
-									<Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
-										No description provided.
-									</Typography>
-								)}
-							</Box>
-						</Box>
-
-						{/* Sub-tasks checklist */}
-						<SubtasksList
+				<Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 0 }}>
+					{/* Left Column (Main description card) - 50% width on Desktop */}
+					<Box sx={{ width: { xs: '100%', md: '50vw' }, p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
+						{/* Task Description Card Component */}
+						<TaskDescriptionCard
 							task={latestTask}
-							tasks={tasks}
-							statuses={statuses}
-							owners={owners}
-							onAddSubtask={onAddSubtask}
-						/>
-
-						{/* Timeline Activity */}
-						<ActivityTimeline task={latestTask} />
-
-						{/* Comments Section */}
-						<CommentsSection
-							task={latestTask}
-							statuses={statuses}
 							onUpdateField={handleUpdateField}
 						/>
 					</Box>
 
-					{/* Right Column (Sidebar settings) */}
-					<TaskDrawerSidebar
-						task={latestTask}
-						statuses={statuses}
-						owners={owners}
-						existingTags={existingTags}
-						projectName={projectName}
-						onUpdateField={handleUpdateField}
-						onDelete={onDelete}
-					/>
+					{/* Right Column (Sidebar settings) - 20% width on Desktop */}
+					<Box sx={{ width: { xs: '100%', md: '20vw' } }}>
+						<TaskDrawerSidebar
+							task={latestTask}
+							statuses={statuses}
+							owners={owners}
+							existingTags={existingTags}
+							projectName={projectName}
+							onUpdateField={handleUpdateField}
+							onDelete={onDelete}
+						/>
+					</Box>
 				</Box>
 			</Box>
 		</Drawer>

@@ -113,14 +113,13 @@ export const TaskDrawerSidebar: React.FC<TaskDrawerSidebarProps> = ({
 	return (
 		<Box
 			sx={{
-				width: { xs: '100%', md: '280px', lg: '320px' },
+				width: '100%',
 				p: 3.5,
 				bgcolor: isDark ? '#0d1117' : '#f6f8fa',
 				display: 'flex',
 				flexDirection: 'column',
 				gap: 3,
-				borderLeft: { md: '1px solid' },
-				borderColor: borderColor,
+				borderLeft: 'none',
 			}}
 		>
 			{/* Assignees */}

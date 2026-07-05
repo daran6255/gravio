@@ -11,7 +11,6 @@ import {
 } from '@mui/material';
 import {
 	CloseOutlined,
-	EditOutlined,
 	CheckOutlined,
 	DeleteOutline,
 	ContentCopyOutlined,
@@ -20,7 +19,10 @@ import {
 	CheckCircleOutline,
 	FolderOutlined,
 	AssignmentOutlined,
+	CalendarTodayOutlined,
+	ListAltOutlined,
 } from '@mui/icons-material';
+import dayjs from 'dayjs';
 import type { ProjectTask, ProjectTaskUpdate, ProjectTaskStatus } from '../../../../../models/projects/projectTask';
 
 interface TaskDrawerHeaderProps {
@@ -74,72 +76,71 @@ export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
 		<Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: color, flexShrink: 0 }} />
 	);
 
-	// Format project name for GitHub repository style badge (e.g. "winvinaya / winvinaya-crm")
-	const formattedRepoName = `winvinaya / ${projectName.toLowerCase().replace(/\s+/g, '-')}`;
-
 	return (
 		<Box
 			sx={{
 				px: 3.5,
-				py: 2,
+				py: 1.75,
 				borderBottom: '1px solid',
 				borderColor: 'divider',
 				display: 'flex',
 				flexDirection: 'column',
 				gap: 1.5,
-				bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.005)',
+				bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.003)',
 			}}
 		>
-			{/* Top row: Title + Actions */}
-			<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-				{isEditingTitle ? (
-					<Stack direction="row" spacing={1} sx={{ flex: 1, mr: 2 }}>
-						<TextField
-							value={editTitle}
-							onChange={(e) => setEditTitle(e.target.value)}
-							fullWidth
-							size="small"
-							autoFocus
-							onKeyDown={(e) => { if (e.key === 'Enter') saveTitle(); }}
-							InputProps={{
-								sx: {
-									fontWeight: 700,
-									fontSize: '1.25rem',
-									borderRadius: '8px',
-								},
-							}}
-						/>
-						<IconButton onClick={saveTitle} color="primary" sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
-							<CheckOutlined />
-						</IconButton>
-					</Stack>
-				) : (
-					<Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1, mr: 2 }}>
+			{/* Row 1: Title (left) & Action Icons (right) */}
+			<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+				{/* Title Section */}
+				<Box sx={{ flex: 1, mr: 2 }}>
+					{isEditingTitle ? (
+						<Stack direction="row" spacing={1} sx={{ width: '100%' }}>
+							<TextField
+								value={editTitle}
+								onChange={(e) => setEditTitle(e.target.value)}
+								fullWidth
+								size="small"
+								autoFocus
+								onBlur={saveTitle}
+								onKeyDown={(e) => { if (e.key === 'Enter') saveTitle(); }}
+								InputProps={{
+									sx: {
+										fontWeight: 700,
+										fontSize: '1.35rem',
+										borderRadius: '8px',
+										py: 0.25,
+									},
+								}}
+							/>
+							<IconButton onClick={saveTitle} color="primary" sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
+								<CheckOutlined />
+							</IconButton>
+						</Stack>
+					) : (
 						<Typography
-							variant="h6"
+							variant="h5"
 							sx={{
-								fontWeight: 700,
+								fontWeight: 800,
 								color: 'text.primary',
-								letterSpacing: '-0.01em',
+								letterSpacing: '-0.02em',
 								cursor: 'pointer',
 								borderRadius: '6px',
 								'&:hover': { bgcolor: theme.palette.action.hover },
 								px: 1,
-								py: 0.25,
+								py: 0.1,
 								ml: -1,
+								lineHeight: 1.25,
+								display: 'inline-block',
 							}}
 							onClick={() => setIsEditingTitle(true)}
 						>
-							{task.title} <span style={{ color: theme.palette.text.secondary, fontWeight: 500 }}>#{task.id}</span>
+							{task.title} <span style={{ color: theme.palette.text.secondary, fontSize: '1.15rem', fontWeight: 500, marginLeft: '8px' }}>#{task.id}</span>
 						</Typography>
-						<IconButton onClick={() => setIsEditingTitle(true)} size="small" sx={{ color: 'text.secondary' }}>
-							<EditOutlined fontSize="small" />
-						</IconButton>
-					</Stack>
-				)}
+					)}
+				</Box>
 
-				{/* Top Right Header Actions */}
-				<Stack direction="row" spacing={0.5} alignItems="center">
+				{/* Header Actions */}
+				<Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
 					<IconButton size="small" title="Copy link" sx={{ color: 'text.secondary', '&:hover': { bgcolor: theme.palette.action.hover } }}>
 						<ContentCopyOutlined fontSize="small" style={{ fontSize: 16 }} />
 					</IconButton>
@@ -158,9 +159,9 @@ export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
 				</Stack>
 			</Box>
 
-			{/* Bottom row: Badges Bar */}
-			<Stack direction="row" flexWrap="wrap" gap={1} alignItems="center">
-				{/* Closed / Done status badge */}
+			{/* Bottom Row: Metadata Summary Bar */}
+			<Stack direction="row" flexWrap="wrap" gap={1.25} alignItems="center">
+				{/* Interactive Status Selector Pill */}
 				{isClosed ? (
 					<Box
 						onClick={(e) => setStatusAnchor(e.currentTarget)}
@@ -168,20 +169,19 @@ export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
 							display: 'inline-flex',
 							alignItems: 'center',
 							gap: 0.75,
-							bgcolor: theme.palette.mode === 'dark' ? 'rgba(111,66,193,0.15)' : 'rgba(111,66,193,0.08)',
-							border: '1px solid',
-							borderColor: theme.palette.mode === 'dark' ? 'rgba(111,66,193,0.3)' : 'rgba(111,66,193,0.2)',
+							bgcolor: theme.palette.mode === 'dark' ? 'rgba(139,124,246,0.15)' : 'rgba(139,124,246,0.08)',
+							border: '1px solid rgba(139,124,246,0.3)',
 							color: '#8B7CF6',
 							px: 1.5,
 							py: 0.5,
-							borderRadius: '100px',
+							borderRadius: '6px',
 							fontSize: '0.75rem',
 							fontWeight: 700,
 							cursor: 'pointer',
-							'&:hover': { opacity: 0.9 },
+							'&:hover': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(139,124,246,0.2)' : 'rgba(139,124,246,0.12)' },
 						}}
 					>
-						<CheckCircleOutline style={{ fontSize: 14 }} />
+						<CheckCircleOutline style={{ fontSize: 13 }} />
 						Closed
 					</Box>
 				) : (
@@ -191,19 +191,19 @@ export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
 							display: 'inline-flex',
 							alignItems: 'center',
 							gap: 0.75,
-							bgcolor: selectedStatus.color,
-							color: 'white',
+							bgcolor: alpha(selectedStatus.color, 0.1),
+							border: `1px solid ${alpha(selectedStatus.color, 0.4)}`,
+							color: selectedStatus.color,
 							px: 1.5,
 							py: 0.5,
-							borderRadius: '100px',
+							borderRadius: '6px',
 							fontSize: '0.75rem',
 							fontWeight: 700,
 							cursor: 'pointer',
-							boxShadow: `0 2px 6px ${alpha(selectedStatus.color, 0.25)}`,
-							'&:hover': { opacity: 0.9 },
+							'&:hover': { bgcolor: alpha(selectedStatus.color, 0.15) },
 						}}
 					>
-						{dotIcon('white')}
+						{dotIcon(selectedStatus.color)}
 						{selectedStatus.name}
 					</Box>
 				)}
@@ -219,38 +219,17 @@ export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
 						color: 'text.secondary',
 						px: 1.25,
 						py: 0.5,
-						borderRadius: '100px',
+						borderRadius: '6px',
 						fontSize: '0.75rem',
 						fontWeight: 600,
+						bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
 					}}
 				>
-					<AssignmentOutlined style={{ fontSize: 14 }} />
+					<AssignmentOutlined style={{ fontSize: 13 }} />
 					Task
 				</Box>
 
-				{/* Sub-task checklist progress badge */}
-				{subtasks.length > 0 && (
-					<Box
-						sx={{
-							display: 'inline-flex',
-							alignItems: 'center',
-							gap: 0.75,
-							border: '1px solid',
-							borderColor: 'divider',
-							color: 'text.secondary',
-							px: 1.25,
-							py: 0.5,
-							borderRadius: '100px',
-							fontSize: '0.75rem',
-							fontWeight: 600,
-						}}
-					>
-						<CheckCircleOutline style={{ fontSize: 14 }} />
-						{completedSubCount} / {subtasks.length}
-					</Box>
-				)}
-
-				{/* Project repository path (dynamic!) */}
+				{/* Sub-tasks checklist progress badge */}
 				<Box
 					sx={{
 						display: 'inline-flex',
@@ -259,32 +238,59 @@ export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
 						border: '1px solid',
 						borderColor: 'divider',
 						color: 'text.secondary',
-						px: 1.5,
+						px: 1.25,
 						py: 0.5,
-						borderRadius: '100px',
+						borderRadius: '6px',
 						fontSize: '0.75rem',
 						fontWeight: 600,
+						bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
+						opacity: subtasks.length > 0 ? 1 : 0.6,
 					}}
 				>
-					<FolderOutlined style={{ fontSize: 14 }} />
-					{formattedRepoName}
+					<ListAltOutlined style={{ fontSize: 13 }} />
+					{subtasks.length > 0 ? `${completedSubCount} / ${subtasks.length} Subtasks` : 'No Subtasks'}
 				</Box>
 
-				{/* Public Visibility capsule */}
+				{/* Project Badge */}
 				<Box
 					sx={{
-						bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+						display: 'inline-flex',
+						alignItems: 'center',
+						gap: 0.75,
 						border: '1px solid',
 						borderColor: 'divider',
 						color: 'text.secondary',
 						px: 1.25,
 						py: 0.5,
-						borderRadius: '100px',
+						borderRadius: '6px',
 						fontSize: '0.75rem',
-						fontWeight: 700,
+						fontWeight: 600,
+						bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
 					}}
 				>
-					Public
+					<FolderOutlined style={{ fontSize: 13 }} />
+					{projectName}
+				</Box>
+
+				{/* Created At badge */}
+				<Box
+					sx={{
+						display: 'inline-flex',
+						alignItems: 'center',
+						gap: 0.75,
+						border: '1px solid',
+						borderColor: 'divider',
+						color: 'text.secondary',
+						px: 1.25,
+						py: 0.5,
+						borderRadius: '6px',
+						fontSize: '0.75rem',
+						fontWeight: 600,
+						bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
+					}}
+				>
+					<CalendarTodayOutlined style={{ fontSize: 13 }} />
+					Created {dayjs(task.created_at).format('MMM D, YYYY')}
 				</Box>
 			</Stack>
 
