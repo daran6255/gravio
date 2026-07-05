@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
 	Dialog,
-	DialogTitle,
 	DialogContent,
 	DialogActions,
 	Box,
@@ -20,7 +19,7 @@ import {
 	PersonOutline,
 	ChevronRightOutlined,
 } from '@mui/icons-material';
-import type { ProjectTaskCreate, ProjectTaskStatus } from '../../../../models/projects/projectTask';
+import type { ProjectTask, ProjectTaskCreate, ProjectTaskStatus } from '../../../../models/projects/projectTask';
 import type { LeadPriority } from '../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
 
@@ -34,7 +33,7 @@ const PRIORITIES: { value: LeadPriority; label: string; color: string }[] = [
 interface ProjectTaskCreateDialogProps {
 	open: boolean;
 	onClose: () => void;
-	parentTask?: any | null; // using parent task details if adding subtask
+	parentTask?: ProjectTask | null; // using parent task details if adding subtask
 	statuses: ProjectTaskStatus[];
 	owners: CRMOwnerOption[];
 	submitting: boolean;
@@ -52,6 +51,10 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+
+	const borderColor = isDark ? '#30363d' : '#d0d7de';
+	const cardBg = isDark ? '#161b22' : '#ffffff';
+	const hoverBg = isDark ? '#21262d' : '#f3f4f6';
 
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');
@@ -91,7 +94,48 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 	};
 
 	const dotIcon = (color: string) => (
-		<Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: color, flexShrink: 0 }} />
+		<Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: color, flexShrink: 0 }} />
+	);
+
+	// A selectable chip: bordered + tinted when active, neutral otherwise -- the
+	// same restrained pill treatment used throughout the rest of the task drawer,
+	// rather than a fully solid color fill.
+	const selectableChip = ({
+		key,
+		label,
+		color,
+		isSelected,
+		onClick,
+	}: {
+		key: React.Key;
+		label: string;
+		color: string;
+		isSelected: boolean;
+		onClick: () => void;
+	}) => (
+		<Button
+			key={key}
+			onClick={onClick}
+			startIcon={dotIcon(isSelected ? color : theme.palette.text.disabled)}
+			sx={{
+				textTransform: 'none',
+				fontWeight: 700,
+				fontSize: '0.8rem',
+				borderRadius: '100px',
+				px: 1.75,
+				py: 0.5,
+				color: isSelected ? color : 'text.secondary',
+				bgcolor: isSelected ? alpha(color, 0.12) : 'transparent',
+				border: '1px solid',
+				borderColor: isSelected ? alpha(color, 0.4) : borderColor,
+				'&:hover': {
+					bgcolor: isSelected ? alpha(color, 0.18) : hoverBg,
+					borderColor: isSelected ? alpha(color, 0.5) : borderColor,
+				},
+			}}
+		>
+			{label}
+		</Button>
 	);
 
 	return (
@@ -102,52 +146,61 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 			fullWidth
 			PaperProps={{
 				sx: {
-					borderRadius: '16px',
+					borderRadius: '12px',
+					border: '1px solid',
+					borderColor,
 					overflow: 'hidden',
-					bgcolor: 'background.paper',
+					bgcolor: cardBg,
 					backgroundImage: 'none',
+					boxShadow: isDark ? '0 12px 40px rgba(0,0,0,0.4)' : '0 12px 40px rgba(0,0,0,0.12)',
 				},
 			}}
 		>
-			{/* Gradient Header */}
-			<DialogTitle
-				sx={{
-					m: 0,
-					p: 3,
-					background: 'linear-gradient(135deg, #8B7CF6 0%, #4EA8FF 100%)',
-					color: 'white',
-					display: 'flex',
-					alignItems: 'center',
-					justifyContent: 'space-between',
-				}}
-			>
-				<Stack spacing={0.5}>
-					<Typography variant="h6" sx={{ fontWeight: 800, color: 'white' }}>
-						{parentTask ? 'Add Sub-task' : 'Create New Task'}
-					</Typography>
-					<Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 500 }}>
-						{parentTask ? `Under "${parentTask.title}"` : 'Quickly add a task to this project'}
-					</Typography>
-				</Stack>
-				<IconButton
-					onClick={onClose}
-					disabled={submitting}
+			{/* Header */}
+			<Box sx={{ position: 'relative' }}>
+				<Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)' }} />
+				<Box
 					sx={{
-						color: 'white',
-						bgcolor: 'rgba(255, 255, 255, 0.15)',
-						'&:hover': { bgcolor: 'rgba(255, 255, 255, 0.25)' },
+						px: 3,
+						pt: 2.75,
+						pb: 2,
+						borderBottom: '1px solid',
+						borderColor,
+						bgcolor: isDark ? '#161b22' : '#f6f8fa',
+						display: 'flex',
+						alignItems: 'flex-start',
+						justifyContent: 'space-between',
 					}}
 				>
-					<CloseOutlined fontSize="small" />
-				</IconButton>
-			</DialogTitle>
+					<Stack spacing={0.4}>
+						<Typography variant="h6" sx={{ fontWeight: 800, fontSize: '1.05rem', color: 'text.primary', letterSpacing: '-0.01em' }}>
+							{parentTask ? 'Add Sub-task' : 'Create New Task'}
+						</Typography>
+						<Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+							{parentTask ? `Under "${parentTask.title}"` : 'Quickly add a task to this project'}
+						</Typography>
+					</Stack>
+					<IconButton
+						onClick={onClose}
+						disabled={submitting}
+						size="small"
+						sx={{
+							color: 'text.secondary',
+							bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+							'&:hover': { color: 'error.main', bgcolor: alpha(theme.palette.error.main, 0.08) },
+						}}
+					>
+						<CloseOutlined fontSize="small" />
+					</IconButton>
+				</Box>
+			</Box>
 
-			<DialogContent sx={{ px: 3, pb: 3, pt: '28px !important' }}>
-				<Stack spacing={3}>
+			<DialogContent sx={{ px: 3, pb: 3, pt: '24px !important' }}>
+				<Stack spacing={2.75}>
 					{/* Title Input */}
 					<TextField
 						label="What needs to be done?"
-						placeholder="Task Title"
+						placeholder="Task title"
 						value={title}
 						onChange={(e) => setTitle(e.target.value)}
 						required
@@ -158,16 +211,16 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 						variant="outlined"
 						InputProps={{
 							sx: {
-								fontSize: '1.05rem',
+								fontSize: '0.95rem',
 								fontWeight: 600,
-								borderRadius: '12px',
+								borderRadius: '10px',
 							},
 						}}
 					/>
 
 					{/* Description Input */}
 					<TextField
-						label="Description (Optional)"
+						label="Description (optional)"
 						placeholder="Add more details about this task..."
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
@@ -177,90 +230,51 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 						variant="outlined"
 						InputProps={{
 							sx: {
-								borderRadius: '12px',
+								fontSize: '0.875rem',
+								borderRadius: '10px',
 							},
 						}}
 					/>
 
 					{/* Status Selector */}
 					<Stack spacing={1}>
-						<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+						<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.7rem' }}>
 							Stage
 						</Typography>
-						<Stack direction="row" flexWrap="wrap" gap={1.25}>
-							{statuses.map((s) => {
-								const isSelected = s.id === statusId;
-								return (
-									<Button
-										key={s.id}
-										onClick={() => setStatusId(s.id)}
-										startIcon={dotIcon(s.color)}
-										sx={{
-											textTransform: 'none',
-											fontWeight: 700,
-											fontSize: '0.825rem',
-											borderRadius: '100px',
-											px: 2,
-											py: 0.75,
-											color: isSelected ? 'white' : 'text.primary',
-											bgcolor: isSelected ? s.color : isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-											border: '1px solid',
-											borderColor: isSelected ? s.color : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-											boxShadow: isSelected ? `0 4px 12px ${alpha(s.color, 0.35)}` : 'none',
-											'&:hover': {
-												bgcolor: isSelected ? s.color : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-												borderColor: isSelected ? s.color : 'divider',
-											},
-										}}
-									>
-										{s.name}
-									</Button>
-								);
-							})}
+						<Stack direction="row" flexWrap="wrap" gap={1}>
+							{statuses.map((s) =>
+								selectableChip({
+									key: s.id,
+									label: s.name,
+									color: s.color,
+									isSelected: s.id === statusId,
+									onClick: () => setStatusId(s.id),
+								})
+							)}
 						</Stack>
 					</Stack>
 
 					{/* Priority Selector */}
 					<Stack spacing={1}>
-						<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+						<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.7rem' }}>
 							Priority
 						</Typography>
-						<Stack direction="row" flexWrap="wrap" gap={1.25}>
-							{PRIORITIES.map((p) => {
-								const isSelected = p.value === priority;
-								return (
-									<Button
-										key={p.value}
-										onClick={() => setPriority(p.value)}
-										startIcon={dotIcon(p.color)}
-										sx={{
-											textTransform: 'none',
-											fontWeight: 700,
-											fontSize: '0.825rem',
-											borderRadius: '100px',
-											px: 2.25,
-											py: 0.75,
-											color: isSelected ? 'white' : 'text.primary',
-											bgcolor: isSelected ? p.color : isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-											border: '1px solid',
-											borderColor: isSelected ? p.color : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-											boxShadow: isSelected ? `0 4px 12px ${alpha(p.color, 0.35)}` : 'none',
-											'&:hover': {
-												bgcolor: isSelected ? p.color : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-												borderColor: isSelected ? p.color : 'divider',
-											},
-										}}
-									>
-										{p.label}
-									</Button>
-								);
-							})}
+						<Stack direction="row" flexWrap="wrap" gap={1}>
+							{PRIORITIES.map((p) =>
+								selectableChip({
+									key: p.value,
+									label: p.label,
+									color: p.color,
+									isSelected: p.value === priority,
+									onClick: () => setPriority(p.value),
+								})
+							)}
 						</Stack>
 					</Stack>
 
 					{/* Assignee Card */}
 					<Stack spacing={1}>
-						<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+						<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.7rem' }}>
 							Assignee
 						</Typography>
 						<Box
@@ -269,47 +283,52 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 								display: 'flex',
 								alignItems: 'center',
 								justifyContent: 'space-between',
-								p: 1.5,
-								borderRadius: '12px',
+								p: 1.25,
+								borderRadius: '10px',
 								cursor: 'pointer',
 								border: '1px solid',
-								borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)',
+								borderColor,
 								bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
 								'&:hover': {
-									bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
+									bgcolor: hoverBg,
 									borderColor: 'primary.main',
 								},
 							}}
 						>
 							<Stack direction="row" alignItems="center" spacing={1.5}>
 								{selectedAssignee ? (
-									<Avatar sx={{ width: 28, height: 28, fontSize: '0.8rem', fontWeight: 700, bgcolor: 'primary.main', color: 'white' }}>
+									<Avatar sx={{ width: 26, height: 26, fontSize: '0.75rem', fontWeight: 700, bgcolor: 'primary.main', color: 'white' }}>
 										{(selectedAssignee.full_name || selectedAssignee.email)[0]?.toUpperCase()}
 									</Avatar>
 								) : (
-									<Avatar sx={{ width: 28, height: 28, bgcolor: 'transparent', border: '1px dashed', borderColor: 'text.secondary', color: 'text.secondary' }}>
+									<Avatar sx={{ width: 26, height: 26, bgcolor: 'transparent', border: '1px dashed', borderColor: 'text.secondary', color: 'text.secondary' }}>
 										<PersonOutline fontSize="small" />
 									</Avatar>
 								)}
-								<Typography variant="body2" sx={{ fontWeight: 600 }}>
-									{selectedAssignee ? (selectedAssignee.full_name || selectedAssignee.email) : 'Select Assignee'}
+								<Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
+									{selectedAssignee ? (selectedAssignee.full_name || selectedAssignee.email) : 'Unassigned'}
 								</Typography>
 							</Stack>
-							<ChevronRightOutlined sx={{ color: 'text.secondary', transform: assigneeAnchor ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+							<ChevronRightOutlined sx={{ fontSize: 18, color: 'text.secondary', transform: assigneeAnchor ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
 						</Box>
 					</Stack>
 				</Stack>
 			</DialogContent>
 
-			<DialogActions sx={{ px: 3, pb: 3, pt: 1, gap: 1.5 }}>
+			<DialogActions sx={{ px: 3, py: 2, gap: 1.25, borderTop: '1px solid', borderColor, bgcolor: isDark ? '#161b22' : '#f6f8fa' }}>
 				<Button
 					onClick={onClose}
 					disabled={submitting}
 					sx={{
 						textTransform: 'none',
 						fontWeight: 700,
-						borderRadius: '10px',
-						px: 3,
+						fontSize: '0.85rem',
+						borderRadius: '8px',
+						color: 'text.primary',
+						px: 2.5,
+						border: '1px solid',
+						borderColor,
+						'&:hover': { bgcolor: hoverBg },
 					}}
 				>
 					Cancel
@@ -318,23 +337,17 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 					variant="contained"
 					onClick={handleCreate}
 					disabled={submitting || !isValid}
+					disableElevation
 					sx={{
 						color: 'white',
 						textTransform: 'none',
 						fontWeight: 700,
-						px: 4,
-						borderRadius: '10px',
-						boxShadow: 'none',
-						background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
-						'&:hover': {
-							boxShadow: '0 4px 12px rgba(139,124,246,0.3)',
-						},
-						'&.Mui-disabled': {
-							background: theme.palette.action.disabledBackground,
-						},
+						fontSize: '0.85rem',
+						px: 3,
+						borderRadius: '8px',
 					}}
 				>
-					Create Task
+					{parentTask ? 'Add Sub-task' : 'Create Task'}
 				</Button>
 			</DialogActions>
 
@@ -344,6 +357,7 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 				anchorEl={assigneeAnchor}
 				onClose={() => setAssigneeAnchor(null)}
 				anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+				PaperProps={{ sx: { borderRadius: '10px', mt: 0.5, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' } }}
 			>
 				<Stack sx={{ minWidth: 240, py: 0.5, maxHeight: 300, overflowY: 'auto' }}>
 					<Box
@@ -355,7 +369,7 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 							py: 1.25,
 							cursor: 'pointer',
 							bgcolor: assigneeId === null ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-							'&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' },
+							'&:hover': { bgcolor: hoverBg },
 						}}
 					>
 						<Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic', fontWeight: 600 }}>
@@ -374,7 +388,7 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 								py: 1,
 								cursor: 'pointer',
 								bgcolor: o.id === assigneeId ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-								'&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' },
+								'&:hover': { bgcolor: hoverBg },
 							}}
 						>
 							<Avatar sx={{ width: 24, height: 24, fontSize: '0.7rem', fontWeight: 700 }}>

@@ -72,6 +72,18 @@ require_crm_access = require_roles([
     UserRole.PLACEMENT,
 ])
 
+# Reminders are a cross-cutting feature (leads/deals for CRM roles, but also
+# project_task for Project Management roles -- see REMINDER_ENTITY_TYPES), so
+# they get their own, broader permission instead of the CRM-only one above.
+require_reminder_access = require_roles([
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.MARKETING,
+    UserRole.PLACEMENT,
+    UserRole.PROJECT_COORDINATOR,
+    UserRole.DEVELOPER,
+])
+
 # Pipeline/stage configuration is an admin/manager-only capability
 require_pipeline_management = require_roles([UserRole.ADMIN, UserRole.MANAGER])
 
@@ -1103,7 +1115,7 @@ async def delete_lead_task_endpoint(
 )
 async def create_reminder_endpoint(
     payload: CRMReminderCreate,
-    current_user: User = Depends(require_crm_access),
+    current_user: User = Depends(require_reminder_access),
     db: AsyncSession = Depends(get_db),
 ) -> CRMReminderResponse:
     reminder = await ReminderService.create_reminder(db, payload, current_user.id)
@@ -1118,7 +1130,7 @@ async def create_reminder_endpoint(
 async def list_reminders_endpoint(
     entity_type: str = Query(...),
     entity_id: int = Query(...),
-    current_user: User = Depends(require_crm_access),
+    current_user: User = Depends(require_reminder_access),
     db: AsyncSession = Depends(get_db),
 ) -> list[CRMReminderResponse]:
     reminders = await ReminderService.list_reminders_for_entity(db, entity_type=entity_type, entity_id=entity_id)
@@ -1133,7 +1145,7 @@ async def list_reminders_endpoint(
 async def list_reminders_for_entities_endpoint(
     entity_type: str = Query(...),
     entity_ids: str = Query(..., description="Comma-separated entity ids"),
-    current_user: User = Depends(require_crm_access),
+    current_user: User = Depends(require_reminder_access),
     db: AsyncSession = Depends(get_db),
 ) -> list[CRMReminderResponse]:
     ids = [int(x) for x in entity_ids.split(",") if x.strip()]
@@ -1147,7 +1159,7 @@ async def list_reminders_for_entities_endpoint(
     summary="List the current user's upcoming reminders",
 )
 async def list_my_reminders_endpoint(
-    current_user: User = Depends(require_crm_access),
+    current_user: User = Depends(require_reminder_access),
     db: AsyncSession = Depends(get_db),
 ) -> list[CRMReminderResponse]:
     reminders = await ReminderService.list_my_reminders(db, user_id=current_user.id)
@@ -1162,7 +1174,7 @@ async def list_my_reminders_endpoint(
 async def update_reminder_endpoint(
     public_id: uuid.UUID,
     payload: CRMReminderUpdate,
-    current_user: User = Depends(require_crm_access),
+    current_user: User = Depends(require_reminder_access),
     db: AsyncSession = Depends(get_db),
 ) -> CRMReminderResponse:
     reminder = await ReminderService.update_reminder(db, public_id, payload, current_user.id)
@@ -1176,7 +1188,7 @@ async def update_reminder_endpoint(
 )
 async def cancel_reminder_endpoint(
     public_id: uuid.UUID,
-    current_user: User = Depends(require_crm_access),
+    current_user: User = Depends(require_reminder_access),
     db: AsyncSession = Depends(get_db),
 ):
     await ReminderService.cancel_reminder(db, public_id, current_user.id)

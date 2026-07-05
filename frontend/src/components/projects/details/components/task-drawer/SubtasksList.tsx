@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
 	Box,
 	Stack,
@@ -24,9 +24,12 @@ import {
 	NotificationsNone,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
-import { DatePicker } from '../../../../common/form';
 import type { ProjectTask, ProjectTaskStatus, ProjectTaskUpdate } from '../../../../../models/projects/projectTask';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
+import type { Reminder } from '../../../../../models/crm/reminder';
+import { SetReminderDialog } from '../../../../crm/shared/SetReminderDialog';
+import crmService from '../../../../../services/crmService';
+import { formatReminderTime, getNextReminderByEntityId } from '../../../../../utils/reminders';
 
 const PRESET_COLORS = ['#FF9800', '#F44336', '#4CAF50', '#2196F3', '#9C27B0', '#E91E63', '#00BCD4', '#009688', '#3F51B5'];
 
@@ -53,12 +56,32 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 	const [expanded, setExpanded] = useState(true);
 	const [statusMenuAnchor, setStatusMenuAnchor] = useState<{ anchorEl: HTMLElement, task: ProjectTask } | null>(null);
 	const [typePopoverAnchor, setTypePopoverAnchor] = useState<{ anchorEl: HTMLElement, task: ProjectTask } | null>(null);
-	const [reminderPopoverAnchor, setReminderPopoverAnchor] = useState<{ anchorEl: HTMLElement, task: ProjectTask } | null>(null);
+	const [reminderDialogTask, setReminderDialogTask] = useState<ProjectTask | null>(null);
+	const [subtaskReminders, setSubtaskReminders] = useState<Reminder[]>([]);
 	const [newTypeName, setNewTypeName] = useState('');
 
 	// Filter Subtasks
 	const subtasks = tasks.filter((t) => t.parent_task_id === task.id);
-	
+
+	// Real reminders (delivered via in-app notification + email by the backend
+	// scheduler) for every subtask at once, powering each row's bell icon.
+	const loadSubtaskReminders = async () => {
+		if (subtasks.length === 0) { setSubtaskReminders([]); return; }
+		try {
+			const res = await crmService.listRemindersForEntities('project_task', subtasks.map((s) => s.id));
+			setSubtaskReminders(res);
+		} catch {
+			// Non-critical for the bell icon indicator.
+		}
+	};
+
+	useEffect(() => {
+		loadSubtaskReminders();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [subtasks.map((s) => s.id).join(',')]);
+
+	const nextReminderBySubtaskId = getNextReminderByEntityId(subtaskReminders);
+
 	// Determine completed subtasks
 	const completedCount = subtasks.filter((st) => {
 		const subStatus = statuses.find((s) => s.id === st.status_id);
@@ -113,7 +136,7 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 
 	const handleReminderClick = (event: React.MouseEvent<HTMLElement>, st: ProjectTask) => {
 		event.stopPropagation();
-		setReminderPopoverAnchor({ anchorEl: event.currentTarget, task: st });
+		setReminderDialogTask(st);
 	};
 
 	const handleTypeMenuClick = (event: React.MouseEvent<HTMLElement>, st: ProjectTask) => {
@@ -340,10 +363,10 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 											<IconButton
 												size="small"
 												onClick={(e) => handleReminderClick(e, st)}
-												title={st.custom_fields?.reminder_date ? `Remind on ${dayjs(st.custom_fields.reminder_date).format('MMM D, YYYY')}` : 'Set reminder'}
+												title={nextReminderBySubtaskId[st.id] ? `Reminds ${formatReminderTime(nextReminderBySubtaskId[st.id].remind_at)}` : 'Set reminder'}
 												sx={{ p: 0.25 }}
 											>
-												{st.custom_fields?.reminder_date ? (
+												{nextReminderBySubtaskId[st.id] ? (
 													<NotificationsActive sx={{ fontSize: 15, color: '#FF9800' }} />
 												) : (
 													<NotificationsNone sx={{ fontSize: 15, color: 'text.secondary', opacity: 0.5, '&:hover': { opacity: 1 } }} />
@@ -580,32 +603,21 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 				</Box>
 			</Box>
 
-			{/* Subtask Reminder Date Picker Popover */}
-			<Popover
-				open={Boolean(reminderPopoverAnchor)}
-				anchorEl={reminderPopoverAnchor?.anchorEl}
-				onClose={() => setReminderPopoverAnchor(null)}
-				anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-			>
-				<Box sx={{ p: 2, width: 260 }}>
-					<DatePicker
-						label="Reminder Date"
-						value={reminderPopoverAnchor?.task.custom_fields?.reminder_date || null}
-						onChange={async (v) => {
-							if (reminderPopoverAnchor) {
-								await onUpdateSubtask(reminderPopoverAnchor.task.public_id, {
-									custom_fields: {
-										...reminderPopoverAnchor.task.custom_fields,
-										reminder_date: v || undefined
-									}
-								});
-								setReminderPopoverAnchor(null);
-							}
-						}}
-						format="DD-MMM-YYYY"
-					/>
-				</Box>
-			</Popover>
+			{/* Subtask Reminder Dialog -- a real reminder (delivered via in-app
+			    notification + email by the backend scheduler), not just a stored date. */}
+			{reminderDialogTask && (
+				<SetReminderDialog
+					open={Boolean(reminderDialogTask)}
+					onClose={() => {
+						setReminderDialogTask(null);
+						loadSubtaskReminders();
+					}}
+					entityType="project_task"
+					entityId={reminderDialogTask.id}
+					entityLabel={reminderDialogTask.title}
+					defaultDueDate={reminderDialogTask.due_date}
+				/>
+			)}
 		</Box>
 	);
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
 	Box,
 	Stack,
@@ -30,8 +30,12 @@ import dayjs from 'dayjs';
 import type { ProjectTask, ProjectTaskUpdate, ProjectTaskStatus, ProjectTaskTag } from '../../../../../models/projects/projectTask';
 import type { LeadPriority } from '../../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
+import type { Reminder } from '../../../../../models/crm/reminder';
 import { DatePicker } from '../../../../common/form';
 import { TaskTagsInput } from '../../forms/TaskTagsInput';
+import { SetReminderDialog } from '../../../../crm/shared/SetReminderDialog';
+import crmService from '../../../../../services/crmService';
+import { formatReminderTime, isReminderOverdue } from '../../../../../utils/reminders';
 
 const PRIORITIES: { value: LeadPriority; label: string; color: string }[] = [
 	{ value: 'low', label: 'Low', color: '#4CAF50' },
@@ -97,6 +101,31 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 	};
 	const closePopover = () => setPopover(null);
 
+	// Real reminders: a scheduler already delivers these via in-app notification +
+	// email (see backend's reminder_scheduler.py) -- fetched locally here (rather
+	// than through crm slice) so this summary row doesn't fight over shared redux
+	// state with SetReminderDialog's own fetch/clear lifecycle while it's open.
+	const [taskReminders, setTaskReminders] = useState<Reminder[]>([]);
+	const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
+
+	const loadTaskReminders = async () => {
+		try {
+			const res = await crmService.listReminders('project_task', task.id);
+			setTaskReminders(res);
+		} catch {
+			// Non-critical for this summary row -- SetReminderDialog surfaces its own errors.
+		}
+	};
+
+	useEffect(() => {
+		loadTaskReminders();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [task.id]);
+
+	const nextReminder = taskReminders
+		.filter((r) => r.status === 'pending')
+		.sort((a, b) => dayjs(a.remind_at).diff(dayjs(b.remind_at)))[0] || null;
+
 	const selectedAssignee = owners.find((o) => o.id === task.assignee_id) || null;
 	const selectedStatus = statuses.find((s) => s.id === task.status_id) || statuses[0];
 	const selectedPriority = PRIORITIES.find((p) => p.value === task.priority) || PRIORITIES[1];
@@ -135,28 +164,33 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 		icon,
 		label,
 		popoverKey,
+		onRowClick,
 		children,
 		alignTop = false,
 	}: {
 		icon: React.ReactNode;
 		label: string;
 		popoverKey?: string;
+		/** Use instead of popoverKey when the row opens something other than the shared popover (e.g. a dialog). */
+		onRowClick?: () => void;
 		children: React.ReactNode;
 		alignTop?: boolean;
-	}) => (
+	}) => {
+		const handleClick = onRowClick || (popoverKey ? openPopover(popoverKey) : undefined);
+		return (
 		<Stack
 			key={label}
 			direction="row"
 			alignItems={alignTop ? 'flex-start' : 'center'}
-			onClick={popoverKey ? openPopover(popoverKey) : undefined}
+			onClick={handleClick}
 			sx={{
 				py: 1,
 				px: 1.5,
 				gap: 1.25,
 				borderRadius: '8px',
-				cursor: popoverKey ? 'pointer' : 'default',
+				cursor: handleClick ? 'pointer' : 'default',
 				transition: 'background-color 0.12s ease',
-				'&:hover': popoverKey ? { bgcolor: hoverBg } : undefined,
+				'&:hover': handleClick ? { bgcolor: hoverBg } : undefined,
 			}}
 		>
 			<Stack
@@ -188,7 +222,8 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 				{children}
 			</Box>
 		</Stack>
-	);
+		);
+	};
 
 	const emptyValue = (text: string) => (
 		<Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: 'text.secondary' }}>
@@ -357,10 +392,17 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 					{renderPropertyRow({
 						icon: <NotificationsNoneOutlined fontSize="inherit" />,
 						label: 'Reminder',
-						popoverKey: 'reminder',
-						children: task.custom_fields?.reminder_date ? (
-							<Typography variant="body2" sx={{ fontSize: '0.825rem', fontWeight: 600, color: 'primary.main' }}>
-								{dayjs(task.custom_fields.reminder_date).format('MMM D, YYYY')}
+						onRowClick: () => setReminderDialogOpen(true),
+						children: nextReminder ? (
+							<Typography
+								variant="body2"
+								sx={{
+									fontSize: '0.825rem',
+									fontWeight: 600,
+									color: isReminderOverdue(nextReminder.remind_at, nextReminder.status) ? 'error.main' : 'primary.main',
+								}}
+							>
+								{formatReminderTime(nextReminder.remind_at)}
 							</Typography>
 						) : (
 							emptyValue('Set reminder')
@@ -519,30 +561,19 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 				</Box>
 			</Popover>
 
-			{/* Reminder Picker Popover */}
-			<Popover
-				open={popover?.key === 'reminder'}
-				anchorEl={popover?.anchorEl}
-				onClose={closePopover}
-				anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-			>
-				<Box sx={{ p: 2, width: 260 }}>
-					<DatePicker
-						label="Reminder Date"
-						value={task.custom_fields?.reminder_date || null}
-						onChange={(v) => {
-							onUpdateField({
-								custom_fields: {
-									...task.custom_fields,
-									reminder_date: v || undefined
-								}
-							});
-							closePopover();
-						}}
-						format="DD-MMM-YYYY"
-					/>
-				</Box>
-			</Popover>
+			{/* Reminder Dialog -- a real reminder (delivered via in-app notification +
+			    email by the backend scheduler), not just a stored date. */}
+			<SetReminderDialog
+				open={reminderDialogOpen}
+				onClose={() => {
+					setReminderDialogOpen(false);
+					loadTaskReminders();
+				}}
+				entityType="project_task"
+				entityId={task.id}
+				entityLabel={task.title}
+				defaultDueDate={task.due_date}
+			/>
 
 			{/* Estimate Hours Popover */}
 			<Popover
