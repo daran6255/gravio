@@ -42,6 +42,10 @@ export interface HelpGuideContent {
 	title: string;
 	subtitle: string;
 	tabs: GuideTab[];
+	banner: {
+		title: string;
+		description: string;
+	};
 }
 
 interface HelpGuideDrawerProps {

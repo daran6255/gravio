@@ -3,6 +3,9 @@ import { Box, Container, Grid, Stack, Button } from '@mui/material';
 import { HelpOutline } from '@mui/icons-material';
 import { responsiveStyles } from '../../theme';
 import PageHeader from '../../components/common/page-header';
+import { WelcomeBanner } from '../../components/common/guide';
+import { useDismissibleBanner } from '../../hooks/useDismissibleBanner';
+import { COMPANIES_GUIDE_CONTENT } from '../../data/companiesGuideData';
 import {
 	CompaniesTable,
 	CompanyDetailDrawer,
@@ -72,6 +75,7 @@ const CompaniesPage: React.FC = () => {
 	} = useCompaniesManagement();
 
 	const [guideOpen, setGuideOpen] = useState(false);
+	const { show: showWelcome, dismiss: handleDismissWelcome } = useDismissibleBanner('dismissedCompaniesWelcome');
 
 	return (
 		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
@@ -103,6 +107,16 @@ const CompaniesPage: React.FC = () => {
 				/>
 
 				<CompaniesStatsPanel stats={companyStats} />
+
+				{showWelcome && (
+					<WelcomeBanner
+						icon={COMPANIES_GUIDE_CONTENT.icon}
+						title={COMPANIES_GUIDE_CONTENT.banner.title}
+						description={COMPANIES_GUIDE_CONTENT.banner.description}
+						onExplore={() => setGuideOpen(true)}
+						onDismiss={handleDismissWelcome}
+					/>
+				)}
 
 				<Grid container spacing={responsiveStyles.statsGridSpacing}>
 					<Grid size={{ xs: 12, md: 3 }}>

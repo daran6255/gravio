@@ -5,6 +5,10 @@ export const LEADS_GUIDE_CONTENT: HelpGuideContent = {
 	icon: HelpOutline,
 	title: 'Leads Module Guide',
 	subtitle: 'Master the leads lifecycle',
+	banner: {
+		title: 'New to the Leads Module?',
+		description: 'Learn how to track candidate lifecycles, log communications (Calls, Emails, Meetings), manage files/resumes, and convert qualified profiles into active deals.',
+	},
 	tabs: [
 		{
 			label: 'Getting Started',

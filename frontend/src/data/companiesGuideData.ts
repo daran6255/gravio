@@ -5,6 +5,10 @@ export const COMPANIES_GUIDE_CONTENT: HelpGuideContent = {
 	icon: HelpOutline,
 	title: 'Companies Module Guide',
 	subtitle: 'Manage your account records',
+	banner: {
+		title: 'New to the Companies Module?',
+		description: 'Learn how to record account profiles, link contacts and deals to a company, track engagement, and keep account status current across your pipeline.',
+	},
 	tabs: [
 		{
 			label: 'Getting Started',

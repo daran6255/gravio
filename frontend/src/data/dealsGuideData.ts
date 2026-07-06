@@ -5,6 +5,10 @@ export const DEALS_GUIDE_CONTENT: HelpGuideContent = {
 	icon: HelpOutline,
 	title: 'Deals Module Guide',
 	subtitle: 'Run your sales pipeline visually',
+	banner: {
+		title: 'New to the Deals Module?',
+		description: 'Learn how to drag deals through pipeline stages, log notes/tasks/attachments, handle Won and Lost outcomes, and convert won deals into projects.',
+	},
 	tabs: [
 		{
 			label: 'Getting Started',

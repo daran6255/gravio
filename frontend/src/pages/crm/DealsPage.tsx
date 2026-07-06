@@ -3,6 +3,9 @@ import { Box, Container, Button, MenuItem, TextField, InputAdornment } from '@mu
 import { Settings, Add, Search as SearchIcon, HelpOutline } from '@mui/icons-material';
 import { responsiveStyles, fieldWidth } from '../../theme';
 import PageHeader from '../../components/common/page-header';
+import { WelcomeBanner } from '../../components/common/guide';
+import { useDismissibleBanner } from '../../hooks/useDismissibleBanner';
+import { DEALS_GUIDE_CONTENT } from '../../data/dealsGuideData';
 import {
 	DealsKanbanBoard,
 	DealDetailDrawer,
@@ -60,6 +63,7 @@ const DealsPage: React.FC = () => {
 
 	const { companyOptions, owners } = useAppSelector((state) => state.crm);
 	const [guideOpen, setGuideOpen] = useState(false);
+	const { show: showWelcome, dismiss: handleDismissWelcome } = useDismissibleBanner('dismissedDealsWelcome');
 
 	const headerAction = (
 		<Box sx={responsiveStyles.headerActionRow}>
@@ -135,6 +139,16 @@ const DealsPage: React.FC = () => {
 					subtitle="Drag a card to move it through your pipeline"
 					action={headerAction}
 				/>
+
+				{showWelcome && (
+					<WelcomeBanner
+						icon={DEALS_GUIDE_CONTENT.icon}
+						title={DEALS_GUIDE_CONTENT.banner.title}
+						description={DEALS_GUIDE_CONTENT.banner.description}
+						onExplore={() => setGuideOpen(true)}
+						onDismiss={handleDismissWelcome}
+					/>
+				)}
 
 				<Box
 					sx={{
