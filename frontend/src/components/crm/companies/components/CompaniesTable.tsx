@@ -51,7 +51,7 @@ export const CompaniesTable: React.FC<CompaniesTableProps> = ({
 		{ id: 'status', label: 'Status' },
 		{ id: 'industry', label: 'Industry', hideOnMobile: true },
 		{ id: 'website', label: 'Website', hideOnMobile: true },
-		{ id: 'location', label: 'Location', hideOnMobile: true },
+		{ id: 'address', label: 'Location', hideOnMobile: true },
 		{ id: 'actions', label: '', align: 'right', width: 60 },
 	];
 

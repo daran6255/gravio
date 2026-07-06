@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Box, Container } from '@mui/material';
 import { responsiveStyles } from '../../theme';
 import PageHeader from '../../components/common/page-header';
-import { ActivityFeedFilters, TaskKanbanBoard, TasksStatsPanel, useActivityFeed } from '../../components/crm';
+import { ActivityFeedFilters, TaskKanbanBoard, useActivityFeed } from '../../components/crm';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchDeals, fetchAllDealTasks } from '../../store/slices/crmSlice';
 
@@ -69,8 +69,6 @@ const TasksPage: React.FC = () => {
 					title="Tasks"
 					subtitle="Manage and track your CRM tasks, calls, meetings, and to-dos"
 				/>
-
-				<TasksStatsPanel tasks={allDealTasks} />
 
 				<ActivityFeedFilters
 					type="" // Type selection not needed as these are all tasks

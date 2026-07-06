@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Checkbox, Stack, Chip, useTheme, Tooltip, IconButton, Avatar, alpha } from '@mui/material';
+import { Box, Typography, Checkbox, Stack, useTheme, Tooltip, IconButton, Avatar, alpha } from '@mui/material';
 import { DeleteOutline, WarningAmber, Schedule, Assignment, CheckCircle, Description, Groups, Call, FactCheck, RateReview } from '@mui/icons-material';
 import { useAppDispatch } from '../../../../store/hooks';
 import { updateDealTask, deleteDealTask } from '../../../../store/slices/crmSlice';
@@ -112,19 +112,17 @@ export const TaskKanbanBoard: React.FC<TaskKanbanBoardProps> = ({ tasks, loading
 	const renderCard = (task: DealTask & { deal_title?: string }) => {
 		const isTaskCompleted = task.status === 'completed';
 		const isTaskOverdue = isOverdue(task);
-		const colColor = isTaskCompleted
-			? theme.palette.success.main
-			: (task.status === 'blocked' ? '#9C27B0' : (task.status === 'in_progress' ? theme.palette.info.main : theme.palette.primary.main));
 
 		const assignee = task.assignee_id ? owners.find((o) => o.id === task.assignee_id) : null;
 		const initials = assignee ? (assignee.full_name || assignee.email).split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '?';
 
 		const pColor = getPriorityColor(task.priority);
+		const tColor = getTaskTypeColor(task.task_type);
 
 		return (
 			<KanbanCard id={task.public_id} data={{ item: task }}>
-				<Box sx={{ borderLeft: '4px solid', borderLeftColor: colColor, pl: 1, ml: -1.5, my: -0.5 }}>
-					<Stack direction="row" spacing={1.5} alignItems="flex-start">
+				<Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1 }}>
+					<Stack direction="row" spacing={1} alignItems="flex-start" sx={{ flex: 1, minWidth: 0, pr: 1 }}>
 						<Checkbox
 							checked={isTaskCompleted}
 							onChange={() => handleStatusToggle(task)}
@@ -132,149 +130,161 @@ export const TaskKanbanBoard: React.FC<TaskKanbanBoardProps> = ({ tasks, loading
 							checkedIcon={<CheckCircle color="success" sx={{ fontSize: 20 }} />}
 							sx={{ p: 0, mt: 0.25 }}
 						/>
-						<Box sx={{ flex: 1, minWidth: 0 }}>
-							<Typography
-								variant="body2"
-								sx={{
-									fontWeight: 700,
-									textDecoration: isTaskCompleted ? 'line-through' : 'none',
-									color: isTaskCompleted ? 'text.secondary' : 'text.primary',
-									mb: 0.5,
-									wordBreak: 'break-word',
-								}}
-							>
-								{task.title}
-							</Typography>
-
-							{task.notes && (
-								<Typography
-									variant="caption"
-									color="text.secondary"
-									sx={{
-										display: '-webkit-box',
-										WebkitLineClamp: 2,
-										WebkitBoxOrient: 'vertical',
-										overflow: 'hidden',
-										mb: 1.5,
-										wordBreak: 'break-word',
-									}}
-								>
-									{task.notes.replace(/<[^>]*>/g, '')}
-								</Typography>
-							)}
-
-							{/* Task Details Info Badges */}
-							<Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mb: 1.5 }}>
-								{/* Priority Chip */}
-								<Chip
-									label={`${task.priority} Priority`}
-									size="small"
-									sx={{
-										fontSize: '0.65rem',
-										height: 20,
-										fontWeight: 700,
-										bgcolor: alpha(pColor, 0.08),
-										color: pColor,
-										border: '1px solid',
-										borderColor: alpha(pColor, 0.15),
-										textTransform: 'capitalize',
-									}}
-								/>
-
-								{/* Task Type Badges */}
-								<Chip
-									label={task.task_type}
-									size="small"
-									icon={getTaskTypeIcon(task.task_type)}
-									sx={{
-										fontSize: '0.65rem',
-										height: 20,
-										fontWeight: 600,
-										bgcolor: alpha(getTaskTypeColor(task.task_type), 0.08),
-										color: getTaskTypeColor(task.task_type),
-										border: '1px solid',
-										borderColor: alpha(getTaskTypeColor(task.task_type), 0.15),
-										textTransform: 'capitalize',
-									}}
-								/>
-
-								{/* Deal Relation Badges */}
-								<Chip
-									label={task.deal_title ? `Deal: ${task.deal_title}` : 'Linked Deal'}
-									size="small"
-									icon={<Assignment sx={{ fontSize: 10 }} />}
-									sx={{
-										fontSize: '0.65rem',
-										height: 20,
-										fontWeight: 600,
-										bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-										color: 'text.secondary',
-										maxWidth: '120px',
-									}}
-								/>
-							</Stack>
-
-							<Stack direction="row" alignItems="center" justifyContent="space-between">
-								{/* Due Date Indicator */}
-								{task.due_date ? (
-									<Stack direction="row" spacing={0.5} alignItems="center">
-										{isTaskOverdue ? (
-											<WarningAmber sx={{ fontSize: 12, color: 'error.main' }} />
-										) : (
-											<Schedule sx={{ fontSize: 12, color: 'text.secondary' }} />
-										)}
-										<Typography
-											variant="caption"
-											sx={{
-												fontWeight: 600,
-												color: isTaskOverdue ? 'error.main' : 'text.secondary',
-											}}
-										>
-											{formatDate(task.due_date)}
-										</Typography>
-									</Stack>
-								) : (
-									<Box />
-								)}
-
-								{/* Assignee Avatar */}
-								{assignee && (
-									<Tooltip title={`Assignee: ${assignee.full_name || assignee.email}`}>
-										<Avatar
-											sx={{
-												width: 24,
-												height: 24,
-												fontSize: '0.65rem',
-												fontWeight: 700,
-												bgcolor: theme.palette.primary.main,
-												color: '#ffffff',
-											}}
-										>
-											{initials}
-										</Avatar>
-									</Tooltip>
-								)}
-							</Stack>
-						</Box>
-
-						<Tooltip title="Delete Task">
-							<IconButton
-								size="small"
-								onClick={(e) => {
-									e.stopPropagation();
-									handleDelete(task.public_id);
-								}}
-								sx={{
-									p: 0.25,
-									color: 'text.disabled',
-									'&:hover': { color: 'error.main' },
-								}}
-							>
-								<DeleteOutline sx={{ fontSize: 16 }} />
-							</IconButton>
-						</Tooltip>
+						<Typography
+							variant="body2"
+							sx={{
+								fontWeight: 800,
+								lineHeight: 1.3,
+								textDecoration: isTaskCompleted ? 'line-through' : 'none',
+								color: isTaskCompleted ? 'text.secondary' : (isDark ? 'text.primary' : '#1e293b'),
+								wordBreak: 'break-word',
+							}}
+						>
+							{task.title}
+						</Typography>
 					</Stack>
+					<Tooltip title="Delete Task">
+						<IconButton
+							size="small"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleDelete(task.public_id);
+							}}
+							sx={{
+								p: 0.25,
+								mt: -0.5,
+								mr: -0.5,
+								color: 'text.disabled',
+								'&:hover': { color: 'error.main' },
+							}}
+						>
+							<DeleteOutline sx={{ fontSize: 16 }} />
+						</IconButton>
+					</Tooltip>
+				</Stack>
+
+				{task.notes && (
+					<Typography
+						variant="caption"
+						color="text.secondary"
+						sx={{
+							display: '-webkit-box',
+							WebkitLineClamp: 2,
+							WebkitBoxOrient: 'vertical',
+							overflow: 'hidden',
+							mb: 1.5,
+							wordBreak: 'break-word',
+						}}
+					>
+						{task.notes.replace(/<[^>]*>/g, '')}
+					</Typography>
+				)}
+
+				{/* Linked Deal — meta pill, matching DealCard's company pill */}
+				<Box
+					sx={{
+						display: 'inline-flex',
+						alignItems: 'center',
+						gap: 0.5,
+						px: 1,
+						py: 0.25,
+						borderRadius: '6px',
+						bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+						mb: 1.5,
+						width: 'fit-content',
+						maxWidth: '100%',
+					}}
+				>
+					<Assignment sx={{ fontSize: '0.72rem', color: 'text.secondary', flexShrink: 0 }} />
+					<Typography
+						variant="caption"
+						noWrap
+						sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.68rem', letterSpacing: '0.01em' }}
+					>
+						{task.deal_title ? `Deal: ${task.deal_title}` : 'Linked Deal'}
+					</Typography>
 				</Box>
+
+				{/* Priority & Type badges — squared pill style matching DealCard's tag badges */}
+				<Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mb: 1.5 }}>
+					<Box
+						sx={{
+							px: 1,
+							py: 0.25,
+							borderRadius: '4px',
+							fontSize: '0.625rem',
+							fontWeight: 700,
+							bgcolor: alpha(pColor, 0.08),
+							color: pColor,
+							textTransform: 'uppercase',
+							letterSpacing: '0.02em',
+						}}
+					>
+						{task.priority}
+					</Box>
+					<Box
+						sx={{
+							display: 'flex',
+							alignItems: 'center',
+							gap: 0.4,
+							px: 1,
+							py: 0.25,
+							borderRadius: '4px',
+							fontSize: '0.625rem',
+							fontWeight: 700,
+							bgcolor: alpha(tColor, 0.08),
+							color: tColor,
+							textTransform: 'uppercase',
+							letterSpacing: '0.02em',
+						}}
+					>
+						{getTaskTypeIcon(task.task_type)}
+						{task.task_type}
+					</Box>
+				</Stack>
+
+				<Stack direction="row" justifyContent="space-between" alignItems="flex-end" sx={{ mt: 1 }}>
+					{/* Due Date Indicator */}
+					{task.due_date ? (
+						<Stack direction="row" spacing={0.5} alignItems="center">
+							{isTaskOverdue ? (
+								<WarningAmber sx={{ fontSize: 12, color: 'error.main' }} />
+							) : (
+								<Schedule sx={{ fontSize: 12, color: 'text.secondary' }} />
+							)}
+							<Typography
+								variant="caption"
+								sx={{
+									fontWeight: 600,
+									color: isTaskOverdue ? 'error.main' : 'text.secondary',
+								}}
+							>
+								{formatDate(task.due_date)}
+							</Typography>
+						</Stack>
+					) : (
+						<Box />
+					)}
+
+					{/* Assignee Avatar */}
+					{assignee && (
+						<Tooltip title={`Assignee: ${assignee.full_name || assignee.email}`}>
+							<Avatar
+								sx={{
+									width: 22,
+									height: 22,
+									fontSize: '0.625rem',
+									fontWeight: 700,
+									bgcolor: theme.palette.primary.main,
+									color: '#ffffff',
+									boxShadow: `0 0 0 2px ${isDark ? '#141822' : '#ffffff'}`,
+								}}
+							>
+								{initials}
+							</Avatar>
+						</Tooltip>
+					)}
+				</Stack>
 			</KanbanCard>
 		);
 	};
