@@ -83,12 +83,23 @@ def _add_tenant_filter(execute_state):
         org_id = tenant_context.get()
         is_superuser = superuser_context.get()
         
-        # Apply filter only if organization is set and user is not superuser
-        if org_id is not None and not is_superuser:
+        # Apply filter to all TenantAwareMixin queries to isolate tenant data.
+        # If organization is set (org_id is not None), restrict queries to that organization.
+        if org_id is not None:
             execute_state.statement = execute_state.statement.options(
                 with_loader_criteria(
                     TenantAwareMixin,
                     lambda cls: cls.organization_id == org_id,
+                    include_aliases=True
+                )
+            )
+        elif is_superuser:
+            # If the user is a superuser and no organization is set (org_id is None),
+            # they should see no data for tenant-specific modules.
+            execute_state.statement = execute_state.statement.options(
+                with_loader_criteria(
+                    TenantAwareMixin,
+                    lambda cls: cls.organization_id == None,
                     include_aliases=True
                 )
             )

@@ -191,6 +191,13 @@ def require_roles(allowed_roles: list):
         # Convert allowed_roles to list of strings for comparison
         allowed_role_values = [role.value if isinstance(role, UserRole) else role for role in allowed_roles]
         
+        # Superusers without an organization cannot access tenant-specific endpoints
+        if current_user.is_superuser and current_user.organization_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied. Superusers without an organization cannot access tenant-specific modules."
+            )
+        
         if not current_user.is_superuser and current_user.role.value not in allowed_role_values:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

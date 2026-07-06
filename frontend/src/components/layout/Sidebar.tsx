@@ -267,6 +267,16 @@ const Sidebar: React.FC = () => {
 		if (item.hidden) return false;
 		if (item.requiresSuperuser) return !!user?.is_superuser;
 		
+		// If superuser has NO organization, they only get access to the dashboard
+		// and cannot access any organization-specific modules (CRM, Projects, Team, etc.)
+		if (user?.is_superuser && !user?.organization) {
+			if (item.path === '/dashboard') return true;
+			if (item.children) {
+				return item.children.some(child => hasPermission(child));
+			}
+			return false;
+		}
+
 		// Hide the regular non-superuser 'Team' link if user is superuser (they use 'Organizations' point to /users)
 		if (item.path === '/users' && !item.requiresSuperuser && user?.is_superuser) return false;
 

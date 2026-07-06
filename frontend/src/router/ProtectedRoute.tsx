@@ -32,6 +32,11 @@ const ProtectedRoute: React.FC = () => {
 			return <Navigate to="/dashboard" replace />;
 		}
 
+		// If user is superuser with NO organization, they can ONLY access requiresSuperuser routes or the dashboard
+		if (user?.is_superuser && !user?.organization && !routeConfig.requiresSuperuser && routeConfig.path !== '/dashboard') {
+			return <Navigate to="/dashboard" replace />;
+		}
+
 		// Gated on specific roles list
 		if (routeConfig.roles) {
 			const hasRole = user?.role && routeConfig.roles.includes(user.role);
