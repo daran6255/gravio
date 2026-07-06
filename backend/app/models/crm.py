@@ -157,6 +157,7 @@ class CRMContact(BaseModel, TenantAwareMixin):
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     is_primary: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     tags: Mapped[Optional[list[str]]] = mapped_column(JSON, nullable=True)
     social_links: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     custom_fields: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)

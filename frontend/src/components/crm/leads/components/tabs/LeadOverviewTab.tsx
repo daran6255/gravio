@@ -243,9 +243,28 @@ export const LeadOverviewTab: React.FC<LeadOverviewTabProps> = ({ lead, owners }
 										{((contact.first_name?.[0] || '') + (contact.last_name?.[0] || '')).toUpperCase()}
 									</Box>
 									<Box sx={{ minWidth: 0, flex: 1 }}>
-										<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }} noWrap>
-											{contact.first_name} {contact.last_name || ''}
-										</Typography>
+										<Stack direction="row" spacing={0.5} alignItems="center">
+											<Typography variant="body2" sx={{ fontWeight: 700, color: contact.is_active === false ? 'text.secondary' : 'text.primary' }} noWrap>
+												{contact.first_name} {contact.last_name || ''}
+											</Typography>
+											{contact.is_active === false && (
+												<Box
+													sx={{
+														px: 0.5,
+														py: 0.1,
+														borderRadius: '4px',
+														fontSize: '0.625rem',
+														fontWeight: 700,
+														bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+														color: 'text.secondary',
+														textTransform: 'uppercase',
+														letterSpacing: '0.02em',
+													}}
+												>
+													Inactive
+												</Box>
+											)}
+										</Stack>
 										{contact.job_title && (
 											<Typography variant="caption" color="text.secondary" display="block" noWrap>
 												{contact.job_title}

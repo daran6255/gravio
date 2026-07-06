@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography, Grid, Tooltip, IconButton, useTheme, Button, Stack, alpha } from '@mui/material';
-import { Person, ContentCopy, Add, Phone, Star } from '@mui/icons-material';
+import { Person, ContentCopy, Add, Phone, Star, Edit } from '@mui/icons-material';
 import type { Contact } from '../../../../../models/crm/contact';
 import type { Company } from '../../../../../models/crm/company';
 import { fetchLinkedContacts } from '../../../../../store/slices/crmSlice';
@@ -25,6 +25,17 @@ export const CompanyContactsTab: React.FC<CompanyContactsTabProps> = ({
 	const dispatch = useAppDispatch();
 
 	const [dialogOpen, setDialogOpen] = useState(false);
+	const [editingContact, setEditingContact] = useState<Contact | null>(null);
+
+	const handleEditContact = (c: Contact) => {
+		setEditingContact(c);
+		setDialogOpen(true);
+	};
+
+	const handleCloseDialog = () => {
+		setDialogOpen(false);
+		setEditingContact(null);
+	};
 
 	const fieldCardSx = {
 		borderRadius: '12px',
@@ -96,15 +107,44 @@ export const CompanyContactsTab: React.FC<CompanyContactsTabProps> = ({
 										{((contact.first_name?.[0] || '') + (contact.last_name?.[0] || '')).toUpperCase()}
 									</Box>
 									<Box sx={{ minWidth: 0, flex: 1 }}>
-										<Stack direction="row" spacing={0.5} alignItems="center">
-											<Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>
-												{contact.first_name} {contact.last_name || ''}
-											</Typography>
-											{contact.is_primary && (
-												<Tooltip title="Primary contact">
-													<Star sx={{ fontSize: 14, color: 'warning.main' }} />
-												</Tooltip>
-											)}
+										<Stack direction="row" spacing={0.5} alignItems="center" justifyContent="space-between">
+											<Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0 }}>
+												<Typography variant="body2" sx={{ fontWeight: 700, color: contact.is_active === false ? 'text.secondary' : 'text.primary' }} noWrap>
+													{contact.first_name} {contact.last_name || ''}
+												</Typography>
+												{contact.is_primary && (
+													<Tooltip title="Primary contact">
+														<Star sx={{ fontSize: 14, color: 'warning.main', ml: 0.5 }} />
+													</Tooltip>
+												)}
+												{contact.is_active === false && (
+													<Box
+														sx={{
+															px: 0.75,
+															py: 0.15,
+															borderRadius: '4px',
+															fontSize: '0.625rem',
+															fontWeight: 700,
+															bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+															color: 'text.secondary',
+															textTransform: 'uppercase',
+															letterSpacing: '0.02em',
+															ml: 0.5
+														}}
+													>
+														Inactive
+													</Box>
+												)}
+											</Stack>
+											<Box onClick={(e) => e.stopPropagation()}>
+												<IconButton
+													size="small"
+													onClick={() => handleEditContact(contact)}
+													sx={{ p: 0.2, color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+												>
+													<Edit fontSize="small" sx={{ fontSize: 13 }} />
+												</IconButton>
+											</Box>
 										</Stack>
 										{(contact.job_title || contact.department) && (
 											<Typography variant="caption" color="text.secondary" display="block" noWrap>
@@ -148,7 +188,8 @@ export const CompanyContactsTab: React.FC<CompanyContactsTabProps> = ({
 
 			<ContactFormDialog
 				open={dialogOpen}
-				onClose={() => setDialogOpen(false)}
+				onClose={handleCloseDialog}
+				contact={editingContact}
 				defaultCompany={company}
 				onSuccess={() => {
 					dispatch(fetchLinkedContacts(company.id));

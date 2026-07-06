@@ -163,6 +163,7 @@ class CRMContactBase(BaseModel):
     department: Optional[str] = Field(None, max_length=100)
     company_id: Optional[int] = None
     is_primary: bool = False
+    is_active: bool = True
     tags: Optional[list[str]] = None
     social_links: Optional[dict[str, Any]] = None
     custom_fields: Optional[dict[str, Any]] = None
@@ -183,6 +184,7 @@ class CRMContactUpdate(BaseModel):
     company_id: Optional[int] = None
     owner_id: Optional[int] = None
     is_primary: Optional[bool] = None
+    is_active: Optional[bool] = None
     tags: Optional[list[str]] = None
     social_links: Optional[dict[str, Any]] = None
     custom_fields: Optional[dict[str, Any]] = None

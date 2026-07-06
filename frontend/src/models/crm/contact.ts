@@ -17,6 +17,7 @@ export interface Contact {
 	company_id?: number;
 	owner_id?: number;
 	is_primary: boolean;
+	is_active: boolean;
 	tags?: string[];
 	social_links?: ContactSocialLinks;
 	custom_fields?: Record<string, any>;
@@ -36,6 +37,7 @@ export interface ContactCreate {
 	company_id?: number;
 	owner_id?: number;
 	is_primary?: boolean;
+	is_active?: boolean;
 	tags?: string[];
 	social_links?: ContactSocialLinks;
 	custom_fields?: Record<string, any>;

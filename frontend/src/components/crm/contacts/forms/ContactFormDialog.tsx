@@ -47,6 +47,7 @@ export const ContactFormDialog: React.FC<ContactFormDialogProps> = ({
 	const [department, setDepartment] = useState('');
 	const [company, setCompany] = useState<Company | null>(null);
 	const [isPrimary, setIsPrimary] = useState(false);
+	const [isActive, setIsActive] = useState(true);
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [touched, setTouched] = useState<{ firstName?: boolean }>({});
@@ -80,6 +81,7 @@ export const ContactFormDialog: React.FC<ContactFormDialogProps> = ({
 		setJobTitle(contact?.job_title || '');
 		setDepartment(contact?.department || '');
 		setIsPrimary(contact?.is_primary || false);
+		setIsActive(contact ? contact.is_active : true);
 		setCompany(null);
 		setError(null);
 		setTouched({});
@@ -114,6 +116,7 @@ export const ContactFormDialog: React.FC<ContactFormDialogProps> = ({
 				department: department || undefined,
 				company_id: company?.id,
 				is_primary: isPrimary,
+				is_active: isActive,
 			};
 
 			const result = isEdit
@@ -230,10 +233,16 @@ export const ContactFormDialog: React.FC<ContactFormDialogProps> = ({
 						/>
 					</Stack>
 
-					<FormControlLabel
-						control={<Checkbox checked={isPrimary} onChange={(e) => setIsPrimary(e.target.checked)} />}
-						label="Primary contact for this company"
-					/>
+					<Stack spacing={1} sx={{ mt: 1 }}>
+						<FormControlLabel
+							control={<Checkbox checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />}
+							label="Active Contact"
+						/>
+						<FormControlLabel
+							control={<Checkbox checked={isPrimary} onChange={(e) => setIsPrimary(e.target.checked)} />}
+							label="Primary contact for this company"
+						/>
+					</Stack>
 				</Stack>
 			)
 		}
