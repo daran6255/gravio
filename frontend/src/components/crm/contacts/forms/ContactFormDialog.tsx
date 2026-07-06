@@ -14,6 +14,8 @@ import { createContact, updateContact, searchCompanyOptions } from '../../../../
 import type { Contact } from '../../../../models/crm/contact';
 import type { Company } from '../../../../models/crm/company';
 import useToast from '../../../../hooks/useToast';
+import { MuiTelInput, type MuiTelInputCountry, type MuiTelInputInfo } from 'mui-tel-input';
+import usePhoneValidation from '../../../../hooks/usePhoneValidation';
 
 interface ContactFormDialogProps {
 	open: boolean;
@@ -48,6 +50,20 @@ export const ContactFormDialog: React.FC<ContactFormDialogProps> = ({
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [touched, setTouched] = useState<{ firstName?: boolean }>({});
+	const phoneValidation = usePhoneValidation();
+	const mobileValidation = usePhoneValidation();
+
+	const handlePhoneChange = (value: string, info: MuiTelInputInfo) => {
+		if (!phoneValidation.validatePhoneChange(info)) return;
+		if (info.countryCode) phoneValidation.setCountryCode(info.countryCode);
+		setPhone(value);
+	};
+
+	const handleMobileChange = (value: string, info: MuiTelInputInfo) => {
+		if (!mobileValidation.validatePhoneChange(info)) return;
+		if (info.countryCode) mobileValidation.setCountryCode(info.countryCode);
+		setMobile(value);
+	};
 
 	const fieldErrors = {
 		firstName: firstName.trim() ? '' : 'First name is required',
@@ -194,19 +210,23 @@ export const ContactFormDialog: React.FC<ContactFormDialogProps> = ({
 					/>
 
 					<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-						<TextField
+						<MuiTelInput
 							label="Phone"
 							value={phone}
-							onChange={(e) => setPhone(e.target.value)}
+							onChange={handlePhoneChange}
+							defaultCountry={phoneValidation.countryCode as MuiTelInputCountry}
+							forceCallingCode
 							fullWidth
-							placeholder="+1 (555) 000-0000"
+							helperText={`Max ${phoneValidation.getMaxLength(phoneValidation.countryCode)} digits for the selected country`}
 						/>
-						<TextField
+						<MuiTelInput
 							label="Mobile"
 							value={mobile}
-							onChange={(e) => setMobile(e.target.value)}
+							onChange={handleMobileChange}
+							defaultCountry={mobileValidation.countryCode as MuiTelInputCountry}
+							forceCallingCode
 							fullWidth
-							placeholder="+1 (555) 000-0000"
+							helperText={`Max ${mobileValidation.getMaxLength(mobileValidation.countryCode)} digits for the selected country`}
 						/>
 					</Stack>
 
