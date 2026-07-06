@@ -17,6 +17,7 @@ interface DealsKanbanBoardProps {
 	onViewDeal: (deal: Deal) => void;
 	onEditDeal: (deal: Deal) => void;
 	onDeleteDeal: (deal: Deal) => void;
+	owners?: any[];
 }
 
 export const DealsKanbanBoard: React.FC<DealsKanbanBoardProps> = ({
@@ -28,6 +29,7 @@ export const DealsKanbanBoard: React.FC<DealsKanbanBoardProps> = ({
 	onViewDeal,
 	onEditDeal,
 	onDeleteDeal,
+	owners = [],
 }) => {
 	const displayCurrency = useAppSelector((state) => state.auth.user?.currency) || 'USD';
 
@@ -59,6 +61,7 @@ export const DealsKanbanBoard: React.FC<DealsKanbanBoardProps> = ({
 					onView={onViewDeal}
 					onEdit={onEditDeal}
 					onDelete={onDeleteDeal}
+					owner={owners.find((o) => o.id === deal.owner_id)}
 				/>
 			)}
 			renderColumnFooter={(columnDeals) => {

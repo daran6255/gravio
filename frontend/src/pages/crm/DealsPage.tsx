@@ -1,13 +1,12 @@
 import React from 'react';
-import { Box, Container, Button, MenuItem, TextField, Stack } from '@mui/material';
-import { Settings, Add } from '@mui/icons-material';
+import { Box, Container, Button, MenuItem, TextField, Stack, InputAdornment } from '@mui/material';
+import { Settings, Add, Search as SearchIcon } from '@mui/icons-material';
 import { responsiveStyles, fieldWidth } from '../../theme';
 import PageHeader from '../../components/common/page-header';
 import {
 	DealsKanbanBoard,
 	DealDetailDrawer,
 	DealsModals,
-	DealsStatsPanel,
 	useDealsKanban,
 } from '../../components/crm';
 import { ConvertDealToProjectDialog } from '../../components/projects';
@@ -116,40 +115,58 @@ const DealsPage: React.FC = () => {
 					action={headerAction}
 				/>
 
-				<DealsStatsPanel deals={deals} />
-
-				<Stack
-					direction={{ xs: 'column', sm: 'row' }}
-					spacing={2}
-					alignItems="center"
-					justifyContent="space-between"
-					sx={{ mb: 3 }}
+				<Box
+					sx={{
+						mb: 3.5,
+						display: 'flex',
+						flexDirection: { xs: 'column', sm: 'row' },
+						alignItems: { xs: 'stretch', sm: 'center' },
+						gap: 2
+					}}
 				>
-					<Box sx={responsiveStyles.filterRow}>
-						<TextField
-							size="small"
-							placeholder="Search deals..."
-							value={searchTerm}
-							onChange={(e) => setSearchTerm(e.target.value)}
-							sx={fieldWidth(240)}
-						/>
-						<TextField
-							select
-							size="small"
-							label="Owner"
-							value={ownerFilter}
-							onChange={(e) => setOwnerFilter(e.target.value ? Number(e.target.value) : '')}
-							sx={fieldWidth(160)}
-						>
-							<MenuItem value="">All Owners</MenuItem>
-							{owners.map((o) => (
-								<MenuItem key={o.id} value={o.id}>
-									{o.full_name || o.email}
-								</MenuItem>
-							))}
-						</TextField>
-					</Box>
-				</Stack>
+					<TextField
+						size="small"
+						label="Search"
+						placeholder="Search deals..."
+						value={searchTerm}
+						onChange={(e) => setSearchTerm(e.target.value)}
+						InputProps={{
+							startAdornment: (
+								<InputAdornment position="start">
+									<SearchIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+								</InputAdornment>
+							)
+						}}
+						sx={{
+							width: { xs: '100%', sm: 260 },
+							'& .MuiOutlinedInput-root': {
+								borderRadius: '8px',
+								bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
+							}
+						}}
+					/>
+					<TextField
+						select
+						size="small"
+						label="Owner"
+						value={ownerFilter}
+						onChange={(e) => setOwnerFilter(e.target.value ? Number(e.target.value) : '')}
+						sx={{
+							width: { xs: '100%', sm: 180 },
+							'& .MuiOutlinedInput-root': {
+								borderRadius: '8px',
+								bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
+							}
+						}}
+					>
+						<MenuItem value="">All Owners</MenuItem>
+						{owners.map((o) => (
+							<MenuItem key={o.id} value={o.id}>
+								{o.full_name || o.email}
+							</MenuItem>
+						))}
+					</TextField>
+				</Box>
 
 				<DealsKanbanBoard
 					pipeline={activePipeline}
@@ -160,6 +177,7 @@ const DealsPage: React.FC = () => {
 					onViewDeal={handleViewDeal}
 					onEditDeal={handleEditDeal}
 					onDeleteDeal={handleDeleteRequest}
+					owners={owners}
 				/>
 
 				<DealDetailDrawer

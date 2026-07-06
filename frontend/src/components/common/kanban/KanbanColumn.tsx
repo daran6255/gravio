@@ -17,35 +17,97 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, label, color, co
 	const isDark = theme.palette.mode === 'dark';
 	const { setNodeRef, isOver } = useDroppable({ id });
 
+	const accentColor = color || theme.palette.primary.main;
+
 	return (
 		<Box
 			sx={{
 				display: 'flex',
 				flexDirection: 'column',
 				width: '100%',
-				minWidth: width ?? { xs: 250, sm: 270, md: 280 },
+				minWidth: width ?? { xs: 260, sm: 280, md: 300 },
 				flex: 1,
-				height: { xs: 'calc(100dvh - 280px)', sm: 'calc(100vh - 350px)' },
-				minHeight: { xs: 400, sm: 480 },
+				height: { xs: 'calc(100dvh - 180px)', sm: 'calc(100vh - 240px)' },
+				minHeight: { xs: 450, sm: 550 },
 				flexShrink: 0,
 				scrollSnapAlign: { xs: 'start', md: 'none' },
 				borderRadius: '16px',
+				overflow: 'hidden',
 				border: '1px solid',
-				borderColor: isOver ? alpha(theme.palette.primary.main, 0.5) : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'),
-				bgcolor: isOver ? alpha(theme.palette.primary.main, 0.04) : (isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)'),
-				transition: 'background-color 0.15s ease, border-color 0.15s ease',
+				borderTop: `4px solid ${accentColor}`,
+				borderColor: isOver 
+					? alpha(theme.palette.primary.main, 0.4) 
+					: (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'),
+				bgcolor: isOver 
+					? alpha(theme.palette.primary.main, 0.04) 
+					: (isDark ? 'rgba(20, 24, 33, 0.45)' : 'rgba(241, 245, 249, 0.55)'),
+				boxShadow: isDark
+					? '0 4px 20px 0 rgba(0,0,0,0.15)'
+					: '0 4px 20px 0 rgba(139,124,246,0.02)',
+				backdropFilter: 'blur(10px)',
+				transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
 			}}
 		>
-			<Box sx={{ p: 1.5, borderBottom: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}>
-				<Stack direction="row" alignItems="center" spacing={1} sx={{ mb: footer ? 0.5 : 0 }}>
-					{color && <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: color }} />}
-					<Typography variant="body2" sx={{ fontWeight: 700, flex: 1 }}>{label}</Typography>
-					{count != null && <Typography variant="caption" color="text.secondary">{count}</Typography>}
+			<Box sx={{ p: 2, borderBottom: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 1 }}>
+				<Stack direction="row" alignItems="center" spacing={1.5}>
+					<Typography 
+						variant="body2" 
+						sx={{ 
+							fontWeight: 800, 
+							letterSpacing: '0.04em', 
+							textTransform: 'uppercase', 
+							fontSize: '0.72rem', 
+							color: isDark ? 'text.primary' : '#475569',
+							flex: 1 
+						}}
+					>
+						{label}
+					</Typography>
+					{count != null && (
+						<Box 
+							sx={{ 
+								px: 1, 
+								py: 0.25, 
+								borderRadius: '12px', 
+								fontSize: '0.68rem', 
+								fontWeight: 800, 
+								bgcolor: alpha(accentColor, 0.1), 
+								color: accentColor,
+								border: `1px solid ${alpha(accentColor, 0.15)}`
+							}}
+						>
+							{count}
+						</Box>
+					)}
 				</Stack>
 				{footer}
 			</Box>
 
-			<Box ref={setNodeRef} sx={{ flex: 1, p: 1.25, minHeight: 120, overflowY: 'auto' }}>
+			<Box 
+				ref={setNodeRef} 
+				sx={{ 
+					flex: 1, 
+					p: 1.5, 
+					minHeight: 120, 
+					overflowY: 'auto',
+					display: 'flex',
+					flexDirection: 'column',
+					gap: 1.5,
+					'&::-webkit-scrollbar': {
+						width: '5px',
+					},
+					'&::-webkit-scrollbar-track': {
+						background: 'transparent',
+					},
+					'&::-webkit-scrollbar-thumb': {
+						bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+						borderRadius: '4px',
+					},
+					'&::-webkit-scrollbar-thumb:hover': {
+						bgcolor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
+					}
+				}}
+			>
 				{children}
 			</Box>
 		</Box>
