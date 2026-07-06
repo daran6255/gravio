@@ -32,6 +32,7 @@ class UserListItem(BaseModel):
     role: str
     is_active: bool
     is_verified: bool
+    reporting_manager_id: Optional[int] = None
     created_at: datetime
 
 
@@ -47,6 +48,7 @@ class UpdateUserRequest(BaseModel):
     email: Optional[EmailStr] = Field(None, description="Updated email address")
     full_name: Optional[str] = Field(None, min_length=2, max_length=255)
     role: Optional[UserRole] = Field(None, description="Role to assign")
+    reporting_manager_id: Optional[int] = None
 
 
 class BulkDeleteUsersRequest(BaseModel):

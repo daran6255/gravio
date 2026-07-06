@@ -55,8 +55,15 @@ class User(BaseModel):
     )
     timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
     currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    reporting_manager_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     
     organization: Mapped[Organization] = relationship("Organization", back_populates="users")
+    reporting_manager: Mapped[User | None] = relationship("User", remote_side="User.id")
 
     # Profile extras (date of birth, phone, avatar) aren't first-class columns —
     # they're stored inside `others` and exposed here as plain properties so the

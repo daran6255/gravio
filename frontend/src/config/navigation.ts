@@ -12,6 +12,7 @@ import {
 	AssignmentInd as LeadsIcon,
 	Handshake as DealsIcon,
 	Assignment as TasksIcon,
+	PendingActions as TimesheetIcon,
 } from '@mui/icons-material';
 import type { SvgIconComponent } from '@mui/icons-material';
 
@@ -45,6 +46,11 @@ export const topNavigation: NavigationItem[] = [
 				path: '/projects',
 				icon: ProjectsIcon,
 				roles: ['admin', 'manager', 'project_coordinator', 'developer'],
+			},
+			{
+				label: 'Timesheets',
+				path: '/timesheets',
+				icon: TimesheetIcon,
 			},
 			{
 				label: 'Team',
@@ -114,6 +120,7 @@ export const settingsNavigation: NavigationItem[] = [
 	{ label: 'Preferences', icon: PreferencesIcon, sectionId: 'settings-preferences' },
 	{ label: 'Security', icon: SecurityIcon, sectionId: 'settings-security' },
 	{ label: 'Notifications', icon: NotificationsIcon, sectionId: 'settings-notifications' },
+	{ label: 'Timesheet Config', icon: PreferencesIcon, path: '/settings/timesheets' },
 ];
 
 /**

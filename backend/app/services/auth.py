@@ -363,6 +363,10 @@ async def update_own_profile(
     and profile extras (dob, phone, avatar)."""
     data = payload.model_dump(exclude_unset=True)
 
+    if "reporting_manager_id" in data:
+        val = data["reporting_manager_id"]
+        data["reporting_manager_id"] = val if val and val > 0 else None
+
     others_updates = {key: data.pop(key) for key in list(data) if key in _OTHERS_BACKED_PROFILE_FIELDS}
     if others_updates:
         # Reassign a new dict (rather than mutating in place) so SQLAlchemy's

@@ -48,3 +48,9 @@ from app.api.v1.endpoints.projects import router as projects_router, router_task
 router.include_router(projects_router)
 router.include_router(project_tasks_router)
 router.include_router(project_task_statuses_router)
+
+# Timesheets & Holidays        →  /api/v1/timesheets/...
+#                             /api/v1/holidays/...
+from app.api.v1.endpoints.timesheets import router as timesheets_router, router_holidays as holidays_router
+router.include_router(timesheets_router)
+router.include_router(holidays_router)

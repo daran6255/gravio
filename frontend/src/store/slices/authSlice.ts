@@ -160,6 +160,7 @@ export const updateProfile = createAsyncThunk(
 		job_title?: string | null;
 		billing_address?: BillingAddress | null;
 		billing_reminder?: boolean | null;
+		reporting_manager_id?: number | null;
 	}, { rejectWithValue }) => {
 		try {
 			const user = await authService.updateProfile(payload);

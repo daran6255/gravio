@@ -91,6 +91,7 @@ class UserProfileResponse(BaseModel):
     """Authenticated user's profile (returned by /auth/me)"""
     model_config = ConfigDict(from_attributes=True)
 
+    id: int
     public_id: uuid.UUID
     username: str
     email: str
@@ -101,6 +102,7 @@ class UserProfileResponse(BaseModel):
     is_superuser: bool
     organization_id: Optional[int]
     organization: Optional[OrgPublic] = None
+    reporting_manager_id: Optional[int] = None
     timezone: Optional[str] = None
     currency: Optional[str] = None
     dob: Optional[str] = None
@@ -120,6 +122,7 @@ class UpdateProfileRequest(BaseModel):
     into the `others` JSON column (see the matching User model properties).
     """
     full_name: Optional[str] = Field(None, min_length=1, max_length=255)
+    reporting_manager_id: Optional[int] = None
     timezone: Optional[str] = None
     currency: Optional[str] = None
     dob: Optional[str] = Field(None, description="Date of birth, ISO format YYYY-MM-DD")

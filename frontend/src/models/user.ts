@@ -30,6 +30,7 @@ export interface TeamMember {
 	role: UserRole;
 	is_active: boolean;
 	is_verified: boolean;
+	reporting_manager_id?: number | null;
 	created_at: string;
 }
 
@@ -46,4 +47,5 @@ export interface UpdateUserRequest {
 	email?: string;
 	full_name?: string;
 	role?: UserRole;
+	reporting_manager_id?: number | null;
 }

@@ -284,6 +284,8 @@ async def update_org_user(
         target.full_name = payload.full_name
     if payload.role is not None:
         target.role = payload.role
+    if "reporting_manager_id" in payload.model_dump(exclude_unset=True):
+        target.reporting_manager_id = payload.reporting_manager_id if payload.reporting_manager_id and payload.reporting_manager_id > 0 else None
 
     await db.commit()
     await db.refresh(target)

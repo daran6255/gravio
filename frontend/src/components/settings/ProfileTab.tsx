@@ -33,6 +33,7 @@ import usePhoneValidation from '../../hooks/usePhoneValidation';
 import useToast from '../../hooks/useToast';
 import { DatePicker } from '../common/form';
 import type { BillingAddress } from '../../models/auth';
+import ReportingManagerField from '../timesheets/ReportingManagerField';
 
 const MAX_AVATAR_BYTES = 1.5 * 1024 * 1024; // ~1.5MB raw; base64 stays under the backend's 2MB cap
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -78,6 +79,13 @@ const ProfileTab: React.FC = () => {
 	const [billingReminder, setBillingReminder] = useState(originalBillingReminder);
 	const [reminderSaving, setReminderSaving] = useState(false);
 
+	const originalReportingManagerId = user?.reporting_manager_id || '';
+	const [reportingManagerId, setReportingManagerId] = useState<number | ''>(originalReportingManagerId);
+
+	useEffect(() => {
+		setReportingManagerId(originalReportingManagerId);
+	}, [originalReportingManagerId]);
+
 	// The avatar and reminder toggle both save themselves immediately (see
 	// below) rather than joining the batched Save/Discard flow, so they must
 	// stay in sync with whatever the server actually has.
@@ -116,6 +124,12 @@ const ProfileTab: React.FC = () => {
 			: markClean('profile.billingAddress');
 	}, [billingAddress, originalBillingAddress, markDirty, markClean]);
 
+	useEffect(() => {
+		reportingManagerId !== originalReportingManagerId
+			? markDirty('profile.reportingManagerId')
+			: markClean('profile.reportingManagerId');
+	}, [reportingManagerId, originalReportingManagerId, markDirty, markClean]);
+
 	// Register save & discard handlers
 	const handleSave = useCallback(async () => {
 		try {
@@ -125,13 +139,14 @@ const ProfileTab: React.FC = () => {
 				phone: phone || null,
 				dob: dob || null,
 				billing_address: billingAddress,
+				reporting_manager_id: reportingManagerId || null,
 			})).unwrap();
 			toast.success('Profile saved');
 		} catch (err: any) {
 			toast.error(err || 'Failed to save profile');
 			throw err;
 		}
-	}, [dispatch, fullName, jobTitle, phone, dob, billingAddress, toast]);
+	}, [dispatch, fullName, jobTitle, phone, dob, billingAddress, reportingManagerId, toast]);
 
 	const handleDiscard = useCallback(() => {
 		setFullName(originalFullName);
@@ -139,7 +154,8 @@ const ProfileTab: React.FC = () => {
 		setPhone(originalPhone);
 		setDob(originalDob);
 		setBillingAddress(originalBillingAddress);
-	}, [originalFullName, originalJobTitle, originalPhone, originalDob, originalBillingAddress]);
+		setReportingManagerId(originalReportingManagerId);
+	}, [originalFullName, originalJobTitle, originalPhone, originalDob, originalBillingAddress, originalReportingManagerId]);
 
 	useEffect(() => {
 		registerSaveHandler('profile', handleSave);
@@ -509,6 +525,14 @@ const ProfileTab: React.FC = () => {
 									onChange={(v) => setDob(v || null)}
 									maxDate={TODAY}
 									textFieldProps={{ sx: fieldSx() }}
+								/>
+							</Box>
+							<Box>
+								<Typography variant="caption" sx={fieldLabelSx}>Reporting Manager</Typography>
+								<ReportingManagerField
+									value={reportingManagerId}
+									onChange={(val) => setReportingManagerId(val)}
+									excludeUserId={user?.id}
 								/>
 							</Box>
 						</Box>

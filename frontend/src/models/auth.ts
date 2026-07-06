@@ -52,6 +52,7 @@ export interface User {
 	job_title?: string | null;
 	billing_address?: BillingAddress | null;
 	billing_reminder?: boolean;
+	reporting_manager_id?: number | null;
 }
 
 export interface Token {
