@@ -5,6 +5,8 @@ import DealCard from './DealCard';
 import type { Deal } from '../../../../models/crm/deal';
 import type { Pipeline, PipelineStage } from '../../../../models/crm/pipeline';
 import type { Company } from '../../../../models/crm/company';
+import { useAppSelector } from '../../../../store/hooks';
+import { formatMoney } from '../../../../utils/currency';
 
 interface DealsKanbanBoardProps {
 	pipeline: Pipeline | undefined;
@@ -27,6 +29,8 @@ export const DealsKanbanBoard: React.FC<DealsKanbanBoardProps> = ({
 	onEditDeal,
 	onDeleteDeal,
 }) => {
+	const displayCurrency = useAppSelector((state) => state.auth.user?.currency) || 'USD';
+
 	if (!pipeline) {
 		return loading ? null : (
 			<Box sx={{ textAlign: 'center', py: 8 }}>
@@ -57,11 +61,14 @@ export const DealsKanbanBoard: React.FC<DealsKanbanBoardProps> = ({
 					onDelete={onDeleteDeal}
 				/>
 			)}
-			renderColumnFooter={(columnDeals) => (
-				<Typography variant="caption" color="text.secondary">
-					{columnDeals.reduce((sum, d) => sum + (d.value || 0), 0).toLocaleString()} total
-				</Typography>
-			)}
+			renderColumnFooter={(columnDeals) => {
+				const total = columnDeals.reduce((sum, d) => sum + (d.display_value ?? d.value ?? 0), 0);
+				return (
+					<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+						{formatMoney(total, displayCurrency)} total
+					</Typography>
+				);
+			}}
 			onMoveItem={(deal, column) => {
 				const targetStage = pipeline.stages.find((s) => s.id === column.id);
 				if (targetStage) onMoveDeal(deal, targetStage);
