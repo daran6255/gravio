@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Container, Button, MenuItem, TextField, InputAdornment } from '@mui/material';
-import { Settings, Add, Search as SearchIcon } from '@mui/icons-material';
+import { Settings, Add, Search as SearchIcon, HelpOutline } from '@mui/icons-material';
 import { responsiveStyles, fieldWidth } from '../../theme';
 import PageHeader from '../../components/common/page-header';
 import {
 	DealsKanbanBoard,
 	DealDetailDrawer,
 	DealsModals,
+	DealsGuideDrawer,
 	useDealsKanban,
 } from '../../components/crm';
 import { ConvertDealToProjectDialog } from '../../components/projects';
@@ -58,9 +59,29 @@ const DealsPage: React.FC = () => {
 	} = useDealsKanban();
 
 	const { companyOptions, owners } = useAppSelector((state) => state.crm);
+	const [guideOpen, setGuideOpen] = useState(false);
 
 	const headerAction = (
 		<Box sx={responsiveStyles.headerActionRow}>
+			<Button
+				variant="outlined"
+				startIcon={<HelpOutline />}
+				onClick={() => setGuideOpen(true)}
+				sx={{
+					textTransform: 'none',
+					fontWeight: 700,
+					borderRadius: '8px',
+					borderColor: 'divider',
+					color: 'text.secondary',
+					'&:hover': {
+						borderColor: 'primary.main',
+						bgcolor: 'action.hover',
+						color: 'primary.main',
+					}
+				}}
+			>
+				Help Guide
+			</Button>
 			{pipelines.length > 1 && (
 				<TextField
 					select
@@ -212,6 +233,11 @@ const DealsPage: React.FC = () => {
 					editingDeal={editingDeal}
 					activePipelineId={activePipelineId}
 					onFormSuccess={handleFormSuccess}
+				/>
+
+				<DealsGuideDrawer
+					open={guideOpen}
+					onClose={() => setGuideOpen(false)}
 				/>
 			</Container>
 		</Box>
