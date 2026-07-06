@@ -29,7 +29,7 @@ const Footer: React.FC = () => {
 			>
 				<span>Copyright © {new Date().getFullYear()}</span>
 				<Link
-					href="https://gravit.com/"
+					href="https://gravit.taydens.com/"
 					target="_blank"
 					rel="noopener noreferrer"
 					sx={{
