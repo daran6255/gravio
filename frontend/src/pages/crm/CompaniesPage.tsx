@@ -1,5 +1,6 @@
-import React from 'react';
-import { Box, Container, Grid, Stack } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Container, Grid, Stack, Button } from '@mui/material';
+import { HelpOutline } from '@mui/icons-material';
 import { responsiveStyles } from '../../theme';
 import PageHeader from '../../components/common/page-header';
 import {
@@ -10,6 +11,7 @@ import {
 	CompaniesFilterPanel,
 	CompaniesIndustryBreakdown,
 	CompaniesBulkActionBar,
+	CompaniesGuideDrawer,
 	useCompaniesManagement,
 } from '../../components/crm';
 
@@ -69,12 +71,35 @@ const CompaniesPage: React.FC = () => {
 		handleFormSuccess,
 	} = useCompaniesManagement();
 
+	const [guideOpen, setGuideOpen] = useState(false);
+
 	return (
 		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
 			<Container maxWidth={false} sx={responsiveStyles.pageContainer}>
 				<PageHeader
 					title="Companies"
 					subtitle="Account records for your sales pipeline"
+					action={
+						<Button
+							variant="outlined"
+							startIcon={<HelpOutline />}
+							onClick={() => setGuideOpen(true)}
+							sx={{
+								textTransform: 'none',
+								fontWeight: 700,
+								borderRadius: '8px',
+								borderColor: 'divider',
+								color: 'text.secondary',
+								'&:hover': {
+									borderColor: 'primary.main',
+									bgcolor: 'action.hover',
+									color: 'primary.main',
+								}
+							}}
+						>
+							Help Guide
+						</Button>
+					}
 				/>
 
 				<CompaniesStatsPanel stats={companyStats} />
@@ -157,6 +182,11 @@ const CompaniesPage: React.FC = () => {
 					onCloseBulkDelete={() => setBulkDeleteOpen(false)}
 					onConfirmBulkDelete={handleConfirmBulkDelete}
 					bulkDeleteLoading={bulkDeleteLoading}
+				/>
+
+				<CompaniesGuideDrawer
+					open={guideOpen}
+					onClose={() => setGuideOpen(false)}
 				/>
 			</Container>
 		</Box>
