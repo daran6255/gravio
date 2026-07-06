@@ -51,6 +51,7 @@ export const CompaniesTable: React.FC<CompaniesTableProps> = ({
 		{ id: 'status', label: 'Status' },
 		{ id: 'industry', label: 'Industry', hideOnMobile: true },
 		{ id: 'website', label: 'Website', hideOnMobile: true },
+		{ id: 'location', label: 'Location', hideOnMobile: true },
 		{ id: 'actions', label: '', align: 'right', width: 60 },
 	];
 
@@ -89,6 +90,7 @@ export const CompaniesTable: React.FC<CompaniesTableProps> = ({
 				<TableCell><StatusBadge label={company.status} status={company.status} type="company" /></TableCell>
 				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{company.industry || '—'}</TableCell>
 				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{company.website || '—'}</TableCell>
+				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{company.address?.location || '—'}</TableCell>
 				<TableCell align="right" onClick={(e) => e.stopPropagation()}>
 					<Stack direction="row" justifyContent="flex-end">
 						<DataTableActions item={company} actions={actions} tooltipTitle="Company Actions" />

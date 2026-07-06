@@ -2,6 +2,7 @@ export type CompanySize = 'startup' | 'small' | 'medium' | 'enterprise';
 export type CompanyStatus = 'prospect' | 'customer' | 'churned' | 'partner';
 
 export interface CompanyAddress {
+	location?: string;
 	street?: string;
 	city?: string;
 	state?: string;

@@ -4,7 +4,11 @@ import {
 	TextField,
 	MenuItem,
 	Stack,
+	Autocomplete,
+	InputAdornment,
+	CircularProgress,
 } from '@mui/material';
+import { RoomOutlined as RoomIcon } from '@mui/icons-material';
 import { MuiTelInput, type MuiTelInputCountry, type MuiTelInputInfo } from 'mui-tel-input';
 import { EnterpriseForm, type FormStep } from '../../../common/form';
 import { useAppDispatch } from '../../../../store/hooks';
@@ -36,10 +40,70 @@ export const CompanyFormDialog: React.FC<CompanyFormDialogProps> = ({ open, onCl
 	const [email, setEmail] = useState('');
 	const [size, setSize] = useState<CompanySize | ''>('');
 	const [status, setStatus] = useState<CompanyStatus>('prospect');
+	const [location, setLocation] = useState('');
+	const [locationInputValue, setLocationInputValue] = useState('');
+	const [locationOptions, setLocationOptions] = useState<string[]>([]);
+	const [locationLoading, setLocationLoading] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [touched, setTouched] = useState<{ name?: boolean }>({});
 	const { countryCode, setCountryCode, validatePhoneChange, getMaxLength } = usePhoneValidation();
+
+	// Same debounced Nominatim (OpenStreetMap) geocoding search used on the
+	// organization registration form, so location search behaves identically.
+	useEffect(() => {
+		if (locationInputValue.trim().length < 3) {
+			setLocationOptions([]);
+			return;
+		}
+
+		const fetchLocations = async () => {
+			setLocationLoading(true);
+			try {
+				const response = await fetch(
+					`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+						locationInputValue
+					)}&format=json&addressdetails=1&limit=5&accept-language=en`,
+					{
+						headers: {
+							'User-Agent': 'Gravit-Onboarding-App/1.0',
+						},
+					}
+				);
+				const data = await response.json();
+				if (Array.isArray(data)) {
+					const formattedLocations = data.map((item: any) => {
+						const addr = item.address;
+						const city = addr.city || addr.town || addr.municipality || addr.village || addr.suburb || addr.state_district || '';
+						const state = addr.state || '';
+						const country = addr.country || '';
+
+						if (city && state) {
+							return `${city}, ${state}`;
+						} else if (city && country) {
+							return `${city}, ${country}`;
+						} else if (state && country) {
+							return `${state}, ${country}`;
+						}
+						return item.display_name;
+					});
+
+					const uniqueLocations = Array.from(new Set(formattedLocations.filter(Boolean))) as string[];
+					setLocationOptions(uniqueLocations);
+				}
+			} catch (error) {
+				console.error('Failed to fetch locations:', error);
+			} finally {
+				setLocationLoading(false);
+			}
+		};
+
+		const debounceTimer = setTimeout(() => {
+			fetchLocations();
+		}, 400);
+
+		return () => clearTimeout(debounceTimer);
+	}, [locationInputValue]);
 
 	const handlePhoneChange = (value: string, info: MuiTelInputInfo) => {
 		// Hard cap: reject the keystroke (or country switch) once the national
@@ -64,6 +128,8 @@ export const CompanyFormDialog: React.FC<CompanyFormDialogProps> = ({ open, onCl
 		setEmail(company?.email || '');
 		setSize(company?.size || '');
 		setStatus(company?.status || 'prospect');
+		setLocation(company?.address?.location || '');
+		setLocationInputValue(company?.address?.location || '');
 		setError(null);
 		setTouched({});
 	}, [open, company]);
@@ -83,6 +149,9 @@ export const CompanyFormDialog: React.FC<CompanyFormDialogProps> = ({ open, onCl
 				email: email || undefined,
 				size: size || undefined,
 				status,
+				address: location.trim()
+					? { ...company?.address, location: location.trim() }
+					: undefined,
 			};
 
 			const result = isEdit
@@ -114,6 +183,42 @@ export const CompanyFormDialog: React.FC<CompanyFormDialogProps> = ({ open, onCl
 						error={touched.name && !!fieldErrors.name}
 						helperText={touched.name && fieldErrors.name}
 						placeholder="e.g. Acme Corp"
+					/>
+
+					<Autocomplete
+						freeSolo
+						options={locationOptions}
+						loading={locationLoading}
+						value={location}
+						onChange={(_, newValue) => setLocation(newValue || '')}
+						inputValue={locationInputValue}
+						onInputChange={(_, newInputValue) => setLocationInputValue(newInputValue)}
+						// Options already come pre-filtered by the geocoding API for the typed
+						// text, so disable MUI's client-side re-filtering (it can hide results
+						// when the input is a misspelling/alias of the returned name).
+						filterOptions={(options) => options}
+						renderInput={(params) => (
+							<TextField
+								{...params}
+								label="Location"
+								placeholder="Search location (e.g. Bangalore, Karnataka)"
+								fullWidth
+								InputProps={{
+									...params.InputProps,
+									startAdornment: (
+										<InputAdornment position="start">
+											<RoomIcon sx={{ fontSize: 18, mr: 0.5, color: 'text.secondary' }} />
+										</InputAdornment>
+									),
+									endAdornment: (
+										<>
+											{locationLoading ? <CircularProgress color="inherit" size={16} /> : null}
+											{params.InputProps.endAdornment}
+										</>
+									)
+								}}
+							/>
+						)}
 					/>
 
 					<TextField

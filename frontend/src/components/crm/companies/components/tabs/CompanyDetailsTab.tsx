@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography, Stack, Grid, Button, useTheme, alpha } from '@mui/material';
 import {
-	Language, Phone, Email, LocationOn, Launch, Handshake, Groups, LocalOffer, Person, ChevronRight,
+	Language, Phone, Email, LocationOn, Room, Launch, Handshake, Groups, LocalOffer, Person, ChevronRight,
 	Business, ContactPhone, InfoOutlined,
 } from '@mui/icons-material';
 import type { Company } from '../../../../../models/crm/company';
@@ -243,6 +243,17 @@ export const CompanyDetailsTab: React.FC<CompanyDetailsTabProps> = ({
 							</Stack>
 						</Grid>
 					)}
+					{company.address?.location && (
+						<Grid size={{ xs: 12, sm: 6 }}>
+							<Stack direction="row" spacing={1.5} alignItems="center">
+								<Room fontSize="small" sx={{ color: 'text.secondary' }} />
+								<Box>
+									<Typography variant="caption" sx={labelSx}>Location</Typography>
+									<Typography variant="body2" sx={{ fontWeight: 600 }}>{company.address.location}</Typography>
+								</Box>
+							</Stack>
+						</Grid>
+					)}
 					{address && (
 						<Grid size={{ xs: 12, sm: company.email ? 12 : 6 }}>
 							<Stack direction="row" spacing={1.5} alignItems="center">
@@ -254,7 +265,7 @@ export const CompanyDetailsTab: React.FC<CompanyDetailsTabProps> = ({
 							</Stack>
 						</Grid>
 					)}
-					{!company.website && !company.phone && !company.email && !address && (
+					{!company.website && !company.phone && !company.email && !address && !company.address?.location && (
 						<Grid size={{ xs: 12 }}>
 							<Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic' }}>
 								No contact details provided.
