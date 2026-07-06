@@ -216,11 +216,11 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, companyName, onView, o
 									fontWeight: 700,
 									bgcolor: () => {
 										const colors = ['#8B7CF6', '#10B981', '#F59E0B', '#3B82F6', '#EC4899', '#14B8A6'];
-										const charCodeSum = (owner.full_name || owner.email || '').split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+										const charCodeSum = (owner.full_name || owner.email || '').split('').reduce((sum: number, char: string) => sum + char.charCodeAt(0), 0);
 										return colors[charCodeSum % colors.length];
 									},
 									color: 'white',
-									boxShadow: (theme) => `0 0 0 2px ${isDark ? '#141822' : '#ffffff'}`,
+									boxShadow: `0 0 0 2px ${isDark ? '#141822' : '#ffffff'}`,
 								}}
 							>
 								{getInitials(owner.full_name, owner.email)}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Container, Button, MenuItem, TextField, Stack, InputAdornment } from '@mui/material';
+import { Box, Container, Button, MenuItem, TextField, InputAdornment } from '@mui/material';
 import { Settings, Add, Search as SearchIcon } from '@mui/icons-material';
 import { responsiveStyles, fieldWidth } from '../../theme';
 import PageHeader from '../../components/common/page-header';
