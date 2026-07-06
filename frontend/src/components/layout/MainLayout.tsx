@@ -4,15 +4,9 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
-import Breadcrumbs from '../common/breadcrumb/Breadcrumbs';
-import { useAppSelector } from '../../store/hooks';
 
 const MainLayout: React.FC = () => {
 	const location = useLocation();
-	const { user } = useAppSelector((state) => state.auth);
-	const isOrgPage = location.pathname === '/organizations';
-
-	const showBreadcrumbs = user?.is_superuser && !isOrgPage;
 
 	// Detect settings routes — they use their own SettingsLayout with a dedicated sidebar
 	const isSettingsRoute =
@@ -73,26 +67,36 @@ const MainLayout: React.FC = () => {
 			<Navbar />
 			<Sidebar />
 			<Box
-				component="main"
 				sx={{
 					flexGrow: 1,
-					p: { xs: 2, sm: 3 },
-					width: '100%', // Take full available space
-					transition: (theme) => theme.transitions.create(['margin', 'width'], {
-						easing: theme.transitions.easing.sharp,
-						duration: theme.transitions.duration.standard,
-					}),
-					mt: '64px',
 					display: 'flex',
 					flexDirection: 'column',
 					height: 'calc(100vh - 64px)',
-					overflowY: 'auto',
-					overflowX: 'hidden'
+					mt: '64px',
+					overflow: 'hidden'
 				}}
 			>
-				{showBreadcrumbs && <Breadcrumbs />}
-				<Box sx={{ flexGrow: 1 }}>
-					<Outlet />
+				<Box
+					component="main"
+					sx={{
+						flexGrow: 1,
+						pt: { xs: 2, sm: 3 },
+						px: { xs: 2, sm: 3 },
+						pb: { xs: 2, sm: 3 },
+						width: '100%', // Take full available space
+						transition: (theme) => theme.transitions.create(['margin', 'width'], {
+							easing: theme.transitions.easing.sharp,
+							duration: theme.transitions.duration.standard,
+						}),
+						overflowY: 'auto',
+						overflowX: 'hidden',
+						display: 'flex',
+						flexDirection: 'column'
+					}}
+				>
+					<Box sx={{ flexGrow: 1 }}>
+						<Outlet />
+					</Box>
 				</Box>
 				<Footer />
 			</Box>
