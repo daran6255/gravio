@@ -36,6 +36,7 @@ import TeamTimesheetTable from '../../components/timesheets/TeamTimesheetTable';
 import TimesheetReportPanel from '../../components/timesheets/TimesheetReportPanel';
 import TimeLogEntryDrawer from '../../components/timesheets/TimeLogEntryDrawer';
 import ReportingManagerField from '../../components/timesheets/ReportingManagerField';
+import ManagerAllocationPanel from '../../components/timesheets/ManagerAllocationPanel';
 import type { ProjectTimeLog } from '../../models/timesheet';
 
 // Date utility functions
@@ -241,6 +242,7 @@ const TimesheetPage: React.FC = () => {
 					<Tab label="My Timesheet" />
 					{isManagerOrAdmin && <Tab label="Team Approvals" />}
 					{isManagerOrAdmin && <Tab label="Reports" />}
+					{currentUser?.role === 'admin' && <Tab label="Manager Allocation" />}
 				</Tabs>
 			</Box>
 
@@ -289,6 +291,9 @@ const TimesheetPage: React.FC = () => {
 
 			{/* Reports Panel */}
 			{activeTab === 2 && isManagerOrAdmin && <TimesheetReportPanel />}
+
+			{/* Manager Allocation Panel */}
+			{activeTab === 3 && currentUser?.role === 'admin' && <ManagerAllocationPanel />}
 
 			{/* Quick Entry Drawer */}
 			<TimeLogEntryDrawer

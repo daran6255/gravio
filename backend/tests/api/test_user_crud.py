@@ -96,6 +96,40 @@ async def test_update_user_details(auth_admin_client: AsyncClient, sample_org_an
     assert dev.role == UserRole.MANAGER
 
 
+
+@pytest.mark.anyio
+async def test_update_user_circular_reporting(auth_admin_client: AsyncClient, sample_org_and_users):
+    _, _, dev, marketing = sample_org_and_users
+
+    # Set dev's manager to marketing (valid)
+    response = await auth_admin_client.put(
+        f"/api/v1/users/{dev.public_id}",
+        json={"reporting_manager_id": marketing.id}
+    )
+    assert response.status_code == 200
+
+    # Attempt to set marketing's manager to dev (should fail with 400 due to cycle)
+    response = await auth_admin_client.put(
+        f"/api/v1/users/{marketing.public_id}",
+        json={"reporting_manager_id": dev.id}
+    )
+    assert response.status_code == 400
+    assert "circular" in response.json()["error"]["message"].lower()
+
+
+@pytest.mark.anyio
+async def test_update_user_self_reporting(auth_admin_client: AsyncClient, sample_org_and_users):
+    _, _, dev, _ = sample_org_and_users
+
+    # Attempt to set dev's manager to dev itself (should fail with 400)
+    response = await auth_admin_client.put(
+        f"/api/v1/users/{dev.public_id}",
+        json={"reporting_manager_id": dev.id}
+    )
+    assert response.status_code == 400
+    assert "own" in response.json()["error"]["message"].lower()
+
+
 @pytest.mark.anyio
 async def test_update_user_conflict(auth_admin_client: AsyncClient, sample_org_and_users):
     _, _, dev, marketing = sample_org_and_users

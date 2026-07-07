@@ -285,7 +285,25 @@ async def update_org_user(
     if payload.role is not None:
         target.role = payload.role
     if "reporting_manager_id" in payload.model_dump(exclude_unset=True):
-        target.reporting_manager_id = payload.reporting_manager_id if payload.reporting_manager_id and payload.reporting_manager_id > 0 else None
+        new_manager_id = payload.reporting_manager_id if payload.reporting_manager_id and payload.reporting_manager_id > 0 else None
+        if new_manager_id is not None:
+            if new_manager_id == target.id:
+                raise BadRequestError("A user cannot be their own reporting manager.")
+            
+            # Detect circular reporting structure
+            visited = {target.id}
+            current_id = new_manager_id
+            while current_id is not None:
+                if current_id in visited:
+                    raise BadRequestError("Circular reporting structure detected. This assignment is invalid.")
+                visited.add(current_id)
+                
+                manager_user = await UserRepository.get_by_id(db, current_id)
+                if not manager_user:
+                    break
+                current_id = manager_user.reporting_manager_id
+                
+        target.reporting_manager_id = new_manager_id
 
     await db.commit()
     await db.refresh(target)
