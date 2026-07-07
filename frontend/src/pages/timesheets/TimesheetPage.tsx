@@ -7,10 +7,6 @@ import {
 	Typography,
 	Button,
 	Stack,
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	DialogActions,
 	Alert,
 	IconButton
 } from '@mui/material';
@@ -29,13 +25,11 @@ import {
 	rejectWeek,
 	unapproveWeek
 } from '../../store/slices/timesheetSlice';
-import { updateProfile } from '../../store/slices/authSlice';
 import PageHeader from '../../components/common/page-header';
 import WeeklyTimesheetGrid from '../../components/timesheets/WeeklyTimesheetGrid';
 import TeamTimesheetTable from '../../components/timesheets/TeamTimesheetTable';
 import TimesheetReportPanel from '../../components/timesheets/TimesheetReportPanel';
 import TimeLogEntryDrawer from '../../components/timesheets/TimeLogEntryDrawer';
-import ReportingManagerField from '../../components/timesheets/ReportingManagerField';
 import ManagerAllocationPanel from '../../components/timesheets/ManagerAllocationPanel';
 import type { ProjectTimeLog } from '../../models/timesheet';
 
@@ -81,8 +75,7 @@ const TimesheetPage: React.FC = () => {
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [selectedLog, setSelectedLog] = useState<ProjectTimeLog | undefined>(undefined);
 	const [selectedCellDate, setSelectedCellDate] = useState<string | undefined>(undefined);
-	const [managerDialogOpen, setManagerDialogOpen] = useState(false);
-	const [selectedManagerId, setSelectedManagerId] = useState<number | ''>('');
+
 
 	const weekDates = useMemo(() => getWeekDates(currentMonday), [currentMonday]);
 	const startDateStr = formatDateStr(weekDates[0]);
@@ -182,15 +175,7 @@ const TimesheetPage: React.FC = () => {
 		} catch (err) {}
 	};
 
-	// Set manager profile update
-	const handleSaveManager = async () => {
-		if (selectedManagerId) {
-			try {
-				await dispatch(updateProfile({ reporting_manager_id: selectedManagerId })).unwrap();
-				setManagerDialogOpen(false);
-			} catch (err) {}
-		}
-	};
+
 
 	const isManagerOrAdmin = currentUser?.role === 'admin' || currentUser?.role === 'manager';
 	const hasReportingManager = currentUser?.reporting_manager_id != null;
@@ -252,14 +237,9 @@ const TimesheetPage: React.FC = () => {
 					{!hasReportingManager && (
 						<Alert
 							severity="warning"
-							action={
-								<Button color="inherit" size="small" onClick={() => setManagerDialogOpen(true)}>
-									Configure Manager
-								</Button>
-							}
 							sx={{ borderRadius: '8px' }}
 						>
-							You don't have a Reporting Manager assigned. Set one to enable timesheet weekly submissions.
+							You do not have a Reporting Manager assigned. Please contact your organization administrator to configure one for you to enable timesheet weekly submissions.
 						</Alert>
 					)}
 					<WeeklyTimesheetGrid
@@ -304,32 +284,7 @@ const TimesheetPage: React.FC = () => {
 				onSave={loadMyTimesheet}
 			/>
 
-			{/* Assign Manager Quick Dialog */}
-			<Dialog open={managerDialogOpen} onClose={() => setManagerDialogOpen(false)} fullWidth maxWidth="xs">
-				<DialogTitle sx={{ fontWeight: 700 }}>Set Reporting Manager</DialogTitle>
-				<DialogContent sx={{ pt: 1 }}>
-					<Box sx={{ mt: 1 }}>
-						<ReportingManagerField
-							value={selectedManagerId}
-							onChange={(val) => setSelectedManagerId(val)}
-							excludeUserId={currentUser?.id}
-						/>
-					</Box>
-				</DialogContent>
-				<DialogActions sx={{ p: 2.5 }}>
-					<Button onClick={() => setManagerDialogOpen(false)} variant="outlined">
-						Cancel
-					</Button>
-					<Button
-						onClick={handleSaveManager}
-						variant="contained"
-						disabled={!selectedManagerId}
-						sx={{ fontWeight: 700 }}
-					>
-						Save Selection
-					</Button>
-				</DialogActions>
-			</Dialog>
+
 		</Container>
 	);
 };
