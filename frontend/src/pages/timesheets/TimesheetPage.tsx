@@ -30,7 +30,7 @@ import WeeklyTimesheetGrid from '../../components/timesheets/WeeklyTimesheetGrid
 import TeamTimesheetTable from '../../components/timesheets/TeamTimesheetTable';
 import TimesheetReportPanel from '../../components/timesheets/TimesheetReportPanel';
 import TimeLogEntryDrawer from '../../components/timesheets/TimeLogEntryDrawer';
-import ManagerAllocationPanel from '../../components/timesheets/ManagerAllocationPanel';
+import ManagerAllocationPanel from '../../components/timesheets/manager-allocation';
 import type { ProjectTimeLog } from '../../models/timesheet';
 
 // Date utility functions
