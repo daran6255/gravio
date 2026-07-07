@@ -217,26 +217,28 @@ const TimesheetPage: React.FC = () => {
 				<PageHeader title="Timesheet Workspace" subtitle="Log and approve hours across projects and operations." />
 				
 				{/* Week Navigator */}
-				<Stack direction="row" alignItems="center" spacing={1} sx={{ alignSelf: { xs: 'center', md: 'auto' } }}>
-					<IconButton onClick={handlePrevWeek} size="small">
-						<PrevIcon />
-					</IconButton>
-					<Button
-						variant="outlined"
-						size="small"
-						startIcon={<CurrentIcon />}
-						onClick={handleCurrentWeek}
-						sx={{ borderRadius: '6px' }}
-					>
-						This Week
-					</Button>
-					<Typography variant="body2" sx={{ fontWeight: 700, px: 2, minWidth: 200, textAlign: 'center' }}>
-						{formatWeekRangeDisplay()}
-					</Typography>
-					<IconButton onClick={handleNextWeek} size="small">
-						<NextIcon />
-					</IconButton>
-				</Stack>
+				{(tabLabels[activeTab] === 'My Timesheet' || tabLabels[activeTab] === 'Team Approvals') && (
+					<Stack direction="row" alignItems="center" spacing={1} sx={{ alignSelf: { xs: 'center', md: 'auto' } }}>
+						<IconButton onClick={handlePrevWeek} size="small">
+							<PrevIcon />
+						</IconButton>
+						<Button
+							variant="outlined"
+							size="small"
+							startIcon={<CurrentIcon />}
+							onClick={handleCurrentWeek}
+							sx={{ borderRadius: '6px' }}
+						>
+							This Week
+						</Button>
+						<Typography variant="body2" sx={{ fontWeight: 700, px: 2, minWidth: 200, textAlign: 'center' }}>
+							{formatWeekRangeDisplay()}
+						</Typography>
+						<IconButton onClick={handleNextWeek} size="small">
+							<NextIcon />
+						</IconButton>
+					</Stack>
+				)}
 			</Stack>
 
 			{actionError && (
