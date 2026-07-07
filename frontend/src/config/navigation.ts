@@ -42,6 +42,12 @@ export const topNavigation: NavigationItem[] = [
 				icon: HomeIcon,
 			},
 			{
+				label: 'Team',
+				path: '/users',
+				icon: UserIcon,
+				roles: ['admin'],
+			},
+			{
 				label: 'Projects',
 				path: '/projects',
 				icon: ProjectsIcon,
@@ -51,12 +57,6 @@ export const topNavigation: NavigationItem[] = [
 				label: 'Timesheets',
 				path: '/timesheets',
 				icon: TimesheetIcon,
-			},
-			{
-				label: 'Team',
-				path: '/users',
-				icon: UserIcon,
-				roles: ['admin'],
 			},
 			{
 				label: 'Billing',
