@@ -15,7 +15,13 @@ import {
 	TableRow,
 	MenuItem,
 	Alert,
-	useTheme
+	useTheme,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions,
+	CircularProgress,
+	Box
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -34,6 +40,14 @@ const HolidayCalendarPanel: React.FC = () => {
 	const [countryCode, setCountryCode] = useState('');
 	const [error, setError] = useState<string | null>(null);
 	const [submitting, setSubmitting] = useState(false);
+
+	// Import state
+	const [importDialogOpen, setImportDialogOpen] = useState(false);
+	const [dragOver, setDragOver] = useState(false);
+	const [importPreview, setImportPreview] = useState<{ holiday_date: string; name: string; type: string; country_code?: string }[]>([]);
+	const [importError, setImportError] = useState<string | null>(null);
+	const [importLoading, setImportLoading] = useState(false);
+	const fileInputRef = React.useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
 		dispatch(fetchHolidays());
@@ -74,6 +88,153 @@ const HolidayCalendarPanel: React.FC = () => {
 			await dispatch(deleteHoliday(id)).unwrap();
 		} catch (err: any) {
 			setError(err || 'Failed to delete holiday');
+		}
+	};
+
+	const handleCloseImport = () => {
+		setImportDialogOpen(false);
+		setImportPreview([]);
+		setImportError(null);
+		setDragOver(false);
+	};
+
+	const parseFile = (file: File) => {
+		setImportError(null);
+		const reader = new FileReader();
+
+		reader.onload = (e) => {
+			const text = e.target?.result as string;
+			if (!text) {
+				setImportError('Failed to read file content');
+				return;
+			}
+
+			try {
+				if (file.name.endsWith('.json')) {
+					const parsed = JSON.parse(text);
+					if (!Array.isArray(parsed)) {
+						throw new Error('JSON file must contain an array of holiday objects');
+					}
+					
+					// Validate format
+					const validated = parsed.map((item: any, index: number) => {
+						if (!item.holiday_date || !item.name) {
+							throw new Error(`Item at index ${index} is missing required 'holiday_date' or 'name'`);
+						}
+						return {
+							holiday_date: String(item.holiday_date),
+							name: String(item.name),
+							type: String(item.type || 'public'),
+							country_code: item.country_code ? String(item.country_code) : undefined
+						};
+					});
+					setImportPreview(validated);
+				} else if (file.name.endsWith('.csv')) {
+					const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+					if (lines.length <= 1) {
+						throw new Error('CSV file is empty or missing headers');
+					}
+
+					const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+					const dateIdx = headers.indexOf('holiday_date');
+					const nameIdx = headers.indexOf('name');
+					const typeIdx = headers.indexOf('type');
+					const countryIdx = headers.indexOf('country_code');
+
+					if (dateIdx === -1 || nameIdx === -1) {
+						throw new Error('CSV must contain "holiday_date" and "name" columns');
+					}
+
+					const validated = [];
+					for (let i = 1; i < lines.length; i++) {
+						const row = lines[i].split(',').map(cell => cell.trim());
+						if (row.length < 2) continue; // Skip incomplete lines
+
+						const dateVal = row[dateIdx];
+						const nameVal = row[nameIdx];
+						
+						if (!dateVal || !nameVal) {
+							throw new Error(`Line ${i + 1} is missing required date or name value`);
+						}
+
+						validated.push({
+							holiday_date: dateVal,
+							name: nameVal,
+							type: typeIdx !== -1 && row[typeIdx] ? row[typeIdx] : 'public',
+							country_code: countryIdx !== -1 && row[countryIdx] ? row[countryIdx] : undefined
+						});
+					}
+					setImportPreview(validated);
+				} else {
+					setImportError('Unsupported file type. Please upload a .csv or .json file');
+				}
+			} catch (err: any) {
+				setImportError(err.message || 'Error parsing file content');
+				setImportPreview([]);
+			}
+		};
+
+		reader.readAsText(file);
+	};
+
+	const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const files = e.target.files;
+		if (files && files.length > 0) {
+			parseFile(files[0]);
+		}
+	};
+
+	const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
+		e.preventDefault();
+		setDragOver(false);
+		const files = e.dataTransfer.files;
+		if (files && files.length > 0) {
+			parseFile(files[0]);
+		}
+	};
+
+	const handleConfirmImport = async () => {
+		setImportLoading(true);
+		setImportError(null);
+
+		let successCount = 0;
+		let failCount = 0;
+
+		try {
+			await Promise.all(
+				importPreview.map(async (h) => {
+					try {
+						// Check if holiday already exists on this date to prevent duplicates
+						const isDuplicate = holidays.some(
+							(existing) => existing.holiday_date === h.holiday_date
+						);
+						if (isDuplicate) return;
+
+						await dispatch(
+							createHoliday({
+								name: h.name,
+								holiday_date: h.holiday_date,
+								type: h.type,
+								country_code: h.country_code
+							})
+						).unwrap();
+						successCount++;
+					} catch {
+						failCount++;
+					}
+				})
+			);
+
+			if (successCount > 0) {
+				dispatch(fetchHolidays()); // reload
+				handleCloseImport();
+			} else {
+				setImportError('No new holidays were imported (they might already exist).');
+			}
+		} catch (err: any) {
+			setImportError('An unexpected error occurred during import');
+		} finally {
+			setImportLoading(false);
 		}
 	};
 
@@ -170,9 +331,21 @@ const HolidayCalendarPanel: React.FC = () => {
 						bgcolor: isDark ? '#141822' : '#ffffff'
 					}}
 				>
-					<Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2.5 }}>
-						Organization Holidays
-					</Typography>
+					<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
+						<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+							Organization Holidays
+						</Typography>
+						{isAdminOrManager && (
+							<Button
+								variant="outlined"
+								size="small"
+								onClick={() => setImportDialogOpen(true)}
+								sx={{ textTransform: 'none', borderRadius: '8px', fontWeight: 600 }}
+							>
+								Import Holidays
+							</Button>
+						)}
+					</Stack>
 					<TableContainer>
 						<Table size="small">
 							<TableHead>
@@ -219,6 +392,105 @@ const HolidayCalendarPanel: React.FC = () => {
 					</TableContainer>
 				</Paper>
 			</Grid>
+
+			{/* Import Holidays Dialog */}
+			<Dialog open={importDialogOpen} onClose={handleCloseImport} fullWidth maxWidth="sm">
+				<DialogTitle sx={{ fontWeight: 700 }}>Import Holidays</DialogTitle>
+				<DialogContent sx={{ pt: 1 }}>
+					<Stack spacing={3} sx={{ mt: 1 }}>
+						<Typography variant="body2" color="text.secondary">
+							Upload a CSV or JSON file containing holidays for your organization.
+						</Typography>
+
+						<Box 
+							sx={{ 
+								p: 3, 
+								border: '2px dashed', 
+								borderColor: dragOver ? 'primary.main' : 'divider',
+								borderRadius: '12px',
+								textAlign: 'center',
+								cursor: 'pointer',
+								bgcolor: dragOver ? (isDark ? 'rgba(139, 124, 246, 0.1)' : '#f4f3ff') : 'transparent',
+								transition: 'all 0.2s ease'
+							}}
+							onClick={() => fileInputRef.current?.click()}
+							onDragOver={(e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragOver(true); }}
+							onDragLeave={() => setDragOver(false)}
+							onDrop={handleFileDrop}
+						>
+							<input
+								type="file"
+								ref={fileInputRef}
+								style={{ display: 'none' }}
+								accept=".json,.csv"
+								onChange={handleFileSelect}
+							/>
+							<Typography variant="body2" sx={{ fontWeight: 700 }}>
+								Click to upload or drag & drop
+							</Typography>
+							<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+								Supports .JSON or .CSV files
+							</Typography>
+						</Box>
+
+						{importError && (
+							<Alert severity="error" sx={{ borderRadius: '8px' }}>
+								{importError}
+							</Alert>
+						)}
+
+						{importPreview.length > 0 && (
+							<Box>
+								<Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+									Preview ({importPreview.length} holidays found)
+								</Typography>
+								<Box sx={{ maxHeight: 200, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: '8px' }}>
+									<Table size="small">
+										<TableHead sx={{ bgcolor: isDark ? '#1C212E' : '#F8FAFC' }}>
+											<TableRow>
+												<TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
+												<TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
+												<TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
+											</TableRow>
+										</TableHead>
+										<TableBody>
+											{importPreview.map((h, i) => (
+												<TableRow key={i}>
+													<TableCell>{h.holiday_date}</TableCell>
+													<TableCell>{h.name}</TableCell>
+													<TableCell sx={{ textTransform: 'capitalize' }}>{h.type}</TableCell>
+												</TableRow>
+											))}
+										</TableBody>
+									</Table>
+								</Box>
+							</Box>
+						)}
+
+						<Box sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8f9fa', p: 2, borderRadius: '8px' }}>
+							<Typography variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 1 }}>
+								Expected File Schema:
+							</Typography>
+							<Typography variant="caption" color="text.secondary" component="pre" sx={{ fontFamily: 'monospace', display: 'block' }}>
+								{`JSON:\n[\n  { "holiday_date": "2026-12-25", "name": "Christmas Day", "type": "public" }\n]\n\nCSV:\nholiday_date,name,type\n2026-12-25,Christmas Day,public`}
+							</Typography>
+						</Box>
+					</Stack>
+				</DialogContent>
+				<DialogActions sx={{ p: 2.5 }}>
+					<Button onClick={handleCloseImport} variant="outlined" disabled={importLoading}>
+						Cancel
+					</Button>
+					<Button
+						onClick={handleConfirmImport}
+						disabled={importPreview.length === 0 || importLoading}
+						variant="contained"
+						sx={{ fontWeight: 700 }}
+					>
+						{importLoading ? <CircularProgress size={20} color="inherit" /> : 'Confirm Import'}
+					</Button>
+				</DialogActions>
+			</Dialog>
 		</Grid>
 	);
 };

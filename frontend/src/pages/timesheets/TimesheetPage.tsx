@@ -31,6 +31,7 @@ import TeamTimesheetTable from '../../components/timesheets/TeamTimesheetTable';
 import TimesheetReportPanel from '../../components/timesheets/TimesheetReportPanel';
 import TimeLogEntryDrawer from '../../components/timesheets/TimeLogEntryDrawer';
 import ManagerAllocationPanel from '../../components/timesheets/manager-allocation';
+import HolidayCalendarPanel from '../../components/timesheets/HolidayCalendarPanel';
 import type { ProjectTimeLog } from '../../models/timesheet';
 
 // Date utility functions
@@ -67,9 +68,33 @@ const TimesheetPage: React.FC = () => {
 		(state) => state.timesheets
 	);
 
+	const isManagerOrAdmin = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+	const hasReportingManager = currentUser?.reporting_manager_id != null;
+
 	// Navigation Date State (defaults to current week's Monday)
 	const [currentMonday, setCurrentMonday] = useState<Date>(() => getMondayOfDate(new Date()));
 	const [activeTab, setActiveTab] = useState(0);
+
+	const tabLabels = useMemo(() => {
+		const labels = ['My Timesheet'];
+		if (isManagerOrAdmin) {
+			labels.push('Team Approvals');
+			labels.push('Reports');
+		}
+		if (currentUser?.role === 'admin') {
+			labels.push('Manager Allocation');
+		}
+		if (isManagerOrAdmin) {
+			labels.push('Holiday List');
+		}
+		return labels;
+	}, [isManagerOrAdmin, currentUser?.role]);
+
+	useEffect(() => {
+		if (activeTab >= tabLabels.length) {
+			setActiveTab(0);
+		}
+	}, [tabLabels, activeTab]);
 
 	// Dialog & Drawer States
 	const [drawerOpen, setDrawerOpen] = useState(false);
@@ -177,8 +202,7 @@ const TimesheetPage: React.FC = () => {
 
 
 
-	const isManagerOrAdmin = currentUser?.role === 'admin' || currentUser?.role === 'manager';
-	const hasReportingManager = currentUser?.reporting_manager_id != null;
+
 
 	const formatWeekRangeDisplay = () => {
 		const startMonth = weekDates[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -224,15 +248,14 @@ const TimesheetPage: React.FC = () => {
 			{/* Tabs Header */}
 			<Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
 				<Tabs value={activeTab} onChange={(_, val) => setActiveTab(val)}>
-					<Tab label="My Timesheet" />
-					{isManagerOrAdmin && <Tab label="Team Approvals" />}
-					{isManagerOrAdmin && <Tab label="Reports" />}
-					{currentUser?.role === 'admin' && <Tab label="Manager Allocation" />}
+					{tabLabels.map((label, idx) => (
+						<Tab key={idx} label={label} />
+					))}
 				</Tabs>
 			</Box>
 
 			{/* My Timesheet Grid */}
-			{activeTab === 0 && (
+			{tabLabels[activeTab] === 'My Timesheet' && (
 				<Stack spacing={3}>
 					{!hasReportingManager && (
 						<Alert
@@ -256,7 +279,7 @@ const TimesheetPage: React.FC = () => {
 			)}
 
 			{/* Team Approvals Table */}
-			{activeTab === 1 && isManagerOrAdmin && (
+			{tabLabels[activeTab] === 'Team Approvals' && isManagerOrAdmin && (
 				<TeamTimesheetTable
 					logs={teamTimeLogs}
 					startDate={startDateStr}
@@ -270,10 +293,13 @@ const TimesheetPage: React.FC = () => {
 			)}
 
 			{/* Reports Panel */}
-			{activeTab === 2 && isManagerOrAdmin && <TimesheetReportPanel />}
+			{tabLabels[activeTab] === 'Reports' && isManagerOrAdmin && <TimesheetReportPanel />}
 
 			{/* Manager Allocation Panel */}
-			{activeTab === 3 && currentUser?.role === 'admin' && <ManagerAllocationPanel />}
+			{tabLabels[activeTab] === 'Manager Allocation' && currentUser?.role === 'admin' && <ManagerAllocationPanel />}
+
+			{/* Holiday List Panel */}
+			{tabLabels[activeTab] === 'Holiday List' && isManagerOrAdmin && <HolidayCalendarPanel />}
 
 			{/* Quick Entry Drawer */}
 			<TimeLogEntryDrawer
