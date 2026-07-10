@@ -24,8 +24,8 @@ import {
 	Box
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { fetchHolidays, createHoliday, deleteHoliday } from '../../store/slices/timesheetSlice';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { fetchHolidays, createHoliday, deleteHoliday } from '../../../store/slices/timesheetSlice';
 
 const HolidayCalendarPanel: React.FC = () => {
 	const dispatch = useAppDispatch();

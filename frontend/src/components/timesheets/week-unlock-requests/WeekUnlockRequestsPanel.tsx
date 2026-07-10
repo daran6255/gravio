@@ -18,7 +18,7 @@ import {
 	TextField,
 	useTheme
 } from '@mui/material';
-import type { TimesheetWeekUnlockRequest } from '../../models/timesheet';
+import type { TimesheetWeekUnlockRequest } from '../../../models/timesheet';
 
 interface WeekUnlockRequestsPanelProps {
 	requests: TimesheetWeekUnlockRequest[];

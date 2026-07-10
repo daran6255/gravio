@@ -4,7 +4,7 @@ import { EnterpriseForm, type FormStep } from '../../common/form';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { updateTeamUser } from '../../../store/slices/userSlice';
 import { USER_ROLES, type UserRole, type TeamMember } from '../../../models/user';
-import ReportingManagerField from '../../timesheets/ReportingManagerField';
+import ReportingManagerField from '../../timesheets/shared/ReportingManagerField';
 
 interface EditOrgUserDialogProps {
 	open: boolean;

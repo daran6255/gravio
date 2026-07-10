@@ -27,8 +27,8 @@ import {
 	Error as RejectedIcon,
 	LockOutlined as LockIcon,
 } from '@mui/icons-material';
-import type { ProjectTimeLog, OrgHoliday, TimesheetStatus, TimesheetWeekUnlockRequest } from '../../models/timesheet';
-import TimesheetStatusBadge from './TimesheetStatusBadge';
+import type { ProjectTimeLog, OrgHoliday, TimesheetStatus, TimesheetWeekUnlockRequest } from '../../../models/timesheet';
+import TimesheetStatusBadge from '../shared/TimesheetStatusBadge';
 
 // Helper to format hours display (e.g. 1.5 -> 1h 30m, 8 -> 8h)
 export const formatHoursDisplay = (hours: number): string => {

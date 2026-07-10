@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { fetchOwners } from '../../store/slices/crmSlice';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { fetchOwners } from '../../../store/slices/crmSlice';
 
 interface ReportingManagerFieldProps {
 	value: number | '';

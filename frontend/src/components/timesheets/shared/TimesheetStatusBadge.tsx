@@ -1,6 +1,6 @@
 import React from 'react';
 import { Chip } from '@mui/material';
-import type { TimesheetStatus } from '../../models/timesheet';
+import type { TimesheetStatus } from '../../../models/timesheet';
 
 interface TimesheetStatusBadgeProps {
 	status: TimesheetStatus;

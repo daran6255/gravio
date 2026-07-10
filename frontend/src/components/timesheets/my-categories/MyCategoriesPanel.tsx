@@ -16,8 +16,8 @@ import {
 	useTheme
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { fetchMyCategories, createCategory, deleteCategory } from '../../store/slices/timesheetSlice';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { fetchMyCategories, createCategory, deleteCategory } from '../../../store/slices/timesheetSlice';
 
 const CATEGORY_COLORS = [
 	'#8B7CF6', '#10B981', '#F59E0B', '#3B82F6', '#EC4899',

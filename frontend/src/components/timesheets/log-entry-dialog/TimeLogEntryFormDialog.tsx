@@ -14,15 +14,15 @@ import {
 	CircularProgress
 } from '@mui/material';
 import { Add as AddIcon, DeleteOutline as DeleteIcon, SettingsOutlined as ManageIcon } from '@mui/icons-material';
-import { BaseDialog, ConfirmationDialog } from '../common/dialogbox';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { createTimeLog, updateTimeLog, deleteTimeLog, fetchMyCategories, createCategory, deleteCategory } from '../../store/slices/timesheetSlice';
-import { fetchProjects, fetchTaskStatuses } from '../../store/slices/projectsSlice';
-import projectService from '../../services/projectService';
-import useToast from '../../hooks/useToast';
-import type { ProjectTimeLog, TimesheetCategory } from '../../models/timesheet';
-import type { ProjectTask } from '../../models/projects/projectTask';
-import type { Project } from '../../models/projects/project';
+import { BaseDialog, ConfirmationDialog } from '../../common/dialogbox';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { createTimeLog, updateTimeLog, deleteTimeLog, fetchMyCategories, createCategory, deleteCategory } from '../../../store/slices/timesheetSlice';
+import { fetchProjects, fetchTaskStatuses } from '../../../store/slices/projectsSlice';
+import projectService from '../../../services/projectService';
+import useToast from '../../../hooks/useToast';
+import type { ProjectTimeLog, TimesheetCategory } from '../../../models/timesheet';
+import type { ProjectTask } from '../../../models/projects/projectTask';
+import type { Project } from '../../../models/projects/project';
 
 interface TimeLogEntryFormDialogProps {
 	open: boolean;

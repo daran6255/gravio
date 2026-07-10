@@ -32,13 +32,13 @@ import {
 	fetchUserSettings
 } from '../../store/slices/timesheetSlice';
 import PageHeader from '../../components/common/page-header';
-import WeeklyTimesheetGrid from '../../components/timesheets/WeeklyTimesheetGrid';
-import TeamTimesheetTable from '../../components/timesheets/TeamTimesheetTable';
-import TimesheetReportPanel from '../../components/timesheets/TimesheetReportPanel';
-import TimeLogEntryFormDialog from '../../components/timesheets/TimeLogEntryFormDialog';
+import WeeklyTimesheetGrid from '../../components/timesheets/weekly-grid';
+import TeamTimesheetTable from '../../components/timesheets/team-approvals';
+import TimesheetReportPanel from '../../components/timesheets/reports';
+import TimeLogEntryFormDialog from '../../components/timesheets/log-entry-dialog';
 import ManagerAllocationPanel from '../../components/timesheets/manager-allocation';
-import HolidayCalendarPanel from '../../components/timesheets/HolidayCalendarPanel';
-import WeekUnlockRequestsPanel from '../../components/timesheets/WeekUnlockRequestsPanel';
+import HolidayCalendarPanel from '../../components/timesheets/holiday-calendar';
+import WeekUnlockRequestsPanel from '../../components/timesheets/week-unlock-requests';
 import useToast from '../../hooks/useToast';
 import type { ProjectTimeLog } from '../../models/timesheet';
 

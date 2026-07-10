@@ -33,7 +33,7 @@ import usePhoneValidation from '../../hooks/usePhoneValidation';
 import useToast from '../../hooks/useToast';
 import { DatePicker } from '../common/form';
 import type { BillingAddress } from '../../models/auth';
-import ReportingManagerField from '../timesheets/ReportingManagerField';
+import ReportingManagerField from '../timesheets/shared/ReportingManagerField';
 
 const MAX_AVATAR_BYTES = 1.5 * 1024 * 1024; // ~1.5MB raw; base64 stays under the backend's 2MB cap
 const TODAY = new Date().toISOString().slice(0, 10);

@@ -25,9 +25,9 @@ import {
 	KeyboardArrowDown as ExpandIcon,
 	KeyboardArrowUp as CollapseIcon
 } from '@mui/icons-material';
-import type { ProjectTimeLog } from '../../models/timesheet';
-import TimesheetStatusBadge from './TimesheetStatusBadge';
-import { formatHoursDisplay } from './WeeklyTimesheetGrid';
+import type { ProjectTimeLog } from '../../../models/timesheet';
+import TimesheetStatusBadge from '../shared/TimesheetStatusBadge';
+import { formatHoursDisplay } from '../weekly-grid';
 
 interface TeamTimesheetTableProps {
 	logs: ProjectTimeLog[];
