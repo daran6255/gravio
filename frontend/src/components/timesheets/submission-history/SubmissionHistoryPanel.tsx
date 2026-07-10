@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import type { ProjectTimeLog, TimesheetStatus } from '../../../models/timesheet';
 import TimesheetStatusBadge from '../shared/TimesheetStatusBadge';
+import { computeWeekStatus } from '../shared/weekStatus';
 import { formatHoursDisplay } from '../weekly-grid';
 
 interface SubmissionHistoryPanelProps {
@@ -30,18 +31,6 @@ const formatDateStr = (d: Date): string => {
 	const month = String(d.getMonth() + 1).padStart(2, '0');
 	const day = String(d.getDate()).padStart(2, '0');
 	return `${year}-${month}-${day}`;
-};
-
-// Mirrors WeeklyTimesheetGrid's own weekly-status aggregation exactly, so a week
-// shows the same status here as it would if you navigated to it directly.
-const getWeekStatus = (logs: ProjectTimeLog[]): TimesheetStatus => {
-	if (logs.length === 0) return 'draft';
-	const statuses = logs.map((l) => l.status);
-	if (statuses.includes('rejected')) return 'rejected';
-	if (statuses.includes('draft')) return 'draft';
-	if (statuses.includes('submitted')) return 'submitted';
-	if (statuses.includes('approved')) return 'approved';
-	return 'draft';
 };
 
 const SubmissionHistoryPanel: React.FC<SubmissionHistoryPanelProps> = ({
@@ -69,7 +58,7 @@ const SubmissionHistoryPanel: React.FC<SubmissionHistoryPanelProps> = ({
 			result.push({
 				monday,
 				sunday,
-				status: getWeekStatus(weekLogs),
+				status: computeWeekStatus(weekLogs),
 				totalHours: weekLogs.reduce((sum, l) => sum + Number(l.hours), 0),
 				entryCount: weekLogs.length
 			});

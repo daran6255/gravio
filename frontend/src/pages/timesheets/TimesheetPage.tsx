@@ -89,7 +89,7 @@ const TimesheetPage: React.FC = () => {
 	const [activeTab, setActiveTab] = useState(0);
 
 	const tabLabels = useMemo(() => {
-		const labels = ['My Timesheet'];
+		const labels = ['My Timesheet', 'Previous Timesheets'];
 		if (isManagerOrAdmin) {
 			labels.push('Team Approvals');
 			labels.push('Unlock Requests');
@@ -142,18 +142,18 @@ const TimesheetPage: React.FC = () => {
 		if (currentUser) {
 			loadMyTimesheet();
 			dispatch(fetchMyWeekUnlockRequests());
-			if (activeTab === 1) {
+			if (tabLabels[activeTab] === 'Team Approvals') {
 				loadTeamTimesheet();
 			}
 		}
-	}, [currentMonday, activeTab, currentUser]);
+	}, [currentMonday, activeTab, currentUser, tabLabels]);
 
 	// Submission history: everything in the numWeeksOfHistory window before the
-	// currently-viewed week, so "Previously Submitted Timesheets" doesn't require
-	// re-fetching every time the user pages back one week at a time.
+	// currently-viewed week, so "Previous Timesheets" doesn't require re-fetching
+	// every time the user pages back one week at a time.
 	const numWeeksOfHistory = 8;
 	useEffect(() => {
-		if (currentUser && tabLabels[activeTab] === 'My Timesheet') {
+		if (currentUser && tabLabels[activeTab] === 'Previous Timesheets') {
 			const historyEnd = new Date(currentMonday);
 			historyEnd.setDate(historyEnd.getDate() - 1);
 			const historyStart = new Date(currentMonday);
@@ -351,15 +351,21 @@ const TimesheetPage: React.FC = () => {
 						unlockRequestLoading={unlockRequestMutating}
 						canLogOnHolidays={userSettings?.can_log_on_holidays ?? false}
 					/>
-
-					<SubmissionHistoryPanel
-						historyLogs={myHistoryLogs}
-						loading={myHistoryLogsLoading}
-						currentWeekMonday={currentMonday}
-						numWeeks={numWeeksOfHistory}
-						onSelectWeek={(monday) => setCurrentMonday(monday)}
-					/>
 				</Stack>
+			)}
+
+			{/* Previous Timesheets (submission history) */}
+			{tabLabels[activeTab] === 'Previous Timesheets' && (
+				<SubmissionHistoryPanel
+					historyLogs={myHistoryLogs}
+					loading={myHistoryLogsLoading}
+					currentWeekMonday={currentMonday}
+					numWeeks={numWeeksOfHistory}
+					onSelectWeek={(monday) => {
+						setCurrentMonday(monday);
+						setActiveTab(tabLabels.indexOf('My Timesheet'));
+					}}
+				/>
 			)}
 
 			{/* Team Approvals Table */}

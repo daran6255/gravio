@@ -23,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import type { ProjectTimeLog } from '../../../models/timesheet';
 import TimesheetStatusBadge from '../shared/TimesheetStatusBadge';
+import { computeWeekStatus } from '../shared/weekStatus';
 import { formatHoursDisplay } from '../weekly-grid';
 import { BaseDialog, ConfirmationDialog } from '../../common/dialogbox';
 
@@ -89,26 +90,15 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 
 			groups[uId].logs.push(log);
 			groups[uId].totalHours += Number(log.hours);
-
-			// Determine weekly status for this user
-			// If any is rejected, status is rejected.
-			// If any is draft, status is draft.
-			// If all submitted, status is submitted.
-			// If all approved, status is approved.
 		});
 
-		// Calculate status for each group
+		// Same aggregate-status rule as the employee's own grid (submitted ranks above
+		// a lingering draft) -- otherwise a week the employee sees as SUBMITTED could
+		// show as DRAFT here, hiding it from approval entirely.
 		Object.values(groups).forEach((g) => {
-			const statuses = g.logs.map((l) => l.status);
-			if (statuses.includes('rejected')) {
-				g.status = 'rejected';
+			g.status = computeWeekStatus(g.logs);
+			if (g.status === 'rejected') {
 				g.rejectionNote = g.logs.find((l) => l.status === 'rejected')?.rejection_note;
-			} else if (statuses.includes('draft')) {
-				g.status = 'draft';
-			} else if (statuses.includes('submitted')) {
-				g.status = 'submitted';
-			} else if (statuses.includes('approved')) {
-				g.status = 'approved';
 			}
 		});
 

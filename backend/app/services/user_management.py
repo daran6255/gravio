@@ -3,12 +3,13 @@
 import secrets
 import uuid
 
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
 from typing import Optional
 
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.repositories.user import UserRepository
 from app.repositories.organization import OrganizationRepository
 from app.repositories.plan import PlanRepository
@@ -288,12 +289,29 @@ async def update_org_user(
         new_manager_id = payload.reporting_manager_id if payload.reporting_manager_id and payload.reporting_manager_id > 0 else None
         if new_manager_id is not None:
             if new_manager_id == target.id:
-                raise BadRequestError("A user cannot be their own reporting manager.")
-            
-            # Detect circular reporting structure
-            visited = {target.id}
+                # Self-reporting is normally invalid -- but if this person is the only
+                # admin/manager-capable approver in the org, there's genuinely no one
+                # else to assign, and blocking it would permanently lock them out of
+                # ever submitting a timesheet. Allow it only in that narrow case.
+                other_approvers_result = await db.execute(
+                    select(func.count()).select_from(User).where(
+                        User.organization_id == target.organization_id,
+                        User.id != target.id,
+                        User.role.in_([UserRole.ADMIN, UserRole.MANAGER]),
+                        User.is_active.is_(True),
+                    )
+                )
+                if other_approvers_result.scalar_one() > 0:
+                    raise BadRequestError(
+                        "A user cannot be their own reporting manager while other admins/managers exist in the organization."
+                    )
+
+            # Detect circular reporting structure -- skipped for the sole-approver
+            # self-assignment case above, since target.id being its own "manager" is
+            # the intended outcome there, not a cycle to reject.
+            visited = {target.id} if new_manager_id != target.id else set()
             current_id = new_manager_id
-            while current_id is not None:
+            while current_id is not None and current_id != target.id:
                 if current_id in visited:
                     raise BadRequestError("Circular reporting structure detected. This assignment is invalid.")
                 visited.add(current_id)

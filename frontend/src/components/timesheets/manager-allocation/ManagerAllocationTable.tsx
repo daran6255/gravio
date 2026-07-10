@@ -364,37 +364,45 @@ export const ManagerAllocationTable: React.FC<ManagerAllocationTableProps> = ({
 															<MenuItem value="">
 																<em>Unassigned / None</em>
 															</MenuItem>
-															{filteredManagers.map((m) => {
-																// Edge Case 1: Exclude self-reporting
-																const isSelf = m.id === selfOwnerId;
-																
-																// Edge Case 2: Exclude circular loops
-																const isCircular = wouldCreateCycle(user.email, m.id);
-																
-																return (
-																	<MenuItem
-																		key={m.id}
-																		value={m.id}
-																		disabled={isSelf || isCircular}
-																	>
-																		<Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-																			<Typography variant="body2" sx={{ textDecoration: isCircular ? 'line-through' : 'none' }}>
-																				{m.full_name || m.email}
-																			</Typography>
-																			{isSelf && (
-																				<Typography variant="caption" color="error" sx={{ ml: 1, fontWeight: 600 }}>
-																					(Self)
+											{(() => {
+																// Edge Case 1: self-reporting is normally excluded -- but if this
+																// person has no other admin/manager in the org to be assigned to,
+																// there's genuinely no one else, so allow self-approval as a
+																// fallback rather than leaving them permanently unable to submit.
+																const hasOtherManagers = filteredManagers.some((m) => m.id !== selfOwnerId);
+
+																return filteredManagers.map((m) => {
+																	const isSelf = m.id === selfOwnerId;
+																	const selfBlocked = isSelf && hasOtherManagers;
+																	// Edge Case 2: Exclude circular loops (self is its own kind of
+																	// "loop" per wouldCreateCycle, handled separately above)
+																	const isCircular = !isSelf && wouldCreateCycle(user.email, m.id);
+
+																	return (
+																		<MenuItem
+																			key={m.id}
+																			value={m.id}
+																			disabled={selfBlocked || isCircular}
+																		>
+																			<Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+																				<Typography variant="body2" sx={{ textDecoration: isCircular ? 'line-through' : 'none' }}>
+																					{m.full_name || m.email}
 																				</Typography>
-																			)}
-																			{isCircular && (
-																				<Typography variant="caption" color="error" sx={{ ml: 1, fontWeight: 600 }}>
-																					(Loop)
-																				</Typography>
-																			)}
-																		</Box>
-																	</MenuItem>
-																);
-															})}
+																				{isSelf && (
+																					<Typography variant="caption" color={selfBlocked ? 'error' : 'warning.main'} sx={{ ml: 1, fontWeight: 600 }}>
+																						{selfBlocked ? '(Self)' : '(Self — no other manager available)'}
+																					</Typography>
+																				)}
+																				{isCircular && (
+																					<Typography variant="caption" color="error" sx={{ ml: 1, fontWeight: 600 }}>
+																						(Loop)
+																					</Typography>
+																				)}
+																			</Box>
+																		</MenuItem>
+																	);
+																});
+															})()}
 														</Select>
 													</FormControl>
 

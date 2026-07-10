@@ -25,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import type { ProjectTimeLog, OrgHoliday, TimesheetStatus, TimesheetWeekUnlockRequest } from '../../../models/timesheet';
 import TimesheetStatusBadge from '../shared/TimesheetStatusBadge';
+import { computeWeekStatus } from '../shared/weekStatus';
 import { BaseDialog } from '../../common/dialogbox';
 
 // Helper to format hours display (e.g. 1.5 -> 1h 30m, 8 -> 8h)
@@ -184,16 +185,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 	}, [logs, dateStrings]);
 
 	// Weekly aggregate status
-	const weeklyStatus: TimesheetStatus = useMemo(() => {
-		if (logs.length === 0) return 'draft';
-		
-		const statuses = logs.map((l) => l.status);
-		if (statuses.includes('rejected')) return 'rejected';
-		if (statuses.includes('submitted')) return 'submitted';
-		if (statuses.includes('approved') && !statuses.includes('draft')) return 'approved';
-		
-		return 'draft';
-	}, [logs]);
+	const weeklyStatus: TimesheetStatus = useMemo(() => computeWeekStatus(logs), [logs]);
 
 	const grandTotal = Object.values(dayTotals).reduce((sum, h) => sum + h, 0);
 
