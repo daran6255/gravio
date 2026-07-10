@@ -8,20 +8,23 @@ from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_db, get_current_user, require_roles
 from app.models.user import User, UserRole
-from app.models.timesheet import TimesheetStatus, TimesheetBillingType, HolidayType, ProjectTimeLog
+from app.models.timesheet import TimesheetStatus, TimesheetBillingType, HolidayType, ProjectTimeLog, WeekUnlockStatus
 from app.models.project import Project, ProjectTask
 from app.schemas.timesheet import (
     TimesheetCategoryCreate, TimesheetCategoryUpdate, TimesheetCategoryResponse,
     OrgHolidayCreate, OrgHolidayUpdate, OrgHolidayResponse,
     TimesheetUserSettingsUpdate, TimesheetUserSettingsResponse,
     ProjectTimeLogCreate, ProjectTimeLogUpdate, ProjectTimeLogResponse,
-    TimesheetSubmitWeekRequest, TimesheetApproveRejectRequest, TimesheetReportRow
+    TimesheetSubmitWeekRequest, TimesheetApproveRejectRequest, TimesheetReportRow,
+    TimesheetWeekUnlockRequestCreate, TimesheetWeekUnlockResolve, TimesheetWeekUnlockRequestResponse
 )
 from app.repositories.timesheet import (
     TimesheetCategoryRepository, OrgHolidayRepository,
-    TimesheetUserSettingsRepository, ProjectTimeLogRepository
+    TimesheetUserSettingsRepository, ProjectTimeLogRepository,
+    TimesheetWeekUnlockRequestRepository
 )
 from app.repositories.user import UserRepository
+from app.services.timesheet import TimesheetLockService, get_week_bounds, is_weekly_off
 from app.middleware.exceptions import NotFoundError, BadRequestError, ForbiddenError
 
 router = APIRouter(prefix="/timesheets", tags=["timesheets"])
@@ -42,10 +45,13 @@ async def get_my_categories(
         db, organization_id=current_user.organization_id, user_id=current_user.id
     )
     # Orgs created before default-category seeding existed (or where onboarding was
-    # skipped) would otherwise see an empty "General" dropdown -- lazily seed the same
-    # defaults new orgs get, mirroring list_project_task_statuses_endpoint.
-    if not categories and current_user.organization_id:
-        categories = await TimesheetCategoryRepository.seed_defaults(db, current_user.organization_id)
+    # skipped) would otherwise never get the org-default set -- lazily seed it,
+    # mirroring list_project_task_statuses_endpoint. Checked against org-defaults
+    # specifically (not "any categories"), since a user's own personal categories
+    # (e.g. one they added via "+ Add New Category") shouldn't mask this.
+    if current_user.organization_id and not any(c.is_org_default for c in categories):
+        seeded = await TimesheetCategoryRepository.seed_defaults(db, current_user.organization_id)
+        categories = list(categories) + list(seeded)
     return categories
 
 @router.post("/categories", response_model=TimesheetCategoryResponse, status_code=status.HTTP_201_CREATED)
@@ -136,9 +142,9 @@ async def list_holidays(
 async def create_holiday(
     payload: OrgHolidayCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
+    current_user: User = Depends(require_roles([UserRole.ADMIN]))
 ):
-    """Add a new holiday to the organization calendar (Admin/Manager only)."""
+    """Add a new holiday to the organization calendar (Admin only)."""
     holiday = await OrgHolidayRepository.create(
         db,
         organization_id=current_user.organization_id,
@@ -156,9 +162,9 @@ async def update_holiday(
     holiday_id: int,
     payload: OrgHolidayUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
+    current_user: User = Depends(require_roles([UserRole.ADMIN]))
 ):
-    """Edit an existing holiday (Admin/Manager only)."""
+    """Edit an existing holiday (Admin only)."""
     holiday = await OrgHolidayRepository.get_by_id(db, holiday_id)
     if not holiday or holiday.organization_id != current_user.organization_id:
         raise NotFoundError("Holiday not found")
@@ -172,9 +178,9 @@ async def update_holiday(
 async def delete_holiday(
     holiday_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
+    current_user: User = Depends(require_roles([UserRole.ADMIN]))
 ):
-    """Delete a holiday (Admin/Manager only)."""
+    """Delete a holiday (Admin only)."""
     holiday = await OrgHolidayRepository.get_by_id(db, holiday_id)
     if not holiday or holiday.organization_id != current_user.organization_id:
         raise NotFoundError("Holiday not found")
@@ -188,10 +194,10 @@ async def check_holiday(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Check if a specific date is a configured holiday."""
+    """Check if a specific date is a configured holiday, or a Sunday (always off)."""
     holiday = await OrgHolidayRepository.check_date(db, organization_id=current_user.organization_id, check_date=check_date)
     return {
-        "is_holiday": holiday is not None,
+        "is_holiday": holiday is not None or is_weekly_off(check_date),
         "holiday": OrgHolidayResponse.model_validate(holiday) if holiday else None
     }
 
@@ -280,18 +286,32 @@ async def create_time_log(
     if payload.log_date > today:
          raise BadRequestError("Future time logging is blocked by default configuration")
 
+    # Validation 1.5: Past-week lock -- a week that already ended without being
+    # submitted is locked until the reporting manager grants an unlock request.
+    week_start, _ = get_week_bounds(payload.log_date)
+    locked, _ = await TimesheetLockService.check_week_access(
+        db, current_user.organization_id, current_user.id, week_start
+    )
+    if locked:
+        raise BadRequestError(
+            f"The week of {week_start.isoformat()} has already ended and is locked. "
+            "Request access from your manager to add entries for that week."
+        )
+
     # Validation 2: Retroactive limit check
     user_settings = await TimesheetUserSettingsRepository.get_by_user(db, current_user.organization_id, current_user.id)
     max_days = user_settings.max_retroactive_days if user_settings.max_retroactive_days is not None else 30
     if (today - payload.log_date).days > max_days:
         raise BadRequestError(f"Cannot log time older than {max_days} days retroactively")
 
-    # Validation 3: Holiday blocking
+    # Validation 3: Holiday blocking -- Sunday is always a holiday, in addition to
+    # whatever the org's holiday calendar has configured.
     holiday = await OrgHolidayRepository.check_date(db, current_user.organization_id, payload.log_date)
     is_holiday_override = False
-    if holiday:
+    if holiday or is_weekly_off(payload.log_date):
         if not user_settings.can_log_on_holidays:
-            raise BadRequestError("Logging time on holidays is blocked. Contact your manager for override access.")
+            reason = holiday.name if holiday else "Sunday"
+            raise BadRequestError(f"Logging time on holidays is blocked ({reason}). Contact your manager for override access.")
         is_holiday_override = True
 
     # Validation 4: 24 Hours cap verification
@@ -356,6 +376,21 @@ async def update_time_log(
     if log.status not in [TimesheetStatus.DRAFT, TimesheetStatus.REJECTED]:
         raise BadRequestError("You can only modify draft or rejected timesheet entries")
 
+    # Past-week lock -- only applies to DRAFT entries. A REJECTED entry is exempt:
+    # the manager already re-opened it by rejecting, so the user must be able to fix
+    # and resubmit it regardless of how long ago that week ended.
+    if log.status == TimesheetStatus.DRAFT:
+        target_date = payload.log_date if payload.log_date is not None else log.log_date
+        week_start, _ = get_week_bounds(target_date)
+        locked, _ = await TimesheetLockService.check_week_access(
+            db, current_user.organization_id, current_user.id, week_start
+        )
+        if locked:
+            raise BadRequestError(
+                f"The week of {week_start.isoformat()} has already ended and is locked. "
+                "Request access from your manager to edit entries for that week."
+            )
+
     # Validate 24 Hours cap on update
     if payload.hours is not None:
         current_day_total = await ProjectTimeLogRepository.get_day_total_hours(
@@ -396,6 +431,18 @@ async def delete_time_log(
     if log.status not in [TimesheetStatus.DRAFT, TimesheetStatus.REJECTED]:
         raise BadRequestError("You can only delete draft or rejected timesheet entries")
 
+    # Same past-week lock exemption as update: only DRAFT entries are affected.
+    if log.status == TimesheetStatus.DRAFT:
+        week_start, _ = get_week_bounds(log.log_date)
+        locked, _ = await TimesheetLockService.check_week_access(
+            db, current_user.organization_id, current_user.id, week_start
+        )
+        if locked:
+            raise BadRequestError(
+                f"The week of {week_start.isoformat()} has already ended and is locked. "
+                "Request access from your manager to delete entries for that week."
+            )
+
     await ProjectTimeLogRepository.delete(db, log)
     await db.commit()
 
@@ -410,12 +457,28 @@ async def submit_weekly_timesheet(
     if current_user.reporting_manager_id is None:
         raise BadRequestError("You cannot submit timesheets without an assigned Reporting Manager. Set one in your Profile Settings.")
 
+    # Past-week lock -- once a week has ended, it can only be submitted if the
+    # manager granted an unlock request for it.
+    locked, grant = await TimesheetLockService.check_week_access(
+        db, current_user.organization_id, current_user.id, payload.start_date
+    )
+    if locked:
+        raise BadRequestError(
+            f"The week of {payload.start_date.isoformat()} has already ended and is locked for "
+            "submission. Request access from your manager to submit it."
+        )
+
     rowcount = await ProjectTimeLogRepository.submit_week(
         db, organization_id=current_user.organization_id, user_id=current_user.id,
         start_date=payload.start_date, end_date=payload.end_date
     )
     if rowcount == 0:
         raise BadRequestError("No draft or rejected time entries found to submit for the selected week")
+
+    # The unlock grant that got us past the lock check above is one-shot -- consume
+    # it now that the submission actually went through.
+    if grant is not None:
+        await TimesheetWeekUnlockRequestRepository.consume(db, grant)
 
     await db.commit()
     return {
@@ -484,12 +547,11 @@ async def approve_user_week(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
 ):
-    """Approve a user's submitted logs for a week."""
-    # Validation: Manager check
-    if current_user.role != UserRole.ADMIN:
-        target_user = await UserRepository.get_by_id(db, target_user_id)
-        if not target_user or target_user.reporting_manager_id != current_user.id:
-            raise ForbiddenError("You can only approve timesheets for your direct reports")
+    """Approve a user's submitted logs for a week. Only that user's allocated
+    reporting manager may approve -- admin does not grant a blanket bypass here."""
+    target_user = await UserRepository.get_by_id(db, target_user_id)
+    if not target_user or target_user.reporting_manager_id != current_user.id:
+        raise ForbiddenError("You can only approve timesheets for your direct reports")
 
     approved = await ProjectTimeLogRepository.approve_reject_week(
         db, organization_id=current_user.organization_id, user_id=target_user_id,
@@ -507,14 +569,14 @@ async def reject_user_week(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
 ):
-    """Reject a user's submitted logs for a week with a reason."""
+    """Reject a user's submitted logs for a week with a reason. Only that user's
+    allocated reporting manager may reject."""
     if not payload.rejection_note or not payload.rejection_note.strip():
         raise BadRequestError("Rejection reason is required")
 
-    if current_user.role != UserRole.ADMIN:
-        target_user = await UserRepository.get_by_id(db, target_user_id)
-        if not target_user or target_user.reporting_manager_id != current_user.id:
-            raise ForbiddenError("You can only reject timesheets for your direct reports")
+    target_user = await UserRepository.get_by_id(db, target_user_id)
+    if not target_user or target_user.reporting_manager_id != current_user.id:
+        raise ForbiddenError("You can only reject timesheets for your direct reports")
 
     rejected = await ProjectTimeLogRepository.approve_reject_week(
         db, organization_id=current_user.organization_id, user_id=target_user_id,
@@ -530,15 +592,156 @@ async def unapprove_user_week(
     target_user_id: int,
     payload: TimesheetSubmitWeekRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.ADMIN]))
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
 ):
-    """Reset an approved week back to draft (Admin only)."""
+    """Revoke a wrongly submitted or approved week back to draft, so the employee can
+    fix and resubmit it. Only that user's allocated reporting manager may revoke.
+    Unlike Reject, no note is required -- this is for "that shouldn't have gone
+    through" corrections rather than a formal quality rejection.
+
+    If the week has already ended, revoking it would otherwise immediately re-lock it
+    behind the past-week lock -- so this also auto-grants an unlock for that week.
+    """
+    target_user = await UserRepository.get_by_id(db, target_user_id)
+    if not target_user or target_user.reporting_manager_id != current_user.id:
+        raise ForbiddenError("You can only revoke timesheets for your direct reports")
+
     unapproved = await ProjectTimeLogRepository.unapprove_week(
         db, organization_id=current_user.organization_id, user_id=target_user_id,
-        start_date=payload.start_date, end_date=payload.end_date
+        start_date=payload.start_date, end_date=payload.end_date,
+        from_statuses=[TimesheetStatus.SUBMITTED, TimesheetStatus.APPROVED]
     )
+    if unapproved == 0:
+        raise BadRequestError("No submitted or approved time entries found to revoke for the selected week")
+
+    await TimesheetLockService.auto_grant_for_revoke(
+        db, organization_id=current_user.organization_id, user_id=target_user_id,
+        week_start=payload.start_date, week_end=payload.end_date, resolved_by_id=current_user.id,
+    )
+
     await db.commit()
     return {"success": True, "unapproved_count": unapproved}
+
+
+# ==========================================
+# 5.5 WEEK UNLOCK REQUESTS
+# ==========================================
+
+@router.post("/week-unlock-requests", response_model=TimesheetWeekUnlockRequestResponse, status_code=status.HTTP_201_CREATED)
+async def request_week_unlock(
+    payload: TimesheetWeekUnlockRequestCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Ask the reporting manager to re-open a past week that ended without being submitted."""
+    if current_user.reporting_manager_id is None:
+        raise BadRequestError("You cannot request a week unlock without an assigned Reporting Manager. Set one in your Profile Settings.")
+
+    week_start, week_end = get_week_bounds(payload.week_start_date)
+    if week_end != payload.week_end_date:
+        raise BadRequestError("week_start_date and week_end_date must be the Monday and Sunday of the same week")
+
+    today_monday, _ = get_week_bounds(date.today())
+    if week_start >= today_monday:
+        raise BadRequestError("Only past weeks can be requested for unlock -- the current week is never locked")
+
+    existing = await TimesheetWeekUnlockRequestRepository.get_pending_for_week(
+        db, current_user.organization_id, current_user.id, week_start
+    )
+    if existing:
+        raise BadRequestError("You already have a pending unlock request for this week")
+
+    active_grant = await TimesheetWeekUnlockRequestRepository.get_active_grant(
+        db, current_user.organization_id, current_user.id, week_start
+    )
+    if active_grant:
+        raise BadRequestError("This week is already unlocked -- you can edit and submit it now")
+
+    req = await TimesheetWeekUnlockRequestRepository.create(
+        db,
+        organization_id=current_user.organization_id,
+        user_id=current_user.id,
+        week_start_date=week_start,
+        week_end_date=week_end,
+        reason=payload.reason,
+    )
+    await db.commit()
+    return req
+
+@router.get("/week-unlock-requests/my", response_model=List[TimesheetWeekUnlockRequestResponse])
+async def my_week_unlock_requests(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """The current user's own unlock requests, so the timesheet grid can show pending/
+    resolved status for a locked week."""
+    return await TimesheetWeekUnlockRequestRepository.list_for_user(
+        db, current_user.organization_id, current_user.id
+    )
+
+@router.get("/week-unlock-requests/team", response_model=List[TimesheetWeekUnlockRequestResponse])
+async def team_week_unlock_requests(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
+):
+    """Requests routed to this manager (their direct reports only, unless admin)."""
+    return await TimesheetWeekUnlockRequestRepository.list_for_manager(
+        db, current_user.organization_id, current_user.id, is_admin=current_user.role == UserRole.ADMIN
+    )
+
+@router.post("/week-unlock-requests/{request_id}/approve", response_model=TimesheetWeekUnlockRequestResponse)
+async def approve_week_unlock(
+    request_id: int,
+    payload: TimesheetWeekUnlockResolve,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
+):
+    """Grant a pending unlock request -- the employee can then edit/submit that week once."""
+    req = await TimesheetWeekUnlockRequestRepository.get_by_id(db, request_id)
+    if not req or req.organization_id != current_user.organization_id:
+        raise NotFoundError("Unlock request not found")
+
+    if current_user.role != UserRole.ADMIN:
+        target_user = await UserRepository.get_by_id(db, req.user_id)
+        if not target_user or target_user.reporting_manager_id != current_user.id:
+            raise ForbiddenError("You can only resolve unlock requests from your direct reports")
+
+    if req.status != WeekUnlockStatus.PENDING:
+        raise BadRequestError("This request has already been resolved")
+
+    updated = await TimesheetWeekUnlockRequestRepository.resolve(
+        db, req, status=WeekUnlockStatus.APPROVED, resolved_by_id=current_user.id,
+        resolution_note=payload.resolution_note
+    )
+    await db.commit()
+    return updated
+
+@router.post("/week-unlock-requests/{request_id}/deny", response_model=TimesheetWeekUnlockRequestResponse)
+async def deny_week_unlock(
+    request_id: int,
+    payload: TimesheetWeekUnlockResolve,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
+):
+    """Deny a pending unlock request."""
+    req = await TimesheetWeekUnlockRequestRepository.get_by_id(db, request_id)
+    if not req or req.organization_id != current_user.organization_id:
+        raise NotFoundError("Unlock request not found")
+
+    if current_user.role != UserRole.ADMIN:
+        target_user = await UserRepository.get_by_id(db, req.user_id)
+        if not target_user or target_user.reporting_manager_id != current_user.id:
+            raise ForbiddenError("You can only resolve unlock requests from your direct reports")
+
+    if req.status != WeekUnlockStatus.PENDING:
+        raise BadRequestError("This request has already been resolved")
+
+    updated = await TimesheetWeekUnlockRequestRepository.resolve(
+        db, req, status=WeekUnlockStatus.DENIED, resolved_by_id=current_user.id,
+        resolution_note=payload.resolution_note
+    )
+    await db.commit()
+    return updated
 
 
 # ==========================================

@@ -25,6 +25,11 @@ class HolidayType(str, enum.Enum):
     ORG = "org"
     CUSTOM = "custom"
 
+class WeekUnlockStatus(str, enum.Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    DENIED = "denied"
+
 class UserTimesheetCategory(BaseModel, TenantAwareMixin):
     """Personal or org-wide category for logging non-project time (e.g. Meeting, Support)"""
     __tablename__ = "user_timesheet_categories"
@@ -115,3 +120,44 @@ class ProjectTimeLog(BaseModel, TenantAwareMixin):
     category: Mapped[Optional[UserTimesheetCategory]] = relationship("UserTimesheetCategory", back_populates="time_logs")
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
     approved_by: Mapped[Optional["User"]] = relationship("User", foreign_keys=[approved_by_id])
+
+
+class TimesheetWeekUnlockRequest(BaseModel, TenantAwareMixin):
+    """An employee's request to re-open a past (already-ended) week for editing and
+    submission. Weeks lock automatically once they end without being submitted --
+    the direct reporting manager (or an admin) must explicitly grant one of these
+    before the employee can add/edit/submit entries in that week again.
+
+    A row with status=APPROVED and consumed_at=NULL is an "active grant" -- it's
+    consumed (one-shot) the next time the employee successfully submits that week.
+    Revoking a wrongly-submitted/approved week (see ProjectTimeLogRepository.revoke_week)
+    auto-creates an already-APPROVED grant here so the fix-and-resubmit loop isn't
+    itself blocked by the same lock.
+    """
+    __tablename__ = "timesheet_week_unlock_requests"
+
+    public_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, unique=True, index=True, nullable=False, default=uuid.uuid4
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    week_start_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    week_end_date: Mapped[date] = mapped_column(Date, nullable=False)
+    status: Mapped[WeekUnlockStatus] = mapped_column(
+        Enum(WeekUnlockStatus, values_callable=lambda x: [e.value for e in x]),
+        default=WeekUnlockStatus.PENDING,
+        nullable=False,
+        index=True
+    )
+    reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    resolved_by_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolution_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    consumed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+    resolved_by: Mapped[Optional["User"]] = relationship("User", foreign_keys=[resolved_by_id])

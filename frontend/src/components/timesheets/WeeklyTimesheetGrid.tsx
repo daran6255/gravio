@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
 	Table,
 	TableBody,
@@ -12,6 +12,12 @@ import {
 	Box,
 	Stack,
 	Tooltip,
+	Alert,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions,
+	TextField,
 	alpha,
 	useTheme
 } from '@mui/material';
@@ -19,8 +25,9 @@ import {
 	Add as AddIcon,
 	BeachAccess as HolidayIcon,
 	Error as RejectedIcon,
+	LockOutlined as LockIcon,
 } from '@mui/icons-material';
-import type { ProjectTimeLog, OrgHoliday, TimesheetStatus } from '../../models/timesheet';
+import type { ProjectTimeLog, OrgHoliday, TimesheetStatus, TimesheetWeekUnlockRequest } from '../../models/timesheet';
 import TimesheetStatusBadge from './TimesheetStatusBadge';
 
 // Helper to format hours display (e.g. 1.5 -> 1h 30m, 8 -> 8h)
@@ -43,6 +50,14 @@ interface WeeklyTimesheetGridProps {
 	onSubmitWeek: () => void;
 	submitLoading: boolean;
 	reportingManagerSet: boolean;
+	/** False once the viewed week has fully ended -- past weeks lock automatically. */
+	isCurrentWeek: boolean;
+	/** The current user's own unlock requests, across all weeks -- filtered internally to this week. */
+	myUnlockRequests: TimesheetWeekUnlockRequest[];
+	onRequestUnlock: (reason?: string) => void;
+	unlockRequestLoading: boolean;
+	/** Manager-granted exception to log time on holidays/Sundays -- without it, holiday cells are read-only. */
+	canLogOnHolidays: boolean;
 }
 
 // Unique row identifier structure
@@ -68,10 +83,17 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 	onAddRow,
 	onSubmitWeek,
 	submitLoading,
-	reportingManagerSet
+	reportingManagerSet,
+	isCurrentWeek,
+	myUnlockRequests,
+	onRequestUnlock,
+	unlockRequestLoading,
+	canLogOnHolidays
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+	const [requestReason, setRequestReason] = useState('');
 
 	// Format helper YYYY-MM-DD
 	const getFormatDateStr = (d: Date): string => {
@@ -91,6 +113,15 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 		});
 		return map;
 	}, [holidays]);
+
+	// Sunday is always treated as a holiday, independent of the org's configured
+	// holiday calendar -- matches the same rule enforced server-side.
+	const sundayDateStrings = useMemo(
+		() => new Set(dates.filter((d) => d.getDay() === 0).map(getFormatDateStr)),
+		[dates]
+	);
+	const isHolidayDate = (dateStr: string) => !!holidayMap[dateStr] || sundayDateStrings.has(dateStr);
+	const holidayLabel = (dateStr: string) => holidayMap[dateStr]?.name || 'Sunday';
 
 	// Group logs into rows
 	const gridRows = useMemo(() => {
@@ -169,6 +200,32 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 
 	const grandTotal = Object.values(dayTotals).reduce((sum, h) => sum + h, 0);
 
+	// Past-week lock: a week that ended without being submitted is read-only until
+	// the manager grants an unlock request for it. REJECTED weeks are exempt (the
+	// manager already re-opened them), and SUBMITTED/APPROVED weeks are already
+	// read-only for unrelated reasons (pending/complete, not "missed").
+	const weekStartStr = dateStrings[0];
+	const activeGrant = myUnlockRequests.find(
+		(r) => r.week_start_date === weekStartStr && r.status === 'approved' && !r.consumed_at
+	);
+	const pendingRequest = myUnlockRequests.find(
+		(r) => r.week_start_date === weekStartStr && r.status === 'pending'
+	);
+	const latestDenied = myUnlockRequests
+		.filter((r) => r.week_start_date === weekStartStr && r.status === 'denied')
+		.sort((a, b) => (b.resolved_at || '').localeCompare(a.resolved_at || ''))[0];
+	const isLocked = !isCurrentWeek && weeklyStatus === 'draft' && !activeGrant;
+
+	const handleOpenRequestDialog = () => {
+		setRequestReason('');
+		setRequestDialogOpen(true);
+	};
+
+	const handleSubmitUnlockRequest = () => {
+		onRequestUnlock(requestReason.trim() || undefined);
+		setRequestDialogOpen(false);
+	};
+
 	return (
 		<Stack spacing={3}>
 			{/* Grid Header Actions */}
@@ -193,6 +250,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 						variant="outlined"
 						startIcon={<AddIcon />}
 						onClick={onAddRow}
+						disabled={isLocked}
 						sx={{ borderRadius: '8px', fontWeight: 600 }}
 					>
 						Add Row
@@ -201,7 +259,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 						<Button
 							variant="contained"
 							onClick={onSubmitWeek}
-							disabled={logs.length === 0 || submitLoading || !reportingManagerSet}
+							disabled={logs.length === 0 || submitLoading || !reportingManagerSet || isLocked}
 							sx={{ borderRadius: '8px', fontWeight: 700, px: 3 }}
 						>
 							Submit Week
@@ -216,6 +274,46 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 						⚠️ Submission Blocked: You do not have a Reporting Manager assigned in your profile. Please set one in settings to submit timesheets.
 					</Typography>
 				</Box>
+			)}
+
+			{isLocked && (
+				<Alert
+					severity={pendingRequest ? 'info' : 'warning'}
+					icon={<LockIcon fontSize="inherit" />}
+					action={
+						!pendingRequest && (
+							<Button
+								color="inherit"
+								size="small"
+								onClick={handleOpenRequestDialog}
+								disabled={unlockRequestLoading}
+								sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}
+							>
+								Request Access
+							</Button>
+						)
+					}
+					sx={{ borderRadius: '8px' }}
+				>
+					{pendingRequest ? (
+						<>Unlock request sent to your manager on {pendingRequest.created_at.split('T')[0]} — waiting for approval.</>
+					) : (
+						<>
+							This week has already ended and wasn't submitted in time, so it's locked. Request access from your manager to add or edit entries.
+							{latestDenied && (
+								<Typography variant="caption" display="block" sx={{ mt: 0.5, fontStyle: 'italic' }}>
+									Your last request was denied{latestDenied.resolution_note ? `: ${latestDenied.resolution_note}` : '.'}
+								</Typography>
+							)}
+						</>
+					)}
+				</Alert>
+			)}
+
+			{activeGrant && !isCurrentWeek && (
+				<Alert severity="success" sx={{ borderRadius: '8px' }}>
+					Your manager unlocked this week — add/edit your entries and hit Submit Week when ready.
+				</Alert>
 			)}
 
 			<TableContainer
@@ -235,7 +333,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 							<TableCell sx={{ fontWeight: 700, width: 100 }}>Billing</TableCell>
 							{dates.map((date, i) => {
 								const dStr = dateStrings[i];
-								const isHoliday = !!holidayMap[dStr];
+								const isHoliday = isHolidayDate(dStr);
 								const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
 								const dayNum = date.getDate();
 
@@ -254,7 +352,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 												{dayName} {dayNum}
 											</Typography>
 											{isHoliday && (
-												<Tooltip title={`Holiday: ${holidayMap[dStr].name}`}>
+												<Tooltip title={`Holiday: ${holidayLabel(dStr)}`}>
 													<HolidayIcon sx={{ fontSize: '0.9rem', color: 'orange' }} />
 												</Tooltip>
 											)}
@@ -326,27 +424,31 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 									</TableCell>
 									{dateStrings.map((dateStr) => {
 										const log = row.cells[dateStr];
-										const isHoliday = !!holidayMap[dateStr];
+										const isHoliday = isHolidayDate(dateStr);
 										const isApproved = log?.status === 'approved';
 										const isSubmitted = log?.status === 'submitted';
+										const isHolidayBlocked = isHoliday && !canLogOnHolidays;
+										const isCellDisabled = (log && (isApproved || isSubmitted)) || isLocked || isHolidayBlocked;
 
 										return (
 											<TableCell
 												key={dateStr}
 												align="center"
 												onClick={() => {
-													// Prevent editing submitted or approved logs
-													if (log && (isApproved || isSubmitted)) return;
+													// Prevent editing submitted/approved logs, any cell in a locked week,
+													// or a holiday/Sunday cell without a manager-granted override
+													if (isCellDisabled) return;
 													onCellClick(dateStr, log);
 												}}
 												sx={{
-													cursor: (log && (isApproved || isSubmitted)) ? 'default' : 'pointer',
+													cursor: isCellDisabled ? 'default' : 'pointer',
 													p: 1,
 													position: 'relative',
 													bgcolor: isHoliday ? (isDark ? 'rgba(245, 158, 11, 0.04)' : 'rgba(245, 158, 11, 0.02)') : 'inherit',
 													borderRight: `1px solid ${isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)'}`,
+													opacity: isHolidayBlocked && !log ? 0.6 : 1,
 													'&:hover': {
-														bgcolor: (log && (isApproved || isSubmitted))
+														bgcolor: isCellDisabled
 															? 'inherit'
 															: (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)')
 													}
@@ -417,6 +519,38 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 					</TableBody>
 				</Table>
 			</TableContainer>
+
+			<Dialog open={requestDialogOpen} onClose={() => setRequestDialogOpen(false)} fullWidth maxWidth="xs">
+				<DialogTitle sx={{ fontWeight: 700 }}>Request Manager Access</DialogTitle>
+				<DialogContent>
+					<Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+						Your manager will be asked to unlock this week so you can add/edit and submit it. Let them know why it's late (optional).
+					</Typography>
+					<TextField
+						label="Reason (optional)"
+						multiline
+						rows={3}
+						value={requestReason}
+						onChange={(e) => setRequestReason(e.target.value)}
+						fullWidth
+						autoFocus
+						placeholder="e.g. I was on leave and missed the submission window."
+					/>
+				</DialogContent>
+				<DialogActions sx={{ p: 2.5 }}>
+					<Button onClick={() => setRequestDialogOpen(false)} variant="outlined" sx={{ borderRadius: '6px' }}>
+						Cancel
+					</Button>
+					<Button
+						onClick={handleSubmitUnlockRequest}
+						variant="contained"
+						disabled={unlockRequestLoading}
+						sx={{ borderRadius: '6px', fontWeight: 700 }}
+					>
+						Send Request
+					</Button>
+				</DialogActions>
+			</Dialog>
 		</Stack>
 	);
 };

@@ -4,7 +4,8 @@ import type {
 	OrgHoliday,
 	TimesheetUserSettings,
 	ProjectTimeLog,
-	TimesheetReportRow
+	TimesheetReportRow,
+	TimesheetWeekUnlockRequest
 } from '../models/timesheet';
 
 const timesheetService = {
@@ -153,9 +154,45 @@ const timesheetService = {
 		return response.data;
 	},
 	
-	// We'll define unapproveWeek as:
+	// Also used as "Revoke" -- resets a SUBMITTED or APPROVED week back to draft.
 	unapproveWeek: async (targetUserId: number, startDate: string, endDate: string): Promise<{ success: boolean; unapproved_count: number }> => {
 		const response = await api.post(`/timesheets/users/${targetUserId}/unapprove`, { start_date: startDate, end_date: endDate });
+		return response.data;
+	},
+
+	// ==========================================
+	// 5.5 WEEK UNLOCK REQUESTS
+	// ==========================================
+	requestWeekUnlock: async (weekStartDate: string, weekEndDate: string, reason?: string): Promise<TimesheetWeekUnlockRequest> => {
+		const response = await api.post('/timesheets/week-unlock-requests', {
+			week_start_date: weekStartDate,
+			week_end_date: weekEndDate,
+			reason: reason || null
+		});
+		return response.data;
+	},
+
+	getMyWeekUnlockRequests: async (): Promise<TimesheetWeekUnlockRequest[]> => {
+		const response = await api.get('/timesheets/week-unlock-requests/my');
+		return response.data;
+	},
+
+	getTeamWeekUnlockRequests: async (): Promise<TimesheetWeekUnlockRequest[]> => {
+		const response = await api.get('/timesheets/week-unlock-requests/team');
+		return response.data;
+	},
+
+	approveWeekUnlock: async (requestId: number, resolutionNote?: string): Promise<TimesheetWeekUnlockRequest> => {
+		const response = await api.post(`/timesheets/week-unlock-requests/${requestId}/approve`, {
+			resolution_note: resolutionNote || null
+		});
+		return response.data;
+	},
+
+	denyWeekUnlock: async (requestId: number, resolutionNote?: string): Promise<TimesheetWeekUnlockRequest> => {
+		const response = await api.post(`/timesheets/week-unlock-requests/${requestId}/deny`, {
+			resolution_note: resolutionNote || null
+		});
 		return response.data;
 	},
 

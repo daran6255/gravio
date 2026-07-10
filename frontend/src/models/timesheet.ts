@@ -4,6 +4,7 @@ import type { ProjectTask } from './projects/projectTask';
 export type TimesheetBillingType = 'billable' | 'non_billable';
 export type TimesheetStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
 export type HolidayType = 'public' | 'org' | 'custom';
+export type WeekUnlockStatus = 'pending' | 'approved' | 'denied';
 
 export interface TimesheetCategory {
 	id: number;
@@ -63,6 +64,7 @@ export interface ProjectTimeLog {
 		full_name?: string;
 		email: string;
 		role: string;
+		reporting_manager_id?: number;
 	};
 }
 
@@ -73,6 +75,29 @@ export interface TimesheetSubmitWeekRequest {
 
 export interface TimesheetApproveRejectRequest {
 	rejection_note?: string;
+}
+
+export interface TimesheetWeekUnlockRequest {
+	id: number;
+	public_id: string;
+	user_id: number;
+	week_start_date: string; // YYYY-MM-DD, Monday
+	week_end_date: string;   // YYYY-MM-DD, Sunday
+	status: WeekUnlockStatus;
+	reason?: string;
+	resolved_by_id?: number;
+	resolved_at?: string;
+	resolution_note?: string;
+	consumed_at?: string;
+	created_at: string;
+	updated_at: string;
+	user?: {
+		id: number;
+		full_name?: string;
+		email: string;
+		role: string;
+		reporting_manager_id?: number;
+	};
 }
 
 export interface TimesheetReportRow {

@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, date
 from typing import Optional, Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from app.models.timesheet import TimesheetBillingType, TimesheetStatus, HolidayType
+from app.models.timesheet import TimesheetBillingType, TimesheetStatus, HolidayType, WeekUnlockStatus
 from app.schemas.project import ProjectResponse, ProjectTaskResponse
 
 # --- Category Schemas ---
@@ -103,6 +103,7 @@ class TimesheetUserEmbedded(BaseModel):
     full_name: Optional[str] = None
     email: str
     role: str
+    reporting_manager_id: Optional[int] = None
 
 
 class ProjectTimeLogResponse(ProjectTimeLogBase):
@@ -122,6 +123,34 @@ class ProjectTimeLogResponse(ProjectTimeLogBase):
     project: Optional[ProjectResponse] = None
     task: Optional[ProjectTaskResponse] = None
     category: Optional[TimesheetCategoryResponse] = None
+    user: Optional[TimesheetUserEmbedded] = None
+
+
+# --- Week Unlock Request Schemas ---
+class TimesheetWeekUnlockRequestCreate(BaseModel):
+    week_start_date: date  # Monday of the locked week
+    week_end_date: date    # Sunday of the locked week
+    reason: Optional[str] = Field(None, max_length=1000)
+
+class TimesheetWeekUnlockResolve(BaseModel):
+    resolution_note: Optional[str] = Field(None, max_length=1000)
+
+class TimesheetWeekUnlockRequestResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    public_id: uuid.UUID
+    user_id: int
+    week_start_date: date
+    week_end_date: date
+    status: WeekUnlockStatus
+    reason: Optional[str] = None
+    resolved_by_id: Optional[int] = None
+    resolved_at: Optional[datetime] = None
+    resolution_note: Optional[str] = None
+    consumed_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
     user: Optional[TimesheetUserEmbedded] = None
 
 

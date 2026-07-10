@@ -23,7 +23,13 @@ import {
 	submitWeek,
 	approveWeek,
 	rejectWeek,
-	unapproveWeek
+	unapproveWeek,
+	fetchMyWeekUnlockRequests,
+	requestWeekUnlock,
+	fetchTeamWeekUnlockRequests,
+	approveWeekUnlock,
+	denyWeekUnlock,
+	fetchUserSettings
 } from '../../store/slices/timesheetSlice';
 import PageHeader from '../../components/common/page-header';
 import WeeklyTimesheetGrid from '../../components/timesheets/WeeklyTimesheetGrid';
@@ -32,6 +38,8 @@ import TimesheetReportPanel from '../../components/timesheets/TimesheetReportPan
 import TimeLogEntryFormDialog from '../../components/timesheets/TimeLogEntryFormDialog';
 import ManagerAllocationPanel from '../../components/timesheets/manager-allocation';
 import HolidayCalendarPanel from '../../components/timesheets/HolidayCalendarPanel';
+import WeekUnlockRequestsPanel from '../../components/timesheets/WeekUnlockRequestsPanel';
+import useToast from '../../hooks/useToast';
 import type { ProjectTimeLog } from '../../models/timesheet';
 
 // Date utility functions
@@ -62,11 +70,14 @@ const formatDateStr = (d: Date): string => {
 
 const TimesheetPage: React.FC = () => {
 	const dispatch = useAppDispatch();
+	const toast = useToast();
 	const currentUser = useAppSelector((state) => state.auth.user);
 
-	const { myTimeLogs, teamTimeLogs, holidays, actionLoading, actionError } = useAppSelector(
-		(state) => state.timesheets
-	);
+	const {
+		myTimeLogs, teamTimeLogs, holidays, actionLoading, actionError,
+		myUnlockRequests, teamUnlockRequests, teamUnlockRequestsLoading, unlockRequestMutating,
+		userSettings
+	} = useAppSelector((state) => state.timesheets);
 
 	const isManagerOrAdmin = currentUser?.role === 'admin' || currentUser?.role === 'manager';
 	const hasReportingManager = currentUser?.reporting_manager_id != null;
@@ -79,12 +90,11 @@ const TimesheetPage: React.FC = () => {
 		const labels = ['My Timesheet'];
 		if (isManagerOrAdmin) {
 			labels.push('Team Approvals');
+			labels.push('Unlock Requests');
 			labels.push('Reports');
 		}
 		if (currentUser?.role === 'admin') {
 			labels.push('Manager Allocation');
-		}
-		if (isManagerOrAdmin) {
 			labels.push('Holiday List');
 		}
 		return labels;
@@ -105,6 +115,10 @@ const TimesheetPage: React.FC = () => {
 	const weekDates = useMemo(() => getWeekDates(currentMonday), [currentMonday]);
 	const startDateStr = formatDateStr(weekDates[0]);
 	const endDateStr = formatDateStr(weekDates[6]);
+	const isCurrentWeek = useMemo(
+		() => formatDateStr(currentMonday) === formatDateStr(getMondayOfDate(new Date())),
+		[currentMonday]
+	);
 
 	// Fetch My Timesheets & Holidays for selected week
 	const loadMyTimesheet = () => {
@@ -125,11 +139,25 @@ const TimesheetPage: React.FC = () => {
 	useEffect(() => {
 		if (currentUser) {
 			loadMyTimesheet();
+			dispatch(fetchMyWeekUnlockRequests());
 			if (activeTab === 1) {
 				loadTeamTimesheet();
 			}
 		}
 	}, [currentMonday, activeTab, currentUser]);
+
+	useEffect(() => {
+		if (isManagerOrAdmin && tabLabels[activeTab] === 'Unlock Requests') {
+			dispatch(fetchTeamWeekUnlockRequests());
+		}
+	}, [activeTab, tabLabels, isManagerOrAdmin]);
+
+	// Own holiday-logging override, so the grid knows whether to lock holiday/Sunday cells
+	useEffect(() => {
+		if (currentUser) {
+			dispatch(fetchUserSettings(currentUser.id));
+		}
+	}, [currentUser?.id]);
 
 	// Navigate weeks
 	const handlePrevWeek = () => {
@@ -200,8 +228,33 @@ const TimesheetPage: React.FC = () => {
 		} catch (err) {}
 	};
 
+	// Week unlock requests
+	const handleRequestUnlock = async (reason?: string) => {
+		try {
+			await dispatch(requestWeekUnlock({ weekStartDate: startDateStr, weekEndDate: endDateStr, reason })).unwrap();
+			toast.success('Unlock request sent to your manager.');
+		} catch (err: any) {
+			toast.error(err || 'Failed to send unlock request');
+		}
+	};
 
+	const handleApproveUnlock = async (requestId: number) => {
+		try {
+			await dispatch(approveWeekUnlock({ requestId })).unwrap();
+			toast.success('Unlock request approved.');
+		} catch (err: any) {
+			toast.error(err || 'Failed to approve unlock request');
+		}
+	};
 
+	const handleDenyUnlock = async (requestId: number, note?: string) => {
+		try {
+			await dispatch(denyWeekUnlock({ requestId, resolutionNote: note })).unwrap();
+			toast.success('Unlock request denied.');
+		} catch (err: any) {
+			toast.error(err || 'Failed to deny unlock request');
+		}
+	};
 
 
 	const formatWeekRangeDisplay = () => {
@@ -276,6 +329,11 @@ const TimesheetPage: React.FC = () => {
 						onSubmitWeek={handleSubmitWeek}
 						submitLoading={actionLoading}
 						reportingManagerSet={hasReportingManager}
+						isCurrentWeek={isCurrentWeek}
+						myUnlockRequests={myUnlockRequests}
+						onRequestUnlock={handleRequestUnlock}
+						unlockRequestLoading={unlockRequestMutating}
+						canLogOnHolidays={userSettings?.can_log_on_holidays ?? false}
 					/>
 				</Stack>
 			)}
@@ -290,7 +348,17 @@ const TimesheetPage: React.FC = () => {
 					onReject={handleRejectTeamMember}
 					onUnapprove={handleUnapproveTeamMember}
 					actionLoading={actionLoading}
-					currentUserRole={currentUser?.role || ''}
+					currentUserId={currentUser?.id}
+				/>
+			)}
+
+			{/* Week Unlock Requests Panel */}
+			{tabLabels[activeTab] === 'Unlock Requests' && isManagerOrAdmin && (
+				<WeekUnlockRequestsPanel
+					requests={teamUnlockRequests}
+					loading={teamUnlockRequestsLoading}
+					onApprove={handleApproveUnlock}
+					onDeny={handleDenyUnlock}
 				/>
 			)}
 
@@ -301,7 +369,7 @@ const TimesheetPage: React.FC = () => {
 			{tabLabels[activeTab] === 'Manager Allocation' && currentUser?.role === 'admin' && <ManagerAllocationPanel />}
 
 			{/* Holiday List Panel */}
-			{tabLabels[activeTab] === 'Holiday List' && isManagerOrAdmin && <HolidayCalendarPanel />}
+			{tabLabels[activeTab] === 'Holiday List' && currentUser?.role === 'admin' && <HolidayCalendarPanel />}
 
 			{/* Time Entry Form Modal */}
 			<TimeLogEntryFormDialog

@@ -3,7 +3,13 @@ from datetime import date, datetime
 from typing import Optional, Sequence
 from sqlalchemy import select, and_, or_, func, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.timesheet import ProjectTimeLog, OrgHoliday, UserTimesheetCategory, TimesheetUserSettings, TimesheetStatus, TimesheetBillingType, HolidayType
+from sqlalchemy.orm import selectinload
+from app.models.timesheet import (
+    ProjectTimeLog, OrgHoliday, UserTimesheetCategory, TimesheetUserSettings,
+    TimesheetStatus, TimesheetBillingType, HolidayType,
+    TimesheetWeekUnlockRequest, WeekUnlockStatus,
+)
+from app.models.user import User
 
 class TimesheetCategoryRepository:
     # Seeded once per organization (onboarding, or lazily on first fetch for orgs
@@ -200,6 +206,23 @@ class ProjectTimeLogRepository:
         return result.scalars().first()
 
     @staticmethod
+    async def week_has_rejected_entry(db: AsyncSession, organization_id: int, user_id: int, week_start: date, week_end: date) -> bool:
+        """Whether any (non-deleted) entry in this week is REJECTED -- if so the whole
+        week is exempt from the past-week lock, since the manager already re-opened it
+        by rejecting and the user needs to be able to fix/add entries across the week."""
+        result = await db.execute(
+            select(ProjectTimeLog.id).where(
+                ProjectTimeLog.organization_id == organization_id,
+                ProjectTimeLog.user_id == user_id,
+                ProjectTimeLog.log_date >= week_start,
+                ProjectTimeLog.log_date <= week_end,
+                ProjectTimeLog.status == TimesheetStatus.REJECTED,
+                ProjectTimeLog.is_deleted.is_(False)
+            ).limit(1)
+        )
+        return result.scalars().first() is not None
+
+    @staticmethod
     async def list_for_user(db: AsyncSession, organization_id: int, user_id: int, start_date: date, end_date: date) -> Sequence[ProjectTimeLog]:
         result = await db.execute(
             select(ProjectTimeLog)
@@ -290,7 +313,13 @@ class ProjectTimeLogRepository:
         return result.rowcount
 
     @staticmethod
-    async def unapprove_week(db: AsyncSession, organization_id: int, user_id: int, start_date: date, end_date: date) -> int:
+    async def unapprove_week(
+        db: AsyncSession, organization_id: int, user_id: int, start_date: date, end_date: date,
+        from_statuses: Optional[list[TimesheetStatus]] = None,
+    ) -> int:
+        """Resets a week's entries back to DRAFT. Defaults to APPROVED-only (the original
+        admin "un-approve" action); the manager-facing "revoke" action passes both
+        SUBMITTED and APPROVED so a wrongly-submitted week can be pulled back too."""
         stmt = (
             update(ProjectTimeLog)
             .where(
@@ -298,7 +327,7 @@ class ProjectTimeLogRepository:
                 ProjectTimeLog.user_id == user_id,
                 ProjectTimeLog.log_date >= start_date,
                 ProjectTimeLog.log_date <= end_date,
-                ProjectTimeLog.status == TimesheetStatus.APPROVED,
+                ProjectTimeLog.status.in_(from_statuses or [TimesheetStatus.APPROVED]),
                 ProjectTimeLog.is_deleted.is_(False)
             )
             .values(status=TimesheetStatus.DRAFT, approved_by_id=None, approved_at=None)
@@ -321,3 +350,120 @@ class ProjectTimeLogRepository:
         stmt = select(func.sum(ProjectTimeLog.hours)).where(*conditions)
         result = await db.execute(stmt)
         return float(result.scalar() or 0.0)
+
+
+class TimesheetWeekUnlockRequestRepository:
+    @staticmethod
+    async def get_by_id(db: AsyncSession, id: int) -> Optional[TimesheetWeekUnlockRequest]:
+        result = await db.execute(
+            select(TimesheetWeekUnlockRequest).where(
+                TimesheetWeekUnlockRequest.id == id, TimesheetWeekUnlockRequest.is_deleted.is_(False)
+            )
+        )
+        return result.scalars().first()
+
+    @staticmethod
+    async def get_pending_for_week(
+        db: AsyncSession, organization_id: int, user_id: int, week_start_date: date
+    ) -> Optional[TimesheetWeekUnlockRequest]:
+        result = await db.execute(
+            select(TimesheetWeekUnlockRequest).where(
+                TimesheetWeekUnlockRequest.organization_id == organization_id,
+                TimesheetWeekUnlockRequest.user_id == user_id,
+                TimesheetWeekUnlockRequest.week_start_date == week_start_date,
+                TimesheetWeekUnlockRequest.status == WeekUnlockStatus.PENDING,
+                TimesheetWeekUnlockRequest.is_deleted.is_(False)
+            )
+        )
+        return result.scalars().first()
+
+    @staticmethod
+    async def get_active_grant(
+        db: AsyncSession, organization_id: int, user_id: int, week_start_date: date
+    ) -> Optional[TimesheetWeekUnlockRequest]:
+        """An APPROVED, not-yet-consumed request -- the one thing that lets a past
+        week be edited/submitted again."""
+        result = await db.execute(
+            select(TimesheetWeekUnlockRequest).where(
+                TimesheetWeekUnlockRequest.organization_id == organization_id,
+                TimesheetWeekUnlockRequest.user_id == user_id,
+                TimesheetWeekUnlockRequest.week_start_date == week_start_date,
+                TimesheetWeekUnlockRequest.status == WeekUnlockStatus.APPROVED,
+                TimesheetWeekUnlockRequest.consumed_at.is_(None),
+                TimesheetWeekUnlockRequest.is_deleted.is_(False)
+            )
+        )
+        return result.scalars().first()
+
+    @staticmethod
+    async def list_for_user(db: AsyncSession, organization_id: int, user_id: int) -> Sequence[TimesheetWeekUnlockRequest]:
+        result = await db.execute(
+            select(TimesheetWeekUnlockRequest)
+            .where(
+                TimesheetWeekUnlockRequest.organization_id == organization_id,
+                TimesheetWeekUnlockRequest.user_id == user_id,
+                TimesheetWeekUnlockRequest.is_deleted.is_(False)
+            )
+            .order_by(TimesheetWeekUnlockRequest.week_start_date.desc())
+        )
+        return result.scalars().all()
+
+    @staticmethod
+    async def list_for_manager(
+        db: AsyncSession, organization_id: int, manager_id: int, is_admin: bool
+    ) -> Sequence[TimesheetWeekUnlockRequest]:
+        """Admins see every request in the org; managers only see their direct reports'."""
+        conditions = [
+            TimesheetWeekUnlockRequest.organization_id == organization_id,
+            TimesheetWeekUnlockRequest.is_deleted.is_(False),
+        ]
+        stmt = select(TimesheetWeekUnlockRequest).options(selectinload(TimesheetWeekUnlockRequest.user))
+        if not is_admin:
+            stmt = stmt.join(User, User.id == TimesheetWeekUnlockRequest.user_id)
+            conditions.append(User.reporting_manager_id == manager_id)
+        stmt = stmt.where(*conditions).order_by(
+            TimesheetWeekUnlockRequest.status.asc(), TimesheetWeekUnlockRequest.week_start_date.desc()
+        )
+        result = await db.execute(stmt)
+        return result.scalars().all()
+
+    @staticmethod
+    async def create(
+        db: AsyncSession, *, organization_id: int, user_id: int,
+        week_start_date: date, week_end_date: date, reason: Optional[str] = None,
+        status: WeekUnlockStatus = WeekUnlockStatus.PENDING,
+        resolved_by_id: Optional[int] = None, resolved_at: Optional[datetime] = None,
+        resolution_note: Optional[str] = None,
+    ) -> TimesheetWeekUnlockRequest:
+        req = TimesheetWeekUnlockRequest(
+            organization_id=organization_id,
+            user_id=user_id,
+            week_start_date=week_start_date,
+            week_end_date=week_end_date,
+            reason=reason,
+            status=status,
+            resolved_by_id=resolved_by_id,
+            resolved_at=resolved_at,
+            resolution_note=resolution_note,
+        )
+        db.add(req)
+        await db.flush()
+        await db.refresh(req)
+        return req
+
+    @staticmethod
+    async def resolve(
+        db: AsyncSession, req: TimesheetWeekUnlockRequest, *,
+        status: WeekUnlockStatus, resolved_by_id: int, resolution_note: Optional[str] = None,
+    ) -> TimesheetWeekUnlockRequest:
+        req.status = status
+        req.resolved_by_id = resolved_by_id
+        req.resolved_at = datetime.utcnow()
+        req.resolution_note = resolution_note
+        await db.flush()
+        return req
+
+    @staticmethod
+    async def consume(db: AsyncSession, req: TimesheetWeekUnlockRequest) -> None:
+        req.consumed_at = datetime.utcnow()
+        await db.flush()

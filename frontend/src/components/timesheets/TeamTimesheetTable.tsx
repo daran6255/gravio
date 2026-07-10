@@ -37,7 +37,10 @@ interface TeamTimesheetTableProps {
 	onReject: (userId: number, reason: string) => void;
 	onUnapprove: (userId: number) => void;
 	actionLoading: boolean;
-	currentUserRole: string;
+	/** Only rows where the team member's reporting_manager_id equals this get action
+	 * buttons -- the backend enforces the same rule, this just avoids showing buttons
+	 * that would 403 (e.g. an admin browsing another manager's direct reports). */
+	currentUserId?: number;
 }
 
 interface UserGroupedTimesheet {
@@ -48,6 +51,7 @@ interface UserGroupedTimesheet {
 	status: 'draft' | 'submitted' | 'approved' | 'rejected';
 	rejectionNote?: string;
 	logs: ProjectTimeLog[];
+	isMyDirectReport: boolean;
 }
 
 const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
@@ -58,7 +62,7 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 	onReject,
 	onUnapprove,
 	actionLoading,
-	currentUserRole
+	currentUserId
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
@@ -80,7 +84,8 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 					userEmail: log.user?.email || '',
 					totalHours: 0,
 					status: 'draft',
-					logs: []
+					logs: [],
+					isMyDirectReport: log.user?.reporting_manager_id === currentUserId
 				};
 			}
 
@@ -110,7 +115,7 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 		});
 
 		return Object.values(groups);
-	}, [logs]);
+	}, [logs, currentUserId]);
 
 	const handleOpenRejectDialog = (userId: number) => {
 		setRejectUserId(userId);
@@ -183,44 +188,52 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 												<TimesheetStatusBadge status={sheet.status} />
 											</TableCell>
 											<TableCell align="right" sx={{ pr: 3 }}>
-												<Stack direction="row" spacing={1} justifyContent="flex-end">
-													{sheet.status === 'submitted' && (
-														<>
-															<Button
-																variant="contained"
-																color="success"
-																size="small"
-																onClick={() => onApprove(sheet.userId)}
-																disabled={actionLoading}
-																sx={{ borderRadius: '6px', fontWeight: 700 }}
-															>
-																Approve
-															</Button>
+												{sheet.isMyDirectReport ? (
+													<Stack direction="row" spacing={1} justifyContent="flex-end">
+														{sheet.status === 'submitted' && (
+															<>
+																<Button
+																	variant="contained"
+																	color="success"
+																	size="small"
+																	onClick={() => onApprove(sheet.userId)}
+																	disabled={actionLoading}
+																	sx={{ borderRadius: '6px', fontWeight: 700 }}
+																>
+																	Approve
+																</Button>
+																<Button
+																	variant="outlined"
+																	color="error"
+																	size="small"
+																	onClick={() => handleOpenRejectDialog(sheet.userId)}
+																	disabled={actionLoading}
+																	sx={{ borderRadius: '6px', fontWeight: 700 }}
+																>
+																	Reject
+																</Button>
+															</>
+														)}
+														{(sheet.status === 'submitted' || sheet.status === 'approved') && (
 															<Button
 																variant="outlined"
-																color="error"
+																color="warning"
 																size="small"
-																onClick={() => handleOpenRejectDialog(sheet.userId)}
+																onClick={() => onUnapprove(sheet.userId)}
 																disabled={actionLoading}
 																sx={{ borderRadius: '6px', fontWeight: 700 }}
 															>
-																Reject
+																Revoke
 															</Button>
-														</>
-													)}
-													{sheet.status === 'approved' && currentUserRole === 'admin' && (
-														<Button
-															variant="outlined"
-															color="warning"
-															size="small"
-															onClick={() => onUnapprove(sheet.userId)}
-															disabled={actionLoading}
-															sx={{ borderRadius: '6px', fontWeight: 700 }}
-														>
-															Un-approve
-														</Button>
-													)}
-												</Stack>
+														)}
+													</Stack>
+												) : (
+													(sheet.status === 'submitted' || sheet.status === 'approved') && (
+														<Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+															Not your direct report
+														</Typography>
+													)
+												)}
 											</TableCell>
 										</TableRow>
 

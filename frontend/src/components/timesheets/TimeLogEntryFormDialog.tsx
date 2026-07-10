@@ -13,14 +13,14 @@ import {
 	Divider,
 	CircularProgress
 } from '@mui/material';
-import { Add as AddIcon, DeleteOutline as DeleteIcon } from '@mui/icons-material';
+import { Add as AddIcon, DeleteOutline as DeleteIcon, SettingsOutlined as ManageIcon } from '@mui/icons-material';
 import { BaseDialog, ConfirmationDialog } from '../common/dialogbox';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { createTimeLog, updateTimeLog, deleteTimeLog, fetchMyCategories, createCategory } from '../../store/slices/timesheetSlice';
+import { createTimeLog, updateTimeLog, deleteTimeLog, fetchMyCategories, createCategory, deleteCategory } from '../../store/slices/timesheetSlice';
 import { fetchProjects, fetchTaskStatuses } from '../../store/slices/projectsSlice';
 import projectService from '../../services/projectService';
 import useToast from '../../hooks/useToast';
-import type { ProjectTimeLog } from '../../models/timesheet';
+import type { ProjectTimeLog, TimesheetCategory } from '../../models/timesheet';
 import type { ProjectTask } from '../../models/projects/projectTask';
 import type { Project } from '../../models/projects/project';
 
@@ -127,6 +127,16 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 	const [newCategoryColor, setNewCategoryColor] = useState(CATEGORY_COLORS[0]);
 	const [categoryError, setCategoryError] = useState<string | null>(null);
 	const [creatingCategory, setCreatingCategory] = useState(false);
+
+	// Manage/delete the categories the current user has personally added. Org-default
+	// categories (user_id is null) aren't shown here -- the backend rejects deleting
+	// those anyway (see update_category/delete_category in timesheets.py).
+	const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false);
+	const [deletingCategoryId, setDeletingCategoryId] = useState<number | null>(null);
+	const myCategories = useMemo(
+		() => categories.filter((c) => c.user_id === currentUser?.id),
+		[categories, currentUser?.id]
+	);
 
 	useEffect(() => {
 		if (open) {
@@ -342,6 +352,21 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 		}
 	};
 
+	const handleDeleteCategory = async (category: TimesheetCategory) => {
+		setDeletingCategoryId(category.id);
+		try {
+			await dispatch(deleteCategory(category.id)).unwrap();
+			toast.success(`"${category.name}" deleted`);
+			// Any row that had this category selected loses it -- category_id would
+			// otherwise point at something that no longer shows up in the dropdown.
+			setRows((prev) => prev.map((r) => (r.categoryId === category.id ? { ...r, categoryId: '' } : r)));
+		} catch (err: any) {
+			toast.error(err || 'Failed to delete category');
+		} finally {
+			setDeletingCategoryId(null);
+		}
+	};
+
 	return (
 		<>
 			<BaseDialog
@@ -513,6 +538,18 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 									</TextField>
 								)}
 
+								{row.logAgainst === 'general' && myCategories.length > 0 && (
+									<Button
+										size="small"
+										startIcon={<ManageIcon fontSize="small" />}
+										onClick={() => setManageCategoriesOpen(true)}
+										disabled={submitting}
+										sx={{ alignSelf: 'flex-start', fontWeight: 600, textTransform: 'none', mt: -1 }}
+									>
+										Manage My Categories
+									</Button>
+								)}
+
 								<Stack direction="row" spacing={2}>
 									<TextField
 										label="Date"
@@ -654,6 +691,53 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 							))}
 						</Stack>
 					</Box>
+				</Stack>
+			</BaseDialog>
+
+			<BaseDialog
+				open={manageCategoriesOpen}
+				onClose={() => setManageCategoriesOpen(false)}
+				title="Manage My Categories"
+				subtitle="Delete personal categories you no longer need. Organization-wide defaults can't be removed here."
+				maxWidth="xs"
+				actions={
+					<Button onClick={() => setManageCategoriesOpen(false)} sx={{ fontWeight: 700 }}>
+						Close
+					</Button>
+				}
+			>
+				<Stack spacing={0.5}>
+					{myCategories.length === 0 ? (
+						<Typography variant="body2" color="text.secondary">
+							You haven't added any personal categories yet.
+						</Typography>
+					) : (
+						myCategories.map((c) => (
+							<Stack
+								key={c.id}
+								direction="row"
+								alignItems="center"
+								justifyContent="space-between"
+								sx={{ py: 0.75 }}
+							>
+								<Stack direction="row" spacing={1.5} alignItems="center">
+									<Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: c.color || '#94A3B8', flexShrink: 0 }} />
+									<Typography variant="body2">{c.name}</Typography>
+								</Stack>
+								<IconButton
+									size="small"
+									onClick={() => handleDeleteCategory(c)}
+									disabled={deletingCategoryId === c.id}
+								>
+									{deletingCategoryId === c.id ? (
+										<CircularProgress size={16} />
+									) : (
+										<DeleteIcon fontSize="small" />
+									)}
+								</IconButton>
+							</Stack>
+						))
+					)}
 				</Stack>
 			</BaseDialog>
 		</>
