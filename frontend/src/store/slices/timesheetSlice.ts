@@ -18,6 +18,12 @@ interface TimesheetState {
 	myTimeLogsLoading: boolean;
 	myTimeLogsError: string | null;
 
+	// Separate from myTimeLogs (which tracks whichever single week is being viewed) --
+	// covers a wider past date range so "previously submitted timesheets" can be
+	// summarized per-week without clobbering the currently-viewed week's data.
+	myHistoryLogs: ProjectTimeLog[];
+	myHistoryLogsLoading: boolean;
+
 	teamTimeLogs: ProjectTimeLog[];
 	teamTimeLogsLoading: boolean;
 	teamTimeLogsError: string | null;
@@ -55,6 +61,9 @@ const initialState: TimesheetState = {
 	myTimeLogs: [],
 	myTimeLogsLoading: false,
 	myTimeLogsError: null,
+
+	myHistoryLogs: [],
+	myHistoryLogsLoading: false,
 
 	teamTimeLogs: [],
 	teamTimeLogsLoading: false,
@@ -100,6 +109,17 @@ export const fetchMyTimeLogs = createAsyncThunk(
 			return await timesheetService.getMyTimeLogs(arg.startDate, arg.endDate);
 		} catch (error: any) {
 			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch your time logs'));
+		}
+	}
+);
+
+export const fetchMyTimesheetHistory = createAsyncThunk(
+	'timesheets/fetchMyTimesheetHistory',
+	async (arg: { startDate: string; endDate: string }, { rejectWithValue }) => {
+		try {
+			return await timesheetService.getMyTimeLogs(arg.startDate, arg.endDate);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch your timesheet history'));
 		}
 	}
 );
@@ -429,6 +449,18 @@ const timesheetSlice = createSlice({
 			.addCase(fetchMyTimeLogs.rejected, (state, action) => {
 				state.myTimeLogsLoading = false;
 				state.myTimeLogsError = action.payload as string;
+			})
+
+			// My Timesheet History (past weeks summary)
+			.addCase(fetchMyTimesheetHistory.pending, (state) => {
+				state.myHistoryLogsLoading = true;
+			})
+			.addCase(fetchMyTimesheetHistory.fulfilled, (state, action: PayloadAction<ProjectTimeLog[]>) => {
+				state.myHistoryLogsLoading = false;
+				state.myHistoryLogs = action.payload;
+			})
+			.addCase(fetchMyTimesheetHistory.rejected, (state) => {
+				state.myHistoryLogsLoading = false;
 			})
 
 			// Create Log

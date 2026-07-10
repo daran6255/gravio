@@ -410,19 +410,22 @@ class TimesheetWeekUnlockRequestRepository:
 
     @staticmethod
     async def list_for_manager(
-        db: AsyncSession, organization_id: int, manager_id: int, is_admin: bool
+        db: AsyncSession, organization_id: int, manager_id: int
     ) -> Sequence[TimesheetWeekUnlockRequest]:
-        """Admins see every request in the org; managers only see their direct reports'."""
+        """Only requests from this manager's own direct reports -- admin does not grant
+        a blanket bypass here, matching the reporting_manager_id rule enforced everywhere
+        else (approve/reject/revoke)."""
         conditions = [
             TimesheetWeekUnlockRequest.organization_id == organization_id,
             TimesheetWeekUnlockRequest.is_deleted.is_(False),
+            User.reporting_manager_id == manager_id,
         ]
-        stmt = select(TimesheetWeekUnlockRequest).options(selectinload(TimesheetWeekUnlockRequest.user))
-        if not is_admin:
-            stmt = stmt.join(User, User.id == TimesheetWeekUnlockRequest.user_id)
-            conditions.append(User.reporting_manager_id == manager_id)
-        stmt = stmt.where(*conditions).order_by(
-            TimesheetWeekUnlockRequest.status.asc(), TimesheetWeekUnlockRequest.week_start_date.desc()
+        stmt = (
+            select(TimesheetWeekUnlockRequest)
+            .options(selectinload(TimesheetWeekUnlockRequest.user))
+            .join(User, User.id == TimesheetWeekUnlockRequest.user_id)
+            .where(*conditions)
+            .order_by(TimesheetWeekUnlockRequest.status.asc(), TimesheetWeekUnlockRequest.week_start_date.desc())
         )
         result = await db.execute(stmt)
         return result.scalars().all()

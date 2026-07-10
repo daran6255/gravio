@@ -502,23 +502,21 @@ async def get_team_logs(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
 ):
-    """Retrieve submitted timesheet entries for approval, routed by reporting manager."""
+    """Retrieve submitted timesheet entries for approval, routed strictly by reporting
+    manager -- each manager (admin or not) only sees their own direct reports' entries,
+    matching the same reporting_manager_id rule enforced on approve/reject/revoke."""
     conditions = [
         ProjectTimeLog.organization_id == current_user.organization_id,
         ProjectTimeLog.log_date >= start_date,
         ProjectTimeLog.log_date <= end_date,
         ProjectTimeLog.is_deleted.is_(False)
     ]
-    
-    # Managers are restricted to their direct reports unless they are ADMIN
-    if current_user.role != UserRole.ADMIN:
-        # Fetch direct reports
-        stmt_reports = select(User.id).where(User.reporting_manager_id == current_user.id)
-        report_ids_res = await db.execute(stmt_reports)
-        report_ids = [r[0] for r in report_ids_res.all()]
-        # Add current user themselves as fallback or restrict query
-        conditions.append(ProjectTimeLog.user_id.in_(report_ids))
-        
+
+    stmt_reports = select(User.id).where(User.reporting_manager_id == current_user.id)
+    report_ids_res = await db.execute(stmt_reports)
+    report_ids = [r[0] for r in report_ids_res.all()]
+    conditions.append(ProjectTimeLog.user_id.in_(report_ids))
+
     if user_id:
         conditions.append(ProjectTimeLog.user_id == user_id)
     if project_id:
@@ -684,9 +682,9 @@ async def team_week_unlock_requests(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
 ):
-    """Requests routed to this manager (their direct reports only, unless admin)."""
+    """Requests routed to this manager -- their own direct reports only."""
     return await TimesheetWeekUnlockRequestRepository.list_for_manager(
-        db, current_user.organization_id, current_user.id, is_admin=current_user.role == UserRole.ADMIN
+        db, current_user.organization_id, current_user.id
     )
 
 @router.post("/week-unlock-requests/{request_id}/approve", response_model=TimesheetWeekUnlockRequestResponse)
@@ -696,15 +694,15 @@ async def approve_week_unlock(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
 ):
-    """Grant a pending unlock request -- the employee can then edit/submit that week once."""
+    """Grant a pending unlock request -- the employee can then edit/submit that week once.
+    Only that user's allocated reporting manager may resolve it."""
     req = await TimesheetWeekUnlockRequestRepository.get_by_id(db, request_id)
     if not req or req.organization_id != current_user.organization_id:
         raise NotFoundError("Unlock request not found")
 
-    if current_user.role != UserRole.ADMIN:
-        target_user = await UserRepository.get_by_id(db, req.user_id)
-        if not target_user or target_user.reporting_manager_id != current_user.id:
-            raise ForbiddenError("You can only resolve unlock requests from your direct reports")
+    target_user = await UserRepository.get_by_id(db, req.user_id)
+    if not target_user or target_user.reporting_manager_id != current_user.id:
+        raise ForbiddenError("You can only resolve unlock requests from your direct reports")
 
     if req.status != WeekUnlockStatus.PENDING:
         raise BadRequestError("This request has already been resolved")
@@ -723,15 +721,14 @@ async def deny_week_unlock(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
 ):
-    """Deny a pending unlock request."""
+    """Deny a pending unlock request. Only that user's allocated reporting manager may resolve it."""
     req = await TimesheetWeekUnlockRequestRepository.get_by_id(db, request_id)
     if not req or req.organization_id != current_user.organization_id:
         raise NotFoundError("Unlock request not found")
 
-    if current_user.role != UserRole.ADMIN:
-        target_user = await UserRepository.get_by_id(db, req.user_id)
-        if not target_user or target_user.reporting_manager_id != current_user.id:
-            raise ForbiddenError("You can only resolve unlock requests from your direct reports")
+    target_user = await UserRepository.get_by_id(db, req.user_id)
+    if not target_user or target_user.reporting_manager_id != current_user.id:
+        raise ForbiddenError("You can only resolve unlock requests from your direct reports")
 
     if req.status != WeekUnlockStatus.PENDING:
         raise BadRequestError("This request has already been resolved")
