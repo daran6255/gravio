@@ -115,12 +115,22 @@ async def list_projects_endpoint(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     search: Optional[str] = Query(None),
+    assigned_to_me: bool = Query(False, description="Only projects the current user owns or has a task assigned in"),
+    exclude_completed: bool = Query(False, description="Exclude projects in a terminal status (completed/approved/invoiced/canceled)"),
     current_user: User = Depends(require_project_access),
     _pm: User = Depends(require_pm_module),
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[ProjectResponse]:
     items, total = await ProjectService.list_projects(
-        db, status=status_filter, owner_id=owner_id, company_id=company_id, page=page, page_size=page_size, search=search
+        db,
+        status=status_filter,
+        owner_id=owner_id,
+        company_id=company_id,
+        page=page,
+        page_size=page_size,
+        search=search,
+        assigned_to_me_user_id=current_user.id if assigned_to_me else None,
+        exclude_completed=exclude_completed,
     )
     return PaginatedResponse[ProjectResponse](
         items=[ProjectResponse.model_validate(i) for i in items],
@@ -212,11 +222,18 @@ async def delete_project_endpoint(
 )
 async def list_project_tasks_endpoint(
     public_id: uuid.UUID,
+    assigned_to_me: bool = Query(False, description="Only tasks assigned to the current user"),
+    exclude_done: bool = Query(False, description="Exclude tasks in a done-status column"),
     current_user: User = Depends(require_project_access),
     _pm: User = Depends(require_pm_module),
     db: AsyncSession = Depends(get_db),
 ) -> list[ProjectTaskResponse]:
-    tasks = await ProjectService.list_project_tasks(db, public_id)
+    tasks = await ProjectService.list_project_tasks(
+        db,
+        public_id,
+        assignee_id=current_user.id if assigned_to_me else None,
+        exclude_done=exclude_done,
+    )
     return [ProjectTaskResponse.model_validate(t) for t in tasks]
 
 

@@ -19,10 +19,21 @@ const projectService = {
 		status?: ProjectStatus | string;
 		ownerId?: number;
 		companyId?: number;
+		assignedToMe?: boolean;
+		excludeCompleted?: boolean;
 	} = {}): Promise<PaginatedResponse<Project>> => {
-		const { page = 1, pageSize = 20, search, status, ownerId, companyId } = params;
+		const { page = 1, pageSize = 20, search, status, ownerId, companyId, assignedToMe, excludeCompleted } = params;
 		const response = await api.get<PaginatedResponse<Project>>('/projects', {
-			params: { page, page_size: pageSize, search, status, owner_id: ownerId, company_id: companyId },
+			params: {
+				page,
+				page_size: pageSize,
+				search,
+				status,
+				owner_id: ownerId,
+				company_id: companyId,
+				assigned_to_me: assignedToMe,
+				exclude_completed: excludeCompleted,
+			},
 		});
 		return response.data;
 	},
@@ -61,8 +72,14 @@ const projectService = {
 	},
 
 	// --- Project Tasks (and sub-tasks) ---
-	listProjectTasks: async (projectPublicId: string): Promise<ProjectTask[]> => {
-		const response = await api.get<ProjectTask[]>(`/projects/${projectPublicId}/tasks`);
+	listProjectTasks: async (
+		projectPublicId: string,
+		params: { assignedToMe?: boolean; excludeDone?: boolean } = {}
+	): Promise<ProjectTask[]> => {
+		const { assignedToMe, excludeDone } = params;
+		const response = await api.get<ProjectTask[]>(`/projects/${projectPublicId}/tasks`, {
+			params: { assigned_to_me: assignedToMe, exclude_done: excludeDone },
+		});
 		return response.data;
 	},
 

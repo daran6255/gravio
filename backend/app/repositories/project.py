@@ -3,7 +3,7 @@
 import uuid
 from datetime import date
 from typing import Optional
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -114,6 +114,8 @@ class ProjectRepository:
         page: int = 1,
         page_size: int = 20,
         search: Optional[str] = None,
+        assigned_to_me_user_id: Optional[int] = None,
+        exclude_completed: bool = False,
     ) -> tuple[list[Project], int]:
         conditions = [Project.is_deleted.is_(False)]
         if status:
@@ -124,6 +126,21 @@ class ProjectRepository:
             conditions.append(Project.company_id == company_id)
         if search:
             conditions.append(Project.name.ilike(f"%{search}%"))
+        if assigned_to_me_user_id is not None:
+            # "Associated with" this user = they own the project, or they're the
+            # assignee on at least one (non-deleted) task inside it.
+            has_assigned_task = (
+                select(ProjectTask.id)
+                .where(
+                    ProjectTask.project_id == Project.id,
+                    ProjectTask.assignee_id == assigned_to_me_user_id,
+                    ProjectTask.is_deleted.is_(False),
+                )
+                .exists()
+            )
+            conditions.append(or_(Project.owner_id == assigned_to_me_user_id, has_assigned_task))
+        if exclude_completed:
+            conditions.append(Project.status.in_(ProjectRepository.OPEN_STATUSES))
 
         count_result = await db.execute(
             select(func.count()).select_from(Project).where(*conditions)
@@ -243,14 +260,28 @@ class ProjectTaskRepository:
         return result.scalars().first()
 
     @staticmethod
-    async def list_by_project(db: AsyncSession, *, project_id: int) -> list[ProjectTask]:
-        """Flat list of every task and sub-task in the project, all depths and
-        statuses -- the frontend derives the parent -> children tree client-side."""
-        result = await db.execute(
-            select(ProjectTask)
-            .where(ProjectTask.project_id == project_id, ProjectTask.is_deleted.is_(False))
-            .order_by(ProjectTask.order.asc(), ProjectTask.created_at.asc())
-        )
+    async def list_by_project(
+        db: AsyncSession,
+        *,
+        project_id: int,
+        assignee_id: Optional[int] = None,
+        exclude_done: bool = False,
+    ) -> list[ProjectTask]:
+        """Flat list of every task and sub-task in the project, all depths -- the
+        frontend derives the parent -> children tree client-side. Optionally scoped
+        to a single assignee and/or restricted to non-done-status tasks."""
+        conditions = [ProjectTask.project_id == project_id, ProjectTask.is_deleted.is_(False)]
+        if assignee_id is not None:
+            conditions.append(ProjectTask.assignee_id == assignee_id)
+
+        query = select(ProjectTask).where(*conditions)
+        if exclude_done:
+            query = query.join(ProjectTaskStatus, ProjectTaskStatus.id == ProjectTask.status_id).where(
+                ProjectTaskStatus.is_done_status.is_(False)
+            )
+        query = query.order_by(ProjectTask.order.asc(), ProjectTask.created_at.asc())
+
+        result = await db.execute(query)
         return list(result.scalars().all())
 
     @staticmethod

@@ -74,7 +74,7 @@ const TimesheetReportPanel: React.FC = () => {
 	const [rowsPerPage, setRowsPerPage] = useState(10);
 
 	useEffect(() => {
-		dispatch(fetchProjects({ pageSize: 1000 }));
+		dispatch(fetchProjects({ pageSize: 100 }));
 		dispatch(fetchOwners());
 	}, [dispatch]);
 

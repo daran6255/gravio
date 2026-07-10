@@ -82,6 +82,8 @@ def upgrade() -> None:
             sa.Column('max_retroactive_days', sa.Integer(), nullable=True),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
             sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+            sa.Column('is_deleted', sa.Boolean(), server_default=sa.text('false'), nullable=False),
+            sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
             sa.ForeignKeyConstraint(['organization_id'], ['organizations.id'], ),
             sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
             sa.PrimaryKeyConstraint('id'),

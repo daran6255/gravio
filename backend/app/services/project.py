@@ -161,9 +161,19 @@ class ProjectService:
         page: int = 1,
         page_size: int = 20,
         search: Optional[str] = None,
+        assigned_to_me_user_id: Optional[int] = None,
+        exclude_completed: bool = False,
     ) -> tuple[list[Project], int]:
         return await ProjectRepository.list_all(
-            db, status=status, owner_id=owner_id, company_id=company_id, page=page, page_size=page_size, search=search
+            db,
+            status=status,
+            owner_id=owner_id,
+            company_id=company_id,
+            page=page,
+            page_size=page_size,
+            search=search,
+            assigned_to_me_user_id=assigned_to_me_user_id,
+            exclude_completed=exclude_completed,
         )
 
     @staticmethod
@@ -201,9 +211,17 @@ class ProjectService:
         return task
 
     @staticmethod
-    async def list_project_tasks(db: AsyncSession, project_public_id: uuid.UUID) -> list[ProjectTask]:
+    async def list_project_tasks(
+        db: AsyncSession,
+        project_public_id: uuid.UUID,
+        *,
+        assignee_id: Optional[int] = None,
+        exclude_done: bool = False,
+    ) -> list[ProjectTask]:
         project = await ProjectService.get_project(db, project_public_id)
-        return await ProjectTaskRepository.list_by_project(db, project_id=project.id)
+        return await ProjectTaskRepository.list_by_project(
+            db, project_id=project.id, assignee_id=assignee_id, exclude_done=exclude_done
+        )
 
     @staticmethod
     async def _resolve_status_id(db: AsyncSession, status_id: Optional[int]) -> int:

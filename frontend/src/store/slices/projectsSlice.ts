@@ -92,7 +92,18 @@ const initialState: ProjectsState = {
 export const fetchProjects = createAsyncThunk(
 	'projects/fetchProjects',
 	async (
-		params: { page?: number; pageSize?: number; search?: string; status?: string; ownerId?: number; companyId?: number } | undefined,
+		params:
+			| {
+					page?: number;
+					pageSize?: number;
+					search?: string;
+					status?: string;
+					ownerId?: number;
+					companyId?: number;
+					assignedToMe?: boolean;
+					excludeCompleted?: boolean;
+			  }
+			| undefined,
 		{ rejectWithValue }
 	) => {
 		try {

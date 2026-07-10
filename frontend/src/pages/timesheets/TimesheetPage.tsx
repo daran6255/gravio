@@ -29,7 +29,7 @@ import PageHeader from '../../components/common/page-header';
 import WeeklyTimesheetGrid from '../../components/timesheets/WeeklyTimesheetGrid';
 import TeamTimesheetTable from '../../components/timesheets/TeamTimesheetTable';
 import TimesheetReportPanel from '../../components/timesheets/TimesheetReportPanel';
-import TimeLogEntryDrawer from '../../components/timesheets/TimeLogEntryDrawer';
+import TimeLogEntryFormDialog from '../../components/timesheets/TimeLogEntryFormDialog';
 import ManagerAllocationPanel from '../../components/timesheets/manager-allocation';
 import HolidayCalendarPanel from '../../components/timesheets/HolidayCalendarPanel';
 import type { ProjectTimeLog } from '../../models/timesheet';
@@ -96,8 +96,8 @@ const TimesheetPage: React.FC = () => {
 		}
 	}, [tabLabels, activeTab]);
 
-	// Dialog & Drawer States
-	const [drawerOpen, setDrawerOpen] = useState(false);
+	// Dialog States
+	const [entryDialogOpen, setEntryDialogOpen] = useState(false);
 	const [selectedLog, setSelectedLog] = useState<ProjectTimeLog | undefined>(undefined);
 	const [selectedCellDate, setSelectedCellDate] = useState<string | undefined>(undefined);
 
@@ -152,13 +152,13 @@ const TimesheetPage: React.FC = () => {
 	const handleCellClick = (dateStr: string, log?: ProjectTimeLog) => {
 		setSelectedCellDate(dateStr);
 		setSelectedLog(log);
-		setDrawerOpen(true);
+		setEntryDialogOpen(true);
 	};
 
 	const handleAddRow = () => {
 		setSelectedLog(undefined);
 		setSelectedCellDate(undefined);
-		setDrawerOpen(true);
+		setEntryDialogOpen(true);
 	};
 
 	// Submissions
@@ -303,10 +303,10 @@ const TimesheetPage: React.FC = () => {
 			{/* Holiday List Panel */}
 			{tabLabels[activeTab] === 'Holiday List' && isManagerOrAdmin && <HolidayCalendarPanel />}
 
-			{/* Quick Entry Drawer */}
-			<TimeLogEntryDrawer
-				open={drawerOpen}
-				onClose={() => setDrawerOpen(false)}
+			{/* Time Entry Form Modal */}
+			<TimeLogEntryFormDialog
+				open={entryDialogOpen}
+				onClose={() => setEntryDialogOpen(false)}
 				log={selectedLog}
 				defaultDate={selectedCellDate}
 				onSave={loadMyTimesheet}
