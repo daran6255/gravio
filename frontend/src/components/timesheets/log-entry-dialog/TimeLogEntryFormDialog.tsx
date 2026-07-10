@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, DeleteOutline as DeleteIcon, SettingsOutlined as ManageIcon } from '@mui/icons-material';
 import { BaseDialog, ConfirmationDialog } from '../../common/dialogbox';
+import { DatePicker } from '../../common/form';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { createTimeLog, updateTimeLog, deleteTimeLog, fetchMyCategories, createCategory, deleteCategory } from '../../../store/slices/timesheetSlice';
 import { fetchProjects, fetchTaskStatuses } from '../../../store/slices/projectsSlice';
@@ -132,7 +133,8 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 	// categories (user_id is null) aren't shown here -- the backend rejects deleting
 	// those anyway (see update_category/delete_category in timesheets.py).
 	const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false);
-	const [deletingCategoryId, setDeletingCategoryId] = useState<number | null>(null);
+	const [deleteCategoryTarget, setDeleteCategoryTarget] = useState<TimesheetCategory | null>(null);
+	const [deletingCategory, setDeletingCategory] = useState(false);
 	const myCategories = useMemo(
 		() => categories.filter((c) => c.user_id === currentUser?.id),
 		[categories, currentUser?.id]
@@ -352,18 +354,21 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 		}
 	};
 
-	const handleDeleteCategory = async (category: TimesheetCategory) => {
-		setDeletingCategoryId(category.id);
+	const handleConfirmDeleteCategory = async () => {
+		if (!deleteCategoryTarget) return;
+		const category = deleteCategoryTarget;
+		setDeletingCategory(true);
 		try {
 			await dispatch(deleteCategory(category.id)).unwrap();
 			toast.success(`"${category.name}" deleted`);
 			// Any row that had this category selected loses it -- category_id would
 			// otherwise point at something that no longer shows up in the dropdown.
 			setRows((prev) => prev.map((r) => (r.categoryId === category.id ? { ...r, categoryId: '' } : r)));
+			setDeleteCategoryTarget(null);
 		} catch (err: any) {
 			toast.error(err || 'Failed to delete category');
 		} finally {
-			setDeletingCategoryId(null);
+			setDeletingCategory(false);
 		}
 	};
 
@@ -551,15 +556,12 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 								)}
 
 								<Stack direction="row" spacing={2}>
-									<TextField
+									<DatePicker
 										label="Date"
-										type="date"
-										value={row.logDate}
-										onChange={(e) => updateRow(row.key, { logDate: e.target.value })}
+										value={row.logDate || null}
+										onChange={(value) => updateRow(row.key, { logDate: value })}
+										textFieldProps={{ required: true, disabled: submitting }}
 										fullWidth
-										required
-										disabled={submitting}
-										InputLabelProps={{ shrink: true }}
 									/>
 									<TextField
 										label="Hours"
@@ -726,20 +728,26 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 								</Stack>
 								<IconButton
 									size="small"
-									onClick={() => handleDeleteCategory(c)}
-									disabled={deletingCategoryId === c.id}
+									onClick={() => setDeleteCategoryTarget(c)}
 								>
-									{deletingCategoryId === c.id ? (
-										<CircularProgress size={16} />
-									) : (
-										<DeleteIcon fontSize="small" />
-									)}
+									<DeleteIcon fontSize="small" />
 								</IconButton>
 							</Stack>
 						))
 					)}
 				</Stack>
 			</BaseDialog>
+
+			<ConfirmationDialog
+				open={!!deleteCategoryTarget}
+				onClose={() => setDeleteCategoryTarget(null)}
+				onConfirm={handleConfirmDeleteCategory}
+				title="Delete Category"
+				message={`Are you sure you want to delete "${deleteCategoryTarget?.name}"? Existing time logs using this category will keep their history but lose the category label.`}
+				confirmLabel="Delete"
+				severity="error"
+				loading={deletingCategory}
+			/>
 		</>
 	);
 };

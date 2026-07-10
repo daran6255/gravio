@@ -16,16 +16,15 @@ import {
 	MenuItem,
 	Alert,
 	useTheme,
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	DialogActions,
 	CircularProgress,
 	Box
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchHolidays, createHoliday, deleteHoliday } from '../../../store/slices/timesheetSlice';
+import { BaseDialog, ConfirmationDialog } from '../../common/dialogbox';
+import { DatePicker } from '../../common/form';
+import type { OrgHoliday } from '../../../models/timesheet';
 
 const HolidayCalendarPanel: React.FC = () => {
 	const dispatch = useAppDispatch();
@@ -48,6 +47,10 @@ const HolidayCalendarPanel: React.FC = () => {
 	const [importError, setImportError] = useState<string | null>(null);
 	const [importLoading, setImportLoading] = useState(false);
 	const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+	// Delete confirmation state
+	const [deleteTarget, setDeleteTarget] = useState<OrgHoliday | null>(null);
+	const [deleteLoading, setDeleteLoading] = useState(false);
 
 	useEffect(() => {
 		dispatch(fetchHolidays());
@@ -82,12 +85,17 @@ const HolidayCalendarPanel: React.FC = () => {
 		}
 	};
 
-	const handleDelete = async (id: number) => {
+	const handleConfirmDelete = async () => {
+		if (!deleteTarget) return;
 		setError(null);
+		setDeleteLoading(true);
 		try {
-			await dispatch(deleteHoliday(id)).unwrap();
+			await dispatch(deleteHoliday(deleteTarget.id)).unwrap();
+			setDeleteTarget(null);
 		} catch (err: any) {
 			setError(err || 'Failed to delete holiday');
+		} finally {
+			setDeleteLoading(false);
 		}
 	};
 
@@ -276,14 +284,11 @@ const HolidayCalendarPanel: React.FC = () => {
 								required
 							/>
 
-							<TextField
+							<DatePicker
 								label="Holiday Date"
-								type="date"
-								value={holidayDate}
-								onChange={(e) => setHolidayDate(e.target.value)}
+								value={holidayDate || null}
+								onChange={(value) => setHolidayDate(value)}
 								fullWidth
-								required
-								InputLabelProps={{ shrink: true }}
 							/>
 
 							<TextField
@@ -379,7 +384,7 @@ const HolidayCalendarPanel: React.FC = () => {
 											<TableCell>{h.country_code || 'All'}</TableCell>
 											{isAdminOrManager && (
 												<TableCell align="right" sx={{ pr: 2 }}>
-													<IconButton size="small" onClick={() => handleDelete(h.id)}>
+													<IconButton size="small" onClick={() => setDeleteTarget(h)}>
 														<DeleteIcon color="error" fontSize="small" />
 													</IconButton>
 												</TableCell>
@@ -394,103 +399,119 @@ const HolidayCalendarPanel: React.FC = () => {
 			</Grid>
 
 			{/* Import Holidays Dialog */}
-			<Dialog open={importDialogOpen} onClose={handleCloseImport} fullWidth maxWidth="sm">
-				<DialogTitle sx={{ fontWeight: 700 }}>Import Holidays</DialogTitle>
-				<DialogContent sx={{ pt: 1 }}>
-					<Stack spacing={3} sx={{ mt: 1 }}>
-						<Typography variant="body2" color="text.secondary">
-							Upload a CSV or JSON file containing holidays for your organization.
-						</Typography>
-
-						<Box 
-							sx={{ 
-								p: 3, 
-								border: '2px dashed', 
-								borderColor: dragOver ? 'primary.main' : 'divider',
-								borderRadius: '12px',
-								textAlign: 'center',
-								cursor: 'pointer',
-								bgcolor: dragOver ? (isDark ? 'rgba(139, 124, 246, 0.1)' : '#f4f3ff') : 'transparent',
-								transition: 'all 0.2s ease'
-							}}
-							onClick={() => fileInputRef.current?.click()}
-							onDragOver={(e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragOver(true); }}
-							onDragLeave={() => setDragOver(false)}
-							onDrop={handleFileDrop}
+			<BaseDialog
+				open={importDialogOpen}
+				onClose={handleCloseImport}
+				title="Import Holidays"
+				maxWidth="sm"
+				loading={importLoading}
+				actions={
+					<>
+						<Button onClick={handleCloseImport} variant="outlined" disabled={importLoading} sx={{ borderRadius: '6px' }}>
+							Cancel
+						</Button>
+						<Button
+							onClick={handleConfirmImport}
+							disabled={importPreview.length === 0 || importLoading}
+							variant="contained"
+							sx={{ fontWeight: 700, borderRadius: '6px' }}
 						>
-							<input
-								type="file"
-								ref={fileInputRef}
-								style={{ display: 'none' }}
-								accept=".json,.csv"
-								onChange={handleFileSelect}
-							/>
-							<Typography variant="body2" sx={{ fontWeight: 700 }}>
-								Click to upload or drag & drop
-							</Typography>
-							<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-								Supports .JSON or .CSV files
-							</Typography>
-						</Box>
+							{importLoading ? <CircularProgress size={20} color="inherit" /> : 'Confirm Import'}
+						</Button>
+					</>
+				}
+			>
+				<Stack spacing={3}>
+					<Typography variant="body2" color="text.secondary">
+						Upload a CSV or JSON file containing holidays for your organization.
+					</Typography>
 
-						{importError && (
-							<Alert severity="error" sx={{ borderRadius: '8px' }}>
-								{importError}
-							</Alert>
-						)}
-
-						{importPreview.length > 0 && (
-							<Box>
-								<Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-									Preview ({importPreview.length} holidays found)
-								</Typography>
-								<Box sx={{ maxHeight: 200, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: '8px' }}>
-									<Table size="small">
-										<TableHead sx={{ bgcolor: isDark ? '#1C212E' : '#F8FAFC' }}>
-											<TableRow>
-												<TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-												<TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-												<TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-											</TableRow>
-										</TableHead>
-										<TableBody>
-											{importPreview.map((h, i) => (
-												<TableRow key={i}>
-													<TableCell>{h.holiday_date}</TableCell>
-													<TableCell>{h.name}</TableCell>
-													<TableCell sx={{ textTransform: 'capitalize' }}>{h.type}</TableCell>
-												</TableRow>
-											))}
-										</TableBody>
-									</Table>
-								</Box>
-							</Box>
-						)}
-
-						<Box sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8f9fa', p: 2, borderRadius: '8px' }}>
-							<Typography variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 1 }}>
-								Expected File Schema:
-							</Typography>
-							<Typography variant="caption" color="text.secondary" component="pre" sx={{ fontFamily: 'monospace', display: 'block' }}>
-								{`JSON:\n[\n  { "holiday_date": "2026-12-25", "name": "Christmas Day", "type": "public" }\n]\n\nCSV:\nholiday_date,name,type\n2026-12-25,Christmas Day,public`}
-							</Typography>
-						</Box>
-					</Stack>
-				</DialogContent>
-				<DialogActions sx={{ p: 2.5 }}>
-					<Button onClick={handleCloseImport} variant="outlined" disabled={importLoading}>
-						Cancel
-					</Button>
-					<Button
-						onClick={handleConfirmImport}
-						disabled={importPreview.length === 0 || importLoading}
-						variant="contained"
-						sx={{ fontWeight: 700 }}
+					<Box
+						sx={{
+							p: 3,
+							border: '2px dashed',
+							borderColor: dragOver ? 'primary.main' : 'divider',
+							borderRadius: '12px',
+							textAlign: 'center',
+							cursor: 'pointer',
+							bgcolor: dragOver ? (isDark ? 'rgba(139, 124, 246, 0.1)' : '#f4f3ff') : 'transparent',
+							transition: 'all 0.2s ease'
+						}}
+						onClick={() => fileInputRef.current?.click()}
+						onDragOver={(e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragOver(true); }}
+						onDragLeave={() => setDragOver(false)}
+						onDrop={handleFileDrop}
 					>
-						{importLoading ? <CircularProgress size={20} color="inherit" /> : 'Confirm Import'}
-					</Button>
-				</DialogActions>
-			</Dialog>
+						<input
+							type="file"
+							ref={fileInputRef}
+							style={{ display: 'none' }}
+							accept=".json,.csv"
+							onChange={handleFileSelect}
+						/>
+						<Typography variant="body2" sx={{ fontWeight: 700 }}>
+							Click to upload or drag & drop
+						</Typography>
+						<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+							Supports .JSON or .CSV files
+						</Typography>
+					</Box>
+
+					{importError && (
+						<Alert severity="error" sx={{ borderRadius: '8px' }}>
+							{importError}
+						</Alert>
+					)}
+
+					{importPreview.length > 0 && (
+						<Box>
+							<Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+								Preview ({importPreview.length} holidays found)
+							</Typography>
+							<Box sx={{ maxHeight: 200, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: '8px' }}>
+								<Table size="small">
+									<TableHead sx={{ bgcolor: isDark ? '#1C212E' : '#F8FAFC' }}>
+										<TableRow>
+											<TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
+											<TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
+											<TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
+										</TableRow>
+									</TableHead>
+									<TableBody>
+										{importPreview.map((h, i) => (
+											<TableRow key={i}>
+												<TableCell>{h.holiday_date}</TableCell>
+												<TableCell>{h.name}</TableCell>
+												<TableCell sx={{ textTransform: 'capitalize' }}>{h.type}</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</Box>
+						</Box>
+					)}
+
+					<Box sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8f9fa', p: 2, borderRadius: '8px' }}>
+						<Typography variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 1 }}>
+							Expected File Schema:
+						</Typography>
+						<Typography variant="caption" color="text.secondary" component="pre" sx={{ fontFamily: 'monospace', display: 'block' }}>
+							{`JSON:\n[\n  { "holiday_date": "2026-12-25", "name": "Christmas Day", "type": "public" }\n]\n\nCSV:\nholiday_date,name,type\n2026-12-25,Christmas Day,public`}
+						</Typography>
+					</Box>
+				</Stack>
+			</BaseDialog>
+
+			<ConfirmationDialog
+				open={!!deleteTarget}
+				onClose={() => setDeleteTarget(null)}
+				onConfirm={handleConfirmDelete}
+				title="Delete Holiday"
+				message={`Are you sure you want to delete "${deleteTarget?.name}" (${deleteTarget?.holiday_date})? Anyone who logged time on this date under the holiday override will be unaffected.`}
+				confirmLabel="Delete"
+				severity="error"
+				loading={deleteLoading}
+			/>
 		</Grid>
 	);
 };

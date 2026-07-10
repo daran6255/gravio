@@ -13,10 +13,6 @@ import {
 	Stack,
 	Tooltip,
 	Alert,
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	DialogActions,
 	TextField,
 	alpha,
 	useTheme
@@ -29,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import type { ProjectTimeLog, OrgHoliday, TimesheetStatus, TimesheetWeekUnlockRequest } from '../../../models/timesheet';
 import TimesheetStatusBadge from '../shared/TimesheetStatusBadge';
+import { BaseDialog } from '../../common/dialogbox';
 
 // Helper to format hours display (e.g. 1.5 -> 1h 30m, 8 -> 8h)
 export const formatHoursDisplay = (hours: number): string => {
@@ -520,37 +517,41 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 				</Table>
 			</TableContainer>
 
-			<Dialog open={requestDialogOpen} onClose={() => setRequestDialogOpen(false)} fullWidth maxWidth="xs">
-				<DialogTitle sx={{ fontWeight: 700 }}>Request Manager Access</DialogTitle>
-				<DialogContent>
-					<Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
-						Your manager will be asked to unlock this week so you can add/edit and submit it. Let them know why it's late (optional).
-					</Typography>
-					<TextField
-						label="Reason (optional)"
-						multiline
-						rows={3}
-						value={requestReason}
-						onChange={(e) => setRequestReason(e.target.value)}
-						fullWidth
-						autoFocus
-						placeholder="e.g. I was on leave and missed the submission window."
-					/>
-				</DialogContent>
-				<DialogActions sx={{ p: 2.5 }}>
-					<Button onClick={() => setRequestDialogOpen(false)} variant="outlined" sx={{ borderRadius: '6px' }}>
-						Cancel
-					</Button>
-					<Button
-						onClick={handleSubmitUnlockRequest}
-						variant="contained"
-						disabled={unlockRequestLoading}
-						sx={{ borderRadius: '6px', fontWeight: 700 }}
-					>
-						Send Request
-					</Button>
-				</DialogActions>
-			</Dialog>
+			<BaseDialog
+				open={requestDialogOpen}
+				onClose={() => setRequestDialogOpen(false)}
+				title="Request Manager Access"
+				maxWidth="xs"
+				actions={
+					<>
+						<Button onClick={() => setRequestDialogOpen(false)} variant="outlined" sx={{ borderRadius: '6px' }}>
+							Cancel
+						</Button>
+						<Button
+							onClick={handleSubmitUnlockRequest}
+							variant="contained"
+							disabled={unlockRequestLoading}
+							sx={{ borderRadius: '6px', fontWeight: 700 }}
+						>
+							Send Request
+						</Button>
+					</>
+				}
+			>
+				<Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+					Your manager will be asked to unlock this week so you can add/edit and submit it. Let them know why it's late (optional).
+				</Typography>
+				<TextField
+					label="Reason (optional)"
+					multiline
+					rows={3}
+					value={requestReason}
+					onChange={(e) => setRequestReason(e.target.value)}
+					fullWidth
+					autoFocus
+					placeholder="e.g. I was on leave and missed the submission window."
+				/>
+			</BaseDialog>
 		</Stack>
 	);
 };

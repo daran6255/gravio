@@ -14,10 +14,6 @@ import {
 	Collapse,
 	Stack,
 	TextField,
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	DialogActions,
 	alpha,
 	useTheme
 } from '@mui/material';
@@ -28,6 +24,7 @@ import {
 import type { ProjectTimeLog } from '../../../models/timesheet';
 import TimesheetStatusBadge from '../shared/TimesheetStatusBadge';
 import { formatHoursDisplay } from '../weekly-grid';
+import { BaseDialog, ConfirmationDialog } from '../../common/dialogbox';
 
 interface TeamTimesheetTableProps {
 	logs: ProjectTimeLog[];
@@ -70,6 +67,7 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 	const [expandedUser, setExpandedUser] = useState<number | null>(null);
 	const [rejectUserId, setRejectUserId] = useState<number | null>(null);
 	const [rejectionReason, setRejectionReason] = useState('');
+	const [revokeTarget, setRevokeTarget] = useState<UserGroupedTimesheet | null>(null);
 
 	// Group logs by user
 	const groupedTimesheets = useMemo(() => {
@@ -131,6 +129,13 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 		if (rejectUserId && rejectionReason.trim()) {
 			onReject(rejectUserId, rejectionReason);
 			handleCloseRejectDialog();
+		}
+	};
+
+	const handleConfirmRevoke = () => {
+		if (revokeTarget) {
+			onUnapprove(revokeTarget.userId);
+			setRevokeTarget(null);
 		}
 	};
 
@@ -219,7 +224,7 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 																variant="outlined"
 																color="warning"
 																size="small"
-																onClick={() => onUnapprove(sheet.userId)}
+																onClick={() => setRevokeTarget(sheet)}
 																disabled={actionLoading}
 																sx={{ borderRadius: '6px', fontWeight: 700 }}
 															>
@@ -312,39 +317,54 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 			</TableContainer>
 
 			{/* Rejection Dialog Prompt */}
-			<Dialog open={rejectUserId !== null} onClose={handleCloseRejectDialog} fullWidth maxWidth="xs">
-				<DialogTitle sx={{ fontWeight: 700 }}>Reject Timesheet</DialogTitle>
-				<DialogContent>
-					<Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
-						Please provide a rejection note stating what correction is required. The team member will see this note and can modify/resubmit their time logs.
-					</Typography>
-					<TextField
-						label="Rejection Reason"
-						multiline
-						rows={4}
-						value={rejectionReason}
-						onChange={(e) => setRejectionReason(e.target.value)}
-						fullWidth
-						required
-						autoFocus
-						placeholder="e.g. Please correct the billable hours for project X on Monday."
-					/>
-				</DialogContent>
-				<DialogActions sx={{ p: 2.5 }}>
-					<Button onClick={handleCloseRejectDialog} variant="outlined" sx={{ borderRadius: '6px' }}>
-						Cancel
-					</Button>
-					<Button
-						onClick={handleConfirmReject}
-						variant="contained"
-						color="error"
-						disabled={!rejectionReason.trim()}
-						sx={{ borderRadius: '6px', fontWeight: 700 }}
-					>
-						Reject Timesheet
-					</Button>
-				</DialogActions>
-			</Dialog>
+			<BaseDialog
+				open={rejectUserId !== null}
+				onClose={handleCloseRejectDialog}
+				title="Reject Timesheet"
+				maxWidth="xs"
+				actions={
+					<>
+						<Button onClick={handleCloseRejectDialog} variant="outlined" sx={{ borderRadius: '6px' }}>
+							Cancel
+						</Button>
+						<Button
+							onClick={handleConfirmReject}
+							variant="contained"
+							color="error"
+							disabled={!rejectionReason.trim()}
+							sx={{ borderRadius: '6px', fontWeight: 700 }}
+						>
+							Reject Timesheet
+						</Button>
+					</>
+				}
+			>
+				<Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+					Please provide a rejection note stating what correction is required. The team member will see this note and can modify/resubmit their time logs.
+				</Typography>
+				<TextField
+					label="Rejection Reason"
+					multiline
+					rows={4}
+					value={rejectionReason}
+					onChange={(e) => setRejectionReason(e.target.value)}
+					fullWidth
+					required
+					autoFocus
+					placeholder="e.g. Please correct the billable hours for project X on Monday."
+				/>
+			</BaseDialog>
+
+			<ConfirmationDialog
+				open={!!revokeTarget}
+				onClose={() => setRevokeTarget(null)}
+				onConfirm={handleConfirmRevoke}
+				title="Revoke Approval"
+				message={`Are you sure you want to revoke ${revokeTarget?.userName}'s ${revokeTarget?.status} timesheet back to draft? They will need to fix and resubmit it.`}
+				confirmLabel="Revoke"
+				severity="warning"
+				loading={actionLoading}
+			/>
 		</Box>
 	);
 };

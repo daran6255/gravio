@@ -11,13 +11,10 @@ import {
 	Stack,
 	Button,
 	Chip,
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	DialogActions,
 	TextField,
 	useTheme
 } from '@mui/material';
+import { BaseDialog } from '../../common/dialogbox';
 import type { TimesheetWeekUnlockRequest } from '../../../models/timesheet';
 
 interface WeekUnlockRequestsPanelProps {
@@ -159,31 +156,35 @@ const WeekUnlockRequestsPanel: React.FC<WeekUnlockRequestsPanelProps> = ({ reque
 				{renderTable(resolved, false)}
 			</Stack>
 
-			<Dialog open={!!denyTarget} onClose={() => setDenyTarget(null)} fullWidth maxWidth="xs">
-				<DialogTitle sx={{ fontWeight: 700 }}>Deny Unlock Request</DialogTitle>
-				<DialogContent>
-					<Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
-						Optionally let {denyTarget?.user?.full_name || denyTarget?.user?.email || 'the team member'} know why this week won't be unlocked.
-					</Typography>
-					<TextField
-						label="Note (optional)"
-						multiline
-						rows={3}
-						value={denyNote}
-						onChange={(e) => setDenyNote(e.target.value)}
-						fullWidth
-						autoFocus
-					/>
-				</DialogContent>
-				<DialogActions sx={{ p: 2.5 }}>
-					<Button onClick={() => setDenyTarget(null)} variant="outlined" sx={{ borderRadius: '6px' }}>
-						Cancel
-					</Button>
-					<Button onClick={handleConfirmDeny} variant="contained" color="error" sx={{ borderRadius: '6px', fontWeight: 700 }}>
-						Deny Request
-					</Button>
-				</DialogActions>
-			</Dialog>
+			<BaseDialog
+				open={!!denyTarget}
+				onClose={() => setDenyTarget(null)}
+				title="Deny Unlock Request"
+				maxWidth="xs"
+				actions={
+					<>
+						<Button onClick={() => setDenyTarget(null)} variant="outlined" sx={{ borderRadius: '6px' }}>
+							Cancel
+						</Button>
+						<Button onClick={handleConfirmDeny} variant="contained" color="error" sx={{ borderRadius: '6px', fontWeight: 700 }}>
+							Deny Request
+						</Button>
+					</>
+				}
+			>
+				<Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+					Optionally let {denyTarget?.user?.full_name || denyTarget?.user?.email || 'the team member'} know why this week won't be unlocked.
+				</Typography>
+				<TextField
+					label="Note (optional)"
+					multiline
+					rows={3}
+					value={denyNote}
+					onChange={(e) => setDenyNote(e.target.value)}
+					fullWidth
+					autoFocus
+				/>
+			</BaseDialog>
 		</Stack>
 	);
 };

@@ -18,6 +18,8 @@ import {
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchMyCategories, createCategory, deleteCategory } from '../../../store/slices/timesheetSlice';
+import { ConfirmationDialog } from '../../common/dialogbox';
+import type { TimesheetCategory } from '../../../models/timesheet';
 
 const CATEGORY_COLORS = [
 	'#8B7CF6', '#10B981', '#F59E0B', '#3B82F6', '#EC4899',
@@ -34,6 +36,8 @@ const MyCategoriesPanel: React.FC = () => {
 	const [selectedColor, setSelectedColor] = useState(CATEGORY_COLORS[0]);
 	const [error, setError] = useState<string | null>(null);
 	const [submitting, setSubmitting] = useState(false);
+	const [deleteTarget, setDeleteTarget] = useState<TimesheetCategory | null>(null);
+	const [deleteLoading, setDeleteLoading] = useState(false);
 
 	useEffect(() => {
 		dispatch(fetchMyCategories());
@@ -59,16 +63,22 @@ const MyCategoriesPanel: React.FC = () => {
 		}
 	};
 
-	const handleDelete = async (id: number) => {
+	const handleConfirmDelete = async () => {
+		if (!deleteTarget) return;
 		setError(null);
+		setDeleteLoading(true);
 		try {
-			await dispatch(deleteCategory(id)).unwrap();
+			await dispatch(deleteCategory(deleteTarget.id)).unwrap();
+			setDeleteTarget(null);
 		} catch (err: any) {
 			setError(err || 'Failed to delete category');
+		} finally {
+			setDeleteLoading(false);
 		}
 	};
 
 	return (
+		<>
 		<Grid container spacing={4}>
 			{/* Creation Form */}
 			<Grid size={{ xs: 12, md: 5 }}>
@@ -188,7 +198,7 @@ const MyCategoriesPanel: React.FC = () => {
 									/>
 									{!cat.is_org_default && (
 										<ListItemSecondaryAction>
-											<IconButton edge="end" onClick={() => handleDelete(cat.id)}>
+											<IconButton edge="end" onClick={() => setDeleteTarget(cat)}>
 												<DeleteIcon color="error" />
 											</IconButton>
 										</ListItemSecondaryAction>
@@ -200,6 +210,18 @@ const MyCategoriesPanel: React.FC = () => {
 				</Paper>
 			</Grid>
 		</Grid>
+
+		<ConfirmationDialog
+			open={!!deleteTarget}
+			onClose={() => setDeleteTarget(null)}
+			onConfirm={handleConfirmDelete}
+			title="Delete Category"
+			message={`Are you sure you want to delete "${deleteTarget?.name}"? Existing time logs using this category will keep their history but lose the category label.`}
+			confirmLabel="Delete"
+			severity="error"
+			loading={deleteLoading}
+		/>
+		</>
 	);
 };
 

@@ -23,6 +23,7 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTimesheetReport } from '../../../store/slices/timesheetSlice';
 import { fetchProjects } from '../../../store/slices/projectsSlice';
 import { fetchOwners } from '../../../store/slices/crmSlice';
+import { DatePicker } from '../../common/form';
 import type { TimesheetReportRow } from '../../../models/timesheet';
 
 // CSV exporter helper
@@ -154,23 +155,19 @@ const TimesheetReportPanel: React.FC = () => {
 				</Typography>
 				<Grid container spacing={2} alignItems="center">
 					<Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
-						<TextField
+						<DatePicker
 							label="From Date"
-							type="date"
-							value={startDate}
-							onChange={(e) => setStartDate(e.target.value)}
+							value={startDate || null}
+							onChange={(value) => setStartDate(value)}
 							fullWidth
-							InputLabelProps={{ shrink: true }}
 						/>
 					</Grid>
 					<Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
-						<TextField
+						<DatePicker
 							label="To Date"
-							type="date"
-							value={endDate}
-							onChange={(e) => setEndDate(e.target.value)}
+							value={endDate || null}
+							onChange={(value) => setEndDate(value)}
 							fullWidth
-							InputLabelProps={{ shrink: true }}
 						/>
 					</Grid>
 					<Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
