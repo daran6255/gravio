@@ -249,6 +249,41 @@ async def delete_org_user(
     return target
 
 
+async def _has_assignable_other_manager(db: AsyncSession, target: User) -> bool:
+    """Whether at least one OTHER admin/manager in the org could actually be assigned
+    as target's reporting manager without creating a circular chain (e.g. someone who
+    already reports to target, directly or transitively, doesn't count -- assigning
+    them back would just create a loop, so they're not a real alternative)."""
+    candidates_result = await db.execute(
+        select(User).where(
+            User.organization_id == target.organization_id,
+            User.id != target.id,
+            User.role.in_([UserRole.ADMIN, UserRole.MANAGER]),
+            User.is_active.is_(True),
+        )
+    )
+    for candidate in candidates_result.scalars().all():
+        visited: set[int] = set()
+        current_id: Optional[int] = candidate.id
+        is_circular = False
+        while current_id is not None:
+            if current_id == target.id:
+                is_circular = True
+                break
+            if current_id in visited:
+                # Hit an unrelated repeat (e.g. someone else's self-managed chain) --
+                # not a cycle back to target, just stop walking this candidate.
+                break
+            visited.add(current_id)
+            chain_user = await UserRepository.get_by_id(db, current_id)
+            if not chain_user:
+                break
+            current_id = chain_user.reporting_manager_id
+        if not is_circular:
+            return True
+    return False
+
+
 async def update_org_user(
     db: AsyncSession,
     *,
@@ -289,38 +324,39 @@ async def update_org_user(
         new_manager_id = payload.reporting_manager_id if payload.reporting_manager_id and payload.reporting_manager_id > 0 else None
         if new_manager_id is not None:
             if new_manager_id == target.id:
-                # Self-reporting is normally invalid -- but if this person is the only
-                # admin/manager-capable approver in the org, there's genuinely no one
-                # else to assign, and blocking it would permanently lock them out of
-                # ever submitting a timesheet. Allow it only in that narrow case.
-                other_approvers_result = await db.execute(
-                    select(func.count()).select_from(User).where(
-                        User.organization_id == target.organization_id,
-                        User.id != target.id,
-                        User.role.in_([UserRole.ADMIN, UserRole.MANAGER]),
-                        User.is_active.is_(True),
-                    )
-                )
-                if other_approvers_result.scalar_one() > 0:
+                # Self-reporting is normally invalid -- but if nobody else in the org
+                # could actually be assigned (either there's no other admin/manager, or
+                # the only ones there already report to target and assigning them back
+                # would just be circular), there's genuinely no alternative. Blocking
+                # self-assignment in that case would permanently lock this person out
+                # of ever submitting a timesheet.
+                if await _has_assignable_other_manager(db, target):
                     raise BadRequestError(
-                        "A user cannot be their own reporting manager while other admins/managers exist in the organization."
+                        "A user cannot be their own reporting manager while another assignable admin/manager exists in the organization."
                     )
 
-            # Detect circular reporting structure -- skipped for the sole-approver
-            # self-assignment case above, since target.id being its own "manager" is
-            # the intended outcome there, not a cycle to reject.
-            visited = {target.id} if new_manager_id != target.id else set()
-            current_id = new_manager_id
-            while current_id is not None and current_id != target.id:
-                if current_id in visited:
-                    raise BadRequestError("Circular reporting structure detected. This assignment is invalid.")
-                visited.add(current_id)
-                
-                manager_user = await UserRepository.get_by_id(db, current_id)
-                if not manager_user:
-                    break
-                current_id = manager_user.reporting_manager_id
-                
+            # Detect circular reporting structure -- skipped entirely for the direct
+            # self-assignment case above (target.id being its own "manager" is the
+            # intended outcome there, not a cycle to reject). For everyone else, walk
+            # the candidate's own chain and raise only if it leads back to target --
+            # an unrelated repeat (e.g. someone else's self-managed terminal node
+            # appearing further up the chain) is just a dead end, not a cycle for
+            # *this* assignment, so it stops the walk without raising.
+            if new_manager_id != target.id:
+                visited: set[int] = set()
+                current_id = new_manager_id
+                while current_id is not None:
+                    if current_id == target.id:
+                        raise BadRequestError("Circular reporting structure detected. This assignment is invalid.")
+                    if current_id in visited:
+                        break
+                    visited.add(current_id)
+
+                    manager_user = await UserRepository.get_by_id(db, current_id)
+                    if not manager_user:
+                        break
+                    current_id = manager_user.reporting_manager_id
+
         target.reporting_manager_id = new_manager_id
 
     await db.commit()

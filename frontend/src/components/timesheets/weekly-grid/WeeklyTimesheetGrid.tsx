@@ -184,8 +184,16 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 		return totals;
 	}, [logs, dateStrings]);
 
-	// Weekly aggregate status
+	// Weekly aggregate status (display only -- see hasUnsubmittedEntries below for
+	// whether the Submit button should actually be available).
 	const weeklyStatus: TimesheetStatus = useMemo(() => computeWeekStatus(logs), [logs]);
+
+	// Whether to show/enable "Submit Week" must be judged independently of the single
+	// display badge above: once any entry in the week is SUBMITTED, the badge reads
+	// "SUBMITTED" even if the employee later adds one more DRAFT entry to the same
+	// week (e.g. a forgotten day). Gating the button on the badge would hide it right
+	// when it's needed -- there's still something real to submit.
+	const hasUnsubmittedEntries = logs.some((l) => l.status === 'draft' || l.status === 'rejected');
 
 	const grandTotal = Object.values(dayTotals).reduce((sum, h) => sum + h, 0);
 
@@ -244,11 +252,11 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 					>
 						Add Row
 					</Button>
-					{weeklyStatus !== 'approved' && weeklyStatus !== 'submitted' && (
+					{hasUnsubmittedEntries && (
 						<Button
 							variant="contained"
 							onClick={onSubmitWeek}
-							disabled={logs.length === 0 || submitLoading || !reportingManagerSet || isLocked}
+							disabled={submitLoading || !reportingManagerSet || isLocked}
 							sx={{ borderRadius: '8px', fontWeight: 700, px: 3 }}
 						>
 							Submit Week
@@ -302,6 +310,12 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 			{activeGrant && !isCurrentWeek && (
 				<Alert severity="success" sx={{ borderRadius: '8px' }}>
 					Your manager unlocked this week — add/edit your entries and hit Submit Week when ready.
+				</Alert>
+			)}
+
+			{hasUnsubmittedEntries && (weeklyStatus === 'submitted' || weeklyStatus === 'approved') && (
+				<Alert severity="info" sx={{ borderRadius: '8px' }}>
+					You've added entries since your last submission — hit Submit Week to send them to your manager too.
 				</Alert>
 			)}
 

@@ -366,10 +366,13 @@ export const ManagerAllocationTable: React.FC<ManagerAllocationTableProps> = ({
 															</MenuItem>
 											{(() => {
 																// Edge Case 1: self-reporting is normally excluded -- but if this
-																// person has no other admin/manager in the org to be assigned to,
-																// there's genuinely no one else, so allow self-approval as a
-																// fallback rather than leaving them permanently unable to submit.
-																const hasOtherManagers = filteredManagers.some((m) => m.id !== selfOwnerId);
+																// person has no other ASSIGNABLE admin/manager (excluding circular
+																// candidates, e.g. someone who already reports to them), there's
+																// genuinely no one else, so allow self-approval as a fallback
+																// rather than leaving them permanently unable to submit.
+																const hasOtherManagers = filteredManagers.some(
+																	(m) => m.id !== selfOwnerId && !wouldCreateCycle(user.email, m.id)
+																);
 
 																return filteredManagers.map((m) => {
 																	const isSelf = m.id === selfOwnerId;

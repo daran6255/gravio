@@ -54,21 +54,29 @@ export const ManagerAllocationPanel: React.FC = () => {
 		return owners.filter(o => adminOrManagerEmails.has(o.email));
 	}, [owners, allUsers, roleFilterOnlyManagers]);
 
-	// Trace reporting manager chain to detect circular reporting
+	// Trace reporting manager chain to detect circular reporting. Only flags a cycle
+	// when the chain leads back to `employeeEmail` specifically -- a self-managing
+	// terminal node (someone who reports to themselves, e.g. a sole admin with no
+	// other manager) is a valid dead end for anyone walking *through* it, not a loop.
 	const wouldCreateCycle = (employeeEmail: string, potentialManagerId: number | ''): boolean => {
 		if (!potentialManagerId) return false;
-		
+
 		const targetManager = owners.find(o => o.id === potentialManagerId);
 		if (!targetManager) return false;
-		
+
 		if (employeeEmail === targetManager.email) return true;
 
-		const visited = new Set<string>([employeeEmail]);
+		const visited = new Set<string>();
 		let currentEmail = targetManager.email;
 
 		while (currentEmail) {
-			if (visited.has(currentEmail)) {
+			if (currentEmail === employeeEmail) {
 				return true;
+			}
+			if (visited.has(currentEmail)) {
+				// Hit an unrelated repeat (e.g. someone else's self-managed chain) --
+				// not a cycle back to employeeEmail, just stop walking.
+				break;
 			}
 			visited.add(currentEmail);
 
