@@ -6,6 +6,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.timesheet import ProjectTimeLog, OrgHoliday, UserTimesheetCategory, TimesheetUserSettings, TimesheetStatus, TimesheetBillingType, HolidayType
 
 class TimesheetCategoryRepository:
+    # Seeded once per organization (onboarding, or lazily on first fetch for orgs
+    # created before this existed) so "General" logging always has something to
+    # pick from out of the box, mirroring ProjectService.seed_default_task_statuses.
+    DEFAULT_CATEGORIES = [
+        {"name": "Meetings", "color": "#3B82F6"},
+        {"name": "Training", "color": "#8B7CF6"},
+        {"name": "Administrative", "color": "#F59E0B"},
+        {"name": "Leave", "color": "#10B981"},
+        {"name": "Other", "color": "#6B7280"},
+    ]
+
     @staticmethod
     async def get_by_id(db: AsyncSession, id: int) -> Optional[UserTimesheetCategory]:
         result = await db.execute(select(UserTimesheetCategory).where(UserTimesheetCategory.id == id, UserTimesheetCategory.is_deleted.is_(False)))
@@ -48,6 +59,29 @@ class TimesheetCategoryRepository:
         db.add(category)
         await db.flush()
         return category
+
+    @staticmethod
+    async def seed_defaults(db: AsyncSession, organization_id: int) -> Sequence[UserTimesheetCategory]:
+        """Create the org-default category set if none exist yet for this org. Idempotent --
+        safe to call from onboarding and again later as a lazy-seed fallback."""
+        existing = await TimesheetCategoryRepository.list_for_user(db, organization_id=organization_id, user_id=0)
+        org_defaults = [c for c in existing if c.is_org_default]
+        if org_defaults:
+            return org_defaults
+
+        created = []
+        for cat in TimesheetCategoryRepository.DEFAULT_CATEGORIES:
+            created.append(
+                await TimesheetCategoryRepository.create(
+                    db,
+                    organization_id=organization_id,
+                    user_id=None,
+                    name=cat["name"],
+                    color=cat["color"],
+                    is_org_default=True,
+                )
+            )
+        return created
 
     @staticmethod
     async def update(db: AsyncSession, category: UserTimesheetCategory, **kwargs) -> UserTimesheetCategory:

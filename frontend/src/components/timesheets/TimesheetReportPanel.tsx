@@ -56,9 +56,20 @@ const TimesheetReportPanel: React.FC = () => {
 	const isDark = theme.palette.mode === 'dark';
 	const dispatch = useAppDispatch();
 
+	const currentUser = useAppSelector((state) => state.auth.user);
 	const { projects } = useAppSelector((state) => state.projects);
 	const { owners } = useAppSelector((state) => state.crm);
 	const { reportRows, reportRowsLoading } = useAppSelector((state) => state.timesheets);
+
+	// Project Management is a separate plan add-on -- skip the (otherwise 403'ing)
+	// projects fetch for orgs that don't have it; the filter just stays "All Projects".
+	const hasProjectModule = React.useMemo(() => {
+		if (currentUser?.is_superuser) return true;
+		const org = currentUser?.organization;
+		if (!org) return false;
+		if (org.subscription_status === 'trial') return true;
+		return org.plan?.enabled_modules?.includes('project_management') ?? false;
+	}, [currentUser]);
 
 	// Report filter states
 	const [startDate, setStartDate] = useState(
@@ -74,9 +85,11 @@ const TimesheetReportPanel: React.FC = () => {
 	const [rowsPerPage, setRowsPerPage] = useState(10);
 
 	useEffect(() => {
-		dispatch(fetchProjects({ pageSize: 100 }));
+		if (hasProjectModule) {
+			dispatch(fetchProjects({ pageSize: 100 }));
+		}
 		dispatch(fetchOwners());
-	}, [dispatch]);
+	}, [dispatch, hasProjectModule]);
 
 	const loadReport = () => {
 		dispatch(

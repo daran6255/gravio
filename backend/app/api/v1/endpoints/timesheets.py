@@ -38,9 +38,15 @@ async def get_my_categories(
     current_user: User = Depends(get_current_user)
 ):
     """Retrieve personal and organization default timesheet categories for the current user."""
-    return await TimesheetCategoryRepository.list_for_user(
+    categories = await TimesheetCategoryRepository.list_for_user(
         db, organization_id=current_user.organization_id, user_id=current_user.id
     )
+    # Orgs created before default-category seeding existed (or where onboarding was
+    # skipped) would otherwise see an empty "General" dropdown -- lazily seed the same
+    # defaults new orgs get, mirroring list_project_task_statuses_endpoint.
+    if not categories and current_user.organization_id:
+        categories = await TimesheetCategoryRepository.seed_defaults(db, current_user.organization_id)
+    return categories
 
 @router.post("/categories", response_model=TimesheetCategoryResponse, status_code=status.HTTP_201_CREATED)
 async def create_category(

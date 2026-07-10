@@ -4,6 +4,7 @@ import {
 	TextField,
 	MenuItem,
 	Stack,
+	Box,
 	ToggleButtonGroup,
 	ToggleButton,
 	Alert,
@@ -13,11 +14,12 @@ import {
 	CircularProgress
 } from '@mui/material';
 import { Add as AddIcon, DeleteOutline as DeleteIcon } from '@mui/icons-material';
-import { BaseDialog } from '../common/dialogbox';
+import { BaseDialog, ConfirmationDialog } from '../common/dialogbox';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { createTimeLog, updateTimeLog, fetchMyCategories } from '../../store/slices/timesheetSlice';
+import { createTimeLog, updateTimeLog, deleteTimeLog, fetchMyCategories, createCategory } from '../../store/slices/timesheetSlice';
 import { fetchProjects, fetchTaskStatuses } from '../../store/slices/projectsSlice';
 import projectService from '../../services/projectService';
+import useToast from '../../hooks/useToast';
 import type { ProjectTimeLog } from '../../models/timesheet';
 import type { ProjectTask } from '../../models/projects/projectTask';
 import type { Project } from '../../models/projects/project';
@@ -49,9 +51,18 @@ interface RowDraft {
 let rowKeySeq = 0;
 const nextRowKey = () => `row_${Date.now()}_${rowKeySeq++}`;
 
-const makeEmptyRow = (defaultDate?: string): RowDraft => ({
+// Sentinel select value that opens the inline "create category" dialog instead of
+// actually being assigned to a row -- never persisted to categoryId.
+const ADD_NEW_CATEGORY = '__add_new_category__';
+
+const CATEGORY_COLORS = [
+	'#8B7CF6', '#10B981', '#F59E0B', '#3B82F6', '#EC4899',
+	'#14B8A6', '#EF4444', '#6366F1', '#A855F7', '#6B7280'
+];
+
+const makeEmptyRow = (defaultDate?: string, defaultLogAgainst: LogAgainst = 'project_task'): RowDraft => ({
 	key: nextRowKey(),
-	logAgainst: 'project_task',
+	logAgainst: defaultLogAgainst,
 	projectId: '',
 	taskId: '',
 	categoryId: '',
@@ -81,25 +92,53 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 	onSave
 }) => {
 	const dispatch = useAppDispatch();
+	const toast = useToast();
 	const currentUser = useAppSelector((state) => state.auth.user);
 	const { projects, taskStatuses } = useAppSelector((state) => state.projects);
 	const { categories } = useAppSelector((state) => state.timesheets);
 
 	const isEdit = !!log;
+	// Mirrors the backend's own rule (only draft/rejected entries are deletable) --
+	// the grid already blocks opening this dialog for submitted/approved logs, so
+	// this is mostly a defensive guard against stale UI state.
+	const canDelete = isEdit && !!log && (log.status === 'draft' || log.status === 'rejected');
 
-	const [rows, setRows] = useState<RowDraft[]>([makeEmptyRow(defaultDate)]);
+	// The Project Management module is a separate plan add-on -- timesheets must work
+	// standalone for orgs that never bought it (or a trial, which unlocks everything).
+	// Without this check the Task/Project dropdowns would 403 on every open and dead-end.
+	const hasProjectModule = useMemo(() => {
+		if (currentUser?.is_superuser) return true;
+		const org = currentUser?.organization;
+		if (!org) return false;
+		if (org.subscription_status === 'trial') return true;
+		return org.plan?.enabled_modules?.includes('project_management') ?? false;
+	}, [currentUser]);
+
+	const [rows, setRows] = useState<RowDraft[]>([makeEmptyRow(defaultDate, hasProjectModule ? 'project_task' : 'general')]);
 	const [error, setError] = useState<string | null>(null);
 	const [submitting, setSubmitting] = useState(false);
+	const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+	const [deleting, setDeleting] = useState(false);
+
+	// Inline "add category" flow, triggered from the General row's Category select.
+	const [newCategoryDialogOpen, setNewCategoryDialogOpen] = useState(false);
+	const [newCategoryRowKey, setNewCategoryRowKey] = useState<string | null>(null);
+	const [newCategoryName, setNewCategoryName] = useState('');
+	const [newCategoryColor, setNewCategoryColor] = useState(CATEGORY_COLORS[0]);
+	const [categoryError, setCategoryError] = useState<string | null>(null);
+	const [creatingCategory, setCreatingCategory] = useState(false);
 
 	useEffect(() => {
 		if (open) {
-			// Only projects the current user actually works on -- owns, or has a task
-			// assigned in -- and not ones that have already wrapped up.
-			dispatch(fetchProjects({ pageSize: 100, assignedToMe: true, excludeCompleted: true }));
+			if (hasProjectModule) {
+				// Only projects the current user actually works on -- owns, or has a task
+				// assigned in -- and not ones that have already wrapped up.
+				dispatch(fetchProjects({ pageSize: 100, assignedToMe: true, excludeCompleted: true }));
+				dispatch(fetchTaskStatuses());
+			}
 			dispatch(fetchMyCategories());
-			dispatch(fetchTaskStatuses());
 		}
-	}, [open, dispatch]);
+	}, [open, dispatch, hasProjectModule]);
 
 	// Editing a log whose project/task has since been completed, or is no longer
 	// assigned to this user, must still show that project/task rather than a blank
@@ -160,12 +199,19 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 			setRows([row]);
 
 			if (log.project_id && log.task_id && log.project?.public_id) {
-				loadTasksForProject(row.key, log.project.public_id);
+				if (hasProjectModule) {
+					loadTasksForProject(row.key, log.project.public_id);
+				} else if (log.task) {
+					// Module is off for this org, so the sibling-tasks endpoint (also
+					// module-gated) isn't reachable -- fall back to the one task the
+					// log itself already carries, just so the field isn't blank.
+					setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, tasks: [log.task!] } : r)));
+				}
 			}
 		} else {
-			setRows([makeEmptyRow(defaultDate)]);
+			setRows([makeEmptyRow(defaultDate, hasProjectModule ? 'project_task' : 'general')]);
 		}
-	}, [open, log, defaultDate, loadTasksForProject]);
+	}, [open, log, defaultDate, loadTasksForProject, hasProjectModule]);
 
 	const updateRow = (key: string, patch: Partial<RowDraft>) => {
 		setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -187,7 +233,7 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 	};
 
 	const handleAddRow = () => {
-		setRows((prev) => [...prev, makeEmptyRow(defaultDate)]);
+		setRows((prev) => [...prev, makeEmptyRow(defaultDate, hasProjectModule ? 'project_task' : 'general')]);
 	};
 
 	const handleRemoveRow = (key: string) => {
@@ -246,206 +292,371 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 		}
 	};
 
-	return (
-		<BaseDialog
-			open={open}
-			onClose={onClose}
-			title={isEdit ? 'Edit Time Entry' : 'Log Time'}
-			subtitle={isEdit ? undefined : 'Add hours across one or more projects and activities for the day'}
-			maxWidth="sm"
-			loading={submitting}
-			actions={
-				<>
-					<Button onClick={onClose} disabled={submitting}>
-						Cancel
-					</Button>
-					<Button
-						variant="contained"
-						onClick={handleSubmit}
-						disabled={submitting}
-						sx={{ fontWeight: 700, borderRadius: '8px' }}
-					>
-						{submitting ? (
-							<CircularProgress size={18} />
-						) : isEdit ? (
-							'Update Entry'
-						) : rows.length > 1 ? (
-							`Log ${rows.length} Entries`
-						) : (
-							'Log Time'
-						)}
-					</Button>
-				</>
+	const handleDelete = async () => {
+		if (!log) return;
+		setDeleting(true);
+		try {
+			await dispatch(deleteTimeLog(log.id)).unwrap();
+			toast.success('Time entry deleted');
+			setConfirmDeleteOpen(false);
+			onSave?.();
+			onClose();
+		} catch (err: any) {
+			toast.error(err || 'Failed to delete time entry');
+		} finally {
+			setDeleting(false);
+		}
+	};
+
+	const handleCategorySelectChange = (rowKey: string, value: string) => {
+		if (value === ADD_NEW_CATEGORY) {
+			setNewCategoryRowKey(rowKey);
+			setNewCategoryName('');
+			setNewCategoryColor(CATEGORY_COLORS[0]);
+			setCategoryError(null);
+			setNewCategoryDialogOpen(true);
+			return;
+		}
+		updateRow(rowKey, { categoryId: Number(value) });
+	};
+
+	const handleCreateCategory = async () => {
+		if (!newCategoryName.trim()) return;
+		setCreatingCategory(true);
+		setCategoryError(null);
+		try {
+			const created = await dispatch(
+				createCategory({ name: newCategoryName.trim(), color: newCategoryColor })
+			).unwrap();
+			if (newCategoryRowKey) {
+				updateRow(newCategoryRowKey, { categoryId: created.id });
 			}
-		>
-			<Stack spacing={2.5}>
-				{error && (
-					<Alert severity="error" sx={{ borderRadius: '8px' }}>
-						{error}
-					</Alert>
-				)}
+			toast.success('Category created');
+			setNewCategoryDialogOpen(false);
+			setNewCategoryRowKey(null);
+			setNewCategoryName('');
+		} catch (err: any) {
+			setCategoryError(err || 'Failed to create category');
+		} finally {
+			setCreatingCategory(false);
+		}
+	};
 
-				{rows.map((row, idx) => (
-					<React.Fragment key={row.key}>
-						{idx > 0 && <Divider />}
-						<Stack spacing={2}>
-							{rows.length > 1 && (
-								<Stack direction="row" justifyContent="space-between" alignItems="center">
-									<Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary' }}>
-										Entry {idx + 1}
-									</Typography>
-									<IconButton size="small" onClick={() => handleRemoveRow(row.key)} disabled={submitting}>
-										<DeleteIcon fontSize="small" />
-									</IconButton>
-								</Stack>
+	return (
+		<>
+			<BaseDialog
+				open={open}
+				onClose={onClose}
+				title={isEdit ? 'Edit Time Entry' : 'Log Time'}
+				subtitle={isEdit ? undefined : 'Add hours across one or more projects and activities for the day'}
+				maxWidth="sm"
+				loading={submitting}
+				actions={
+					<Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+						<Box>
+							{canDelete && (
+								<Button
+									color="error"
+									startIcon={<DeleteIcon />}
+									onClick={() => setConfirmDeleteOpen(true)}
+									disabled={submitting}
+									sx={{ fontWeight: 700, borderRadius: '8px' }}
+								>
+									Delete
+								</Button>
 							)}
-
-							<ToggleButtonGroup
-								value={row.logAgainst}
-								exclusive
-								onChange={(_, val) =>
-									val && updateRow(row.key, { logAgainst: val, projectId: '', taskId: '', categoryId: '', tasks: [] })
-								}
-								fullWidth
-								size="small"
+						</Box>
+						<Stack direction="row" spacing={1}>
+							<Button onClick={onClose} disabled={submitting}>
+								Cancel
+							</Button>
+							<Button
+								variant="contained"
+								onClick={handleSubmit}
 								disabled={submitting}
+								sx={{ fontWeight: 700, borderRadius: '8px' }}
 							>
-								<ToggleButton value="project_task">Task</ToggleButton>
-								<ToggleButton value="project_only">Project</ToggleButton>
-								<ToggleButton value="general">General</ToggleButton>
-							</ToggleButtonGroup>
+								{submitting ? (
+									<CircularProgress size={18} />
+								) : isEdit ? (
+									'Update Entry'
+								) : rows.length > 1 ? (
+									`Log ${rows.length} Entries`
+								) : (
+									'Log Time'
+								)}
+							</Button>
+						</Stack>
+					</Box>
+				}
+			>
+				<Stack spacing={2.5}>
+					{error && (
+						<Alert severity="error" sx={{ borderRadius: '8px' }}>
+							{error}
+						</Alert>
+					)}
 
-							{row.logAgainst !== 'general' && (
+					{rows.map((row, idx) => (
+						<React.Fragment key={row.key}>
+							{idx > 0 && <Divider />}
+							<Stack spacing={2}>
+								{rows.length > 1 && (
+									<Stack direction="row" justifyContent="space-between" alignItems="center">
+										<Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+											Entry {idx + 1}
+										</Typography>
+										<IconButton size="small" onClick={() => handleRemoveRow(row.key)} disabled={submitting}>
+											<DeleteIcon fontSize="small" />
+										</IconButton>
+									</Stack>
+								)}
+
+								{hasProjectModule ? (
+									<ToggleButtonGroup
+										value={row.logAgainst}
+										exclusive
+										onChange={(_, val) =>
+											val && updateRow(row.key, { logAgainst: val, projectId: '', taskId: '', categoryId: '', tasks: [] })
+										}
+										fullWidth
+										size="small"
+										disabled={submitting}
+									>
+										<ToggleButton value="project_task">Task</ToggleButton>
+										<ToggleButton value="general">General</ToggleButton>
+									</ToggleButtonGroup>
+								) : (
+									row.logAgainst === 'general' && (
+										<Typography variant="caption" color="text.secondary">
+											Logging general/internal time. Project-based logging isn't available on your organization's plan.
+										</Typography>
+									)
+								)}
+
+								{row.logAgainst !== 'general' && (
+									<TextField
+										select
+										label="Project"
+										value={row.projectId}
+										onChange={(e) => handleProjectChange(row.key, Number(e.target.value))}
+										fullWidth
+										required
+										disabled={submitting}
+										helperText={visibleProjects.length === 0 ? 'No active projects assigned to you' : undefined}
+									>
+										{visibleProjects.map((p) => (
+											<MenuItem key={p.id} value={p.id}>
+												{p.name}
+											</MenuItem>
+										))}
+									</TextField>
+								)}
+
+								{row.logAgainst === 'project_task' && (
+									<TextField
+										select
+										label="Task"
+										value={row.taskId}
+										onChange={(e) => handleTaskChange(row.key, Number(e.target.value), row)}
+										fullWidth
+										required
+										disabled={!row.projectId || submitting}
+										helperText={
+											row.tasksLoading
+												? 'Loading tasks...'
+												: row.projectId && getVisibleTasks(row).length === 0
+													? 'No active tasks assigned to you on this project'
+													: undefined
+										}
+									>
+										{getVisibleTasks(row).map((t) => (
+											<MenuItem key={t.id} value={t.id} sx={{ display: 'block' }}>
+												<Typography variant="body2">{t.title}</Typography>
+												<Typography variant="caption" color="text.secondary">
+													{t.billing_type === 'billable' ? 'Billable' : 'Non-Billable'}
+													{t.priority ? ` · ${t.priority.charAt(0).toUpperCase()}${t.priority.slice(1)} priority` : ''}
+													{t.due_date ? ` · Due ${t.due_date}` : ''}
+													{doneStatusIds.has(t.status_id) ? ' · Completed' : ''}
+												</Typography>
+											</MenuItem>
+										))}
+									</TextField>
+								)}
+
+								{row.logAgainst === 'general' && (
+									<TextField
+										select
+										label="Category"
+										value={row.categoryId}
+										onChange={(e) => handleCategorySelectChange(row.key, e.target.value as string)}
+										fullWidth
+										required
+										disabled={submitting}
+										helperText={categories.length === 0 ? "You don't have any categories yet -- add one below" : undefined}
+									>
+										{categories.map((c) => (
+											<MenuItem key={c.id} value={c.id}>
+												<Stack direction="row" spacing={1} alignItems="center">
+													<Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: c.color || '#94A3B8', flexShrink: 0 }} />
+													<Typography variant="body2">{c.name}</Typography>
+												</Stack>
+											</MenuItem>
+										))}
+										<Divider />
+										<MenuItem value={ADD_NEW_CATEGORY} disabled={submitting}>
+											<Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'primary.main', fontWeight: 700 }}>
+												<AddIcon fontSize="small" />
+												<Typography variant="body2" sx={{ fontWeight: 700 }}>Add New Category</Typography>
+											</Stack>
+										</MenuItem>
+									</TextField>
+								)}
+
+								<Stack direction="row" spacing={2}>
+									<TextField
+										label="Date"
+										type="date"
+										value={row.logDate}
+										onChange={(e) => updateRow(row.key, { logDate: e.target.value })}
+										fullWidth
+										required
+										disabled={submitting}
+										InputLabelProps={{ shrink: true }}
+									/>
+									<TextField
+										label="Hours"
+										type="number"
+										inputProps={{ step: 0.25, min: 0.25, max: 24 }}
+										value={row.hours}
+										onChange={(e) => updateRow(row.key, { hours: e.target.value })}
+										fullWidth
+										required
+										disabled={submitting}
+										placeholder="e.g. 1.5"
+									/>
+								</Stack>
+
 								<TextField
 									select
-									label="Project"
-									value={row.projectId}
-									onChange={(e) => handleProjectChange(row.key, Number(e.target.value))}
-									fullWidth
-									required
-									disabled={submitting}
-									helperText={visibleProjects.length === 0 ? 'No active projects assigned to you' : undefined}
-								>
-									{visibleProjects.map((p) => (
-										<MenuItem key={p.id} value={p.id}>
-											{p.name}
-										</MenuItem>
-									))}
-								</TextField>
-							)}
-
-							{row.logAgainst === 'project_task' && (
-								<TextField
-									select
-									label="Task"
-									value={row.taskId}
-									onChange={(e) => handleTaskChange(row.key, Number(e.target.value), row)}
-									fullWidth
-									required
-									disabled={!row.projectId || submitting}
-									helperText={
-										row.tasksLoading
-											? 'Loading tasks...'
-											: row.projectId && getVisibleTasks(row).length === 0
-												? 'No active tasks assigned to you on this project'
-												: undefined
-									}
-								>
-									{getVisibleTasks(row).map((t) => (
-										<MenuItem key={t.id} value={t.id} sx={{ display: 'block' }}>
-											<Typography variant="body2">{t.title}</Typography>
-											<Typography variant="caption" color="text.secondary">
-												{t.billing_type === 'billable' ? 'Billable' : 'Non-Billable'}
-												{t.priority ? ` · ${t.priority.charAt(0).toUpperCase()}${t.priority.slice(1)} priority` : ''}
-												{t.due_date ? ` · Due ${t.due_date}` : ''}
-												{doneStatusIds.has(t.status_id) ? ' · Completed' : ''}
-											</Typography>
-										</MenuItem>
-									))}
-								</TextField>
-							)}
-
-							{row.logAgainst === 'general' && (
-								<TextField
-									select
-									label="Category"
-									value={row.categoryId}
-									onChange={(e) => updateRow(row.key, { categoryId: Number(e.target.value) })}
+									label="Billing Type"
+									value={row.billingType}
+									onChange={(e) => updateRow(row.key, { billingType: e.target.value as 'billable' | 'non_billable' })}
 									fullWidth
 									required
 									disabled={submitting}
 								>
-									{categories.map((c) => (
-										<MenuItem key={c.id} value={c.id}>
-											{c.name}
-										</MenuItem>
-									))}
+									<MenuItem value="billable">Billable</MenuItem>
+									<MenuItem value="non_billable">Non-Billable</MenuItem>
 								</TextField>
-							)}
 
-							<Stack direction="row" spacing={2}>
 								<TextField
-									label="Date"
-									type="date"
-									value={row.logDate}
-									onChange={(e) => updateRow(row.key, { logDate: e.target.value })}
+									label="Notes / Description"
+									multiline
+									rows={2}
+									value={row.notes}
+									onChange={(e) => updateRow(row.key, { notes: e.target.value })}
 									fullWidth
-									required
 									disabled={submitting}
-									InputLabelProps={{ shrink: true }}
-								/>
-								<TextField
-									label="Hours"
-									type="number"
-									inputProps={{ step: 0.25, min: 0.25, max: 24 }}
-									value={row.hours}
-									onChange={(e) => updateRow(row.key, { hours: e.target.value })}
-									fullWidth
-									required
-									disabled={submitting}
-									placeholder="e.g. 1.5"
+									placeholder="What did you work on?"
 								/>
 							</Stack>
+						</React.Fragment>
+					))}
 
-							<TextField
-								select
-								label="Billing Type"
-								value={row.billingType}
-								onChange={(e) => updateRow(row.key, { billingType: e.target.value as 'billable' | 'non_billable' })}
-								fullWidth
-								required
-								disabled={submitting}
-							>
-								<MenuItem value="billable">Billable</MenuItem>
-								<MenuItem value="non_billable">Non-Billable</MenuItem>
-							</TextField>
+					{!isEdit && (
+						<Button
+							startIcon={<AddIcon />}
+							onClick={handleAddRow}
+							disabled={submitting}
+							sx={{ alignSelf: 'flex-start', fontWeight: 600, borderRadius: '8px' }}
+						>
+							Add Another Row
+						</Button>
+					)}
+				</Stack>
+			</BaseDialog>
 
-							<TextField
-								label="Notes / Description"
-								multiline
-								rows={2}
-								value={row.notes}
-								onChange={(e) => updateRow(row.key, { notes: e.target.value })}
-								fullWidth
-								disabled={submitting}
-								placeholder="What did you work on?"
-							/>
+			<ConfirmationDialog
+				open={confirmDeleteOpen}
+				onClose={() => setConfirmDeleteOpen(false)}
+				onConfirm={handleDelete}
+				title="Delete Time Entry"
+				message={`Are you sure you want to delete this ${log?.hours ?? ''}h entry for ${log?.log_date ?? 'this day'}? This cannot be undone.`}
+				confirmLabel="Delete"
+				severity="error"
+				loading={deleting}
+			/>
+
+			<BaseDialog
+				open={newCategoryDialogOpen}
+				onClose={() => {
+					if (creatingCategory) return;
+					setNewCategoryDialogOpen(false);
+					setNewCategoryRowKey(null);
+				}}
+				title="Add Category"
+				subtitle="Create a personal category for logging general/internal time"
+				maxWidth="xs"
+				loading={creatingCategory}
+				actions={
+					<>
+						<Button onClick={() => setNewCategoryDialogOpen(false)} disabled={creatingCategory}>
+							Cancel
+						</Button>
+						<Button
+							variant="contained"
+							onClick={handleCreateCategory}
+							disabled={creatingCategory || !newCategoryName.trim()}
+							sx={{ fontWeight: 700, borderRadius: '8px' }}
+						>
+							{creatingCategory ? <CircularProgress size={18} /> : 'Create'}
+						</Button>
+					</>
+				}
+			>
+				<Stack spacing={2.5}>
+					{categoryError && (
+						<Alert severity="error" sx={{ borderRadius: '8px' }}>
+							{categoryError}
+						</Alert>
+					)}
+					<TextField
+						label="Category Name"
+						value={newCategoryName}
+						onChange={(e) => setNewCategoryName(e.target.value)}
+						fullWidth
+						required
+						autoFocus
+						disabled={creatingCategory}
+						placeholder="e.g. Meetings, Training, Admin"
+					/>
+					<Box>
+						<Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+							Color
+						</Typography>
+						<Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+							{CATEGORY_COLORS.map((color) => (
+								<Box
+									key={color}
+									onClick={() => !creatingCategory && setNewCategoryColor(color)}
+									sx={{
+										width: 28,
+										height: 28,
+										borderRadius: '50%',
+										bgcolor: color,
+										cursor: creatingCategory ? 'default' : 'pointer',
+										border: '2px solid',
+										borderColor: newCategoryColor === color ? 'text.primary' : 'transparent',
+										boxShadow: newCategoryColor === color ? '0 0 0 2px rgba(0,0,0,0.05)' : 'none'
+									}}
+								/>
+							))}
 						</Stack>
-					</React.Fragment>
-				))}
-
-				{!isEdit && (
-					<Button
-						startIcon={<AddIcon />}
-						onClick={handleAddRow}
-						disabled={submitting}
-						sx={{ alignSelf: 'flex-start', fontWeight: 600, borderRadius: '8px' }}
-					>
-						Add Another Row
-					</Button>
-				)}
-			</Stack>
-		</BaseDialog>
+					</Box>
+				</Stack>
+			</BaseDialog>
+		</>
 	);
 };
 
