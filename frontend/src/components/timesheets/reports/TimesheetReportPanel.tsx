@@ -23,6 +23,7 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTimesheetReport } from '../../../store/slices/timesheetSlice';
 import { fetchProjects } from '../../../store/slices/projectsSlice';
 import { fetchOwners } from '../../../store/slices/crmSlice';
+import { fetchTeamUsers } from '../../../store/slices/userSlice';
 import { DatePicker } from '../../common/form';
 import type { TimesheetReportRow } from '../../../models/timesheet';
 
@@ -60,7 +61,10 @@ const TimesheetReportPanel: React.FC = () => {
 	const currentUser = useAppSelector((state) => state.auth.user);
 	const { projects } = useAppSelector((state) => state.projects);
 	const { owners } = useAppSelector((state) => state.crm);
+	const { users: allUsers } = useAppSelector((state) => state.users);
 	const { reportRows, reportRowsLoading } = useAppSelector((state) => state.timesheets);
+
+	const isManagerOrAdmin = currentUser?.role === 'admin' || currentUser?.role === 'manager';
 
 	// Project Management is a separate plan add-on -- skip the (otherwise 403'ing)
 	// projects fetch for orgs that don't have it; the filter just stays "All Projects".
@@ -90,7 +94,32 @@ const TimesheetReportPanel: React.FC = () => {
 			dispatch(fetchProjects({ pageSize: 100 }));
 		}
 		dispatch(fetchOwners());
+		dispatch(fetchTeamUsers({ page: 1, pageSize: 100 }));
 	}, [dispatch, hasProjectModule]);
+
+	// Filter user options in the dropdown
+	const userOptions = React.useMemo(() => {
+		if (!currentUser) return [];
+
+		// Create a map of email -> TeamMember to easily lookup reporting_manager_id
+		const memberMap = new Map<string, typeof allUsers[0]>();
+		allUsers.forEach((u) => memberMap.set(u.email.toLowerCase(), u));
+
+		if (currentUser.role === 'admin') {
+			return owners;
+		}
+
+		if (currentUser.role === 'manager') {
+			return owners.filter((o) => {
+				if (o.id === currentUser.id) return true;
+				const member = memberMap.get(o.email.toLowerCase());
+				return member?.reporting_manager_id === currentUser.id;
+			});
+		}
+
+		// Otherwise (regular employee)
+		return owners.filter((o) => o.id === currentUser.id);
+	}, [owners, allUsers, currentUser]);
 
 	const loadReport = () => {
 		dispatch(
@@ -98,7 +127,7 @@ const TimesheetReportPanel: React.FC = () => {
 				start_date: startDate,
 				end_date: endDate,
 				project_id: projectId || null,
-				user_id: userId || null,
+				user_id: isManagerOrAdmin ? (userId || null) : (currentUser?.id || null),
 				billing_type: billingType || null
 			})
 		);
@@ -107,7 +136,7 @@ const TimesheetReportPanel: React.FC = () => {
 
 	useEffect(() => {
 		loadReport();
-	}, [startDate, endDate, projectId, userId, billingType]);
+	}, [startDate, endDate, projectId, userId, billingType, currentUser]);
 
 	// Summaries
 	const summaryStats = React.useMemo(() => {
@@ -154,7 +183,7 @@ const TimesheetReportPanel: React.FC = () => {
 					Report Filters
 				</Typography>
 				<Grid container spacing={2} alignItems="center">
-					<Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+					<Grid size={{ xs: 12, sm: 6, md: isManagerOrAdmin ? 2.4 : 3 }}>
 						<DatePicker
 							label="From Date"
 							value={startDate || null}
@@ -162,7 +191,7 @@ const TimesheetReportPanel: React.FC = () => {
 							fullWidth
 						/>
 					</Grid>
-					<Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+					<Grid size={{ xs: 12, sm: 6, md: isManagerOrAdmin ? 2.4 : 3 }}>
 						<DatePicker
 							label="To Date"
 							value={endDate || null}
@@ -170,7 +199,7 @@ const TimesheetReportPanel: React.FC = () => {
 							fullWidth
 						/>
 					</Grid>
-					<Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+					<Grid size={{ xs: 12, sm: 6, md: isManagerOrAdmin ? 2.4 : 3 }}>
 						<TextField
 							select
 							label="Project"
@@ -186,23 +215,25 @@ const TimesheetReportPanel: React.FC = () => {
 							))}
 						</TextField>
 					</Grid>
-					<Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
-						<TextField
-							select
-							label="User"
-							value={userId}
-							onChange={(e) => setUserId(e.target.value === '' ? '' : Number(e.target.value))}
-							fullWidth
-						>
-							<MenuItem value="">All Team Members</MenuItem>
-							{owners.map((o) => (
-								<MenuItem key={o.id} value={o.id}>
-									{o.full_name || o.email}
-								</MenuItem>
-							))}
-						</TextField>
-					</Grid>
-					<Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+					{isManagerOrAdmin && (
+						<Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+							<TextField
+								select
+								label="User"
+								value={userId}
+								onChange={(e) => setUserId(e.target.value === '' ? '' : Number(e.target.value))}
+								fullWidth
+							>
+								<MenuItem value="">All Team Members</MenuItem>
+								{userOptions.map((o) => (
+									<MenuItem key={o.id} value={o.id}>
+										{o.full_name || o.email}
+									</MenuItem>
+								))}
+							</TextField>
+						</Grid>
+					)}
+					<Grid size={{ xs: 12, sm: 6, md: isManagerOrAdmin ? 2.4 : 3 }}>
 						<TextField
 							select
 							label="Billing Type"

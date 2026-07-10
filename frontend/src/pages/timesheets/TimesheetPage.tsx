@@ -29,8 +29,7 @@ import {
 	fetchTeamWeekUnlockRequests,
 	approveWeekUnlock,
 	denyWeekUnlock,
-	fetchUserSettings,
-	fetchMyTimesheetHistory
+	fetchUserSettings
 } from '../../store/slices/timesheetSlice';
 import PageHeader from '../../components/common/page-header';
 import WeeklyTimesheetGrid from '../../components/timesheets/weekly-grid';
@@ -40,7 +39,6 @@ import TimeLogEntryFormDialog from '../../components/timesheets/log-entry-dialog
 import ManagerAllocationPanel from '../../components/timesheets/manager-allocation';
 import HolidayCalendarPanel from '../../components/timesheets/holiday-calendar';
 import WeekUnlockRequestsPanel from '../../components/timesheets/week-unlock-requests';
-import SubmissionHistoryPanel from '../../components/timesheets/submission-history';
 import useToast from '../../hooks/useToast';
 import type { ProjectTimeLog } from '../../models/timesheet';
 
@@ -78,7 +76,7 @@ const TimesheetPage: React.FC = () => {
 	const {
 		myTimeLogs, teamTimeLogs, holidays, actionLoading, actionError,
 		myUnlockRequests, teamUnlockRequests, teamUnlockRequestsLoading, unlockRequestMutating,
-		userSettings, myHistoryLogs, myHistoryLogsLoading
+		userSettings
 	} = useAppSelector((state) => state.timesheets);
 
 	const isManagerOrAdmin = currentUser?.role === 'admin' || currentUser?.role === 'manager';
@@ -89,12 +87,12 @@ const TimesheetPage: React.FC = () => {
 	const [activeTab, setActiveTab] = useState(0);
 
 	const tabLabels = useMemo(() => {
-		const labels = ['My Timesheet', 'Previous Timesheets'];
+		const labels = ['My Timesheet'];
 		if (isManagerOrAdmin) {
 			labels.push('Team Approvals');
 			labels.push('Unlock Requests');
-			labels.push('Reports');
 		}
+		labels.push('Reports');
 		if (currentUser?.role === 'admin') {
 			labels.push('Manager Allocation');
 			labels.push('Holiday List');
@@ -148,19 +146,7 @@ const TimesheetPage: React.FC = () => {
 		}
 	}, [currentMonday, activeTab, currentUser, tabLabels]);
 
-	// Submission history: everything in the numWeeksOfHistory window before the
-	// currently-viewed week, so "Previous Timesheets" doesn't require re-fetching
-	// every time the user pages back one week at a time.
-	const numWeeksOfHistory = 8;
-	useEffect(() => {
-		if (currentUser && tabLabels[activeTab] === 'Previous Timesheets') {
-			const historyEnd = new Date(currentMonday);
-			historyEnd.setDate(historyEnd.getDate() - 1);
-			const historyStart = new Date(currentMonday);
-			historyStart.setDate(historyStart.getDate() - 7 * numWeeksOfHistory);
-			dispatch(fetchMyTimesheetHistory({ startDate: formatDateStr(historyStart), endDate: formatDateStr(historyEnd) }));
-		}
-	}, [currentMonday, activeTab, currentUser, tabLabels]);
+
 
 	useEffect(() => {
 		if (isManagerOrAdmin && tabLabels[activeTab] === 'Unlock Requests') {
@@ -354,19 +340,7 @@ const TimesheetPage: React.FC = () => {
 				</Stack>
 			)}
 
-			{/* Previous Timesheets (submission history) */}
-			{tabLabels[activeTab] === 'Previous Timesheets' && (
-				<SubmissionHistoryPanel
-					historyLogs={myHistoryLogs}
-					loading={myHistoryLogsLoading}
-					currentWeekMonday={currentMonday}
-					numWeeks={numWeeksOfHistory}
-					onSelectWeek={(monday) => {
-						setCurrentMonday(monday);
-						setActiveTab(tabLabels.indexOf('My Timesheet'));
-					}}
-				/>
-			)}
+
 
 			{/* Team Approvals Table */}
 			{tabLabels[activeTab] === 'Team Approvals' && isManagerOrAdmin && (

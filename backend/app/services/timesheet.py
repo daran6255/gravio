@@ -43,6 +43,9 @@ class TimesheetLockService:
         if await ProjectTimeLogRepository.week_has_rejected_entry(db, organization_id, user_id, week_start, week_end):
             return False, None
 
+        if await ProjectTimeLogRepository.week_has_submitted_or_approved_entry(db, organization_id, user_id, week_start, week_end):
+            return False, None
+
         grant = await TimesheetWeekUnlockRequestRepository.get_active_grant(
             db, organization_id, user_id, week_start
         )

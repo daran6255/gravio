@@ -182,7 +182,9 @@ async def test_time_logging_validations(auth_dev_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_weekly_timesheet_submission(auth_dev_client: AsyncClient, db_session):
+async def test_weekly_timesheet_submission(auth_dev_client: AsyncClient, db_session, timesheet_test_data, client: AsyncClient):
+    _, manager, admin, dev = timesheet_test_data
+    
     # Get current user profile details to get manager status
     me_resp = await auth_dev_client.get("/api/v1/auth/me")
     assert me_resp.status_code == 200
@@ -192,10 +194,11 @@ async def test_weekly_timesheet_submission(auth_dev_client: AsyncClient, db_sess
     sunday = (date.today() + timedelta(days=6-date.today().weekday())).isoformat()
 
     # Log some time on monday
-    await auth_dev_client.post(
+    log_resp = await auth_dev_client.post(
         "/api/v1/timesheets/",
         json={"log_date": monday, "hours": 8.0, "notes": "Standard day"}
     )
+    assert log_resp.status_code == 201
 
     # Submit week
     submit_resp = await auth_dev_client.post(
@@ -205,3 +208,104 @@ async def test_weekly_timesheet_submission(auth_dev_client: AsyncClient, db_sess
     # If reporting manager is not set, it should fail with 400
     assert submit_resp.status_code == 400
     assert "without an assigned Reporting Manager" in submit_resp.json()["error"]["message"]
+
+    # Assign manager
+    dev.reporting_manager_id = manager.id
+    db_session.add(dev)
+    await db_session.commit()
+
+    # Submit week now (should succeed)
+    submit_resp = await auth_dev_client.post(
+        "/api/v1/timesheets/submit-week",
+        json={"start_date": monday, "end_date": sunday}
+    )
+    assert submit_resp.status_code == 200
+
+    # 1. Verify logging additional time on this SUBMITTED week fails
+    tuesday = (date.today() - timedelta(days=date.today().weekday() - 1)).isoformat()
+    fail_log_resp = await auth_dev_client.post(
+        "/api/v1/timesheets/",
+        json={"log_date": tuesday, "hours": 4.0, "notes": "Additional work"}
+    )
+    assert fail_log_resp.status_code == 400
+    assert "already submitted or approved" in fail_log_resp.json()["error"]["message"]
+
+    # 2. Login as manager to approve the timesheet
+    login_resp = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "manager@timetest.com", "password": "password123"}
+    )
+    assert login_resp.status_code == 200
+    manager_token = login_resp.json()["access_token"]
+    
+    auth_manager_headers = {"Authorization": f"Bearer {manager_token}"}
+    approve_resp = await client.post(
+        f"/api/v1/timesheets/users/{dev.id}/approve",
+        headers=auth_manager_headers,
+        json={"start_date": monday, "end_date": sunday}
+    )
+    assert approve_resp.status_code == 200
+
+    # 3. Verify logging additional time on this APPROVED week fails
+    fail_log_resp2 = await auth_dev_client.post(
+        "/api/v1/timesheets/",
+        json={"log_date": tuesday, "hours": 4.0, "notes": "Additional work"}
+    )
+    assert fail_log_resp2.status_code == 400
+    assert "already submitted or approved" in fail_log_resp2.json()["error"]["message"]
+
+
+@pytest.mark.asyncio
+async def test_report_role_based_access(auth_dev_client: AsyncClient, timesheet_test_data, client: AsyncClient, db_session):
+    _, manager, admin, dev = timesheet_test_data
+    
+    # Setup: developer reports to manager
+    dev.reporting_manager_id = manager.id
+    db_session.add(dev)
+    await db_session.commit()
+
+    monday = (date.today() - timedelta(days=date.today().weekday())).isoformat()
+    sunday = (date.today() + timedelta(days=6-date.today().weekday())).isoformat()
+
+    # Log hours for developer
+    await auth_dev_client.post(
+        "/api/v1/timesheets/",
+        json={"log_date": monday, "hours": 8.0, "notes": "Dev hours"}
+    )
+
+    # 1. Developer fetches report for their own ID (should succeed)
+    resp = await auth_dev_client.get(
+        f"/api/v1/timesheets/report?start_date={monday}&end_date={sunday}&user_id={dev.id}"
+    )
+    assert resp.status_code == 200
+    assert len(resp.json()) > 0
+    assert resp.json()[0]["user_id"] == dev.id
+
+    # 2. Developer tries to fetch report for Manager's ID (should fail 403)
+    resp = await auth_dev_client.get(
+        f"/api/v1/timesheets/report?start_date={monday}&end_date={sunday}&user_id={manager.id}"
+    )
+    assert resp.status_code == 403
+
+    # 3. Manager logs in
+    login_resp = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "manager@timetest.com", "password": "password123"}
+    )
+    manager_token = login_resp.json()["access_token"]
+    auth_manager_headers = {"Authorization": f"Bearer {manager_token}"}
+
+    # 4. Manager fetches report for Dev ID (direct report, should succeed)
+    resp = await client.get(
+        f"/api/v1/timesheets/report?start_date={monday}&end_date={sunday}&user_id={dev.id}",
+        headers=auth_manager_headers
+    )
+    assert resp.status_code == 200
+    assert len(resp.json()) > 0
+
+    # 5. Manager tries to fetch report for Admin ID (not direct report, should fail 403)
+    resp = await client.get(
+        f"/api/v1/timesheets/report?start_date={monday}&end_date={sunday}&user_id={admin.id}",
+        headers=auth_manager_headers
+    )
+    assert resp.status_code == 403

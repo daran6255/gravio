@@ -223,6 +223,21 @@ class ProjectTimeLogRepository:
         return result.scalars().first() is not None
 
     @staticmethod
+    async def week_has_submitted_or_approved_entry(db: AsyncSession, organization_id: int, user_id: int, week_start: date, week_end: date) -> bool:
+        """Whether any (non-deleted) entry in this week is SUBMITTED or APPROVED."""
+        result = await db.execute(
+            select(ProjectTimeLog.id).where(
+                ProjectTimeLog.organization_id == organization_id,
+                ProjectTimeLog.user_id == user_id,
+                ProjectTimeLog.log_date >= week_start,
+                ProjectTimeLog.log_date <= week_end,
+                ProjectTimeLog.status.in_([TimesheetStatus.SUBMITTED, TimesheetStatus.APPROVED]),
+                ProjectTimeLog.is_deleted.is_(False)
+            ).limit(1)
+        )
+        return result.scalars().first() is not None
+
+    @staticmethod
     async def list_for_user(db: AsyncSession, organization_id: int, user_id: int, start_date: date, end_date: date) -> Sequence[ProjectTimeLog]:
         result = await db.execute(
             select(ProjectTimeLog)

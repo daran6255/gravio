@@ -187,6 +187,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 	// Weekly aggregate status (display only -- see hasUnsubmittedEntries below for
 	// whether the Submit button should actually be available).
 	const weeklyStatus: TimesheetStatus = useMemo(() => computeWeekStatus(logs), [logs]);
+	const isWeekClosed = weeklyStatus === 'submitted' || weeklyStatus === 'approved';
 
 	// Whether to show/enable "Submit Week" must be judged independently of the single
 	// display badge above: once any entry in the week is SUBMITTED, the badge reads
@@ -211,7 +212,11 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 	const latestDenied = myUnlockRequests
 		.filter((r) => r.week_start_date === weekStartStr && r.status === 'denied')
 		.sort((a, b) => (b.resolved_at || '').localeCompare(a.resolved_at || ''))[0];
-	const isLocked = !isCurrentWeek && weeklyStatus === 'draft' && !activeGrant;
+	const hasApprovedOrSubmitted = useMemo(
+		() => logs.some((l) => l.status === 'approved' || l.status === 'submitted'),
+		[logs]
+	);
+	const isLocked = !isCurrentWeek && weeklyStatus === 'draft' && !activeGrant && !hasApprovedOrSubmitted;
 
 	const handleOpenRequestDialog = () => {
 		setRequestReason('');
@@ -247,7 +252,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 						variant="outlined"
 						startIcon={<AddIcon />}
 						onClick={onAddRow}
-						disabled={isLocked}
+						disabled={isLocked || isWeekClosed}
 						sx={{ borderRadius: '8px', fontWeight: 600 }}
 					>
 						Add Row
@@ -431,7 +436,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 										const isApproved = log?.status === 'approved';
 										const isSubmitted = log?.status === 'submitted';
 										const isHolidayBlocked = isHoliday && !canLogOnHolidays;
-										const isCellDisabled = (log && (isApproved || isSubmitted)) || isLocked || isHolidayBlocked;
+										const isCellDisabled = (log && (isApproved || isSubmitted)) || isLocked || isHolidayBlocked || isWeekClosed;
 
 										return (
 											<TableCell

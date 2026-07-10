@@ -298,6 +298,18 @@ async def create_time_log(
             "Request access from your manager to add entries for that week."
         )
 
+    # Validation 1.6: Submitted/Approved week block -- once a week is submitted or approved,
+    # no new entries can be added to it until the manager rejects or revokes it.
+    _, week_end = get_week_bounds(payload.log_date)
+    has_submitted_or_approved = await ProjectTimeLogRepository.week_has_submitted_or_approved_entry(
+        db, current_user.organization_id, current_user.id, week_start, week_end
+    )
+    if has_submitted_or_approved:
+        raise BadRequestError(
+            "This week is already submitted or approved. You cannot log additional time "
+            "until your manager rejects or revokes it."
+        )
+
     # Validation 2: Retroactive limit check
     user_settings = await TimesheetUserSettingsRepository.get_by_user(db, current_user.organization_id, current_user.id)
     max_days = user_settings.max_retroactive_days if user_settings.max_retroactive_days is not None else 30
@@ -753,9 +765,9 @@ async def get_timesheet_report(
     user_id: Optional[int] = Query(None),
     billing_type: Optional[TimesheetBillingType] = Query(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
+    current_user: User = Depends(get_current_user)
 ):
-    """Aggregate logged hours by User/Project/Task/Category for timesheet auditing (Admins/Managers only)."""
+    """Aggregate logged hours by User/Project/Task/Category for timesheet auditing."""
     conditions = [
         ProjectTimeLog.organization_id == current_user.organization_id,
         ProjectTimeLog.log_date >= start_date,
@@ -764,10 +776,28 @@ async def get_timesheet_report(
     ]
     if project_id:
         conditions.append(ProjectTimeLog.project_id == project_id)
-    if user_id:
-        conditions.append(ProjectTimeLog.user_id == user_id)
     if billing_type:
         conditions.append(ProjectTimeLog.billing_type == billing_type)
+
+    if current_user.role == UserRole.ADMIN:
+        if user_id:
+            conditions.append(ProjectTimeLog.user_id == user_id)
+    elif current_user.role == UserRole.MANAGER:
+        stmt_reports = select(User.id).where(User.reporting_manager_id == current_user.id)
+        report_ids_res = await db.execute(stmt_reports)
+        report_ids = [r[0] for r in report_ids_res.all()]
+        allowed_user_ids = [current_user.id] + report_ids
+        
+        if user_id:
+            if user_id not in allowed_user_ids:
+                raise ForbiddenError("You can only query reports for yourself or your direct reports")
+            conditions.append(ProjectTimeLog.user_id == user_id)
+        else:
+            conditions.append(ProjectTimeLog.user_id.in_(allowed_user_ids))
+    else:
+        if user_id and user_id != current_user.id:
+            raise ForbiddenError("You can only query your own reports")
+        conditions.append(ProjectTimeLog.user_id == current_user.id)
 
     # Core aggregation query using join
     # Select user full_name/email, project name, task title, category name, billing type, sum of hours

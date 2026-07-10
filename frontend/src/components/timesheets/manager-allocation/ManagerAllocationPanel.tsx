@@ -3,6 +3,7 @@ import { Box, CircularProgress, Stack } from '@mui/material';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTeamUsers, updateTeamUser } from '../../../store/slices/userSlice';
 import { fetchOwners } from '../../../store/slices/crmSlice';
+import { fetchCurrentUser } from '../../../store/slices/authSlice';
 import useToast from '../../../hooks/useToast';
 import type { TeamMember } from '../../../models/user';
 import { ManagerAllocationStats } from './ManagerAllocationStats';
@@ -15,6 +16,7 @@ export const ManagerAllocationPanel: React.FC = () => {
 	// Redux state
 	const { users: allUsers, loading: usersLoading } = useAppSelector((state) => state.users);
 	const { owners } = useAppSelector((state) => state.crm);
+	const currentUser = useAppSelector((state) => state.auth.user);
 
 	// Local state
 	const [searchTerm, setSearchTerm] = useState('');
@@ -111,6 +113,13 @@ export const ManagerAllocationPanel: React.FC = () => {
 			).unwrap();
 			toast.success(`Manager updated for ${user.full_name || user.username}`);
 			dispatch(fetchTeamUsers({ page: 1, pageSize: 100 }));
+			// The auth slice's own `user` (used for "do I have a reporting manager"
+			// checks like the timesheet submission gate) is only ever set at login/
+			// session-validate time -- it won't pick up this change on its own if the
+			// user just reassigned themselves.
+			if (user.public_id === currentUser?.public_id) {
+				dispatch(fetchCurrentUser());
+			}
 		} catch (err: any) {
 			toast.error(err || 'Failed to update reporting manager.');
 		} finally {
@@ -168,6 +177,9 @@ export const ManagerAllocationPanel: React.FC = () => {
 			setSelectedIds([]);
 			setBulkManagerId('');
 			dispatch(fetchTeamUsers({ page: 1, pageSize: 100 }));
+			if (currentUser && selectedUsers.some((u) => u.public_id === currentUser.public_id)) {
+				dispatch(fetchCurrentUser());
+			}
 		} catch (err: any) {
 			toast.error('An error occurred during bulk assignment.');
 		} finally {
