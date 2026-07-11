@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Button, TextField, Stack, FormControl, InputLabel, Select, MenuItem, CircularProgress } from '@mui/material';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Button, TextField, Stack, FormControl, InputLabel, Select, MenuItem, CircularProgress, FormHelperText, Box, Typography } from '@mui/material';
 import { BaseDialog } from '../../../common/dialogbox';
 import { useAppDispatch } from '../../../../store/hooks';
 import { createDesignation, updateDesignation } from '../../../../store/slices/hrSlice';
@@ -12,6 +12,14 @@ interface DesignationDialogProps {
 	existing?: HRDesignationListItem | null;
 	departments: HRDepartmentListItem[];
 }
+
+const GRADE_LEVELS: Array<{ value: string; label: string; description: string }> = [
+	{ value: 'L1', label: 'L1 — Associate', description: 'Entry-level role with guided, well-defined responsibilities.' },
+	{ value: 'L2', label: 'L2 — Professional', description: 'Independent contributor handling a standard scope of work.' },
+	{ value: 'L3', label: 'L3 — Senior', description: 'Senior contributor or team lead with broader ownership.' },
+	{ value: 'L4', label: 'L4 — Management', description: 'Manages a team or function and is accountable for outcomes.' },
+	{ value: 'L5', label: 'L5 — Executive', description: 'Organization-wide leadership and strategic decision-making.' },
+];
 
 export const DesignationDialog: React.FC<DesignationDialogProps> = ({ open, onClose, existing, departments }) => {
 	const dispatch = useAppDispatch();
@@ -33,6 +41,16 @@ export const DesignationDialog: React.FC<DesignationDialogProps> = ({ open, onCl
 			setForm({ name: '', department_id: null, grade: '', description: '' });
 		}
 	}, [existing, open]);
+
+	// Preserve a legacy free-text grade (set before this became a dropdown) as a selectable option.
+	const gradeOptions = useMemo(() => {
+		if (form.grade && !GRADE_LEVELS.some((g) => g.value === form.grade)) {
+			return [{ value: form.grade, label: form.grade, description: 'Custom grade set previously.' }, ...GRADE_LEVELS];
+		}
+		return GRADE_LEVELS;
+	}, [form.grade]);
+
+	const selectedGrade = gradeOptions.find((g) => g.value === form.grade);
 
 	const handleSave = async () => {
 		if (!form.name.trim()) return;
@@ -95,12 +113,30 @@ export const DesignationDialog: React.FC<DesignationDialogProps> = ({ open, onCl
 						))}
 					</Select>
 				</FormControl>
-				<TextField
-					label="Grade / Level (e.g. L1, L2, Senior)"
-					fullWidth
-					value={form.grade}
-					onChange={(e) => setForm({ ...form, grade: e.target.value })}
-				/>
+				<FormControl fullWidth>
+					<InputLabel>Grade / Level</InputLabel>
+					<Select
+						value={form.grade}
+						label="Grade / Level"
+						displayEmpty
+						onChange={(e) => setForm({ ...form, grade: e.target.value })}
+						renderValue={(value) => (value ? gradeOptions.find((g) => g.value === value)?.label || value : '')}
+					>
+						{gradeOptions.map((g) => (
+							<MenuItem key={g.value} value={g.value} sx={{ alignItems: 'flex-start', py: 1 }}>
+								<Box>
+									<Typography variant="body2" fontWeight={700}>{g.label}</Typography>
+									<Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+										{g.description}
+									</Typography>
+								</Box>
+							</MenuItem>
+						))}
+					</Select>
+					<FormHelperText>
+						{selectedGrade ? selectedGrade.description : 'Choose the seniority tier this designation belongs to.'}
+					</FormHelperText>
+				</FormControl>
 				<TextField
 					label="Description"
 					fullWidth multiline rows={2}

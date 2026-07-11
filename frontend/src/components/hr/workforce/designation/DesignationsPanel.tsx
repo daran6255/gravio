@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-	Box, Typography, Stack, TextField, InputAdornment, Button, FormControl, Select, MenuItem,
-	LinearProgress, CircularProgress, alpha, useTheme, type Theme,
+	Box, Typography, Stack, Grid, TextField, InputAdornment, Button, FormControl, Select, MenuItem,
+	CircularProgress, alpha, useTheme,
 } from '@mui/material';
 import {
 	Search as SearchIcon,
@@ -9,7 +9,6 @@ import {
 	Edit as EditIcon,
 	Delete as DeleteIcon,
 	WorkOutline as DesignationIcon,
-	AccountTreeOutlined as HierarchyIcon,
 	AutoAwesome as SeedIcon,
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
@@ -19,9 +18,9 @@ import useToast from '../../../../hooks/useToast';
 import ContextMenu, { type ActionMenuItem } from '../../../common/action-menu/ContextMenu';
 import { ConfirmationDialog } from '../../../common/dialogbox';
 import DesignationDialog from './DesignationDialog';
-
-const ACCENTS = ['primary', 'info', 'success', 'warning', 'secondary', 'error'] as const;
-const getAccent = (theme: Theme, idx: number) => theme.palette[ACCENTS[idx % ACCENTS.length]].main;
+import GradeDistributionCard from './GradeDistributionCard';
+import CoverageCard from './CoverageCard';
+import { getAccent } from '../accentColors';
 
 const DEFAULT_DESIGNATIONS: Array<{ name: string; grade: string; description: string }> = [
 	{ name: 'Software Engineer', grade: 'L2', description: 'Full-stack development and feature delivery.' },
@@ -190,194 +189,126 @@ export const DesignationsPanel: React.FC = () => {
 				</Stack>
 			</Stack>
 
-			{total > 0 && (
-				<Stack direction={{ xs: 'column', lg: 'row' }} spacing={2.5} sx={{ mb: 3 }}>
-					<Box sx={{
-						flex: 2, p: 2.5, borderRadius: '20px',
-						bgcolor: theme.palette.background.paper,
-						border: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)',
-						boxShadow: isDark ? '0 1px 2px rgba(0,0,0,0.4), 0 8px 20px rgba(0,0,0,0.2)' : '0 1px 2px rgba(15,23,42,0.04), 0 8px 20px rgba(15,23,42,0.05)',
-					}}>
-						<Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2.5 }}>
-							<HierarchyIcon sx={{ fontSize: '1.1rem', color: 'text.secondary' }} />
-							<Typography variant="subtitle2" fontWeight={800}>Grade Distribution</Typography>
+			<Grid container spacing={2.5}>
+				{total > 0 && (
+					<Grid size={{ xs: 12, lg: 4 }}>
+						<Stack spacing={2.5}>
+							<GradeDistributionCard gradeStats={gradeStats} total={total} />
+							<CoverageCard total={total} filledCount={filledCount} filledPct={filledPct} vacantPct={vacantPct} />
 						</Stack>
-						<Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', rowGap: 2.5 }}>
-							{gradeStats.map(([grade, count], idx) => {
+					</Grid>
+				)}
+
+				<Grid size={{ xs: 12, lg: total > 0 ? 8 : 12 }}>
+					{!loading && filtered.length === 0 ? (
+						<Box sx={{ py: 8, textAlign: 'center' }}>
+							<Typography color="text.secondary" sx={{ fontStyle: 'italic', mb: searchTerm || deptFilter ? 0 : 2.5 }}>
+								{searchTerm || deptFilter ? 'No designations match your filters.' : 'No designations yet — define job titles to assign to employees.'}
+							</Typography>
+							{!searchTerm && !deptFilter && (
+								<Button
+									variant="outlined"
+									startIcon={seeding ? <CircularProgress size={16} color="inherit" /> : <SeedIcon />}
+									onClick={handleSeedDefaults}
+									disabled={seeding}
+									sx={{
+										textTransform: 'none',
+										fontWeight: 700,
+										borderRadius: '12px',
+										borderColor: alpha(theme.palette.primary.main, 0.35),
+										color: 'primary.main',
+										'&:hover': {
+											borderColor: theme.palette.primary.main,
+											bgcolor: alpha(theme.palette.primary.main, 0.06),
+										},
+									}}
+								>
+									{seeding ? 'Adding Designations…' : 'Add Default Designations'}
+								</Button>
+							)}
+						</Box>
+					) : (
+						<Stack spacing={1.5}>
+							{(loading ? Array.from({ length: 4 }) : filtered).map((desig, idx) => {
+								if (loading || !desig) {
+									return <Box key={idx} sx={{ height: 84, borderRadius: '18px', bgcolor: alpha(theme.palette.text.primary, 0.04) }} />;
+								}
+								const d = desig as HRDesignationListItem;
 								const accent = getAccent(theme, idx);
+								const menuActions: ActionMenuItem[] = [
+									{ label: 'Edit Designation', icon: <EditIcon fontSize="small" />, onClick: () => { setEditTarget(d); setDialogOpen(true); } },
+									{ label: 'Delete Designation', icon: <DeleteIcon fontSize="small" />, color: theme.palette.error.main, onClick: () => setDeleteTarget(d) },
+								];
+
 								return (
-									<Box key={grade} sx={{ textAlign: 'center', minWidth: 88 }}>
-										<Typography variant="h5" fontWeight={800} sx={{ color: idx === 0 ? accent : 'text.primary', opacity: idx === 0 ? 1 : 0.75 }}>
-											{count}
-										</Typography>
-										<Typography
-											variant="caption"
-											color="text.secondary"
-											noWrap
-											sx={{ display: 'block', textTransform: 'uppercase', fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.04em', maxWidth: 100 }}
-										>
-											{grade}
-										</Typography>
+									<Box
+										key={d.id}
+										sx={{
+											p: 2, borderRadius: '18px',
+											bgcolor: theme.palette.background.paper,
+											border: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)',
+											boxShadow: isDark ? '0 1px 2px rgba(0,0,0,0.35)' : '0 1px 2px rgba(15,23,42,0.04)',
+											display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap',
+											transition: 'all 0.2s ease',
+											'&:hover': {
+												borderColor: alpha(accent, 0.35),
+												boxShadow: `0 10px 24px ${alpha(accent, 0.12)}`,
+											},
+										}}
+									>
+										<Box sx={{
+											width: 42, height: 42, borderRadius: '12px', flexShrink: 0,
+											display: 'flex', alignItems: 'center', justifyContent: 'center',
+											background: `linear-gradient(135deg, ${alpha(accent, 0.22)} 0%, ${alpha(accent, 0.08)} 100%)`,
+											color: accent,
+										}}>
+											<DesignationIcon sx={{ fontSize: '1.1rem' }} />
+										</Box>
+
+										<Box sx={{ flex: 1, minWidth: 200 }}>
+											<Stack direction="row" spacing={1} alignItems="center">
+												<Typography variant="body2" fontWeight={800}>{d.name}</Typography>
+												{d.department_name && (
+													<Typography variant="caption" color="text.disabled">· {d.department_name}</Typography>
+												)}
+											</Stack>
+											<Typography
+												variant="caption"
+												color="text.secondary"
+												sx={{
+													display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+												}}
+											>
+												{d.description || 'No description provided.'}
+											</Typography>
+										</Box>
+
+										<Box sx={{ textAlign: 'center', minWidth: 64 }}>
+											<Typography variant="subtitle1" fontWeight={800} lineHeight={1.2}>
+												{String(d.employee_count).padStart(2, '0')}
+											</Typography>
+											<Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.04em' }}>
+												Holders
+											</Typography>
+										</Box>
+
+										<Box sx={{
+											px: 1.5, py: 0.5, borderRadius: '999px',
+											bgcolor: alpha(theme.palette.text.primary, 0.05),
+										}}>
+											<Typography variant="caption" fontWeight={800} sx={{ fontSize: '0.68rem' }}>
+												{d.grade || 'Ungraded'}
+											</Typography>
+										</Box>
+
+										<ContextMenu actions={menuActions} triggerTooltip="Designation Actions" size="small" />
 									</Box>
 								);
 							})}
 						</Stack>
-					</Box>
-
-					<Box sx={{
-						flex: 1, p: 2.5, borderRadius: '20px', minWidth: { lg: 260 },
-						bgcolor: theme.palette.background.paper,
-						border: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)',
-						boxShadow: isDark ? '0 1px 2px rgba(0,0,0,0.4), 0 8px 20px rgba(0,0,0,0.2)' : '0 1px 2px rgba(15,23,42,0.04), 0 8px 20px rgba(15,23,42,0.05)',
-					}}>
-						<Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2 }}>Coverage</Typography>
-
-						<Stack spacing={0.5} sx={{ mb: 2 }}>
-							<Stack direction="row" justifyContent="space-between">
-								<Typography variant="caption" color="text.secondary" fontWeight={600}>Filled Titles</Typography>
-								<Typography variant="caption" fontWeight={800}>{filledPct}%</Typography>
-							</Stack>
-							<LinearProgress
-								variant="determinate"
-								value={filledPct}
-								sx={{
-									height: 6, borderRadius: 3,
-									bgcolor: alpha(theme.palette.success.main, 0.12),
-									'& .MuiLinearProgress-bar': { borderRadius: 3, bgcolor: 'success.main' },
-								}}
-							/>
-						</Stack>
-
-						<Stack spacing={0.5}>
-							<Stack direction="row" justifyContent="space-between">
-								<Typography variant="caption" color="text.secondary" fontWeight={600}>Unfilled Titles</Typography>
-								<Typography variant="caption" fontWeight={800}>{vacantPct}%</Typography>
-							</Stack>
-							<LinearProgress
-								variant="determinate"
-								value={vacantPct}
-								sx={{
-									height: 6, borderRadius: 3,
-									bgcolor: alpha(theme.palette.warning.main, 0.12),
-									'& .MuiLinearProgress-bar': { borderRadius: 3, bgcolor: 'warning.main' },
-								}}
-							/>
-						</Stack>
-
-						<Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 2 }}>
-							{filledCount} of {total} titles have at least one employee assigned.
-						</Typography>
-					</Box>
-				</Stack>
-			)}
-
-			{!loading && filtered.length === 0 ? (
-				<Box sx={{ py: 8, textAlign: 'center' }}>
-					<Typography color="text.secondary" sx={{ fontStyle: 'italic', mb: searchTerm || deptFilter ? 0 : 2.5 }}>
-						{searchTerm || deptFilter ? 'No designations match your filters.' : 'No designations yet — define job titles to assign to employees.'}
-					</Typography>
-					{!searchTerm && !deptFilter && (
-						<Button
-							variant="outlined"
-							startIcon={seeding ? <CircularProgress size={16} color="inherit" /> : <SeedIcon />}
-							onClick={handleSeedDefaults}
-							disabled={seeding}
-							sx={{
-								textTransform: 'none',
-								fontWeight: 700,
-								borderRadius: '12px',
-								borderColor: alpha(theme.palette.primary.main, 0.35),
-								color: 'primary.main',
-								'&:hover': {
-									borderColor: theme.palette.primary.main,
-									bgcolor: alpha(theme.palette.primary.main, 0.06),
-								},
-							}}
-						>
-							{seeding ? 'Adding Designations…' : 'Add Default Designations'}
-						</Button>
 					)}
-				</Box>
-			) : (
-				<Stack spacing={1.5}>
-					{(loading ? Array.from({ length: 4 }) : filtered).map((desig, idx) => {
-						if (loading || !desig) {
-							return <Box key={idx} sx={{ height: 84, borderRadius: '18px', bgcolor: alpha(theme.palette.text.primary, 0.04) }} />;
-						}
-						const d = desig as HRDesignationListItem;
-						const accent = getAccent(theme, idx);
-						const menuActions: ActionMenuItem[] = [
-							{ label: 'Edit Designation', icon: <EditIcon fontSize="small" />, onClick: () => { setEditTarget(d); setDialogOpen(true); } },
-							{ label: 'Delete Designation', icon: <DeleteIcon fontSize="small" />, color: theme.palette.error.main, onClick: () => setDeleteTarget(d) },
-						];
-
-						return (
-							<Box
-								key={d.id}
-								sx={{
-									p: 2, borderRadius: '18px',
-									bgcolor: theme.palette.background.paper,
-									border: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)',
-									boxShadow: isDark ? '0 1px 2px rgba(0,0,0,0.35)' : '0 1px 2px rgba(15,23,42,0.04)',
-									display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap',
-									transition: 'all 0.2s ease',
-									'&:hover': {
-										borderColor: alpha(accent, 0.35),
-										boxShadow: `0 10px 24px ${alpha(accent, 0.12)}`,
-									},
-								}}
-							>
-								<Box sx={{
-									width: 42, height: 42, borderRadius: '12px', flexShrink: 0,
-									display: 'flex', alignItems: 'center', justifyContent: 'center',
-									background: `linear-gradient(135deg, ${alpha(accent, 0.22)} 0%, ${alpha(accent, 0.08)} 100%)`,
-									color: accent,
-								}}>
-									<DesignationIcon sx={{ fontSize: '1.1rem' }} />
-								</Box>
-
-								<Box sx={{ flex: 1, minWidth: 200 }}>
-									<Stack direction="row" spacing={1} alignItems="center">
-										<Typography variant="body2" fontWeight={800}>{d.name}</Typography>
-										{d.department_name && (
-											<Typography variant="caption" color="text.disabled">· {d.department_name}</Typography>
-										)}
-									</Stack>
-									<Typography
-										variant="caption"
-										color="text.secondary"
-										sx={{
-											display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-										}}
-									>
-										{d.description || 'No description provided.'}
-									</Typography>
-								</Box>
-
-								<Box sx={{ textAlign: 'center', minWidth: 64 }}>
-									<Typography variant="subtitle1" fontWeight={800} lineHeight={1.2}>
-										{String(d.employee_count).padStart(2, '0')}
-									</Typography>
-									<Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.04em' }}>
-										Holders
-									</Typography>
-								</Box>
-
-								<Box sx={{
-									px: 1.5, py: 0.5, borderRadius: '999px',
-									bgcolor: alpha(theme.palette.text.primary, 0.05),
-								}}>
-									<Typography variant="caption" fontWeight={800} sx={{ fontSize: '0.68rem' }}>
-										{d.grade || 'Ungraded'}
-									</Typography>
-								</Box>
-
-								<ContextMenu actions={menuActions} triggerTooltip="Designation Actions" size="small" />
-							</Box>
-						);
-					})}
-				</Stack>
-			)}
+				</Grid>
+			</Grid>
 
 			<DesignationDialog
 				open={dialogOpen}

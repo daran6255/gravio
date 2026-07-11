@@ -27,7 +27,7 @@ const DEFAULT_DEPARTMENTS: Array<{ name: string; description: string }> = [
 	{ name: 'Operations', description: 'Process management, logistics & facilities.' },
 ];
 
-const ACCENTS = ['primary', 'info', 'success', 'warning', 'secondary', 'error'] as const;
+const ACCENTS = ['primary', 'info', 'success', 'warning', 'error'] as const;
 
 const getAccent = (theme: Theme, idx: number) => theme.palette[ACCENTS[idx % ACCENTS.length]].main;
 
