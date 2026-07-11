@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {
-	Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions,
-	Stack, Select, MenuItem, FormControl, InputLabel
-} from '@mui/material';
+import { Button, TextField, Stack, Select, MenuItem, FormControl, InputLabel, CircularProgress } from '@mui/material';
+import { BaseDialog } from '../../../common/dialogbox';
 import { useAppDispatch } from '../../../../store/hooks';
 import { createDepartment, updateDepartment } from '../../../../store/slices/hrSlice';
 import type { HRDepartmentListItem, HRDepartmentCreate, HRDepartmentUpdate } from '../../../../models/hr';
@@ -59,55 +57,60 @@ export const DepartmentDialog: React.FC<DepartmentDialogProps> = ({ open, onClos
 	};
 
 	return (
-		<Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-			<DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
-				{existing ? 'Edit Department' : 'Create Department'}
-			</DialogTitle>
-			<DialogContent sx={{ pt: 1 }}>
-				<Stack spacing={2.5} sx={{ mt: 1 }}>
-					<TextField
-						label="Department Name"
-						required
-						fullWidth
-						value={form.name}
-						onChange={(e) => setForm({ ...form, name: e.target.value })}
-					/>
-					<TextField
-						label="Description"
-						fullWidth
-						multiline
-						rows={2}
-						value={form.description}
-						onChange={(e) => setForm({ ...form, description: e.target.value })}
-					/>
-					<FormControl fullWidth>
-						<InputLabel>Parent Department</InputLabel>
-						<Select
-							value={form.parent_id || ''}
-							label="Parent Department"
-							onChange={(e) => setForm({ ...form, parent_id: e.target.value as number | null || null })}
-						>
-							<MenuItem value="">None (Top-level)</MenuItem>
-							{departments
-								.filter((d) => d.id !== existing?.id)
-								.map((d) => (
-									<MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>
-								))}
-						</Select>
-					</FormControl>
-				</Stack>
-			</DialogContent>
-			<DialogActions sx={{ px: 3, pb: 2.5 }}>
-				<Button onClick={onClose} disabled={saving}>Cancel</Button>
-				<Button
-					variant="contained"
-					onClick={handleSave}
-					disabled={saving || !form.name.trim()}
-				>
-					{saving ? 'Saving…' : existing ? 'Update' : 'Create'}
-				</Button>
-			</DialogActions>
-		</Dialog>
+		<BaseDialog
+			open={open}
+			onClose={onClose}
+			title={existing ? 'Edit Department' : 'Create Department'}
+			subtitle={existing ? `Update details for ${existing.name}` : 'Add a new department to your organization structure'}
+			maxWidth="sm"
+			loading={saving}
+			actions={
+				<>
+					<Button onClick={onClose} disabled={saving} sx={{ borderRadius: 3 }}>Cancel</Button>
+					<Button
+						variant="contained"
+						onClick={handleSave}
+						disabled={saving || !form.name.trim()}
+						sx={{ borderRadius: 3, fontWeight: 700 }}
+					>
+						{saving ? <CircularProgress size={20} color="inherit" /> : existing ? 'Update' : 'Create'}
+					</Button>
+				</>
+			}
+		>
+			<Stack spacing={2.5}>
+				<TextField
+					label="Department Name"
+					required
+					fullWidth
+					value={form.name}
+					onChange={(e) => setForm({ ...form, name: e.target.value })}
+				/>
+				<TextField
+					label="Description"
+					fullWidth
+					multiline
+					rows={2}
+					value={form.description}
+					onChange={(e) => setForm({ ...form, description: e.target.value })}
+				/>
+				<FormControl fullWidth>
+					<InputLabel>Parent Department</InputLabel>
+					<Select
+						value={form.parent_id || ''}
+						label="Parent Department"
+						onChange={(e) => setForm({ ...form, parent_id: e.target.value as number | null || null })}
+					>
+						<MenuItem value="">None (Top-level)</MenuItem>
+						{departments
+							.filter((d) => d.id !== existing?.id)
+							.map((d) => (
+								<MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>
+							))}
+					</Select>
+				</FormControl>
+			</Stack>
+		</BaseDialog>
 	);
 };
 

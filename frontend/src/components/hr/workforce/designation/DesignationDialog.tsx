@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {
-	Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions,
-	Stack, FormControl, InputLabel, Select, MenuItem
-} from '@mui/material';
+import { Button, TextField, Stack, FormControl, InputLabel, Select, MenuItem, CircularProgress } from '@mui/material';
+import { BaseDialog } from '../../../common/dialogbox';
 import { useAppDispatch } from '../../../../store/hooks';
 import { createDesignation, updateDesignation } from '../../../../store/slices/hrSlice';
 import type { HRDesignationListItem, HRDesignationCreate, HRDepartmentListItem } from '../../../../models/hr';
@@ -56,52 +54,61 @@ export const DesignationDialog: React.FC<DesignationDialogProps> = ({ open, onCl
 	};
 
 	return (
-		<Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-			<DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
-				{existing ? 'Edit Designation' : 'Create Designation'}
-			</DialogTitle>
-			<DialogContent>
-				<Stack spacing={2.5} sx={{ mt: 1 }}>
-					<TextField
-						label="Designation Name"
-						required fullWidth
-						value={form.name}
-						onChange={(e) => setForm({ ...form, name: e.target.value })}
-					/>
-					<FormControl fullWidth>
-						<InputLabel>Department</InputLabel>
-						<Select
-							value={form.department_id || ''}
-							label="Department"
-							onChange={(e) => setForm({ ...form, department_id: e.target.value as number | null || null })}
-						>
-							<MenuItem value="">None</MenuItem>
-							{departments.map((d) => (
-								<MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>
-							))}
-						</Select>
-					</FormControl>
-					<TextField
-						label="Grade / Level (e.g. L1, L2, Senior)"
-						fullWidth
-						value={form.grade}
-						onChange={(e) => setForm({ ...form, grade: e.target.value })}
-					/>
-					<TextField
-						label="Description"
-						fullWidth multiline rows={2}
-						value={form.description}
-						onChange={(e) => setForm({ ...form, description: e.target.value })}
-					/>
-				</Stack>
-			</DialogContent>
-			<DialogActions sx={{ px: 3, pb: 2.5 }}>
-				<Button onClick={onClose} disabled={saving}>Cancel</Button>
-				<Button variant="contained" onClick={handleSave} disabled={saving || !form.name.trim()}>
-					{saving ? 'Saving…' : existing ? 'Update' : 'Create'}
-				</Button>
-			</DialogActions>
-		</Dialog>
+		<BaseDialog
+			open={open}
+			onClose={onClose}
+			title={existing ? 'Edit Designation' : 'Create Designation'}
+			subtitle={existing ? `Update details for ${existing.name}` : 'Define a new job designation employees can be assigned to'}
+			maxWidth="sm"
+			loading={saving}
+			actions={
+				<>
+					<Button onClick={onClose} disabled={saving} sx={{ borderRadius: 3 }}>Cancel</Button>
+					<Button
+						variant="contained"
+						onClick={handleSave}
+						disabled={saving || !form.name.trim()}
+						sx={{ borderRadius: 3, fontWeight: 700 }}
+					>
+						{saving ? <CircularProgress size={20} color="inherit" /> : existing ? 'Update' : 'Create'}
+					</Button>
+				</>
+			}
+		>
+			<Stack spacing={2.5}>
+				<TextField
+					label="Designation Name"
+					required fullWidth
+					value={form.name}
+					onChange={(e) => setForm({ ...form, name: e.target.value })}
+				/>
+				<FormControl fullWidth>
+					<InputLabel>Department</InputLabel>
+					<Select
+						value={form.department_id || ''}
+						label="Department"
+						onChange={(e) => setForm({ ...form, department_id: e.target.value as number | null || null })}
+					>
+						<MenuItem value="">None</MenuItem>
+						{departments.map((d) => (
+							<MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>
+						))}
+					</Select>
+				</FormControl>
+				<TextField
+					label="Grade / Level (e.g. L1, L2, Senior)"
+					fullWidth
+					value={form.grade}
+					onChange={(e) => setForm({ ...form, grade: e.target.value })}
+				/>
+				<TextField
+					label="Description"
+					fullWidth multiline rows={2}
+					value={form.description}
+					onChange={(e) => setForm({ ...form, description: e.target.value })}
+				/>
+			</Stack>
+		</BaseDialog>
 	);
 };
 

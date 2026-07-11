@@ -1,34 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-	Box, Grid, Typography, TextField, InputAdornment,
-	MenuItem, Select, FormControl, InputLabel, Button,
-	Card, CardContent, Skeleton, alpha, useTheme
+	Box, Typography, TableRow, TableCell, Chip, Stack,
+	MenuItem, Select, FormControl, InputLabel,
 } from '@mui/material';
-import {
-	Search as SearchIcon,
-	Close as CloseIcon,
-	PersonAdd as PersonAddIcon,
-} from '@mui/icons-material';
+import { Work as WorkIcon } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchEmployees, fetchDepartments } from '../../../../store/slices/hrSlice';
-import type { EmployeeStatus } from '../../../../models/hr';
+import type { EmployeeStatus, HREmployeeListItem } from '../../../../models/hr';
+import { EMPLOYEE_STATUS_LABELS, EMPLOYEE_STATUS_COLORS, EMPLOYMENT_TYPE_LABELS, WORK_LOCATION_LABELS } from '../../../../models/hr';
 import useToast from '../../../../hooks/useToast';
-import EmployeeCard from './EmployeeCard';
-
-const CardSkeleton: React.FC = () => (
-	<Card>
-		<CardContent sx={{ p: 2.5 }}>
-			<Box sx={{ display: 'flex', gap: 2 }}>
-				<Skeleton variant="circular" width={52} height={52} />
-				<Box sx={{ flex: 1 }}>
-					<Skeleton width="70%" height={20} />
-					<Skeleton width="50%" height={16} />
-				</Box>
-			</Box>
-			<Skeleton sx={{ mt: 2 }} height={60} />
-		</CardContent>
-	</Card>
-);
+import { DataTable, type ColumnDefinition } from '../../../common/table';
+import EnterpriseAvatar from '../../../common/avatar/Avatar';
 
 const STATUS_OPTIONS: Array<{ value: EmployeeStatus | ''; label: string }> = [
 	{ value: '', label: 'All Statuses' },
@@ -41,24 +23,26 @@ const STATUS_OPTIONS: Array<{ value: EmployeeStatus | ''; label: string }> = [
 ];
 
 export const EmployeesPanel: React.FC = () => {
-	const theme = useTheme();
-	const { error } = useToast();
+	const { error, info } = useToast();
 	const dispatch = useAppDispatch();
-	const { employees, employeesLoading: loading, departments } = useAppSelector((state) => state.hr);
+	const { employees, employeesTotal, employeesLoading: loading, departments } = useAppSelector((state) => state.hr);
 
 	const [search, setSearch] = useState('');
 	const [deptFilter, setDeptFilter] = useState<number | ''>('');
 	const [statusFilter, setStatusFilter] = useState<EmployeeStatus | ''>('');
+	const [page, setPage] = useState(0);
+	const [rowsPerPage, setRowsPerPage] = useState(10);
 
 	const loadEmployees = useCallback(() => {
 		const params = {
 			...(search && { search }),
 			...(deptFilter && { department_id: deptFilter as number }),
 			...(statusFilter && { employee_status: statusFilter }),
-			limit: 100,
+			skip: page * rowsPerPage,
+			limit: rowsPerPage,
 		};
 		dispatch(fetchEmployees(params)).unwrap().catch(() => error('Failed to load employees'));
-	}, [dispatch, search, deptFilter, statusFilter]);
+	}, [dispatch, search, deptFilter, statusFilter, page, rowsPerPage]);
 
 	useEffect(() => {
 		dispatch(fetchDepartments(undefined));
@@ -70,26 +54,77 @@ export const EmployeesPanel: React.FC = () => {
 		return () => clearTimeout(t);
 	}, [loadEmployees, search]);
 
-	return (
-		<Box>
-			<Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
-				<Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center', flex: 1 }}>
-					<TextField
-						placeholder="Search by name or email…"
-						size="small"
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-						InputProps={{
-							startAdornment: (
-								<InputAdornment position="start">
-									<SearchIcon sx={{ fontSize: '1.1rem', color: 'text.disabled' }} />
-								</InputAdornment>
-							),
-						}}
-						sx={{ minWidth: 260, flex: 1, maxWidth: 400 }}
-					/>
+	// Filter/search changes should reset back to page 1
+	useEffect(() => {
+		setPage(0);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [search, deptFilter, statusFilter]);
 
-					<FormControl size="small" sx={{ minWidth: 180 }}>
+	const columns: ColumnDefinition<HREmployeeListItem>[] = [
+		{ id: 'full_name', label: 'Employee' },
+		{ id: 'department_name', label: 'Department' },
+		{ id: 'designation_name', label: 'Designation' },
+		{ id: 'employment_type', label: 'Employment' },
+		{ id: 'employee_status', label: 'Status', align: 'center' },
+	];
+
+	const renderRow = (emp: HREmployeeListItem) => (
+		<TableRow key={emp.public_id} hover>
+			<TableCell>
+				<Stack direction="row" spacing={1.5} alignItems="center">
+					<EnterpriseAvatar name={emp.full_name || emp.email || '?'} size={36} />
+					<Box sx={{ minWidth: 0 }}>
+						<Typography variant="body2" fontWeight={700} noWrap>{emp.full_name || '—'}</Typography>
+						<Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+							{emp.email}
+						</Typography>
+					</Box>
+				</Stack>
+			</TableCell>
+			<TableCell>
+				<Typography variant="body2" color="text.secondary">{emp.department_name || '—'}</Typography>
+			</TableCell>
+			<TableCell>
+				<Typography variant="body2" color="text.secondary">{emp.designation_name || emp.role || '—'}</Typography>
+			</TableCell>
+			<TableCell>
+				<Stack direction="row" spacing={0.75} alignItems="center">
+					<WorkIcon sx={{ fontSize: '0.85rem', color: 'text.disabled' }} />
+					<Typography variant="body2" color="text.secondary">
+						{EMPLOYMENT_TYPE_LABELS[emp.employment_type]} · {WORK_LOCATION_LABELS[emp.work_location]}
+					</Typography>
+				</Stack>
+			</TableCell>
+			<TableCell align="center">
+				<Chip
+					label={EMPLOYEE_STATUS_LABELS[emp.employee_status]}
+					color={EMPLOYEE_STATUS_COLORS[emp.employee_status]}
+					size="small"
+					sx={{ fontWeight: 700, borderRadius: 2 }}
+				/>
+			</TableCell>
+		</TableRow>
+	);
+
+	return (
+		<DataTable<HREmployeeListItem>
+			columns={columns}
+			data={employees}
+			loading={loading}
+			totalCount={employeesTotal}
+			page={page}
+			rowsPerPage={rowsPerPage}
+			onPageChange={(_, newPage) => setPage(newPage)}
+			onRowsPerPageChange={(rows) => { setRowsPerPage(rows); setPage(0); }}
+			searchTerm={search}
+			onSearchChange={setSearch}
+			searchPlaceholder="Search by name or email…"
+			canCreate
+			createButtonText="Add Employee"
+			onCreateClick={() => info('Employee onboarding is coming soon — create employees from the Lifecycle tab for now.')}
+			headerActions={
+				<Stack direction="row" spacing={1.5}>
+					<FormControl size="small" sx={{ minWidth: 170 }}>
 						<InputLabel>Department</InputLabel>
 						<Select
 							value={deptFilter}
@@ -115,76 +150,11 @@ export const EmployeesPanel: React.FC = () => {
 							))}
 						</Select>
 					</FormControl>
-
-					{(search || deptFilter || statusFilter) && (
-						<Button
-							size="small"
-							variant="text"
-							color="inherit"
-							onClick={() => { setSearch(''); setDeptFilter(''); setStatusFilter(''); }}
-							startIcon={<CloseIcon sx={{ fontSize: '0.9rem' }} />}
-						>
-							Clear filters
-						</Button>
-					)}
-				</Box>
-
-				<Button
-					variant="contained"
-					startIcon={<PersonAddIcon />}
-					size="small"
-					sx={{ fontWeight: 600, flexShrink: 0 }}
-				>
-					Add Employee
-				</Button>
-			</Box>
-
-			{loading ? (
-				<Grid container spacing={2}>
-					{Array.from({ length: 9 }).map((_, i) => (
-						<Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={i}>
-							<CardSkeleton />
-						</Grid>
-					))}
-				</Grid>
-			) : employees.length === 0 ? (
-				<Box
-					sx={{
-						textAlign: 'center',
-						py: 10,
-						px: 2,
-						borderRadius: 3,
-						border: `2px dashed ${alpha(theme.palette.divider, 0.6)}`,
-					}}
-				>
-					<PersonAddIcon sx={{ fontSize: '3rem', color: 'text.disabled', mb: 2 }} />
-					<Typography variant="h6" fontWeight={600} gutterBottom>
-						No employees found
-					</Typography>
-					<Typography variant="body2" color="text.secondary" mb={3}>
-						{search || deptFilter || statusFilter
-							? 'Try adjusting your filters'
-							: 'Add your first employee to get started with the HR module'}
-					</Typography>
-					{!search && !deptFilter && !statusFilter && (
-						<Button variant="contained" startIcon={<PersonAddIcon />}>
-							Add First Employee
-						</Button>
-					)}
-				</Box>
-			) : (
-				<Grid container spacing={2}>
-					{employees.map((emp) => (
-						<Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={emp.public_id}>
-							<EmployeeCard
-								employee={emp}
-								onClick={() => {/* navigate to profile */}}
-							/>
-						</Grid>
-					))}
-				</Grid>
-			)}
-		</Box>
+				</Stack>
+			}
+			renderRow={renderRow}
+			emptyMessage={search || deptFilter || statusFilter ? 'No employees match your filters.' : 'No employees yet — add your first employee to get started.'}
+		/>
 	);
 };
 
