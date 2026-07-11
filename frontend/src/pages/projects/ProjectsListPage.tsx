@@ -50,26 +50,26 @@ const guideContent = {
 			]
 		},
 		{
-			label: 'Tasks & Teams',
-			intro: 'Add operational tasks and assign project resources to enable timesheet logging:',
+			label: 'Tasks & Sub-tasks',
+			intro: 'Define operational tasks and sub-tasks within your project. Here is how creation fields help your team:',
 			steps: [
 				{
 					marker: '1',
 					accent: 'primary' as const,
-					title: 'Define Project Tasks',
-					description: 'Within a project\'s details view, specify component tasks or milestones that need to be logged.'
+					title: 'Hierarchy (Tasks & Sub-tasks)',
+					description: 'Break down deliverables into parent tasks (e.g., "Frontend") and child sub-tasks (e.g., "Dashboard UI"). This structure helps organize work scopes clearly.'
 				},
 				{
 					marker: '2',
 					accent: 'info' as const,
-					title: 'Assign Team Resources',
-					description: 'Associate team members with specific tasks to enable them to log work hours against them in their weekly grids.'
+					title: 'Key Fields Explained',
+					description: '• Title: Defines the deliverable.\n• Assignees: Only assigned resources can select and log hours on this task in their weekly timesheets.\n• Estimated Hours: Sets an effort budget.\n• Billing Type: Mark as Billable or Non-Billable.'
 				},
 				{
 					marker: '3',
 					accent: 'success' as const,
-					title: 'Establish Billing Type',
-					description: 'Mark tasks as Billable or Non-Billable to feed accurate data into organizational timesheet reports.'
+					title: 'How It Helps You',
+					description: '• Restricts unauthorized logging by resource allocation.\n• Compares estimated hours vs. actual logged timesheet hours in real-time.\n• Distinguishes billable clients hours from internal overhead tasks.'
 				}
 			]
 		}
