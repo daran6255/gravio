@@ -282,11 +282,11 @@ const TimesheetPage: React.FC = () => {
 							size="small"
 							startIcon={<CurrentIcon />}
 							onClick={handleCurrentWeek}
-							sx={{ borderRadius: '6px' }}
+							sx={{ borderRadius: 3 }}
 						>
 							This Week
 						</Button>
-						<Typography variant="body2" sx={{ fontWeight: 700, px: 2, minWidth: 200, textAlign: 'center' }}>
+						<Typography variant="body2" sx={{ fontWeight: 700, px: 2, minWidth: { xs: 140, sm: 200 }, textAlign: 'center' }}>
 							{formatWeekRangeDisplay()}
 						</Typography>
 						<IconButton onClick={handleNextWeek} size="small">
@@ -297,7 +297,7 @@ const TimesheetPage: React.FC = () => {
 			</Stack>
 
 			{actionError && (
-				<Alert severity="error" sx={{ mb: 3, borderRadius: '8px' }}>
+				<Alert severity="error" sx={{ mb: 3, borderRadius: 4 }}>
 					{actionError}
 				</Alert>
 			)}
@@ -317,7 +317,7 @@ const TimesheetPage: React.FC = () => {
 					{!hasReportingManager && (
 						<Alert
 							severity="warning"
-							sx={{ borderRadius: '8px' }}
+							sx={{ borderRadius: 4 }}
 						>
 							You do not have a Reporting Manager assigned. Please contact your organization administrator to configure one for you to enable timesheet weekly submissions.
 						</Alert>
