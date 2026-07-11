@@ -1,4 +1,5 @@
 export * from './ManagerAllocationPanel';
-export * from './ManagerAllocationStats';
-export * from './ManagerAllocationTable';
+export * from './OrgHierarchyTree';
+export * from './OrgTreeNode';
+export * from './UnassignedGrid';
 export { default } from './ManagerAllocationPanel';
