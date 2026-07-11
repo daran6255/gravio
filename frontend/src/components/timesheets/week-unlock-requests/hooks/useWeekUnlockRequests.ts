@@ -6,40 +6,43 @@ interface UseWeekUnlockRequestsArgs {
 	onDeny: (requestId: number, note?: string) => void;
 }
 
+export type UnlockRequestFilter = 'pending' | 'approved' | 'denied' | 'all';
+
 export const useWeekUnlockRequests = ({ requests, onDeny }: UseWeekUnlockRequestsArgs) => {
 	const [denyTarget, setDenyTarget] = useState<TimesheetWeekUnlockRequest | null>(null);
 	const [denyNote, setDenyNote] = useState('');
 
-	const [pendingPage, setPendingPage] = useState(0);
-	const [pendingRowsPerPage, setPendingRowsPerPage] = useState(10);
-	const [resolvedPage, setResolvedPage] = useState(0);
-	const [resolvedRowsPerPage, setResolvedRowsPerPage] = useState(10);
+	const [filter, setFilter] = useState<UnlockRequestFilter>('pending');
+	const [page, setPage] = useState(0);
+	const [rowsPerPage, setRowsPerPage] = useState(10);
 
-	const { pending, resolved } = useMemo(() => {
-		const pending = requests.filter((r) => r.status === 'pending');
-		const resolved = requests.filter((r) => r.status !== 'pending');
-		return { pending, resolved };
-	}, [requests]);
+	const counts = useMemo(() => ({
+		pending: requests.filter((r) => r.status === 'pending').length,
+		approved: requests.filter((r) => r.status === 'approved').length,
+		denied: requests.filter((r) => r.status === 'denied').length,
+		all: requests.length
+	}), [requests]);
 
-	const paginatedPending = useMemo(
-		() => pending.slice(pendingPage * pendingRowsPerPage, pendingPage * pendingRowsPerPage + pendingRowsPerPage),
-		[pending, pendingPage, pendingRowsPerPage]
+	const filteredRequests = useMemo(
+		() => (filter === 'all' ? requests : requests.filter((r) => r.status === filter)),
+		[requests, filter]
 	);
-	const paginatedResolved = useMemo(
-		() => resolved.slice(resolvedPage * resolvedRowsPerPage, resolvedPage * resolvedRowsPerPage + resolvedRowsPerPage),
-		[resolved, resolvedPage, resolvedRowsPerPage]
+
+	const paginatedRequests = useMemo(
+		() => filteredRequests.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+		[filteredRequests, page, rowsPerPage]
 	);
+
+	// Reset to page 0 whenever the active filter changes
+	useEffect(() => {
+		setPage(0);
+	}, [filter]);
 
 	// Clamp back to the last valid page if the underlying list shrinks
 	useEffect(() => {
-		const maxPage = Math.max(0, Math.ceil(pending.length / pendingRowsPerPage) - 1);
-		if (pendingPage > maxPage) setPendingPage(maxPage);
-	}, [pending.length, pendingRowsPerPage, pendingPage]);
-
-	useEffect(() => {
-		const maxPage = Math.max(0, Math.ceil(resolved.length / resolvedRowsPerPage) - 1);
-		if (resolvedPage > maxPage) setResolvedPage(maxPage);
-	}, [resolved.length, resolvedRowsPerPage, resolvedPage]);
+		const maxPage = Math.max(0, Math.ceil(filteredRequests.length / rowsPerPage) - 1);
+		if (page > maxPage) setPage(maxPage);
+	}, [filteredRequests.length, rowsPerPage, page]);
 
 	const handleOpenDeny = (req: TimesheetWeekUnlockRequest) => {
 		setDenyTarget(req);
@@ -56,14 +59,12 @@ export const useWeekUnlockRequests = ({ requests, onDeny }: UseWeekUnlockRequest
 	return {
 		denyTarget, setDenyTarget,
 		denyNote, setDenyNote,
-		pendingPage, setPendingPage,
-		pendingRowsPerPage, setPendingRowsPerPage,
-		resolvedPage, setResolvedPage,
-		resolvedRowsPerPage, setResolvedRowsPerPage,
-		pending,
-		resolved,
-		paginatedPending,
-		paginatedResolved,
+		filter, setFilter,
+		counts,
+		page, setPage,
+		rowsPerPage, setRowsPerPage,
+		filteredRequests,
+		paginatedRequests,
 		handleOpenDeny,
 		handleConfirmDeny
 	};

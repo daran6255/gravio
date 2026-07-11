@@ -156,7 +156,7 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 									</Stack>
 								</Box>
 							))}
-						</Stack>8
+						</Stack>
 					</Box>
 				))}
 			</Stack>
