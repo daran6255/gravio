@@ -27,6 +27,7 @@ import type { ProjectTimeLog, OrgHoliday, TimesheetStatus, TimesheetWeekUnlockRe
 import TimesheetStatusBadge from '../shared/TimesheetStatusBadge';
 import { computeWeekStatus } from '../shared/weekStatus';
 import { BaseDialog } from '../../common/dialogbox';
+import { DataTableEmpty } from '../../common/table';
 
 // Helper to format hours display (e.g. 1.5 -> 1h 30m, 8 -> 8h)
 export const formatHoursDisplay = (hours: number): string => {
@@ -376,13 +377,11 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 					</TableHead>
 					<TableBody>
 						{gridRows.length === 0 ? (
-							<TableRow>
-								<TableCell colSpan={10} align="center" sx={{ py: 6 }}>
-									<Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-										No hours logged for this week. Click "Add Row" or click a date cell below to log time.
-									</Typography>
-								</TableCell>
-							</TableRow>
+							<DataTableEmpty
+								colSpan={dates.length + 3}
+								message="No hours logged for this week"
+								subMessage='Click "Add Row" or click a date cell below to log time'
+							/>
 						) : (
 							gridRows.map((row) => (
 								<TableRow

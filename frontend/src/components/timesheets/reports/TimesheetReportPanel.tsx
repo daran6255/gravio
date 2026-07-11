@@ -7,12 +7,8 @@ import {
 	TextField,
 	MenuItem,
 	Stack,
-	Table,
-	TableBody,
-	TableCell,
-	TableContainer,
-	TableHead,
 	TableRow,
+	TableCell,
 	useTheme
 } from '@mui/material';
 import { Download as ExportIcon, Schedule as TotalHoursIcon, AttachMoney as BillableIcon, MoneyOff as NonBillableIcon } from '@mui/icons-material';
@@ -24,7 +20,7 @@ import { fetchTeamUsers } from '../../../store/slices/userSlice';
 import { responsiveStyles } from '../../../theme';
 import { DatePicker } from '../../common/form';
 import { StatCard } from '../../common/stats/StatCard';
-import { CustomTablePagination } from '../../common/table';
+import { DataTable, type ColumnDefinition } from '../../common/table';
 import type { TimesheetReportRow } from '../../../models/timesheet';
 
 // CSV exporter helper
@@ -155,16 +151,33 @@ const TimesheetReportPanel: React.FC = () => {
 		return { total, billable, nonBillable };
 	}, [reportRows]);
 
-	const handleChangePage = (_: any, newPage: number) => {
+	const handleChangePage = (_: unknown, newPage: number) => {
 		setPage(newPage);
 	};
 
-	const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-		setRowsPerPage(parseInt(event.target.value, 10));
-		setPage(0);
-	};
-
 	const paginatedRows = reportRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+	const columns: ColumnDefinition<TimesheetReportRow>[] = [
+		{ id: 'user_name', label: 'User Name' },
+		{ id: 'project_name', label: 'Project' },
+		{ id: 'task_title', label: 'Task / Category' },
+		{ id: 'billing_type', label: 'Billing Type' },
+		{ id: 'total_hours', label: 'Total Hours', align: 'right' }
+	];
+
+	const renderRow = (row: TimesheetReportRow) => (
+		<TableRow key={`${row.user_name}-${row.project_name || 'general'}-${row.task_title || row.category_name || 'none'}-${row.billing_type}-${row.total_hours}`}>
+			<TableCell>{row.user_name}</TableCell>
+			<TableCell>{row.project_name || 'General'}</TableCell>
+			<TableCell>{row.task_title || row.category_name || '—'}</TableCell>
+			<TableCell sx={{ textTransform: 'uppercase', fontWeight: 700, color: row.billing_type === 'billable' ? 'success.main' : 'text.secondary', fontSize: '0.75rem' }}>
+				{row.billing_type === 'billable' ? 'Billable' : 'Non-Billable'}
+			</TableCell>
+			<TableCell align="right" sx={{ pr: 3, fontWeight: 700 }}>
+				{row.total_hours} hrs
+			</TableCell>
+		</TableRow>
+	);
 
 	return (
 		<Stack spacing={4}>
@@ -280,88 +293,35 @@ const TimesheetReportPanel: React.FC = () => {
 				</Grid>
 			</Grid>
 
-			{/* Details Table */}
-			<Paper
-				elevation={0}
-				sx={{
-					border: 1,
-					borderColor: 'divider',
-					borderRadius: 6,
-					overflow: 'hidden',
-					bgcolor: 'background.paper'
-				}}
-			>
-				<Stack sx={{ ...responsiveStyles.headerRow, p: 2.5, borderBottom: 1, borderColor: 'divider' }}>
-					<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-						Report Details
-					</Typography>
-					<Button
-						variant="outlined"
-						startIcon={<ExportIcon />}
-						onClick={() => exportReportToCSV(reportRows)}
-						disabled={reportRows.length === 0}
-						sx={{ borderRadius: 3, fontWeight: 600 }}
-					>
-						Export CSV
-					</Button>
-				</Stack>
-
-				<TableContainer>
-					<Table>
-						<TableHead>
-							<TableRow sx={{ bgcolor: 'action.hover' }}>
-								<TableCell sx={{ fontWeight: 700 }}>User Name</TableCell>
-								<TableCell sx={{ fontWeight: 700 }}>Project</TableCell>
-								<TableCell sx={{ fontWeight: 700 }}>Task / Category</TableCell>
-								<TableCell sx={{ fontWeight: 700 }}>Billing Type</TableCell>
-								<TableCell align="right" sx={{ fontWeight: 700, pr: 3 }}>Total Hours</TableCell>
-							</TableRow>
-						</TableHead>
-						<TableBody>
-							{reportRowsLoading ? (
-								<TableRow>
-									<TableCell colSpan={5} align="center" sx={{ py: 6 }}>
-										<Typography variant="body2" color="text.secondary">
-											Loading report data...
-										</Typography>
-									</TableCell>
-								</TableRow>
-							) : paginatedRows.length === 0 ? (
-								<TableRow>
-									<TableCell colSpan={5} align="center" sx={{ py: 6 }}>
-										<Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-											No logs found matching selected filters.
-										</Typography>
-									</TableCell>
-								</TableRow>
-							) : (
-								paginatedRows.map((row, idx) => (
-									<TableRow key={idx}>
-										<TableCell>{row.user_name}</TableCell>
-										<TableCell>{row.project_name || 'General'}</TableCell>
-										<TableCell>{row.task_title || row.category_name || '—'}</TableCell>
-										<TableCell sx={{ textTransform: 'uppercase', fontWeight: 700, color: row.billing_type === 'billable' ? 'success.main' : 'text.secondary', fontSize: '0.75rem' }}>
-											{row.billing_type === 'billable' ? 'Billable' : 'Non-Billable'}
-										</TableCell>
-										<TableCell align="right" sx={{ pr: 3, fontWeight: 700 }}>
-											{row.total_hours} hrs
-										</TableCell>
-									</TableRow>
-								))
-							)}
-						</TableBody>
-					</Table>
-				</TableContainer>
-
-				<CustomTablePagination
-					count={reportRows.length}
-					page={page}
-					rowsPerPage={rowsPerPage}
-					onPageChange={handleChangePage}
-					onRowsPerPageChange={handleChangeRowsPerPage}
-					onRowsPerPageSelectChange={(rows) => { setRowsPerPage(rows); setPage(0); }}
-				/>
-			</Paper>
+			<DataTable<TimesheetReportRow>
+				columns={columns}
+				data={paginatedRows}
+				loading={reportRowsLoading}
+				totalCount={reportRows.length}
+				page={page}
+				rowsPerPage={rowsPerPage}
+				onPageChange={handleChangePage}
+				onRowsPerPageChange={(newRows) => { setRowsPerPage(newRows); setPage(0); }}
+				searchTerm=""
+				headerActions={
+					<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ width: '100%' }}>
+						<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+							Report Details
+						</Typography>
+						<Button
+							variant="outlined"
+							startIcon={<ExportIcon />}
+							onClick={() => exportReportToCSV(reportRows)}
+							disabled={reportRows.length === 0}
+							sx={{ borderRadius: 3, fontWeight: 600 }}
+						>
+							Export CSV
+						</Button>
+					</Stack>
+				}
+				renderRow={renderRow}
+				emptyMessage="No logs found matching selected filters."
+			/>
 		</Stack>
 	);
 };

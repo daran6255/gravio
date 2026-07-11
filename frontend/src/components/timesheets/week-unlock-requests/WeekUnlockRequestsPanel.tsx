@@ -1,20 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-	Paper,
 	Typography,
-	Table,
-	TableBody,
-	TableCell,
-	TableContainer,
-	TableHead,
 	TableRow,
+	TableCell,
 	Stack,
 	Button,
 	Chip,
 	TextField
 } from '@mui/material';
 import { BaseDialog } from '../../common/dialogbox';
-import { CustomTablePagination } from '../../common/table';
+import { DataTable, type ColumnDefinition } from '../../common/table';
 import type { TimesheetWeekUnlockRequest } from '../../../models/timesheet';
 
 interface WeekUnlockRequestsPanelProps {
@@ -78,141 +73,126 @@ const WeekUnlockRequestsPanel: React.FC<WeekUnlockRequestsPanelProps> = ({ reque
 		}
 	};
 
-	const renderTable = (
+	const columns = (showActions: boolean): ColumnDefinition<TimesheetWeekUnlockRequest>[] => [
+		{ id: 'user_id', label: 'Team Member' },
+		{ id: 'week_start_date', label: 'Week' },
+		{ id: 'reason', label: 'Reason' },
+		{ id: 'status', label: 'Status', align: 'center' },
+		{ id: 'actions', label: showActions ? 'Actions' : 'Resolution', align: 'right' }
+	];
+
+	const renderRow = (req: TimesheetWeekUnlockRequest, showActions: boolean) => (
+		<TableRow key={req.id}>
+			<TableCell>
+				<Typography variant="body2" sx={{ fontWeight: 700 }}>
+					{req.user?.full_name || req.user?.email || `User #${req.user_id}`}
+				</Typography>
+				<Typography variant="caption" color="text.secondary">
+					{req.user?.email}
+				</Typography>
+			</TableCell>
+			<TableCell>
+				<Typography variant="body2">{req.week_start_date} — {req.week_end_date}</Typography>
+			</TableCell>
+			<TableCell>
+				<Typography variant="body2" color="text.secondary">
+					{req.reason || '—'}
+				</Typography>
+			</TableCell>
+			<TableCell align="center">
+				<Chip
+					label={req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+					color={statusChipColor[req.status]}
+					size="small"
+					sx={{ fontWeight: 700 }}
+				/>
+			</TableCell>
+			<TableCell align="right" sx={{ pr: 3 }}>
+				{showActions ? (
+					<Stack direction="row" spacing={1} justifyContent="flex-end">
+						<Button
+							variant="contained"
+							color="success"
+							size="small"
+							onClick={() => onApprove(req.id)}
+							disabled={loading}
+							sx={{ borderRadius: 3, fontWeight: 700 }}
+						>
+							Approve
+						</Button>
+						<Button
+							variant="outlined"
+							color="error"
+							size="small"
+							onClick={() => handleOpenDeny(req)}
+							disabled={loading}
+							sx={{ borderRadius: 3, fontWeight: 700 }}
+						>
+							Deny
+						</Button>
+					</Stack>
+				) : (
+					<Typography variant="caption" color="text.secondary">
+						{req.resolution_note || (req.status === 'approved' ? 'Granted' : 'No note')}
+					</Typography>
+				)}
+			</TableCell>
+		</TableRow>
+	);
+
+	const renderRequestTable = (
 		rows: TimesheetWeekUnlockRequest[],
 		totalCount: number,
 		showActions: boolean,
 		page: number,
 		rowsPerPage: number,
 		onPageChange: (event: unknown, newPage: number) => void,
-		onRowsPerPageChange: (rows: number) => void
+		onRowsPerPageChange: (rows: number) => void,
+		title: string
 	) => (
-		<Paper elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 6, overflow: 'hidden' }}>
-			<TableContainer>
-				<Table>
-				<TableHead>
-					<TableRow sx={{ bgcolor: 'action.hover' }}>
-						<TableCell sx={{ fontWeight: 700 }}>Team Member</TableCell>
-						<TableCell sx={{ fontWeight: 700 }}>Week</TableCell>
-						<TableCell sx={{ fontWeight: 700 }}>Reason</TableCell>
-						<TableCell align="center" sx={{ fontWeight: 700 }}>Status</TableCell>
-						<TableCell align="right" sx={{ fontWeight: 700, pr: 3 }}>{showActions ? 'Actions' : 'Resolution'}</TableCell>
-					</TableRow>
-				</TableHead>
-				<TableBody>
-					{rows.length === 0 ? (
-						<TableRow>
-							<TableCell colSpan={5} align="center" sx={{ py: 5 }}>
-								<Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-									{loading ? 'Loading...' : 'Nothing here.'}
-								</Typography>
-							</TableCell>
-						</TableRow>
-					) : (
-						rows.map((req) => (
-							<TableRow key={req.id}>
-								<TableCell>
-									<Typography variant="body2" sx={{ fontWeight: 700 }}>
-										{req.user?.full_name || req.user?.email || `User #${req.user_id}`}
-									</Typography>
-									<Typography variant="caption" color="text.secondary">
-										{req.user?.email}
-									</Typography>
-								</TableCell>
-								<TableCell>
-									<Typography variant="body2">{req.week_start_date} — {req.week_end_date}</Typography>
-								</TableCell>
-								<TableCell>
-									<Typography variant="body2" color="text.secondary">
-										{req.reason || '—'}
-									</Typography>
-								</TableCell>
-								<TableCell align="center">
-									<Chip
-										label={req.status.charAt(0).toUpperCase() + req.status.slice(1)}
-										color={statusChipColor[req.status]}
-										size="small"
-										sx={{ fontWeight: 700 }}
-									/>
-								</TableCell>
-								<TableCell align="right" sx={{ pr: 3 }}>
-									{showActions ? (
-										<Stack direction="row" spacing={1} justifyContent="flex-end">
-											<Button
-												variant="contained"
-												color="success"
-												size="small"
-												onClick={() => onApprove(req.id)}
-												disabled={loading}
-												sx={{ borderRadius: 3, fontWeight: 700 }}
-											>
-												Approve
-											</Button>
-											<Button
-												variant="outlined"
-												color="error"
-												size="small"
-												onClick={() => handleOpenDeny(req)}
-												disabled={loading}
-												sx={{ borderRadius: 3, fontWeight: 700 }}
-											>
-												Deny
-											</Button>
-										</Stack>
-									) : (
-										<Typography variant="caption" color="text.secondary">
-											{req.resolution_note || (req.status === 'approved' ? 'Granted' : 'No note')}
-										</Typography>
-									)}
-								</TableCell>
-							</TableRow>
-						))
-					)}
-				</TableBody>
-			</Table>
-		</TableContainer>
-		<CustomTablePagination
-			count={totalCount}
+		<DataTable<TimesheetWeekUnlockRequest>
+			columns={columns(showActions)}
+			data={rows}
+			loading={loading}
+			totalCount={totalCount}
 			page={page}
 			rowsPerPage={rowsPerPage}
 			onPageChange={onPageChange}
-			onRowsPerPageChange={(e) => onRowsPerPageChange(parseInt(e.target.value, 10))}
-			onRowsPerPageSelectChange={onRowsPerPageChange}
+			onRowsPerPageChange={onRowsPerPageChange}
+			searchTerm=""
+			headerActions={
+				<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+					{title}
+				</Typography>
+			}
+			renderRow={(req) => renderRow(req, showActions)}
+			emptyMessage={loading ? "Loading..." : "Nothing here."}
 		/>
-	</Paper>
 	);
 
 	return (
 		<Stack spacing={4}>
-			<Stack spacing={1.5}>
-				<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-					Pending Requests
-				</Typography>
-				{renderTable(
-					paginatedPending,
-					pending.length,
-					true,
-					pendingPage,
-					pendingRowsPerPage,
-					(_, newPage) => setPendingPage(newPage),
-					(rows) => { setPendingRowsPerPage(rows); setPendingPage(0); }
-				)}
-			</Stack>
+			{renderRequestTable(
+				paginatedPending,
+				pending.length,
+				true,
+				pendingPage,
+				pendingRowsPerPage,
+				(_, newPage) => setPendingPage(newPage),
+				(rows) => { setPendingRowsPerPage(rows); setPendingPage(0); },
+				'Pending Requests'
+			)}
 
-			<Stack spacing={1.5}>
-				<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-					Resolved
-				</Typography>
-				{renderTable(
-					paginatedResolved,
-					resolved.length,
-					false,
-					resolvedPage,
-					resolvedRowsPerPage,
-					(_, newPage) => setResolvedPage(newPage),
-					(rows) => { setResolvedRowsPerPage(rows); setResolvedPage(0); }
-				)}
-			</Stack>
+			{renderRequestTable(
+				paginatedResolved,
+				resolved.length,
+				false,
+				resolvedPage,
+				resolvedRowsPerPage,
+				(_, newPage) => setResolvedPage(newPage),
+				(rows) => { setResolvedRowsPerPage(rows); setResolvedPage(0); },
+				'Resolved Requests'
+			)}
 
 			<BaseDialog
 				open={!!denyTarget}

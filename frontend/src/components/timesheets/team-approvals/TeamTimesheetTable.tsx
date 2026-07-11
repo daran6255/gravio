@@ -1,12 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
-	Table,
-	TableBody,
-	TableCell,
-	TableContainer,
-	TableHead,
 	TableRow,
-	Paper,
+	TableCell,
 	Typography,
 	Button,
 	IconButton,
@@ -29,7 +24,7 @@ import TimesheetStatusBadge from '../shared/TimesheetStatusBadge';
 import { computeWeekStatus } from '../shared/weekStatus';
 import { formatHoursDisplay } from '../weekly-grid';
 import { BaseDialog, ConfirmationDialog } from '../../common/dialogbox';
-import { DataTableActions, type TableMenuAction } from '../../common/table';
+import { DataTable, TableView, DataTableActions, type ColumnDefinition, type TableColumnDef, type TableMenuAction } from '../../common/table';
 
 interface TeamTimesheetTableProps {
 	logs: ProjectTimeLog[];
@@ -78,6 +73,8 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 	const [rejectUserId, setRejectUserId] = useState<number | null>(null);
 	const [rejectionReason, setRejectionReason] = useState('');
 	const [revokeTarget, setRevokeTarget] = useState<UserGroupedTimesheet | null>(null);
+	const [page, setPage] = useState(0);
+	const [rowsPerPage, setRowsPerPage] = useState(10);
 
 	// Group logs by user
 	const groupedTimesheets = useMemo(() => {
@@ -114,6 +111,18 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 		return Object.values(groups);
 	}, [logs, currentUserId]);
 
+	const paginatedTimesheets = useMemo(
+		() => groupedTimesheets.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+		[groupedTimesheets, page, rowsPerPage]
+	);
+
+	// Clamp back to the last valid page if the team/week selection shrinks the list
+	// (e.g. switching to a week with fewer submissions) and the page runs off the end.
+	useEffect(() => {
+		const maxPage = Math.max(0, Math.ceil(groupedTimesheets.length / rowsPerPage) - 1);
+		if (page > maxPage) setPage(maxPage);
+	}, [groupedTimesheets.length, rowsPerPage, page]);
+
 	const handleOpenRejectDialog = (userId: number) => {
 		setRejectUserId(userId);
 		setRejectionReason('');
@@ -138,185 +147,182 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 		}
 	};
 
+	const columns: ColumnDefinition<UserGroupedTimesheet>[] = [
+		{ id: 'userId', label: '', width: 50 },
+		{ id: 'userName', label: 'Team Member' },
+		{ id: 'totalHours', label: 'Total Hours', align: 'center' },
+		{ id: 'status', label: 'Weekly Status', align: 'center' },
+		{ id: 'actions', label: 'Actions', align: 'right' }
+	];
+
+	const detailColumns: TableColumnDef[] = [
+		{ id: 'date', label: 'Date', width: '15%' },
+		{ id: 'target', label: 'Log Target', width: '30%' },
+		{ id: 'billing', label: 'Billing', width: '15%' },
+		{ id: 'notes', label: 'Notes', width: '25%' },
+		{ id: 'hours', label: 'Hours', align: 'right', width: '15%' }
+	];
+
+	const renderDetailRow = (log: ProjectTimeLog) => (
+		<TableRow key={log.id}>
+			<TableCell>{log.log_date}</TableCell>
+			<TableCell>
+				{log.project?.name || `General: ${log.category?.name || 'Category'}`}
+				{log.task && (
+					<Typography variant="caption" color="text.secondary" display="block">
+						Task: {log.task.title}
+					</Typography>
+				)}
+			</TableCell>
+			<TableCell>
+				<Typography
+					variant="caption"
+					sx={{
+						fontWeight: 700,
+						color: log.billing_type === 'billable' ? 'success.main' : 'text.secondary',
+						textTransform: 'uppercase'
+					}}
+				>
+					{log.billing_type}
+				</Typography>
+			</TableCell>
+			<TableCell>{log.notes || '—'}</TableCell>
+			<TableCell align="right" sx={{ fontWeight: 700 }}>
+				{formatHoursDisplay(log.hours)}
+			</TableCell>
+		</TableRow>
+	);
+
+	const renderRow = (sheet: UserGroupedTimesheet) => {
+		const isExpanded = expandedUser === sheet.userId;
+
+		const actions: TableMenuAction<UserGroupedTimesheet>[] = [
+			{
+				label: 'Approve',
+				icon: <ApproveIcon fontSize="small" />,
+				color: 'success.main',
+				onClick: () => onApprove(sheet.userId),
+				disabled: actionLoading,
+				hidden: sheet.status !== 'submitted'
+			},
+			{
+				label: 'Reject',
+				icon: <RejectIcon fontSize="small" />,
+				color: 'error.main',
+				onClick: () => handleOpenRejectDialog(sheet.userId),
+				disabled: actionLoading,
+				hidden: sheet.status !== 'submitted'
+			},
+			{
+				label: 'Revoke Approval',
+				icon: <RevokeIcon fontSize="small" />,
+				color: 'warning.main',
+				onClick: () => setRevokeTarget(sheet),
+				disabled: actionLoading,
+				hidden: sheet.status !== 'submitted' && sheet.status !== 'approved'
+			}
+		];
+
+		return (
+			<React.Fragment key={sheet.userId}>
+				<TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
+					<TableCell>
+						<IconButton
+							size="small"
+							onClick={() => setExpandedUser(isExpanded ? null : sheet.userId)}
+						>
+							{isExpanded ? <CollapseIcon /> : <ExpandIcon />}
+						</IconButton>
+					</TableCell>
+					<TableCell>
+						<Typography variant="body2" sx={{ fontWeight: 700 }}>
+							{sheet.userName}
+						</Typography>
+						<Typography variant="caption" color="text.secondary">
+							{sheet.userEmail}
+						</Typography>
+					</TableCell>
+					<TableCell align="center">
+						<Typography variant="body2" sx={{ fontWeight: 700 }}>
+							{formatHoursDisplay(sheet.totalHours)}
+						</Typography>
+					</TableCell>
+					<TableCell align="center">
+						<TimesheetStatusBadge status={sheet.status} />
+					</TableCell>
+					<TableCell align="right" sx={{ pr: 3 }} onClick={(e) => e.stopPropagation()}>
+						{sheet.isMyDirectReport ? (
+							<Stack direction="row" justifyContent="flex-end">
+								<DataTableActions item={sheet} tooltipTitle="Approval Actions" actions={actions} />
+							</Stack>
+						) : (
+							(sheet.status === 'submitted' || sheet.status === 'approved') && (
+								<Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+									Not your direct report
+								</Typography>
+							)
+						)}
+					</TableCell>
+				</TableRow>
+
+				<TableRow>
+					<TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
+						<Collapse in={isExpanded} timeout="auto" unmountOnExit>
+							<Box sx={{ margin: 2, p: 2, bgcolor: 'action.hover', borderRadius: 4 }}>
+								<Typography variant="subtitle2" gutterBottom component="div" sx={{ fontWeight: 700, mb: 2 }}>
+									Detailed Logs ({startDate} to {endDate})
+								</Typography>
+
+								{sheet.rejectionNote && sheet.status === 'rejected' && (
+									<Box sx={{ mb: 2, p: 1.5, bgcolor: alpha(theme.palette.error.main, 0.1), border: `1px solid ${theme.palette.error.main}`, borderRadius: 3 }}>
+										<Typography variant="caption" sx={{ fontWeight: 700, color: 'error.main', display: 'block' }}>
+											Rejection Reason:
+										</Typography>
+										<Typography variant="body2" color="error.dark">
+											{sheet.rejectionNote}
+										</Typography>
+									</Box>
+								)}
+
+								<TableView<ProjectTimeLog>
+									columns={detailColumns}
+									items={sheet.logs}
+									getItemId={(log) => log.id}
+									renderRow={renderDetailRow}
+								/>
+							</Box>
+						</Collapse>
+					</TableCell>
+				</TableRow>
+			</React.Fragment>
+		);
+	};
+
 	return (
 		<Box>
-			<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-				<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-					Team Timesheets
-				</Typography>
-				<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary' }}>
-					Week: {formatWeekRange(startDate, endDate)}
-				</Typography>
-			</Stack>
-
-			<TableContainer component={Paper} elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 6, overflow: 'hidden' }}>
-				<Table>
-					<TableHead>
-						<TableRow sx={{ bgcolor: 'action.hover' }}>
-							<TableCell width={50} />
-							<TableCell sx={{ fontWeight: 700 }}>Team Member</TableCell>
-							<TableCell align="center" sx={{ fontWeight: 700 }}>Total Hours</TableCell>
-							<TableCell align="center" sx={{ fontWeight: 700 }}>Weekly Status</TableCell>
-							<TableCell align="right" sx={{ fontWeight: 700, pr: 3 }}>Actions</TableCell>
-						</TableRow>
-					</TableHead>
-					<TableBody>
-						{groupedTimesheets.length === 0 ? (
-							<TableRow>
-								<TableCell colSpan={5} align="center" sx={{ py: 6 }}>
-									<Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-										No timesheets found for this week.
-									</Typography>
-								</TableCell>
-							</TableRow>
-						) : (
-							groupedTimesheets.map((sheet) => {
-								const isExpanded = expandedUser === sheet.userId;
-
-								const actions: TableMenuAction<UserGroupedTimesheet>[] = [
-									{
-										label: 'Approve',
-										icon: <ApproveIcon fontSize="small" />,
-										color: 'success.main',
-										onClick: () => onApprove(sheet.userId),
-										disabled: actionLoading,
-										hidden: sheet.status !== 'submitted'
-									},
-									{
-										label: 'Reject',
-										icon: <RejectIcon fontSize="small" />,
-										color: 'error.main',
-										onClick: () => handleOpenRejectDialog(sheet.userId),
-										disabled: actionLoading,
-										hidden: sheet.status !== 'submitted'
-									},
-									{
-										label: 'Revoke Approval',
-										icon: <RevokeIcon fontSize="small" />,
-										color: 'warning.main',
-										onClick: () => setRevokeTarget(sheet),
-										disabled: actionLoading,
-										hidden: sheet.status !== 'submitted' && sheet.status !== 'approved'
-									}
-								];
-
-								return (
-									<React.Fragment key={sheet.userId}>
-										<TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
-											<TableCell>
-												<IconButton
-													size="small"
-													onClick={() => setExpandedUser(isExpanded ? null : sheet.userId)}
-												>
-													{isExpanded ? <CollapseIcon /> : <ExpandIcon />}
-												</IconButton>
-											</TableCell>
-											<TableCell>
-												<Typography variant="body2" sx={{ fontWeight: 700 }}>
-													{sheet.userName}
-												</Typography>
-												<Typography variant="caption" color="text.secondary">
-													{sheet.userEmail}
-												</Typography>
-											</TableCell>
-											<TableCell align="center">
-												<Typography variant="body2" sx={{ fontWeight: 700 }}>
-													{formatHoursDisplay(sheet.totalHours)}
-												</Typography>
-											</TableCell>
-											<TableCell align="center">
-												<TimesheetStatusBadge status={sheet.status} />
-											</TableCell>
-											<TableCell align="right" sx={{ pr: 3 }} onClick={(e) => e.stopPropagation()}>
-												{sheet.isMyDirectReport ? (
-													<Stack direction="row" justifyContent="flex-end">
-														<DataTableActions item={sheet} tooltipTitle="Approval Actions" actions={actions} />
-													</Stack>
-												) : (
-													(sheet.status === 'submitted' || sheet.status === 'approved') && (
-														<Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-															Not your direct report
-														</Typography>
-													)
-												)}
-											</TableCell>
-										</TableRow>
-
-										{/* Details Dropdown Section */}
-										<TableRow>
-											<TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
-												<Collapse in={isExpanded} timeout="auto" unmountOnExit>
-													<Box sx={{ margin: 2, p: 2, bgcolor: 'action.hover', borderRadius: 4 }}>
-														<Typography variant="subtitle2" gutterBottom component="div" sx={{ fontWeight: 700, mb: 2 }}>
-															Detailed Logs ({startDate} to {endDate})
-														</Typography>
-
-														{sheet.rejectionNote && sheet.status === 'rejected' && (
-															<Box sx={{ mb: 2, p: 1.5, bgcolor: alpha(theme.palette.error.main, 0.1), border: `1px solid ${theme.palette.error.main}`, borderRadius: 3 }}>
-																<Typography variant="caption" sx={{ fontWeight: 700, color: 'error.main', display: 'block' }}>
-																	Rejection Reason:
-																</Typography>
-																<Typography variant="body2" color="error.dark">
-																	{sheet.rejectionNote}
-																</Typography>
-															</Box>
-														)}
-
-														<TableContainer>
-															<Table size="small">
-																<TableHead>
-																	<TableRow>
-																		<TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-																		<TableCell sx={{ fontWeight: 700 }}>Log Target</TableCell>
-																		<TableCell sx={{ fontWeight: 700 }}>Billing</TableCell>
-																		<TableCell sx={{ fontWeight: 700 }}>Notes</TableCell>
-																		<TableCell align="right" sx={{ fontWeight: 700 }}>Hours</TableCell>
-																	</TableRow>
-																</TableHead>
-																<TableBody>
-																	{sheet.logs.map((log) => (
-																		<TableRow key={log.id}>
-																			<TableCell>{log.log_date}</TableCell>
-																			<TableCell>
-																				{log.project?.name || `General: ${log.category?.name || 'Category'}`}
-																				{log.task && (
-																					<Typography variant="caption" color="text.secondary" display="block">
-																						Task: {log.task.title}
-																					</Typography>
-																				)}
-																			</TableCell>
-																			<TableCell>
-																				<Typography
-																					variant="caption"
-																					sx={{
-																						fontWeight: 700,
-																						color: log.billing_type === 'billable' ? 'success.main' : 'text.secondary',
-																						textTransform: 'uppercase'
-																					}}
-																				>
-																					{log.billing_type}
-																				</Typography>
-																			</TableCell>
-																			<TableCell>{log.notes || '—'}</TableCell>
-																			<TableCell align="right" sx={{ fontWeight: 700 }}>
-																				{formatHoursDisplay(log.hours)}
-																			</TableCell>
-																		</TableRow>
-																	))}
-																</TableBody>
-															</Table>
-														</TableContainer>
-													</Box>
-												</Collapse>
-											</TableCell>
-										</TableRow>
-									</React.Fragment>
-								);
-							})
-						)}
-					</TableBody>
-				</Table>
-			</TableContainer>
+			<DataTable<UserGroupedTimesheet>
+				columns={columns}
+				data={paginatedTimesheets}
+				loading={false}
+				totalCount={groupedTimesheets.length}
+				page={page}
+				rowsPerPage={rowsPerPage}
+				onPageChange={(_, newPage) => setPage(newPage)}
+				onRowsPerPageChange={(newRows) => { setRowsPerPage(newRows); setPage(0); }}
+				searchTerm=""
+				headerActions={
+					<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ width: '100%' }}>
+						<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+							Team Timesheets
+						</Typography>
+						<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+							Week: {formatWeekRange(startDate, endDate)}
+						</Typography>
+					</Stack>
+				}
+				renderRow={renderRow}
+				emptyMessage="No timesheets found for this week."
+			/>
 
 			{/* Rejection Dialog Prompt */}
 			<BaseDialog

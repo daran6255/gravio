@@ -7,12 +7,8 @@ import {
 	IconButton,
 	Stack,
 	Grid,
-	Table,
-	TableBody,
-	TableCell,
-	TableContainer,
-	TableHead,
 	TableRow,
+	TableCell,
 	MenuItem,
 	Alert,
 	useTheme,
@@ -23,9 +19,9 @@ import {
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchHolidays, createHoliday, deleteHoliday } from '../../../store/slices/timesheetSlice';
-import { responsiveStyles } from '../../../theme';
 import { BaseDialog, ConfirmationDialog } from '../../common/dialogbox';
 import { DatePicker } from '../../common/form';
+import { DataTable, TableView, type ColumnDefinition, type TableColumnDef } from '../../common/table';
 import type { OrgHoliday } from '../../../models/timesheet';
 
 const HolidayCalendarPanel: React.FC = () => {
@@ -54,9 +50,22 @@ const HolidayCalendarPanel: React.FC = () => {
 	const [deleteTarget, setDeleteTarget] = useState<OrgHoliday | null>(null);
 	const [deleteLoading, setDeleteLoading] = useState(false);
 
+	// Pagination state for the holidays list
+	const [page, setPage] = useState(0);
+	const [rowsPerPage, setRowsPerPage] = useState(10);
+
 	useEffect(() => {
 		dispatch(fetchHolidays());
 	}, [dispatch]);
+
+	// Clamp back to the last valid page if the list shrinks (e.g. after a delete)
+	// and the current page runs off the end.
+	useEffect(() => {
+		const maxPage = Math.max(0, Math.ceil(holidays.length / rowsPerPage) - 1);
+		if (page > maxPage) setPage(maxPage);
+	}, [holidays.length, rowsPerPage, page]);
+
+	const paginatedHolidays = holidays.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
 	const handleCreate = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -80,8 +89,8 @@ const HolidayCalendarPanel: React.FC = () => {
 			setName('');
 			setHolidayDate('');
 			setCountryCode('');
-		} catch (err: any) {
-			setError(err || 'Failed to create holiday');
+		} catch (err) {
+			setError(err instanceof Error ? err.message : String(err));
 		} finally {
 			setSubmitting(false);
 		}
@@ -94,8 +103,8 @@ const HolidayCalendarPanel: React.FC = () => {
 		try {
 			await dispatch(deleteHoliday(deleteTarget.id)).unwrap();
 			setDeleteTarget(null);
-		} catch (err: any) {
-			setError(err || 'Failed to delete holiday');
+		} catch (err) {
+			setError(err instanceof Error ? err.message : String(err));
 		} finally {
 			setDeleteLoading(false);
 		}
@@ -126,16 +135,16 @@ const HolidayCalendarPanel: React.FC = () => {
 						throw new Error('JSON file must contain an array of holiday objects');
 					}
 					
-					// Validate format
-					const validated = parsed.map((item: any, index: number) => {
-						if (!item.holiday_date || !item.name) {
+					const validated = parsed.map((item: unknown, index: number) => {
+						const typedItem = item as Record<string, unknown>;
+						if (!typedItem.holiday_date || !typedItem.name) {
 							throw new Error(`Item at index ${index} is missing required 'holiday_date' or 'name'`);
 						}
 						return {
-							holiday_date: String(item.holiday_date),
-							name: String(item.name),
-							type: String(item.type || 'public'),
-							country_code: item.country_code ? String(item.country_code) : undefined
+							holiday_date: String(typedItem.holiday_date),
+							name: String(typedItem.name),
+							type: String(typedItem.type || 'public'),
+							country_code: typedItem.country_code ? String(typedItem.country_code) : undefined
 						};
 					});
 					setImportPreview(validated);
@@ -178,8 +187,8 @@ const HolidayCalendarPanel: React.FC = () => {
 				} else {
 					setImportError('Unsupported file type. Please upload a .csv or .json file');
 				}
-			} catch (err: any) {
-				setImportError(err.message || 'Error parsing file content');
+			} catch (err) {
+				setImportError(err instanceof Error ? err.message : 'Error parsing file content');
 				setImportPreview([]);
 			}
 		};
@@ -208,7 +217,6 @@ const HolidayCalendarPanel: React.FC = () => {
 		setImportError(null);
 
 		let successCount = 0;
-		let failCount = 0;
 
 		try {
 			await Promise.all(
@@ -230,7 +238,7 @@ const HolidayCalendarPanel: React.FC = () => {
 						).unwrap();
 						successCount++;
 					} catch {
-						failCount++;
+						// Ignore and continue
 					}
 				})
 			);
@@ -241,7 +249,7 @@ const HolidayCalendarPanel: React.FC = () => {
 			} else {
 				setImportError('No new holidays were imported (they might already exist).');
 			}
-		} catch (err: any) {
+		} catch {
 			setImportError('An unexpected error occurred during import');
 		} finally {
 			setImportLoading(false);
@@ -249,6 +257,44 @@ const HolidayCalendarPanel: React.FC = () => {
 	};
 
 	const isAdminOrManager = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+
+	const previewColumns: TableColumnDef[] = [
+		{ id: 'holiday_date', label: 'Date' },
+		{ id: 'name', label: 'Name' },
+		{ id: 'type', label: 'Type' }
+	];
+
+	const renderPreviewRow = (h: { holiday_date: string; name: string; type: string }) => (
+		<TableRow key={h.holiday_date}>
+			<TableCell>{h.holiday_date}</TableCell>
+			<TableCell>{h.name}</TableCell>
+			<TableCell sx={{ textTransform: 'capitalize' }}>{h.type}</TableCell>
+		</TableRow>
+	);
+
+	const columns: ColumnDefinition<OrgHoliday>[] = [
+		{ id: 'holiday_date', label: 'Date' },
+		{ id: 'name', label: 'Holiday Name' },
+		{ id: 'type', label: 'Type' },
+		{ id: 'country_code', label: 'Country' },
+		...(isAdminOrManager ? [{ id: 'actions' as const, label: 'Actions', align: 'right' as const, width: 80 }] : [])
+	];
+
+	const renderRow = (h: OrgHoliday) => (
+		<TableRow key={h.id}>
+			<TableCell sx={{ fontWeight: 600 }}>{h.holiday_date}</TableCell>
+			<TableCell>{h.name}</TableCell>
+			<TableCell sx={{ textTransform: 'capitalize' }}>{h.type} Holiday</TableCell>
+			<TableCell>{h.country_code || 'All'}</TableCell>
+			{isAdminOrManager && (
+				<TableCell align="right" sx={{ pr: 2 }}>
+					<IconButton size="small" onClick={() => setDeleteTarget(h)}>
+						<DeleteIcon color="error" fontSize="small" />
+					</IconButton>
+				</TableCell>
+			)}
+		</TableRow>
+	);
 
 	return (
 		<Grid container spacing={4}>
@@ -330,76 +376,36 @@ const HolidayCalendarPanel: React.FC = () => {
 
 			{/* List of Holidays */}
 			<Grid size={{ xs: 12, md: isAdminOrManager ? 8 : 12 }}>
-				<Paper
-					elevation={0}
-					sx={{
-						p: 3,
-						border: 1,
-						borderColor: 'divider',
-						borderRadius: 6,
-						bgcolor: 'background.paper'
-					}}
-				>
-					<Stack sx={{ ...responsiveStyles.headerRow, mb: 2.5 }}>
-						<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-							Organization Holidays
-						</Typography>
-						{isAdminOrManager && (
-							<Button
-								variant="outlined"
-								size="small"
-								onClick={() => setImportDialogOpen(true)}
-								sx={{ textTransform: 'none', borderRadius: 4, fontWeight: 600 }}
-							>
-								Import Holidays
-							</Button>
-						)}
-					</Stack>
-					<TableContainer>
-						<Table size="small">
-							<TableHead>
-								<TableRow sx={{ bgcolor: 'action.hover' }}>
-									<TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-									<TableCell sx={{ fontWeight: 700 }}>Holiday Name</TableCell>
-									<TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-									<TableCell sx={{ fontWeight: 700 }}>Country</TableCell>
-									{isAdminOrManager && <TableCell align="right" sx={{ fontWeight: 700, pr: 2 }}>Actions</TableCell>}
-								</TableRow>
-							</TableHead>
-							<TableBody>
-								{holidaysLoading && holidays.length === 0 ? (
-									<TableRow>
-										<TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-											Loading holidays...
-										</TableCell>
-									</TableRow>
-								) : holidays.length === 0 ? (
-									<TableRow>
-										<TableCell colSpan={5} align="center" sx={{ py: 4, color: 'text.secondary', fontStyle: 'italic' }}>
-											No holidays configured for your organization.
-										</TableCell>
-									</TableRow>
-								) : (
-									holidays.map((h) => (
-										<TableRow key={h.id}>
-											<TableCell sx={{ fontWeight: 600 }}>{h.holiday_date}</TableCell>
-											<TableCell>{h.name}</TableCell>
-											<TableCell sx={{ textTransform: 'capitalize' }}>{h.type} Holiday</TableCell>
-											<TableCell>{h.country_code || 'All'}</TableCell>
-											{isAdminOrManager && (
-												<TableCell align="right" sx={{ pr: 2 }}>
-													<IconButton size="small" onClick={() => setDeleteTarget(h)}>
-														<DeleteIcon color="error" fontSize="small" />
-													</IconButton>
-												</TableCell>
-											)}
-										</TableRow>
-									))
+					<DataTable<OrgHoliday>
+						columns={columns}
+						data={paginatedHolidays}
+						loading={holidaysLoading}
+						totalCount={holidays.length}
+						page={page}
+						rowsPerPage={rowsPerPage}
+						onPageChange={(_, newPage) => setPage(newPage)}
+						onRowsPerPageChange={(newRows) => { setRowsPerPage(newRows); setPage(0); }}
+						searchTerm=""
+						headerActions={
+							<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ width: '100%' }}>
+								<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+									Organization Holidays
+								</Typography>
+								{isAdminOrManager && (
+									<Button
+										variant="outlined"
+										size="small"
+										onClick={() => setImportDialogOpen(true)}
+										sx={{ textTransform: 'none', borderRadius: 4, fontWeight: 600 }}
+									>
+										Import Holidays
+									</Button>
 								)}
-							</TableBody>
-						</Table>
-					</TableContainer>
-				</Paper>
+							</Stack>
+						}
+						renderRow={renderRow}
+						emptyMessage="No holidays configured for your organization."
+					/>
 			</Grid>
 
 			{/* Import Holidays Dialog */}
@@ -473,24 +479,12 @@ const HolidayCalendarPanel: React.FC = () => {
 								Preview ({importPreview.length} holidays found)
 							</Typography>
 							<Box sx={{ maxHeight: 200, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 4 }}>
-								<Table size="small">
-									<TableHead sx={{ bgcolor: 'action.hover' }}>
-										<TableRow>
-											<TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-											<TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-											<TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-										</TableRow>
-									</TableHead>
-									<TableBody>
-										{importPreview.map((h, i) => (
-											<TableRow key={i}>
-												<TableCell>{h.holiday_date}</TableCell>
-												<TableCell>{h.name}</TableCell>
-												<TableCell sx={{ textTransform: 'capitalize' }}>{h.type}</TableCell>
-											</TableRow>
-										))}
-									</TableBody>
-								</Table>
+								<TableView<{ holiday_date: string; name: string; type: string }>
+									columns={previewColumns}
+									items={importPreview}
+									getItemId={(h) => h.holiday_date}
+									renderRow={renderPreviewRow}
+								/>
 							</Box>
 						</Box>
 					)}
