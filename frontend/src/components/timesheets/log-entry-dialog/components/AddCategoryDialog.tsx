@@ -47,7 +47,7 @@ export const AddCategoryDialog: React.FC<AddCategoryDialogProps> = ({
 						variant="contained"
 						onClick={onCreate}
 						disabled={creating || !name.trim()}
-						sx={{ fontWeight: 700, borderRadius: '8px' }}
+						sx={{ fontWeight: 700, borderRadius: 4 }}
 					>
 						{creating ? <CircularProgress size={18} /> : 'Create'}
 					</Button>
@@ -56,7 +56,7 @@ export const AddCategoryDialog: React.FC<AddCategoryDialogProps> = ({
 		>
 			<Stack spacing={2.5}>
 				{error && (
-					<Alert severity="error" sx={{ borderRadius: '8px' }}>
+					<Alert severity="error" sx={{ borderRadius: 4 }}>
 						{error}
 					</Alert>
 				)}

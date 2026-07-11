@@ -30,7 +30,7 @@ const TimesheetStatusBadge: React.FC<TimesheetStatusBadgeProps> = ({ status, siz
 			color={config.color}
 			variant={config.variant}
 			size={size}
-			sx={{ fontWeight: 700, borderRadius: '6px', textTransform: 'uppercase', fontSize: '0.65rem' }}
+			sx={{ fontWeight: 700, borderRadius: 3, textTransform: 'uppercase', fontSize: '0.65rem' }}
 		/>
 	);
 };

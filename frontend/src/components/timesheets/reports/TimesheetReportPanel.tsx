@@ -15,8 +15,7 @@ import {
 	TableContainer,
 	TableHead,
 	TableRow,
-	TablePagination,
-	useTheme
+	TablePagination
 } from '@mui/material';
 import { Download as ExportIcon } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -54,8 +53,6 @@ const exportReportToCSV = (rows: TimesheetReportRow[]) => {
 };
 
 const TimesheetReportPanel: React.FC = () => {
-	const theme = useTheme();
-	const isDark = theme.palette.mode === 'dark';
 	const dispatch = useAppDispatch();
 
 	const currentUser = useAppSelector((state) => state.auth.user);
@@ -174,9 +171,10 @@ const TimesheetReportPanel: React.FC = () => {
 				elevation={0}
 				sx={{
 					p: 3,
-					border: `1px solid ${isDark ? '#2D3748' : '#E2E8F0'}`,
-					borderRadius: '12px',
-					bgcolor: isDark ? '#141822' : '#ffffff'
+					border: 1,
+					borderColor: 'divider',
+					borderRadius: 6,
+					bgcolor: 'background.paper'
 				}}
 			>
 				<Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2.5 }}>
@@ -252,7 +250,7 @@ const TimesheetReportPanel: React.FC = () => {
 			{/* KPI Summary Cards */}
 			<Grid container spacing={3}>
 				<Grid size={{ xs: 12, sm: 4 }}>
-					<Card elevation={0} sx={{ border: `1px solid ${isDark ? '#2D3748' : '#E2E8F0'}`, borderRadius: '12px', bgcolor: isDark ? '#141822' : '#ffffff' }}>
+					<Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 6, bgcolor: 'background.paper' }}>
 						<CardContent>
 							<Typography color="text.secondary" variant="body2" sx={{ fontWeight: 600 }}>
 								Total Logged Hours
@@ -264,7 +262,7 @@ const TimesheetReportPanel: React.FC = () => {
 					</Card>
 				</Grid>
 				<Grid size={{ xs: 12, sm: 4 }}>
-					<Card elevation={0} sx={{ border: `1px solid ${isDark ? '#2D3748' : '#E2E8F0'}`, borderRadius: '12px', bgcolor: isDark ? '#141822' : '#ffffff' }}>
+					<Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 6, bgcolor: 'background.paper' }}>
 						<CardContent>
 							<Typography color="text.secondary" variant="body2" sx={{ fontWeight: 600 }}>
 								Billable Hours
@@ -276,7 +274,7 @@ const TimesheetReportPanel: React.FC = () => {
 					</Card>
 				</Grid>
 				<Grid size={{ xs: 12, sm: 4 }}>
-					<Card elevation={0} sx={{ border: `1px solid ${isDark ? '#2D3748' : '#E2E8F0'}`, borderRadius: '12px', bgcolor: isDark ? '#141822' : '#ffffff' }}>
+					<Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 6, bgcolor: 'background.paper' }}>
 						<CardContent>
 							<Typography color="text.secondary" variant="body2" sx={{ fontWeight: 600 }}>
 								Non-Billable Hours
@@ -293,13 +291,14 @@ const TimesheetReportPanel: React.FC = () => {
 			<Paper
 				elevation={0}
 				sx={{
-					border: `1px solid ${isDark ? '#2D3748' : '#E2E8F0'}`,
-					borderRadius: '12px',
+					border: 1,
+					borderColor: 'divider',
+					borderRadius: 6,
 					overflow: 'hidden',
-					bgcolor: isDark ? '#141822' : '#ffffff'
+					bgcolor: 'background.paper'
 				}}
 			>
-				<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 2.5, borderBottom: `1px solid ${isDark ? '#2D3748' : '#E2E8F0'}` }}>
+				<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 2.5, borderBottom: 1, borderColor: 'divider' }}>
 					<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
 						Report Details
 					</Typography>
@@ -308,7 +307,7 @@ const TimesheetReportPanel: React.FC = () => {
 						startIcon={<ExportIcon />}
 						onClick={() => exportReportToCSV(reportRows)}
 						disabled={reportRows.length === 0}
-						sx={{ borderRadius: '6px', fontWeight: 600 }}
+						sx={{ borderRadius: 3, fontWeight: 600 }}
 					>
 						Export CSV
 					</Button>
@@ -317,7 +316,7 @@ const TimesheetReportPanel: React.FC = () => {
 				<TableContainer>
 					<Table>
 						<TableHead>
-							<TableRow sx={{ bgcolor: isDark ? '#1C212E' : '#F8FAFC' }}>
+							<TableRow sx={{ bgcolor: 'action.hover' }}>
 								<TableCell sx={{ fontWeight: 700 }}>User Name</TableCell>
 								<TableCell sx={{ fontWeight: 700 }}>Project</TableCell>
 								<TableCell sx={{ fontWeight: 700 }}>Task / Category</TableCell>

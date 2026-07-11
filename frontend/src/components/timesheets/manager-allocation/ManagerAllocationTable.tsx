@@ -108,11 +108,11 @@ export const ManagerAllocationTable: React.FC<ManagerAllocationTableProps> = ({
 				<Paper
 					sx={{
 						p: 2.5,
-						borderRadius: '12px',
+						borderRadius: 6,
 						border: '1px solid',
 						borderColor: theme.palette.primary.main,
-						bgcolor: isDark ? alpha(theme.palette.primary.main, 0.05) : '#f4f3ff',
-						boxShadow: '0 4px 20px rgba(139, 124, 246, 0.1)'
+						bgcolor: alpha(theme.palette.primary.main, isDark ? 0.05 : 0.08),
+						boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.1)}`
 					}}
 				>
 					<Stack
@@ -137,7 +137,7 @@ export const ManagerAllocationTable: React.FC<ManagerAllocationTableProps> = ({
 									label="Assign Reporting Manager"
 									onChange={(e) => onBulkManagerChange((e.target.value as any) === '' ? '' : Number(e.target.value))}
 									disabled={bulkLoading}
-									sx={{ borderRadius: '8px', bgcolor: 'background.paper' }}
+									sx={{ borderRadius: 4, bgcolor: 'background.paper' }}
 								>
 									<MenuItem value=""><em>None (Clear Manager)</em></MenuItem>
 									{filteredManagers.map((m) => (
@@ -153,7 +153,7 @@ export const ManagerAllocationTable: React.FC<ManagerAllocationTableProps> = ({
 								size="small"
 								onClick={onBulkApply}
 								disabled={bulkLoading || bulkManagerId === ''}
-								sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px', px: 3 }}
+								sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 4, px: 3 }}
 							>
 								{bulkLoading ? <CircularProgress size={20} color="inherit" /> : 'Apply'}
 							</Button>
@@ -175,19 +175,19 @@ export const ManagerAllocationTable: React.FC<ManagerAllocationTableProps> = ({
 			{/* Search and Table */}
 			<Paper
 				sx={{
-					borderRadius: '16px',
+					borderRadius: 8,
 					border: '1px solid',
-					borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+					borderColor: 'divider',
 					overflow: 'hidden',
 					boxShadow: 'none'
 				}}
 			>
 				{/* Search & Filter Toolbar */}
-				<Box 
-					sx={{ 
-						p: 2.5, 
-						borderBottom: '1px solid', 
-						borderColor: 'divider', 
+				<Box
+					sx={{
+						p: 2.5,
+						borderBottom: '1px solid',
+						borderColor: 'divider',
 						display: 'flex', 
 						flexDirection: { xs: 'column', md: 'row' },
 						justifyContent: 'space-between',
@@ -208,7 +208,7 @@ export const ManagerAllocationTable: React.FC<ManagerAllocationTableProps> = ({
 									<SearchIcon color="action" />
 								</InputAdornment>
 							),
-							sx: { borderRadius: '10px' }
+							sx: { borderRadius: 5 }
 						}}
 					/>
 					
@@ -219,7 +219,7 @@ export const ManagerAllocationTable: React.FC<ManagerAllocationTableProps> = ({
 								onDelete={onClearUnassignedFilter} 
 								color="warning"
 								size="small"
-								sx={{ fontWeight: 700, borderRadius: '8px' }}
+								sx={{ fontWeight: 700, borderRadius: 4 }}
 							/>
 						)}
 						<FormControlLabel
@@ -242,7 +242,7 @@ export const ManagerAllocationTable: React.FC<ManagerAllocationTableProps> = ({
 
 				<TableContainer>
 					<Table>
-						<TableHead sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8f9fa' }}>
+						<TableHead sx={{ bgcolor: 'action.hover' }}>
 							<TableRow>
 								<TableCell padding="checkbox">
 									<Checkbox
@@ -297,7 +297,7 @@ export const ManagerAllocationTable: React.FC<ManagerAllocationTableProps> = ({
 											selected={isSelected}
 											sx={{
 												transition: 'background-color 0.2s',
-												'&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.01)' }
+												'&:hover': { bgcolor: 'action.hover' }
 											}}
 										>
 											<TableCell padding="checkbox">
@@ -323,7 +323,7 @@ export const ManagerAllocationTable: React.FC<ManagerAllocationTableProps> = ({
 													color={getRoleLabelColor(user.role)}
 													size="small"
 													variant="outlined"
-													sx={{ fontWeight: 600, borderRadius: '4px', fontSize: '0.7rem' }}
+													sx={{ fontWeight: 600, borderRadius: 2, fontSize: '0.7rem' }}
 												/>
 											</TableCell>
 											<TableCell>
@@ -359,7 +359,7 @@ export const ManagerAllocationTable: React.FC<ManagerAllocationTableProps> = ({
 															onChange={(e) => onManagerChange(user, (e.target.value as any) === '' ? '' : Number(e.target.value))}
 															disabled={isUpdating}
 															displayEmpty
-															sx={{ borderRadius: '8px' }}
+															sx={{ borderRadius: 4 }}
 														>
 															<MenuItem value="">
 																<em>Unassigned / None</em>

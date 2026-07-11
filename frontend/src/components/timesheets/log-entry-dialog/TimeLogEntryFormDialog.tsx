@@ -37,6 +37,7 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 		visibleProjects,
 		doneStatusIds,
 		getVisibleTasks,
+		isRowTasksLoading,
 		updateRow,
 		handleProjectChange,
 		handleTaskChange,
@@ -87,7 +88,7 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 									startIcon={<DeleteIcon />}
 									onClick={() => setConfirmDeleteOpen(true)}
 									disabled={submitting}
-									sx={{ fontWeight: 700, borderRadius: '8px' }}
+									sx={{ fontWeight: 700, borderRadius: 4 }}
 								>
 									Delete
 								</Button>
@@ -101,7 +102,7 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 								variant="contained"
 								onClick={handleSubmit}
 								disabled={submitting}
-								sx={{ fontWeight: 700, borderRadius: '8px' }}
+								sx={{ fontWeight: 700, borderRadius: 4 }}
 							>
 								{submitting ? (
 									<CircularProgress size={18} />
@@ -119,7 +120,7 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 			>
 				<Stack spacing={2.5}>
 					{error && (
-						<Alert severity="error" sx={{ borderRadius: '8px' }}>
+						<Alert severity="error" sx={{ borderRadius: 4 }}>
 							{error}
 						</Alert>
 					)}
@@ -133,6 +134,7 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 							hasProjectModule={hasProjectModule}
 							visibleProjects={visibleProjects}
 							getVisibleTasks={getVisibleTasks}
+							tasksLoading={isRowTasksLoading(row)}
 							doneStatusIds={doneStatusIds}
 							categories={categories}
 							myCategories={myCategories}
@@ -151,7 +153,7 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 							startIcon={<AddIcon />}
 							onClick={handleAddRow}
 							disabled={submitting}
-							sx={{ alignSelf: 'flex-start', fontWeight: 600, borderRadius: '8px' }}
+							sx={{ alignSelf: 'flex-start', fontWeight: 600, borderRadius: 4 }}
 						>
 							Add Another Row
 						</Button>

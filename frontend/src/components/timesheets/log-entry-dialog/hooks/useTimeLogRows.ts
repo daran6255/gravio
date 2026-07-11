@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
-import { fetchProjects, fetchTaskStatuses } from '../../../../store/slices/projectsSlice';
-import projectService from '../../../../services/projectService';
+import { fetchProjects, fetchTaskStatuses, fetchProjectTaskOptions } from '../../../../store/slices/projectsSlice';
 import type { ProjectTimeLog } from '../../../../models/timesheet';
 import type { ProjectTask } from '../../../../models/projects/projectTask';
 import type { Project } from '../../../../models/projects/project';
@@ -21,10 +20,15 @@ interface UseTimeLogRowsArgs {
 // selection, task list loading, add/remove row).
 export const useTimeLogRows = ({ open, log, defaultDate, hasProjectModule, currentUserId }: UseTimeLogRowsArgs) => {
 	const dispatch = useAppDispatch();
-	const { projects, taskStatuses } = useAppSelector((state) => state.projects);
+	const { projects, taskStatuses, projectTaskOptions, projectTaskOptionsLoading } = useAppSelector((state) => state.projects);
 
 	const [rows, setRows] = useState<RowDraft[]>([makeEmptyRow(defaultDate, hasProjectModule ? 'project_task' : 'general')]);
 	const [error, setError] = useState<string | null>(null);
+
+	// Module is off for this org, so the sibling-tasks endpoint (also module-gated)
+	// isn't reachable -- fall back to the one task the log itself already carries,
+	// just so the edit row's Task field isn't blank.
+	const [moduleOffFallbackTask, setModuleOffFallbackTask] = useState<ProjectTask | null>(null);
 
 	useEffect(() => {
 		if (open && hasProjectModule) {
@@ -50,28 +54,41 @@ export const useTimeLogRows = ({ open, log, defaultDate, hasProjectModule, curre
 		[taskStatuses]
 	);
 
-	const getVisibleTasks = useCallback(
-		(row: RowDraft): ProjectTask[] =>
-			row.tasks.filter(
-				(t) => (t.assignee_id === currentUserId && !doneStatusIds.has(t.status_id)) || t.id === row.taskId
-			),
-		[currentUserId, doneStatusIds]
+	const projectPublicIdFor = useCallback(
+		(projectId: number | '') => visibleProjects.find((p) => p.id === projectId)?.public_id,
+		[visibleProjects]
 	);
 
-	const loadTasksForProject = useCallback(async (rowKey: string, projectPublicId: string) => {
-		setRows((prev) => prev.map((r) => (r.key === rowKey ? { ...r, tasksLoading: true } : r)));
-		try {
-			const tasks = await projectService.listProjectTasks(projectPublicId);
-			setRows((prev) => prev.map((r) => (r.key === rowKey ? { ...r, tasks, tasksLoading: false } : r)));
-		} catch {
-			setRows((prev) => prev.map((r) => (r.key === rowKey ? { ...r, tasks: [], tasksLoading: false } : r)));
-		}
-	}, []);
+	const getRowTasks = useCallback(
+		(row: RowDraft): ProjectTask[] => {
+			if (!hasProjectModule) return moduleOffFallbackTask ? [moduleOffFallbackTask] : [];
+			const publicId = projectPublicIdFor(row.projectId);
+			return publicId ? projectTaskOptions[publicId] ?? [] : [];
+		},
+		[hasProjectModule, moduleOffFallbackTask, projectPublicIdFor, projectTaskOptions]
+	);
+
+	const isRowTasksLoading = useCallback(
+		(row: RowDraft): boolean => {
+			const publicId = projectPublicIdFor(row.projectId);
+			return publicId ? !!projectTaskOptionsLoading[publicId] : false;
+		},
+		[projectPublicIdFor, projectTaskOptionsLoading]
+	);
+
+	const getVisibleTasks = useCallback(
+		(row: RowDraft): ProjectTask[] =>
+			getRowTasks(row).filter(
+				(t) => (t.assignee_id === currentUserId && !doneStatusIds.has(t.status_id)) || t.id === row.taskId
+			),
+		[getRowTasks, currentUserId, doneStatusIds]
+	);
 
 	// Initialize rows whenever the dialog is opened (edit a single log, or start a fresh add-row flow)
 	useEffect(() => {
 		if (!open) return;
 		setError(null);
+		setModuleOffFallbackTask(null);
 
 		if (log) {
 			const row = makeEmptyRow(log.log_date);
@@ -95,35 +112,32 @@ export const useTimeLogRows = ({ open, log, defaultDate, hasProjectModule, curre
 
 			if (log.project_id && log.task_id && log.project?.public_id) {
 				if (hasProjectModule) {
-					loadTasksForProject(row.key, log.project.public_id);
+					dispatch(fetchProjectTaskOptions(log.project.public_id));
 				} else if (log.task) {
-					// Module is off for this org, so the sibling-tasks endpoint (also
-					// module-gated) isn't reachable -- fall back to the one task the
-					// log itself already carries, just so the field isn't blank.
-					setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, tasks: [log.task!] } : r)));
+					setModuleOffFallbackTask(log.task);
 				}
 			}
 		} else {
 			setRows([makeEmptyRow(defaultDate, hasProjectModule ? 'project_task' : 'general')]);
 		}
-	}, [open, log, defaultDate, loadTasksForProject, hasProjectModule]);
+	}, [open, log, defaultDate, hasProjectModule, dispatch]);
 
 	const updateRow = (key: string, patch: Partial<RowDraft>) => {
 		setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
 	};
 
 	const handleProjectChange = (key: string, projectId: number) => {
-		updateRow(key, { projectId, taskId: '', tasks: [] });
+		updateRow(key, { projectId, taskId: '' });
 		const project = visibleProjects.find((p) => p.id === projectId);
 		if (project) {
-			loadTasksForProject(key, project.public_id);
+			dispatch(fetchProjectTaskOptions(project.public_id));
 		}
 	};
 
 	const handleTaskChange = (key: string, taskId: number, row: RowDraft) => {
 		// Pre-fill the billing type from the task's own default -- the user can still
 		// override it below, but most tasks are consistently billable/non-billable.
-		const task = row.tasks.find((t) => t.id === taskId);
+		const task = getVisibleTasks(row).find((t) => t.id === taskId);
 		updateRow(key, { taskId, ...(task ? { billingType: task.billing_type } : {}) });
 	};
 
@@ -143,6 +157,7 @@ export const useTimeLogRows = ({ open, log, defaultDate, hasProjectModule, curre
 		visibleProjects,
 		doneStatusIds,
 		getVisibleTasks,
+		isRowTasksLoading,
 		updateRow,
 		handleProjectChange,
 		handleTaskChange,

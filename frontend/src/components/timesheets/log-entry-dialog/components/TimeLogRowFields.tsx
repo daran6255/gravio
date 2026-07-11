@@ -15,6 +15,7 @@ interface TimeLogRowFieldsProps {
 	hasProjectModule: boolean;
 	visibleProjects: Project[];
 	getVisibleTasks: (row: RowDraft) => ProjectTask[];
+	tasksLoading: boolean;
 	doneStatusIds: Set<number>;
 	categories: TimesheetCategory[];
 	myCategories: TimesheetCategory[];
@@ -37,6 +38,7 @@ export const TimeLogRowFields: React.FC<TimeLogRowFieldsProps> = ({
 	hasProjectModule,
 	visibleProjects,
 	getVisibleTasks,
+	tasksLoading,
 	doneStatusIds,
 	categories,
 	myCategories,
@@ -68,7 +70,7 @@ export const TimeLogRowFields: React.FC<TimeLogRowFieldsProps> = ({
 						value={row.logAgainst}
 						exclusive
 						onChange={(_, val) =>
-							val && updateRow(row.key, { logAgainst: val, projectId: '', taskId: '', categoryId: '', tasks: [] })
+							val && updateRow(row.key, { logAgainst: val, projectId: '', taskId: '', categoryId: '' })
 						}
 						fullWidth
 						size="small"
@@ -114,7 +116,7 @@ export const TimeLogRowFields: React.FC<TimeLogRowFieldsProps> = ({
 						required
 						disabled={!row.projectId || submitting}
 						helperText={
-							row.tasksLoading
+							tasksLoading
 								? 'Loading tasks...'
 								: row.projectId && getVisibleTasks(row).length === 0
 									? 'No active tasks assigned to you on this project'
@@ -149,7 +151,7 @@ export const TimeLogRowFields: React.FC<TimeLogRowFieldsProps> = ({
 						{categories.map((c) => (
 							<MenuItem key={c.id} value={c.id}>
 								<Stack direction="row" spacing={1} alignItems="center">
-									<Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: c.color || '#94A3B8', flexShrink: 0 }} />
+									<Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: c.color || 'text.disabled', flexShrink: 0 }} />
 									<Typography variant="body2">{c.name}</Typography>
 								</Stack>
 							</MenuItem>

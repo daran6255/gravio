@@ -63,7 +63,6 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 	currentUserId
 }) => {
 	const theme = useTheme();
-	const isDark = theme.palette.mode === 'dark';
 
 	const [expandedUser, setExpandedUser] = useState<number | null>(null);
 	const [rejectUserId, setRejectUserId] = useState<number | null>(null);
@@ -131,10 +130,10 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 
 	return (
 		<Box>
-			<TableContainer component={Paper} elevation={0} sx={{ border: `1px solid ${isDark ? '#2D3748' : '#E2E8F0'}`, borderRadius: '12px', overflow: 'hidden' }}>
+			<TableContainer component={Paper} elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 6, overflow: 'hidden' }}>
 				<Table>
 					<TableHead>
-						<TableRow sx={{ bgcolor: isDark ? '#1C212E' : '#F8FAFC' }}>
+						<TableRow sx={{ bgcolor: 'action.hover' }}>
 							<TableCell width={50} />
 							<TableCell sx={{ fontWeight: 700 }}>Team Member</TableCell>
 							<TableCell align="center" sx={{ fontWeight: 700 }}>Total Hours</TableCell>
@@ -193,7 +192,7 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 																	size="small"
 																	onClick={() => onApprove(sheet.userId)}
 																	disabled={actionLoading}
-																	sx={{ borderRadius: '6px', fontWeight: 700 }}
+																	sx={{ borderRadius: 3, fontWeight: 700 }}
 																>
 																	Approve
 																</Button>
@@ -203,7 +202,7 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 																	size="small"
 																	onClick={() => handleOpenRejectDialog(sheet.userId)}
 																	disabled={actionLoading}
-																	sx={{ borderRadius: '6px', fontWeight: 700 }}
+																	sx={{ borderRadius: 3, fontWeight: 700 }}
 																>
 																	Reject
 																</Button>
@@ -216,7 +215,7 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 																size="small"
 																onClick={() => setRevokeTarget(sheet)}
 																disabled={actionLoading}
-																sx={{ borderRadius: '6px', fontWeight: 700 }}
+																sx={{ borderRadius: 3, fontWeight: 700 }}
 															>
 																Revoke
 															</Button>
@@ -236,13 +235,13 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 										<TableRow>
 											<TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
 												<Collapse in={isExpanded} timeout="auto" unmountOnExit>
-													<Box sx={{ margin: 2, p: 2, bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', borderRadius: '8px' }}>
+													<Box sx={{ margin: 2, p: 2, bgcolor: 'action.hover', borderRadius: 4 }}>
 														<Typography variant="subtitle2" gutterBottom component="div" sx={{ fontWeight: 700, mb: 2 }}>
 															Detailed Logs ({startDate} to {endDate})
 														</Typography>
 
 														{sheet.rejectionNote && sheet.status === 'rejected' && (
-															<Box sx={{ mb: 2, p: 1.5, bgcolor: alpha(theme.palette.error.main, 0.1), border: `1px solid ${theme.palette.error.main}`, borderRadius: '6px' }}>
+															<Box sx={{ mb: 2, p: 1.5, bgcolor: alpha(theme.palette.error.main, 0.1), border: `1px solid ${theme.palette.error.main}`, borderRadius: 3 }}>
 																<Typography variant="caption" sx={{ fontWeight: 700, color: 'error.main', display: 'block' }}>
 																	Rejection Reason:
 																</Typography>
@@ -314,7 +313,7 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 				maxWidth="xs"
 				actions={
 					<>
-						<Button onClick={handleCloseRejectDialog} variant="outlined" sx={{ borderRadius: '6px' }}>
+						<Button onClick={handleCloseRejectDialog} variant="outlined" sx={{ borderRadius: 3 }}>
 							Cancel
 						</Button>
 						<Button
@@ -322,7 +321,7 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 							variant="contained"
 							color="error"
 							disabled={!rejectionReason.trim()}
-							sx={{ borderRadius: '6px', fontWeight: 700 }}
+							sx={{ borderRadius: 3, fontWeight: 700 }}
 						>
 							Reject Timesheet
 						</Button>

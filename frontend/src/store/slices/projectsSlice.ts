@@ -43,6 +43,12 @@ interface ProjectsState {
 	taskMutating: boolean;
 	taskMutationError: string | null;
 
+	// Per-project task options cache, keyed by project public_id -- used by pickers
+	// (e.g. the log-time form) that need several independent projects' task lists
+	// loaded at once, unlike `projectTasks` above which holds a single project's tasks.
+	projectTaskOptions: Record<string, ProjectTask[]>;
+	projectTaskOptionsLoading: Record<string, boolean>;
+
 	taskStatuses: ProjectTaskStatus[];
 	taskStatusesLoading: boolean;
 	taskStatusMutating: boolean;
@@ -78,6 +84,9 @@ const initialState: ProjectsState = {
 	projectTasksLoading: false,
 	taskMutating: false,
 	taskMutationError: null,
+
+	projectTaskOptions: {},
+	projectTaskOptionsLoading: {},
 
 	taskStatuses: [],
 	taskStatusesLoading: false,
@@ -187,6 +196,18 @@ export const fetchProjectTasks = createAsyncThunk(
 	async (projectPublicId: string, { rejectWithValue }) => {
 		try {
 			return await projectService.listProjectTasks(projectPublicId);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch tasks'));
+		}
+	}
+);
+
+export const fetchProjectTaskOptions = createAsyncThunk(
+	'projects/fetchProjectTaskOptions',
+	async (projectPublicId: string, { rejectWithValue }) => {
+		try {
+			const tasks = await projectService.listProjectTasks(projectPublicId);
+			return { projectPublicId, tasks };
 		} catch (error: any) {
 			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch tasks'));
 		}
@@ -379,6 +400,17 @@ const projectsSlice = createSlice({
 			})
 			.addCase(fetchProjectTasks.rejected, (state) => {
 				state.projectTasksLoading = false;
+			})
+			.addCase(fetchProjectTaskOptions.pending, (state, action) => {
+				state.projectTaskOptionsLoading[action.meta.arg] = true;
+			})
+			.addCase(fetchProjectTaskOptions.fulfilled, (state, action: PayloadAction<{ projectPublicId: string; tasks: ProjectTask[] }>) => {
+				state.projectTaskOptionsLoading[action.payload.projectPublicId] = false;
+				state.projectTaskOptions[action.payload.projectPublicId] = action.payload.tasks;
+			})
+			.addCase(fetchProjectTaskOptions.rejected, (state, action) => {
+				state.projectTaskOptionsLoading[action.meta.arg] = false;
+				state.projectTaskOptions[action.meta.arg] = [];
 			})
 			.addCase(createProjectTask.pending, (state) => { state.taskMutating = true; })
 			.addCase(createProjectTask.fulfilled, (state, action: PayloadAction<ProjectTask>) => {

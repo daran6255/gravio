@@ -253,7 +253,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 						startIcon={<AddIcon />}
 						onClick={onAddRow}
 						disabled={isLocked || isWeekClosed}
-						sx={{ borderRadius: '8px', fontWeight: 600 }}
+						sx={{ borderRadius: 4, fontWeight: 600 }}
 					>
 						Add Row
 					</Button>
@@ -262,7 +262,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 							variant="contained"
 							onClick={onSubmitWeek}
 							disabled={submitLoading || !reportingManagerSet || isLocked}
-							sx={{ borderRadius: '8px', fontWeight: 700, px: 3 }}
+							sx={{ borderRadius: 4, fontWeight: 700, px: 3 }}
 						>
 							Submit Week
 						</Button>
@@ -271,7 +271,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 			</Stack>
 
 			{!reportingManagerSet && (
-				<Box sx={{ bgcolor: alpha(theme.palette.warning.main, 0.1), color: 'warning.dark', p: 2, borderRadius: '8px', border: `1px solid ${theme.palette.warning.main}` }}>
+				<Box sx={{ bgcolor: alpha(theme.palette.warning.main, 0.1), color: 'warning.dark', p: 2, borderRadius: 4, border: `1px solid ${theme.palette.warning.main}` }}>
 					<Typography variant="body2" sx={{ fontWeight: 600 }}>
 						⚠️ Submission Blocked: You do not have a Reporting Manager assigned in your profile. Please set one in settings to submit timesheets.
 					</Typography>
@@ -295,7 +295,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 							</Button>
 						)
 					}
-					sx={{ borderRadius: '8px' }}
+					sx={{ borderRadius: 4 }}
 				>
 					{pendingRequest ? (
 						<>Unlock request sent to your manager on {pendingRequest.created_at.split('T')[0]} — waiting for approval.</>
@@ -313,13 +313,13 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 			)}
 
 			{activeGrant && !isCurrentWeek && (
-				<Alert severity="success" sx={{ borderRadius: '8px' }}>
+				<Alert severity="success" sx={{ borderRadius: 4 }}>
 					Your manager unlocked this week — add/edit your entries and hit Submit Week when ready.
 				</Alert>
 			)}
 
 			{hasUnsubmittedEntries && (weeklyStatus === 'submitted' || weeklyStatus === 'approved') && (
-				<Alert severity="info" sx={{ borderRadius: '8px' }}>
+				<Alert severity="info" sx={{ borderRadius: 4 }}>
 					You've added entries since your last submission — hit Submit Week to send them to your manager too.
 				</Alert>
 			)}
@@ -328,15 +328,16 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 				component={Paper}
 				elevation={0}
 				sx={{
-					border: `1px solid ${isDark ? '#2D3748' : '#E2E8F0'}`,
-					borderRadius: '12px',
+					border: 1,
+					borderColor: 'divider',
+					borderRadius: 6,
 					overflow: 'hidden',
-					bgcolor: isDark ? '#141822' : '#ffffff'
+					bgcolor: 'background.paper'
 				}}
 			>
 				<Table sx={{ minWidth: 800 }}>
 					<TableHead>
-						<TableRow sx={{ bgcolor: isDark ? '#1C212E' : '#F8FAFC' }}>
+						<TableRow sx={{ bgcolor: 'action.hover' }}>
 							<TableCell sx={{ fontWeight: 700, width: 240 }}>Log Target</TableCell>
 							<TableCell sx={{ fontWeight: 700, width: 100 }}>Billing</TableCell>
 							{dates.map((date, i) => {
@@ -352,7 +353,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 										sx={{
 											fontWeight: 700,
 											width: 90,
-											bgcolor: isHoliday ? (isDark ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.05)') : 'inherit'
+											bgcolor: isHoliday ? alpha(theme.palette.warning.main, isDark ? 0.08 : 0.05) : 'inherit'
 										}}
 									>
 										<Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center">
@@ -361,7 +362,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 											</Typography>
 											{isHoliday && (
 												<Tooltip title={`Holiday: ${holidayLabel(dStr)}`}>
-													<HolidayIcon sx={{ fontSize: '0.9rem', color: 'orange' }} />
+													<HolidayIcon sx={{ fontSize: '0.9rem', color: 'warning.main' }} />
 												</Tooltip>
 											)}
 										</Stack>
@@ -385,7 +386,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 								<TableRow
 									key={row.id}
 									sx={{
-										'&:hover': { bgcolor: isDark ? '#1C212E' : '#F8FAFC' },
+										'&:hover': { bgcolor: 'action.hover' },
 										transition: 'background-color 0.2s'
 									}}
 								>
@@ -452,13 +453,12 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 													cursor: isCellDisabled ? 'default' : 'pointer',
 													p: 1,
 													position: 'relative',
-													bgcolor: isHoliday ? (isDark ? 'rgba(245, 158, 11, 0.04)' : 'rgba(245, 158, 11, 0.02)') : 'inherit',
-													borderRight: `1px solid ${isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)'}`,
+													bgcolor: isHoliday ? alpha(theme.palette.warning.main, isDark ? 0.04 : 0.02) : 'inherit',
+													borderRight: 1,
+													borderColor: 'divider',
 													opacity: isHolidayBlocked && !log ? 0.6 : 1,
 													'&:hover': {
-														bgcolor: isCellDisabled
-															? 'inherit'
-															: (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)')
+														bgcolor: isCellDisabled ? 'inherit' : 'action.hover'
 													}
 												}}
 											>
@@ -467,17 +467,17 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 														sx={{
 															py: 1,
 															px: 0.5,
-															borderRadius: '6px',
+															borderRadius: 3,
 															bgcolor: isApproved
-																? (isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)')
+																? alpha(theme.palette.success.main, isDark ? 0.1 : 0.05)
 																: isSubmitted
-																? (isDark ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.05)')
-																: (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'),
+																? alpha(theme.palette.warning.main, isDark ? 0.1 : 0.05)
+																: 'action.selected',
 															border: `1px solid ${
 																isApproved
-																	? 'rgba(16, 185, 129, 0.3)'
+																	? alpha(theme.palette.success.main, 0.3)
 																	: isSubmitted
-																	? 'rgba(245, 158, 11, 0.3)'
+																	? alpha(theme.palette.warning.main, 0.3)
 																	: 'transparent'
 															}`,
 															display: 'flex',
@@ -490,7 +490,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 															{formatHoursDisplay(log.hours)}
 														</Typography>
 														{log.is_holiday_override && (
-															<HolidayIcon sx={{ fontSize: '0.75rem', color: 'orange' }} />
+															<HolidayIcon sx={{ fontSize: '0.75rem', color: 'warning.main' }} />
 														)}
 													</Box>
 												) : (
@@ -511,7 +511,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 						)}
 
 						{/* Day Totals Row */}
-						<TableRow sx={{ bgcolor: isDark ? '#1C212E' : '#F8FAFC', borderTop: `2px solid ${isDark ? '#2D3748' : '#E2E8F0'}` }}>
+						<TableRow sx={{ bgcolor: 'action.hover', borderTop: 2, borderColor: 'divider' }}>
 							<TableCell colSpan={2} sx={{ fontWeight: 800 }}>
 								Total Hours
 							</TableCell>
@@ -535,14 +535,14 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 				maxWidth="xs"
 				actions={
 					<>
-						<Button onClick={() => setRequestDialogOpen(false)} variant="outlined" sx={{ borderRadius: '6px' }}>
+						<Button onClick={() => setRequestDialogOpen(false)} variant="outlined" sx={{ borderRadius: 3 }}>
 							Cancel
 						</Button>
 						<Button
 							onClick={handleSubmitUnlockRequest}
 							variant="contained"
 							disabled={unlockRequestLoading}
-							sx={{ borderRadius: '6px', fontWeight: 700 }}
+							sx={{ borderRadius: 3, fontWeight: 700 }}
 						>
 							Send Request
 						</Button>

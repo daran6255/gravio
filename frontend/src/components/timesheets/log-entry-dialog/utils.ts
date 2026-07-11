@@ -21,9 +21,7 @@ export const makeEmptyRow = (defaultDate?: string, defaultLogAgainst: LogAgainst
 	logDate: defaultDate || new Date().toISOString().split('T')[0],
 	hours: '',
 	billingType: 'billable',
-	notes: '',
-	tasks: [],
-	tasksLoading: false
+	notes: ''
 });
 
 export const buildLogPayload = (row: RowDraft) => ({

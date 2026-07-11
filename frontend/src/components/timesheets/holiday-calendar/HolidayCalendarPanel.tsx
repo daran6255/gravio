@@ -16,6 +16,7 @@ import {
 	MenuItem,
 	Alert,
 	useTheme,
+	alpha,
 	CircularProgress,
 	Box
 } from '@mui/material';
@@ -259,9 +260,10 @@ const HolidayCalendarPanel: React.FC = () => {
 						elevation={0}
 						sx={{
 							p: 3,
-							border: `1px solid ${isDark ? '#2D3748' : '#E2E8F0'}`,
-							borderRadius: '12px',
-							bgcolor: isDark ? '#141822' : '#ffffff'
+							border: 1,
+							borderColor: 'divider',
+							borderRadius: 6,
+							bgcolor: 'background.paper'
 						}}
 					>
 						<Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2.5 }}>
@@ -269,7 +271,7 @@ const HolidayCalendarPanel: React.FC = () => {
 						</Typography>
 
 						{error && (
-							<Alert severity="error" sx={{ mb: 3, borderRadius: '8px' }}>
+							<Alert severity="error" sx={{ mb: 3, borderRadius: 4 }}>
 								{error}
 							</Alert>
 						)}
@@ -316,7 +318,7 @@ const HolidayCalendarPanel: React.FC = () => {
 								type="submit"
 								variant="contained"
 								disabled={submitting}
-								sx={{ py: 1.2, fontWeight: 700, borderRadius: '8px' }}
+								sx={{ py: 1.2, fontWeight: 700, borderRadius: 4 }}
 							>
 								{submitting ? 'Creating...' : 'Add Holiday'}
 							</Button>
@@ -331,9 +333,10 @@ const HolidayCalendarPanel: React.FC = () => {
 					elevation={0}
 					sx={{
 						p: 3,
-						border: `1px solid ${isDark ? '#2D3748' : '#E2E8F0'}`,
-						borderRadius: '12px',
-						bgcolor: isDark ? '#141822' : '#ffffff'
+						border: 1,
+						borderColor: 'divider',
+						borderRadius: 6,
+						bgcolor: 'background.paper'
 					}}
 				>
 					<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
@@ -345,7 +348,7 @@ const HolidayCalendarPanel: React.FC = () => {
 								variant="outlined"
 								size="small"
 								onClick={() => setImportDialogOpen(true)}
-								sx={{ textTransform: 'none', borderRadius: '8px', fontWeight: 600 }}
+								sx={{ textTransform: 'none', borderRadius: 4, fontWeight: 600 }}
 							>
 								Import Holidays
 							</Button>
@@ -354,7 +357,7 @@ const HolidayCalendarPanel: React.FC = () => {
 					<TableContainer>
 						<Table size="small">
 							<TableHead>
-								<TableRow sx={{ bgcolor: isDark ? '#1C212E' : '#F8FAFC' }}>
+								<TableRow sx={{ bgcolor: 'action.hover' }}>
 									<TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
 									<TableCell sx={{ fontWeight: 700 }}>Holiday Name</TableCell>
 									<TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
@@ -407,14 +410,14 @@ const HolidayCalendarPanel: React.FC = () => {
 				loading={importLoading}
 				actions={
 					<>
-						<Button onClick={handleCloseImport} variant="outlined" disabled={importLoading} sx={{ borderRadius: '6px' }}>
+						<Button onClick={handleCloseImport} variant="outlined" disabled={importLoading} sx={{ borderRadius: 3 }}>
 							Cancel
 						</Button>
 						<Button
 							onClick={handleConfirmImport}
 							disabled={importPreview.length === 0 || importLoading}
 							variant="contained"
-							sx={{ fontWeight: 700, borderRadius: '6px' }}
+							sx={{ fontWeight: 700, borderRadius: 3 }}
 						>
 							{importLoading ? <CircularProgress size={20} color="inherit" /> : 'Confirm Import'}
 						</Button>
@@ -431,10 +434,10 @@ const HolidayCalendarPanel: React.FC = () => {
 							p: 3,
 							border: '2px dashed',
 							borderColor: dragOver ? 'primary.main' : 'divider',
-							borderRadius: '12px',
+							borderRadius: 6,
 							textAlign: 'center',
 							cursor: 'pointer',
-							bgcolor: dragOver ? (isDark ? 'rgba(139, 124, 246, 0.1)' : '#f4f3ff') : 'transparent',
+							bgcolor: dragOver ? alpha(theme.palette.primary.main, isDark ? 0.1 : 0.05) : 'transparent',
 							transition: 'all 0.2s ease'
 						}}
 						onClick={() => fileInputRef.current?.click()}
@@ -458,7 +461,7 @@ const HolidayCalendarPanel: React.FC = () => {
 					</Box>
 
 					{importError && (
-						<Alert severity="error" sx={{ borderRadius: '8px' }}>
+						<Alert severity="error" sx={{ borderRadius: 4 }}>
 							{importError}
 						</Alert>
 					)}
@@ -468,9 +471,9 @@ const HolidayCalendarPanel: React.FC = () => {
 							<Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
 								Preview ({importPreview.length} holidays found)
 							</Typography>
-							<Box sx={{ maxHeight: 200, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: '8px' }}>
+							<Box sx={{ maxHeight: 200, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 4 }}>
 								<Table size="small">
-									<TableHead sx={{ bgcolor: isDark ? '#1C212E' : '#F8FAFC' }}>
+									<TableHead sx={{ bgcolor: 'action.hover' }}>
 										<TableRow>
 											<TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
 											<TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
@@ -491,7 +494,7 @@ const HolidayCalendarPanel: React.FC = () => {
 						</Box>
 					)}
 
-					<Box sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8f9fa', p: 2, borderRadius: '8px' }}>
+					<Box sx={{ bgcolor: 'action.hover', p: 2, borderRadius: 4 }}>
 						<Typography variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 1 }}>
 							Expected File Schema:
 						</Typography>

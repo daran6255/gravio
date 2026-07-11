@@ -56,7 +56,7 @@ export const ManageCategoriesDialog: React.FC<ManageCategoriesDialogProps> = ({
 								sx={{ py: 0.75 }}
 							>
 								<Stack direction="row" spacing={1.5} alignItems="center">
-									<Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: c.color || '#94A3B8', flexShrink: 0 }} />
+									<Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: c.color || 'text.disabled', flexShrink: 0 }} />
 									<Typography variant="body2">{c.name}</Typography>
 								</Stack>
 								<IconButton size="small" onClick={() => onRequestDelete(c)}>

@@ -1,5 +1,4 @@
 import type { ProjectTimeLog } from '../../../models/timesheet';
-import type { ProjectTask } from '../../../models/projects/projectTask';
 
 export interface TimeLogEntryFormDialogProps {
 	open: boolean;
@@ -21,6 +20,4 @@ export interface RowDraft {
 	hours: string;
 	billingType: 'billable' | 'non_billable';
 	notes: string;
-	tasks: ProjectTask[];
-	tasksLoading: boolean;
 }

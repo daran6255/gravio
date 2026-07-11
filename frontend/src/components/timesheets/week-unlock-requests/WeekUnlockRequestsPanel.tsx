@@ -11,8 +11,7 @@ import {
 	Stack,
 	Button,
 	Chip,
-	TextField,
-	useTheme
+	TextField
 } from '@mui/material';
 import { BaseDialog } from '../../common/dialogbox';
 import type { TimesheetWeekUnlockRequest } from '../../../models/timesheet';
@@ -31,8 +30,6 @@ const statusChipColor: Record<string, 'warning' | 'success' | 'error'> = {
 };
 
 const WeekUnlockRequestsPanel: React.FC<WeekUnlockRequestsPanelProps> = ({ requests, loading, onApprove, onDeny }) => {
-	const theme = useTheme();
-	const isDark = theme.palette.mode === 'dark';
 	const [denyTarget, setDenyTarget] = useState<TimesheetWeekUnlockRequest | null>(null);
 	const [denyNote, setDenyNote] = useState('');
 
@@ -55,10 +52,10 @@ const WeekUnlockRequestsPanel: React.FC<WeekUnlockRequestsPanelProps> = ({ reque
 	};
 
 	const renderTable = (rows: TimesheetWeekUnlockRequest[], showActions: boolean) => (
-		<TableContainer component={Paper} elevation={0} sx={{ border: `1px solid ${isDark ? '#2D3748' : '#E2E8F0'}`, borderRadius: '12px', overflow: 'hidden' }}>
+		<TableContainer component={Paper} elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 6, overflow: 'hidden' }}>
 			<Table>
 				<TableHead>
-					<TableRow sx={{ bgcolor: isDark ? '#1C212E' : '#F8FAFC' }}>
+					<TableRow sx={{ bgcolor: 'action.hover' }}>
 						<TableCell sx={{ fontWeight: 700 }}>Team Member</TableCell>
 						<TableCell sx={{ fontWeight: 700 }}>Week</TableCell>
 						<TableCell sx={{ fontWeight: 700 }}>Reason</TableCell>
@@ -111,7 +108,7 @@ const WeekUnlockRequestsPanel: React.FC<WeekUnlockRequestsPanelProps> = ({ reque
 												size="small"
 												onClick={() => onApprove(req.id)}
 												disabled={loading}
-												sx={{ borderRadius: '6px', fontWeight: 700 }}
+												sx={{ borderRadius: 3, fontWeight: 700 }}
 											>
 												Approve
 											</Button>
@@ -121,7 +118,7 @@ const WeekUnlockRequestsPanel: React.FC<WeekUnlockRequestsPanelProps> = ({ reque
 												size="small"
 												onClick={() => handleOpenDeny(req)}
 												disabled={loading}
-												sx={{ borderRadius: '6px', fontWeight: 700 }}
+												sx={{ borderRadius: 3, fontWeight: 700 }}
 											>
 												Deny
 											</Button>
@@ -163,10 +160,10 @@ const WeekUnlockRequestsPanel: React.FC<WeekUnlockRequestsPanelProps> = ({ reque
 				maxWidth="xs"
 				actions={
 					<>
-						<Button onClick={() => setDenyTarget(null)} variant="outlined" sx={{ borderRadius: '6px' }}>
+						<Button onClick={() => setDenyTarget(null)} variant="outlined" sx={{ borderRadius: 3 }}>
 							Cancel
 						</Button>
-						<Button onClick={handleConfirmDeny} variant="contained" color="error" sx={{ borderRadius: '6px', fontWeight: 700 }}>
+						<Button onClick={handleConfirmDeny} variant="contained" color="error" sx={{ borderRadius: 3, fontWeight: 700 }}>
 							Deny Request
 						</Button>
 					</>

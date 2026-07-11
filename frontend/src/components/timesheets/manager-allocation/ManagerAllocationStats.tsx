@@ -1,5 +1,5 @@
 import React from 'react';
-import { Grid, Box, useTheme } from '@mui/material';
+import { Grid, Box, useTheme, alpha } from '@mui/material';
 import { Group as GroupIcon, Warning as WarningIcon, CheckCircle as SuccessIcon } from '@mui/icons-material';
 import { StatCard } from '../../common/stats/StatCard';
 
@@ -41,8 +41,8 @@ export const ManagerAllocationStats: React.FC<ManagerAllocationStatsProps> = ({
 						'& > div': filterUnassignedOnly ? {
 							borderColor: 'warning.main',
 							boxShadow: theme.palette.mode === 'dark'
-								? `0 12px 40px 0 rgba(0,0, 0, 0.55), 0 0 20px 2px rgba(243, 156, 18, 0.35)`
-								: `0 12px 40px 0 rgba(243, 156, 18, 0.15), 0 0 20px 0 rgba(243, 156, 18, 0.08)`
+								? `0 12px 40px 0 ${alpha(theme.palette.common.black, 0.55)}, 0 0 20px 2px ${alpha(theme.palette.warning.main, 0.35)}`
+								: `0 12px 40px 0 ${alpha(theme.palette.warning.main, 0.15)}, 0 0 20px 0 ${alpha(theme.palette.warning.main, 0.08)}`
 						} : {}
 					}}
 				>

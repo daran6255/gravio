@@ -29,7 +29,6 @@ const CATEGORY_COLORS = [
 const MyCategoriesPanel: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const theme = useTheme();
-	const isDark = theme.palette.mode === 'dark';
 	const { categories, categoriesLoading } = useAppSelector((state) => state.timesheets);
 
 	const [newCategoryName, setNewCategoryName] = useState('');
@@ -88,9 +87,10 @@ const MyCategoriesPanel: React.FC = () => {
 					elevation={0}
 					sx={{
 						p: 3,
-						border: `1px solid ${isDark ? '#2D3748' : '#E2E8F0'}`,
-						borderRadius: '12px',
-						bgcolor: isDark ? '#141822' : '#ffffff'
+						border: 1,
+						borderColor: 'divider',
+						borderRadius: 6,
+						bgcolor: 'background.paper'
 					}}
 				>
 					<Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2.5 }}>
@@ -98,7 +98,7 @@ const MyCategoriesPanel: React.FC = () => {
 					</Typography>
 
 					{error && (
-						<Alert severity="error" sx={{ mb: 3, borderRadius: '8px' }}>
+						<Alert severity="error" sx={{ mb: 3, borderRadius: 4 }}>
 							{error}
 						</Alert>
 					)}
@@ -129,7 +129,7 @@ const MyCategoriesPanel: React.FC = () => {
 											bgcolor: color,
 											cursor: 'pointer',
 											border: selectedColor === color ? '2px solid white' : 'none',
-											boxShadow: selectedColor === color ? '0 0 0 2px #8B7CF6' : 'none',
+											boxShadow: selectedColor === color ? `0 0 0 2px ${theme.palette.primary.main}` : 'none',
 											transition: 'all 0.15s ease-in-out',
 											'&:hover': { transform: 'scale(1.1)' }
 										}}
@@ -142,7 +142,7 @@ const MyCategoriesPanel: React.FC = () => {
 							type="submit"
 							variant="contained"
 							disabled={submitting}
-							sx={{ py: 1.2, fontWeight: 700, borderRadius: '8px' }}
+							sx={{ py: 1.2, fontWeight: 700, borderRadius: 4 }}
 						>
 							{submitting ? 'Creating...' : 'Create Category'}
 						</Button>
@@ -156,9 +156,10 @@ const MyCategoriesPanel: React.FC = () => {
 					elevation={0}
 					sx={{
 						p: 3,
-						border: `1px solid ${isDark ? '#2D3748' : '#E2E8F0'}`,
-						borderRadius: '12px',
-						bgcolor: isDark ? '#141822' : '#ffffff'
+						border: 1,
+						borderColor: 'divider',
+						borderRadius: 6,
+						bgcolor: 'background.paper'
 					}}
 				>
 					<Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
@@ -178,7 +179,8 @@ const MyCategoriesPanel: React.FC = () => {
 								<ListItem
 									key={cat.id}
 									sx={{
-										borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
+										borderBottom: 1,
+										borderColor: 'divider',
 										'&:last-child': { borderBottom: 'none' }
 									}}
 								>
@@ -187,7 +189,7 @@ const MyCategoriesPanel: React.FC = () => {
 											width: 16,
 											height: 16,
 											borderRadius: '50%',
-											bgcolor: cat.color || '#6B7280',
+											bgcolor: cat.color || 'text.disabled',
 											mr: 2
 										}}
 									/>
