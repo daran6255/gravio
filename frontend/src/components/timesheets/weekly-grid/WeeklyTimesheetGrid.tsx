@@ -338,8 +338,8 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 				<Table sx={{ width: '100%', minWidth: 760, tableLayout: 'fixed' }}>
 					<TableHead>
 						<TableRow sx={{ bgcolor: 'action.hover' }}>
-							<TableCell sx={{ fontWeight: 700, width: '24%' }}>Log Target</TableCell>
-							<TableCell sx={{ fontWeight: 700, width: '8%' }}>Billing</TableCell>
+							<TableCell sx={{ fontWeight: 700, width: '23%' }}>Log Target</TableCell>
+							<TableCell sx={{ fontWeight: 700, width: '8%', whiteSpace: 'nowrap' }}>Billing</TableCell>
 							{dates.map((date, i) => {
 								const dStr = dateStrings[i];
 								const isHoliday = isHolidayDate(dStr);
@@ -353,23 +353,25 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 										sx={{
 											fontWeight: 700,
 											width: '8%',
+											px: 0.5,
+											whiteSpace: 'nowrap',
 											bgcolor: isHoliday ? alpha(theme.palette.warning.main, isDark ? 0.08 : 0.05) : 'inherit'
 										}}
 									>
-										<Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center">
-											<Typography variant="body2" sx={{ fontWeight: 700 }}>
+										<Stack direction="row" spacing={0.25} justifyContent="center" alignItems="center">
+											<Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
 												{dayName} {dayNum}
 											</Typography>
 											{isHoliday && (
 												<Tooltip title={`Holiday: ${holidayLabel(dStr)}`}>
-													<HolidayIcon sx={{ fontSize: '0.9rem', color: 'warning.main' }} />
+													<HolidayIcon sx={{ fontSize: '0.85rem', color: 'warning.main', flexShrink: 0 }} />
 												</Tooltip>
 											)}
 										</Stack>
 									</TableCell>
 								);
 							})}
-							<TableCell align="center" sx={{ fontWeight: 700, width: '12%' }}>Total</TableCell>
+							<TableCell align="center" sx={{ fontWeight: 700, width: '13%', px: 1, whiteSpace: 'nowrap' }}>Total</TableCell>
 						</TableRow>
 					</TableHead>
 					<TableBody>
@@ -501,8 +503,8 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 											</TableCell>
 										);
 									})}
-									<TableCell align="center">
-										<Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+									<TableCell align="center" sx={{ px: 1, whiteSpace: 'nowrap' }}>
+										<Typography variant="subtitle2" sx={{ fontWeight: 800, whiteSpace: 'nowrap' }}>
 											{formatHoursDisplay(row.totalHours)}
 										</Typography>
 									</TableCell>
@@ -516,11 +518,11 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 								Total Hours
 							</TableCell>
 							{dateStrings.map((dateStr) => (
-								<TableCell key={dateStr} align="center" sx={{ fontWeight: 800 }}>
+								<TableCell key={dateStr} align="center" sx={{ fontWeight: 800, px: 0.5, whiteSpace: 'nowrap' }}>
 									{formatHoursDisplay(dayTotals[dateStr])}
 								</TableCell>
 							))}
-							<TableCell align="center" sx={{ fontWeight: 900, color: 'primary.main' }}>
+							<TableCell align="center" sx={{ fontWeight: 900, color: 'primary.main', px: 1, whiteSpace: 'nowrap' }}>
 								{formatHoursDisplay(grandTotal)}
 							</TableCell>
 						</TableRow>
