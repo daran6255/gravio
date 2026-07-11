@@ -13,6 +13,77 @@ interface UserGroupedTimesheet {
 	isMyDirectReport: boolean;
 }
 
+export interface DateHoursEntry {
+	logId: number;
+	date: string;
+	hours: number;
+	billingType: ProjectTimeLog['billing_type'];
+	notes?: string;
+}
+
+export interface TaskGroup {
+	key: string;
+	label: string;
+	entries: DateHoursEntry[];
+	totalHours: number;
+}
+
+export interface ProjectGroup {
+	key: string;
+	label: string;
+	taskGroups: TaskGroup[];
+	totalHours: number;
+}
+
+/** Groups a team member's logs for the week: Project -> Task (or Category, for
+ * project-less general entries) -> the individual dates worked, so the expanded
+ * approval row reads as a breakdown instead of one flat list of log rows. */
+export const groupLogsByProject = (logs: ProjectTimeLog[]): ProjectGroup[] => {
+	const projectMap = new Map<string, ProjectGroup>();
+
+	logs.forEach((log) => {
+		const projectKey = log.project_id ? `project_${log.project_id}` : 'general';
+		const projectLabel = log.project?.name || 'General';
+
+		let projectGroup = projectMap.get(projectKey);
+		if (!projectGroup) {
+			projectGroup = { key: projectKey, label: projectLabel, taskGroups: [], totalHours: 0 };
+			projectMap.set(projectKey, projectGroup);
+		}
+
+		const taskKey = log.task_id
+			? `task_${log.task_id}`
+			: log.project_id
+				? 'project_only'
+				: `category_${log.category_id ?? 'none'}`;
+		const taskLabel = log.task?.title
+			|| (log.project_id ? 'Project Only (No Task)' : (log.category?.name || 'Uncategorized'));
+
+		let taskGroup = projectGroup.taskGroups.find((t) => t.key === taskKey);
+		if (!taskGroup) {
+			taskGroup = { key: taskKey, label: taskLabel, entries: [], totalHours: 0 };
+			projectGroup.taskGroups.push(taskGroup);
+		}
+
+		const hours = Number(log.hours);
+		taskGroup.entries.push({
+			logId: log.id,
+			date: log.log_date,
+			hours,
+			billingType: log.billing_type,
+			notes: log.notes
+		});
+		taskGroup.totalHours += hours;
+		projectGroup.totalHours += hours;
+	});
+
+	const groups = Array.from(projectMap.values());
+	groups.forEach((g) => g.taskGroups.forEach((t) => t.entries.sort((a, b) => a.date.localeCompare(b.date))));
+	// General bucket last -- actual projects lead since they're usually what a manager is reviewing for.
+	groups.sort((a, b) => (a.key === 'general' ? 1 : b.key === 'general' ? -1 : a.label.localeCompare(b.label)));
+	return groups;
+};
+
 interface UseTeamApprovalsArgs {
 	logs: ProjectTimeLog[];
 	onReject: (userId: number, reason: string) => void;

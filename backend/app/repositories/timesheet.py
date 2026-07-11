@@ -253,6 +253,41 @@ class ProjectTimeLogRepository:
         return result.scalars().all()
 
     @staticmethod
+    async def find_existing_entry(
+        db: AsyncSession,
+        organization_id: int,
+        user_id: int,
+        log_date: date,
+        project_id: Optional[int],
+        task_id: Optional[int],
+        category_id: Optional[int],
+        billing_type: TimesheetBillingType,
+        exclude_log_id: Optional[int] = None
+    ) -> Optional[ProjectTimeLog]:
+        """Whether this user already has a (non-deleted) entry for this exact
+        project/task (or category, for general time) + billing type on this date --
+        used to block duplicate entries instead of silently allowing the same task to
+        be logged twice on the same day. Billing type is part of the identity (not
+        just hours/notes) since the weekly grid itself groups rows by it, so
+        splitting one task's hours into a billable row and a non-billable row on the
+        same day is a legitimate, distinct pair of entries. Callers should PATCH the
+        existing entry instead of creating a true duplicate."""
+        conditions = [
+            ProjectTimeLog.organization_id == organization_id,
+            ProjectTimeLog.user_id == user_id,
+            ProjectTimeLog.log_date == log_date,
+            ProjectTimeLog.billing_type == billing_type,
+            ProjectTimeLog.is_deleted.is_(False),
+            ProjectTimeLog.project_id == project_id if project_id is not None else ProjectTimeLog.project_id.is_(None),
+            ProjectTimeLog.task_id == task_id if task_id is not None else ProjectTimeLog.task_id.is_(None),
+            ProjectTimeLog.category_id == category_id if category_id is not None else ProjectTimeLog.category_id.is_(None),
+        ]
+        if exclude_log_id is not None:
+            conditions.append(ProjectTimeLog.id != exclude_log_id)
+        result = await db.execute(select(ProjectTimeLog).where(*conditions).limit(1))
+        return result.scalars().first()
+
+    @staticmethod
     async def create(db: AsyncSession, *, organization_id: int, user_id: int, project_id: Optional[int] = None, task_id: Optional[int] = None, category_id: Optional[int] = None, log_date: date, hours: float, notes: Optional[str] = None, billing_type: TimesheetBillingType = TimesheetBillingType.BILLABLE, is_holiday_override: bool = False) -> ProjectTimeLog:
         log = ProjectTimeLog(
             organization_id=organization_id,

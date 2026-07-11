@@ -343,6 +343,20 @@ async def create_time_log(
             if not tsk or tsk.project_id != payload.project_id:
                 raise NotFoundError("Task not found under the selected project")
 
+    # Validation 6: Duplicate entry prevention -- one entry per project/task (or
+    # category, for general time) per user per day. Edit the existing entry
+    # instead of logging a separate one for the same target.
+    existing = await ProjectTimeLogRepository.find_existing_entry(
+        db, current_user.organization_id, current_user.id, payload.log_date,
+        payload.project_id, payload.task_id, payload.category_id, payload.billing_type
+    )
+    if existing:
+        target_desc = "this task" if payload.task_id else "this project" if payload.project_id else "this category"
+        raise BadRequestError(
+            f"You already have a time entry for {target_desc} on {payload.log_date.isoformat()}. "
+            "Edit the existing entry instead of adding a new one."
+        )
+
     log = await ProjectTimeLogRepository.create(
         db,
         organization_id=current_user.organization_id,
@@ -410,6 +424,26 @@ async def update_time_log(
         )
         if current_day_total + payload.hours > 24.0:
             raise BadRequestError(f"Logging {payload.hours}h would exceed the maximum limit of 24 hours per day (already logged {current_day_total}h)")
+
+    # Duplicate entry prevention -- same rule as create, applied to whatever the
+    # entry's project/task/category/date will be *after* this update (fields not
+    # included in the payload keep their current stored value).
+    fields_set = payload.model_fields_set
+    target_project_id = payload.project_id if "project_id" in fields_set else log.project_id
+    target_task_id = payload.task_id if "task_id" in fields_set else log.task_id
+    target_category_id = payload.category_id if "category_id" in fields_set else log.category_id
+    target_log_date = payload.log_date if "log_date" in fields_set else log.log_date
+    target_billing_type = payload.billing_type if "billing_type" in fields_set else log.billing_type
+    existing = await ProjectTimeLogRepository.find_existing_entry(
+        db, current_user.organization_id, current_user.id, target_log_date,
+        target_project_id, target_task_id, target_category_id, target_billing_type, exclude_log_id=log.id
+    )
+    if existing:
+        target_desc = "this task" if target_task_id else "this project" if target_project_id else "this category"
+        raise BadRequestError(
+            f"You already have a time entry for {target_desc} on {target_log_date.isoformat()}. "
+            "Edit that entry instead of creating a duplicate."
+        )
 
     updated = await ProjectTimeLogRepository.update(db, log, **payload.model_dump(exclude_unset=True))
     await db.commit()

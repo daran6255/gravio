@@ -9,6 +9,8 @@ import {
 	Collapse,
 	Stack,
 	TextField,
+	Tooltip,
+	Divider,
 	alpha,
 	useTheme
 } from '@mui/material';
@@ -23,8 +25,8 @@ import type { ProjectTimeLog } from '../../../models/timesheet';
 import TimesheetStatusBadge from '../shared/TimesheetStatusBadge';
 import { formatHoursDisplay } from '../weekly-grid';
 import { BaseDialog, ConfirmationDialog } from '../../common/dialogbox';
-import { DataTable, TableView, DataTableActions, type ColumnDefinition, type TableColumnDef, type TableMenuAction } from '../../common/table';
-import { useTeamApprovals } from './hooks/useTeamApprovals';
+import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../common/table';
+import { useTeamApprovals, groupLogsByProject, type ProjectGroup } from './hooks/useTeamApprovals';
 
 interface TeamTimesheetTableProps {
 	logs: ProjectTimeLog[];
@@ -92,43 +94,74 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 		{ id: 'actions', label: 'Actions', align: 'right' }
 	];
 
-	const detailColumns: TableColumnDef[] = [
-		{ id: 'date', label: 'Date', width: '15%' },
-		{ id: 'target', label: 'Log Target', width: '30%' },
-		{ id: 'billing', label: 'Billing', width: '15%' },
-		{ id: 'notes', label: 'Notes', width: '25%' },
-		{ id: 'hours', label: 'Hours', align: 'right', width: '15%' }
-	];
+	const formatEntryDate = (dateStr: string): string =>
+		new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' });
 
-	const renderDetailRow = (log: ProjectTimeLog) => (
-		<TableRow key={log.id}>
-			<TableCell>{log.log_date}</TableCell>
-			<TableCell>
-				{log.project?.name || `General: ${log.category?.name || 'Category'}`}
-				{log.task && (
-					<Typography variant="caption" color="text.secondary" display="block">
-						Task: {log.task.title}
-					</Typography>
-				)}
-			</TableCell>
-			<TableCell>
-				<Typography
-					variant="caption"
-					sx={{
-						fontWeight: 700,
-						color: log.billing_type === 'billable' ? 'success.main' : 'text.secondary',
-						textTransform: 'uppercase'
-					}}
-				>
-					{log.billing_type}
-				</Typography>
-			</TableCell>
-			<TableCell>{log.notes || '—'}</TableCell>
-			<TableCell align="right" sx={{ fontWeight: 700 }}>
-				{formatHoursDisplay(log.hours)}
-			</TableCell>
-		</TableRow>
-	);
+	const renderProjectGroups = (logs: ProjectTimeLog[]) => {
+		const groups: ProjectGroup[] = groupLogsByProject(logs);
+
+		return (
+			<Stack spacing={1.5}>
+				{groups.map((group) => (
+					<Box key={group.key} sx={{ border: 1, borderColor: 'divider', borderRadius: 3, overflow: 'hidden', bgcolor: 'background.paper' }}>
+						<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 2, py: 1, bgcolor: 'action.hover' }}>
+							<Typography variant="body2" sx={{ fontWeight: 700 }}>
+								{group.label}
+							</Typography>
+							<Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>
+								{formatHoursDisplay(group.totalHours)}
+							</Typography>
+						</Stack>
+
+						<Stack divider={<Divider />} sx={{ px: 2 }}>
+							{group.taskGroups.map((task) => (
+								<Box key={task.key} sx={{ py: 1.25 }}>
+									<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.75 }}>
+										<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+											{task.label}
+										</Typography>
+										<Typography variant="caption" sx={{ fontWeight: 700 }}>
+											{formatHoursDisplay(task.totalHours)}
+										</Typography>
+									</Stack>
+									<Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+										{task.entries.map((entry) => (
+											<Tooltip key={entry.logId} title={entry.notes || ''} disableHoverListener={!entry.notes}>
+												<Box
+													sx={{
+														display: 'flex',
+														alignItems: 'center',
+														gap: 0.75,
+														px: 1.25,
+														py: 0.5,
+														borderRadius: 2,
+														bgcolor: 'action.selected'
+													}}
+												>
+													<Typography variant="caption" sx={{ fontWeight: 600 }}>
+														{formatEntryDate(entry.date)}
+													</Typography>
+													<Typography
+														variant="caption"
+														sx={{
+															fontWeight: 700,
+															color: entry.billingType === 'billable' ? 'success.main' : 'text.secondary'
+														}}
+													>
+														{formatHoursDisplay(entry.hours)}
+													</Typography>
+												</Box>
+											</Tooltip>
+										))}
+									</Stack>
+								</Box>
+							))}
+						</Stack>8
+					</Box>
+				))}
+			</Stack>
+		);
+	};
 
 	const renderRow = (sheet: UserGroupedTimesheet) => {
 		const isExpanded = expandedUser === sheet.userId;
@@ -207,7 +240,7 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 						<Collapse in={isExpanded} timeout="auto" unmountOnExit>
 							<Box sx={{ margin: 2, p: 2, bgcolor: 'action.hover', borderRadius: 4 }}>
 								<Typography variant="subtitle2" gutterBottom component="div" sx={{ fontWeight: 700, mb: 2 }}>
-									Detailed Logs ({startDate} to {endDate})
+									Project &amp; Task Breakdown ({startDate} to {endDate})
 								</Typography>
 
 								{sheet.rejectionNote && sheet.status === 'rejected' && (
@@ -221,12 +254,7 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 									</Box>
 								)}
 
-								<TableView<ProjectTimeLog>
-									columns={detailColumns}
-									items={sheet.logs}
-									getItemId={(log) => log.id}
-									renderRow={renderDetailRow}
-								/>
+								{renderProjectGroups(sheet.logs)}
 							</Box>
 						</Collapse>
 					</TableCell>
