@@ -13,7 +13,7 @@ from app.core.security import get_password_hash
 from app.models.user import User, UserRole
 from app.repositories.user import UserRepository
 
-ORG_PUBLIC_ID = "050a7f9d-4142-4e25-b14c-6726e6b66e46"
+ORG_PUBLIC_ID = "dc76eb51-ffc3-4bee-9a0f-efad2348d754"
 DEMO_PASSWORD = "DemoUser@2026"
 
 # (email, username, full_name, role, reports_to) -- reports_to is resolved by
@@ -44,6 +44,13 @@ async def run() -> None:
         existing = (await db.execute(select(User).where(User.organization_id == org.id))).scalars().all()
         for u in existing:
             username_to_id[u.username] = u.id
+
+        # Delete existing users with these emails or usernames to ensure fresh seed
+        from sqlalchemy import delete
+        demo_emails = [u[0] for u in NEW_USERS]
+        demo_usernames = [u[1] for u in NEW_USERS]
+        await db.execute(delete(User).where((User.email.in_(demo_emails)) | (User.username.in_(demo_usernames))))
+        await db.flush()
 
         placeholder_hash = get_password_hash(DEMO_PASSWORD)
         created = []
