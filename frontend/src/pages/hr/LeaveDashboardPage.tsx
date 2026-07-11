@@ -18,14 +18,17 @@ import {
 	PeopleAltOutlined as PeopleIcon,
 } from '@mui/icons-material';
 import HRLayout from '../../components/hr/HRLayout';
-import { hrLeaveTypeApi, hrLeaveBalanceApi, hrLeaveRequestApi } from '../../services/hrService';
+import {
+	fetchLeaveTypes, fetchMyLeaveBalances, fetchMyLeaveRequests, fetchPendingLeaveRequests,
+	createLeaveRequest, createLeaveType, cancelLeaveRequest, approveRejectLeaveRequest
+} from '../../store/slices/hrSlice';
 import type {
-	HRLeaveTypeListItem, HRLeaveBalanceResponse, HRLeaveRequestResponse,
+	HRLeaveTypeListItem, HRLeaveBalanceResponse,
 	HRLeaveRequestCreate, HRLeaveTypeCreate
 } from '../../models/hr';
 import { LEAVE_STATUS_LABELS, LEAVE_STATUS_COLORS } from '../../models/hr';
 import useToast from '../../hooks/useToast';
-import { useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 
 // ---------------------------------------------------------------------------
 // Apply Leave Dialog
@@ -41,6 +44,7 @@ interface ApplyLeaveDialogProps {
 
 const ApplyLeaveDialog: React.FC<ApplyLeaveDialogProps> = ({ open, onClose, onSave, leaveTypes, balances }) => {
 	const theme = useTheme();
+	const dispatch = useAppDispatch();
 	const { success, error } = useToast();
 	const [saving, setSaving] = useState(false);
 
@@ -74,12 +78,13 @@ const ApplyLeaveDialog: React.FC<ApplyLeaveDialogProps> = ({ open, onClose, onSa
 		if (form.leave_type_id === 0) return;
 		setSaving(true);
 		try {
-			await hrLeaveRequestApi.create(form);
+			await dispatch(createLeaveRequest(form)).unwrap();
+			dispatch(fetchMyLeaveBalances(undefined));
 			success('Leave request submitted successfully');
 			onSave();
 			onClose();
 		} catch (e: any) {
-			error(e?.response?.data?.detail || 'Failed to submit leave request');
+			error(e || 'Failed to submit leave request');
 		} finally {
 			setSaving(false);
 		}
@@ -211,6 +216,7 @@ interface LeaveTypeDialogProps {
 }
 
 const LeaveTypeDialog: React.FC<LeaveTypeDialogProps> = ({ open, onClose, onSave }) => {
+	const dispatch = useAppDispatch();
 	const { success, error } = useToast();
 	const [saving, setSaving] = useState(false);
 	const [form, setForm] = useState<HRLeaveTypeCreate>({
@@ -227,12 +233,12 @@ const LeaveTypeDialog: React.FC<LeaveTypeDialogProps> = ({ open, onClose, onSave
 		if (!form.name.trim() || !form.code.trim()) return;
 		setSaving(true);
 		try {
-			await hrLeaveTypeApi.create(form);
+			await dispatch(createLeaveType(form)).unwrap();
 			success('Leave policy created');
 			onSave();
 			onClose();
 		} catch (e: any) {
-			error(e?.response?.data?.detail || 'Failed to save policy');
+			error(e || 'Failed to save policy');
 		} finally {
 			setForm({ name: '', code: '', description: '', default_allocation: 12.0, is_carry_forward: false, max_carry_forward: 0.0, is_lop: false });
 			setSaving(false);
@@ -314,6 +320,7 @@ const LeaveTypeDialog: React.FC<LeaveTypeDialogProps> = ({ open, onClose, onSave
 
 const LeaveDashboardPage: React.FC = () => {
 	const theme = useTheme();
+	const dispatch = useAppDispatch();
 	const { success, error } = useToast();
 	const currentUser = useAppSelector((state) => state.auth.user);
 	const userRole = currentUser?.role || 'developer';
@@ -321,51 +328,39 @@ const LeaveDashboardPage: React.FC = () => {
 	const isHrAdmin = userRole === 'admin' || userRole === 'hr_admin';
 	const isManager = isHrAdmin || userRole === 'hr_manager' || userRole === 'manager';
 
+	const {
+		leaveTypes, leaveTypesLoading,
+		myLeaveBalances: balances, myLeaveBalancesLoading,
+		myLeaveRequests: myRequests, myLeaveRequestsLoading,
+		pendingLeaveRequests: pendingApprovals
+	} = useAppSelector((state) => state.hr);
+	const loading = leaveTypesLoading || myLeaveBalancesLoading || myLeaveRequestsLoading;
+
 	const [activeTab, setActiveTab] = useState(0);
-	const [leaveTypes, setLeaveTypes] = useState<HRLeaveTypeListItem[]>([]);
-	const [balances, setBalances] = useState<HRLeaveBalanceResponse[]>([]);
-	const [myRequests, setMyRequests] = useState<HRLeaveRequestResponse[]>([]);
-	const [pendingApprovals, setPendingApprovals] = useState<HRLeaveRequestResponse[]>([]);
-	
-	const [loading, setLoading] = useState(true);
-	
+
 	// Modals
 	const [applyOpen, setApplyOpen] = useState(false);
 	const [policyOpen, setPolicyOpen] = useState(false);
 
-	const fetchData = async () => {
-		setLoading(true);
-		try {
-			const [types, myBals, myReqs] = await Promise.all([
-				hrLeaveTypeApi.list(),
-				hrLeaveBalanceApi.getMyBalances(),
-				hrLeaveRequestApi.getMyRequests(),
-			]);
-			setLeaveTypes(types);
-			setBalances(myBals);
-			setMyRequests(myReqs);
-
-			if (isManager) {
-				const pending = await hrLeaveRequestApi.listPending();
-				setPendingApprovals(pending);
-			}
-		} catch {
-			error('Failed to load leave tracker data');
-		} finally {
-			setLoading(false);
+	const fetchData = () => {
+		dispatch(fetchLeaveTypes(undefined));
+		dispatch(fetchMyLeaveBalances(undefined));
+		dispatch(fetchMyLeaveRequests(undefined));
+		if (isManager) {
+			dispatch(fetchPendingLeaveRequests());
 		}
 	};
 
 	useEffect(() => {
 		fetchData();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const handleCancel = async (publicId: string) => {
 		if (!window.confirm('Are you sure you want to cancel this leave application?')) return;
 		try {
-			await hrLeaveRequestApi.cancel(publicId);
+			await dispatch(cancelLeaveRequest(publicId)).unwrap();
 			success('Leave request cancelled');
-			fetchData();
 		} catch {
 			error('Failed to cancel request');
 		}
@@ -375,9 +370,8 @@ const LeaveDashboardPage: React.FC = () => {
 		const notes = window.prompt(`Add approval/rejection notes (optional):`);
 		if (notes === null) return;
 		try {
-			await hrLeaveRequestApi.approveReject(publicId, { status, manager_notes: notes });
+			await dispatch(approveRejectLeaveRequest({ publicId, payload: { status, manager_notes: notes } })).unwrap();
 			success(`Leave request ${status}`);
-			fetchData();
 		} catch {
 			error('Failed to process approval');
 		}

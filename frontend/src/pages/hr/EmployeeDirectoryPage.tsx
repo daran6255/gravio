@@ -15,8 +15,9 @@ import {
 	PersonAdd as PersonAddIcon,
 } from '@mui/icons-material';
 import HRLayout from '../../components/hr/HRLayout';
-import { hrEmployeeApi, hrDepartmentApi } from '../../services/hrService';
-import type { HREmployeeListItem, HRDepartmentListItem, EmployeeStatus } from '../../models/hr';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { fetchEmployees, fetchDepartments } from '../../store/slices/hrSlice';
+import type { HREmployeeListItem, EmployeeStatus } from '../../models/hr';
 import { EMPLOYEE_STATUS_LABELS, EMPLOYEE_STATUS_COLORS, EMPLOYMENT_TYPE_LABELS, WORK_LOCATION_LABELS } from '../../models/hr';
 import useToast from '../../hooks/useToast';
 
@@ -153,44 +154,32 @@ const CardSkeleton: React.FC = () => (
 const EmployeeDirectoryPage: React.FC = () => {
 	const theme = useTheme();
 	const { error } = useToast();
-
-	const [employees, setEmployees] = useState<HREmployeeListItem[]>([]);
-	const [departments, setDepartments] = useState<HRDepartmentListItem[]>([]);
-	const [total, setTotal] = useState(0);
-	const [loading, setLoading] = useState(true);
+	const dispatch = useAppDispatch();
+	const { employees, employeesTotal: total, employeesLoading: loading, departments } = useAppSelector((state) => state.hr);
 
 	// Filters
 	const [search, setSearch] = useState('');
 	const [deptFilter, setDeptFilter] = useState<number | ''>('');
 	const [statusFilter, setStatusFilter] = useState<EmployeeStatus | ''>('');
 
-	const fetchEmployees = useCallback(async () => {
-		setLoading(true);
-		try {
-			const params = {
-				...(search && { search }),
-				...(deptFilter && { department_id: deptFilter as number }),
-				...(statusFilter && { employee_status: statusFilter }),
-				limit: 100,
-			};
-			const res = await hrEmployeeApi.list(params);
-			setEmployees(res.items);
-			setTotal(res.total);
-		} catch {
-			error('Failed to load employees');
-		} finally {
-			setLoading(false);
-		}
-	}, [search, deptFilter, statusFilter]);
+	const loadEmployees = useCallback(() => {
+		const params = {
+			...(search && { search }),
+			...(deptFilter && { department_id: deptFilter as number }),
+			...(statusFilter && { employee_status: statusFilter }),
+			limit: 100,
+		};
+		dispatch(fetchEmployees(params)).unwrap().catch(() => error('Failed to load employees'));
+	}, [dispatch, search, deptFilter, statusFilter]);
 
 	useEffect(() => {
-		hrDepartmentApi.list().then(setDepartments).catch(() => {});
-	}, []);
+		dispatch(fetchDepartments(undefined));
+	}, [dispatch]);
 
 	useEffect(() => {
-		const t = setTimeout(fetchEmployees, search ? 350 : 0);
+		const t = setTimeout(loadEmployees, search ? 350 : 0);
 		return () => clearTimeout(t);
-	}, [fetchEmployees, search]);
+	}, [loadEmployees, search]);
 
 	const statusOptions: Array<{ value: EmployeeStatus | ''; label: string }> = [
 		{ value: '', label: 'All Statuses' },

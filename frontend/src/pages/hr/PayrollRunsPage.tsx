@@ -14,30 +14,28 @@ import {
 	AttachMoney as MoneyIcon,
 } from '@mui/icons-material';
 import HRLayout from '../../components/hr/HRLayout';
+import { hrPayslipApi } from '../../services/hrService';
 import {
-	hrPayrollRunApi,
-	hrPayslipApi,
-	hrVariablePayApi,
-	hrEmployeeApi
-} from '../../services/hrService';
-import type {
-	HRPayrollRun,
-	HRPayslip,
-	HREmployeeListItem
-} from '../../models/hr';
+	fetchPayrollRuns, createPayrollRun, calculatePayrollRun, finalizePayrollRun,
+	createVariablePayEntry, fetchPayslips, fetchEmployees
+} from '../../store/slices/hrSlice';
+import type { HRPayrollRun } from '../../models/hr';
 import useToast from '../../hooks/useToast';
-import { useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 
 const PayrollRunsPage: React.FC = () => {
 	const theme = useTheme();
+	const dispatch = useAppDispatch();
 	const { success, error } = useToast();
 	const currentUser = useAppSelector((state) => state.auth.user);
 	const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'hr_admin';
 
-	const [runs, setRuns] = useState<HRPayrollRun[]>([]);
+	const { runs, payslips, employees } = useAppSelector((state) => ({
+		runs: state.hr.payrollRuns,
+		payslips: state.hr.payslips,
+		employees: state.hr.employees
+	}));
 	const [selectedRun, setSelectedRun] = useState<HRPayrollRun | null>(null);
-	const [payslips, setPayslips] = useState<HRPayslip[]>([]);
-	const [employees, setEmployees] = useState<HREmployeeListItem[]>([]);
 
 	// Create run states
 	const [openCreateDialog, setOpenCreateDialog] = useState(false);
@@ -52,18 +50,25 @@ const PayrollRunsPage: React.FC = () => {
 	const [varEntryType, setVarEntryType] = useState<'earning' | 'deduction'>('earning');
 	const [varReason, setVarReason] = useState('');
 
+	const handleSelectRun = async (run: HRPayrollRun) => {
+		setSelectedRun(run);
+		try {
+			await dispatch(fetchPayslips({ run_id: run.id })).unwrap();
+		} catch {
+			error('Failed to load payslips for this run');
+		}
+	};
+
 	const loadRuns = async () => {
 		try {
-			const res = await hrPayrollRunApi.list();
-			setRuns(res);
+			const res = await dispatch(fetchPayrollRuns()).unwrap();
 			if (res.length > 0 && !selectedRun) {
 				handleSelectRun(res[0]);
 			} else if (selectedRun) {
 				const updated = res.find(r => r.id === selectedRun.id);
 				if (updated) setSelectedRun(updated);
 			}
-			const emps = await hrEmployeeApi.list({ limit: 100 }).then(r => r.items);
-			setEmployees(emps);
+			dispatch(fetchEmployees({ limit: 100 }));
 		} catch {
 			error('Failed to load payroll runs');
 		}
@@ -71,30 +76,20 @@ const PayrollRunsPage: React.FC = () => {
 
 	useEffect(() => {
 		loadRuns();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
-
-	const handleSelectRun = async (run: HRPayrollRun) => {
-		setSelectedRun(run);
-		try {
-			const slips = await hrPayslipApi.list({ run_id: run.id });
-			setPayslips(slips);
-		} catch {
-			error('Failed to load payslips for this run');
-		}
-	};
 
 	const handleCreateRun = async () => {
 		try {
-			const run = await hrPayrollRunApi.create({
+			const run = await dispatch(createPayrollRun({
 				month: Number(runMonth),
 				year: Number(runYear)
-			});
+			})).unwrap();
 			success(`Payroll run created for ${runMonth}/${runYear}`);
 			setOpenCreateDialog(false);
-			loadRuns();
 			handleSelectRun(run);
 		} catch (err: any) {
-			error(err.response?.data?.detail || 'Failed to create payroll run');
+			error(err || 'Failed to create payroll run');
 		}
 	};
 
@@ -102,13 +97,12 @@ const PayrollRunsPage: React.FC = () => {
 		if (!selectedRun) return;
 		try {
 			success('Recalculating salaries...');
-			const updated = await hrPayrollRunApi.calculate(selectedRun.id);
+			const updated = await dispatch(calculatePayrollRun(selectedRun.id)).unwrap();
 			setSelectedRun(updated);
-			const slips = await hrPayslipApi.list({ run_id: updated.id });
-			setPayslips(slips);
+			await dispatch(fetchPayslips({ run_id: updated.id })).unwrap();
 			success('Payroll run calculation complete!');
 		} catch (err: any) {
-			error(err.response?.data?.detail || 'Failed to calculate payroll');
+			error(err || 'Failed to calculate payroll');
 		}
 	};
 
@@ -116,12 +110,11 @@ const PayrollRunsPage: React.FC = () => {
 		if (!selectedRun) return;
 		if (window.confirm('Are you sure you want to finalize and lock this payroll run? This will generate permanent payslips.')) {
 			try {
-				const updated = await hrPayrollRunApi.finalize(selectedRun.id);
+				const updated = await dispatch(finalizePayrollRun(selectedRun.id)).unwrap();
 				setSelectedRun(updated);
 				success('Payroll run finalized and locked successfully');
-				loadRuns();
 			} catch (err: any) {
-				error(err.response?.data?.detail || 'Failed to finalize payroll');
+				error(err || 'Failed to finalize payroll');
 			}
 		}
 	};
@@ -132,13 +125,16 @@ const PayrollRunsPage: React.FC = () => {
 			return;
 		}
 		try {
-			await hrVariablePayApi.create(selectedRun.id, {
-				user_id: Number(varUserId),
-				component_code: varCompCode,
-				amount: Number(varAmount),
-				entry_type: varEntryType,
-				reason: varReason
-			});
+			await dispatch(createVariablePayEntry({
+				runId: selectedRun.id,
+				payload: {
+					user_id: Number(varUserId),
+					component_code: varCompCode,
+					amount: Number(varAmount),
+					entry_type: varEntryType,
+					reason: varReason
+				}
+			})).unwrap();
 			success('Variable pay override entry added');
 			setOpenVarDialog(false);
 			// Recalculate right away to apply changes

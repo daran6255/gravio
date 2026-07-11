@@ -15,7 +15,8 @@ import {
 	PersonOutlined as HODIcon,
 } from '@mui/icons-material';
 import HRLayout from '../../components/hr/HRLayout';
-import { hrDepartmentApi } from '../../services/hrService';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment } from '../../store/slices/hrSlice';
 import type { HRDepartmentListItem, HRDepartmentCreate, HRDepartmentUpdate } from '../../models/hr';
 import useToast from '../../hooks/useToast';
 
@@ -26,12 +27,12 @@ import useToast from '../../hooks/useToast';
 interface DepartmentDialogProps {
 	open: boolean;
 	onClose: () => void;
-	onSave: () => void;
 	existing?: HRDepartmentListItem | null;
 	departments: HRDepartmentListItem[];
 }
 
-const DepartmentDialog: React.FC<DepartmentDialogProps> = ({ open, onClose, onSave, existing, departments }) => {
+const DepartmentDialog: React.FC<DepartmentDialogProps> = ({ open, onClose, existing, departments }) => {
+	const dispatch = useAppDispatch();
 	const { success, error } = useToast();
 	const [saving, setSaving] = useState(false);
 	const [form, setForm] = useState<HRDepartmentCreate>({
@@ -59,16 +60,15 @@ const DepartmentDialog: React.FC<DepartmentDialogProps> = ({ open, onClose, onSa
 		setSaving(true);
 		try {
 			if (existing) {
-				await hrDepartmentApi.update(existing.id, { ...form } as HRDepartmentUpdate);
+				await dispatch(updateDepartment({ id: existing.id, payload: { ...form } as HRDepartmentUpdate })).unwrap();
 				success('Department updated');
 			} else {
-				await hrDepartmentApi.create(form);
+				await dispatch(createDepartment(form)).unwrap();
 				success('Department created');
 			}
-			onSave();
 			onClose();
 		} catch (e: any) {
-			error(e?.response?.data?.detail || 'Failed to save department');
+			error(e || 'Failed to save department');
 		} finally {
 			setSaving(false);
 		}
@@ -224,32 +224,21 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ dept, onEdit, onDelete 
 
 const DepartmentsPage: React.FC = () => {
 	const theme = useTheme();
+	const dispatch = useAppDispatch();
 	const { success, error } = useToast();
-	const [departments, setDepartments] = useState<HRDepartmentListItem[]>([]);
-	const [loading, setLoading] = useState(true);
+	const { departments, departmentsLoading: loading } = useAppSelector((state) => state.hr);
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [editTarget, setEditTarget] = useState<HRDepartmentListItem | null>(null);
 
-	const fetchDepartments = async () => {
-		setLoading(true);
-		try {
-			const data = await hrDepartmentApi.list(true);
-			setDepartments(data);
-		} catch {
-			error('Failed to load departments');
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	useEffect(() => { fetchDepartments(); }, []);
+	useEffect(() => {
+		dispatch(fetchDepartments(true));
+	}, [dispatch]);
 
 	const handleDelete = async (dept: HRDepartmentListItem) => {
 		if (!window.confirm(`Delete "${dept.name}"? This cannot be undone.`)) return;
 		try {
-			await hrDepartmentApi.delete(dept.id);
+			await dispatch(deleteDepartment(dept.id)).unwrap();
 			success('Department deleted');
-			fetchDepartments();
 		} catch {
 			error('Failed to delete department');
 		}
@@ -319,7 +308,6 @@ const DepartmentsPage: React.FC = () => {
 			<DepartmentDialog
 				open={dialogOpen}
 				onClose={() => { setDialogOpen(false); setEditTarget(null); }}
-				onSave={fetchDepartments}
 				existing={editTarget}
 				departments={departments}
 			/>

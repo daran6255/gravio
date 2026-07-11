@@ -30,7 +30,7 @@ import type {
 	HRSalaryStructure, HRSalaryStructureCreate, HRSalaryStructureUpdate,
 	HREmployeeSalary, HREmployeeSalaryCreate,
 	HRPayrollRun, HRPayrollRunCreate,
-	HRVariablePayEntry, HRVariablePayEntryCreate,
+	HRVariablePayEntryCreate,
 	HRPayslip,
 	HRChecklistTemplate, HRChecklistInstance, HREmployeeDocument,
 	HeadcountReport, AttritionReport, LeaveSummaryReport, PayrollCostReport,

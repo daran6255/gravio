@@ -14,32 +14,32 @@ import {
 } from '@mui/icons-material';
 import HRLayout from '../../components/hr/HRLayout';
 import {
-	hrPayrollStructureApi,
-	hrPayrollComponentApi,
-	hrEmployeeSalaryApi,
-	hrEmployeeApi
-} from '../../services/hrService';
+	fetchPayrollStructures, fetchPayrollComponents, fetchEmployees,
+	createPayrollStructure, deletePayrollStructure,
+	fetchEmployeeSalary, assignEmployeeSalary
+} from '../../store/slices/hrSlice';
 import type {
-	HRSalaryStructure,
-	HRSalaryComponent,
 	HREmployeeSalary,
-	HREmployeeListItem,
 	HRSalaryStructureItemCreate
 } from '../../models/hr';
 import useToast from '../../hooks/useToast';
-import { useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 
 const SalaryStructuresPage: React.FC = () => {
 	const theme = useTheme();
+	const dispatch = useAppDispatch();
 	const { success, error } = useToast();
 	const currentUser = useAppSelector((state) => state.auth.user);
 	const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'hr_admin';
 
-	const [activeTab, setActiveTab] = useState(0);
-	const [structures, setStructures] = useState<HRSalaryStructure[]>([]);
-	const [components, setComponents] = useState<HRSalaryComponent[]>([]);
+	const { structures, components, employees } = useAppSelector((state) => ({
+		structures: state.hr.payrollStructures,
+		components: state.hr.payrollComponents,
+		employees: state.hr.employees
+	}));
 	const [allocations, setAllocations] = useState<HREmployeeSalary[]>([]);
-	const [employees, setEmployees] = useState<HREmployeeListItem[]>([]);
+
+	const [activeTab, setActiveTab] = useState(0);
 
 	// Dialog States - Structure
 	const [openStructDialog, setOpenStructDialog] = useState(false);
@@ -54,24 +54,23 @@ const SalaryStructuresPage: React.FC = () => {
 	const [ctcAmount, setCtcAmount] = useState('');
 	const [effectiveDate, setEffectiveDate] = useState(new Date().toISOString().split('T')[0]);
 
+	const loadAllocations = async (empsList: { user_id: number }[]) => {
+		const allocResults = await Promise.all(
+			empsList.map((emp) =>
+				dispatch(fetchEmployeeSalary(emp.user_id)).unwrap().catch(() => null)
+			)
+		);
+		setAllocations(allocResults.filter((a): a is HREmployeeSalary => a !== null));
+	};
+
 	const loadData = async () => {
 		try {
-			const [structsList, compsList, empsList] = await Promise.all([
-				hrPayrollStructureApi.list(),
-				hrPayrollComponentApi.list(),
-				hrEmployeeApi.list({ limit: 100 }).then(r => r.items)
+			const [, , empsResult] = await Promise.all([
+				dispatch(fetchPayrollStructures()).unwrap(),
+				dispatch(fetchPayrollComponents()).unwrap(),
+				dispatch(fetchEmployees({ limit: 100 })).unwrap()
 			]);
-			setStructures(structsList);
-			setComponents(compsList);
-			setEmployees(empsList);
-
-			// Load salary allocations for employees
-			const allocPromises = empsList.map(emp => 
-				hrEmployeeSalaryApi.get(emp.user_id)
-					.catch(() => null)
-			);
-			const allocResults = await Promise.all(allocPromises);
-			setAllocations(allocResults.filter((a): a is HREmployeeSalary => a !== null));
+			await loadAllocations(empsResult.items);
 		} catch {
 			error('Failed to load payroll configuration');
 		}
@@ -79,6 +78,7 @@ const SalaryStructuresPage: React.FC = () => {
 
 	useEffect(() => {
 		loadData();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const handleAddStructureItem = () => {
@@ -101,14 +101,13 @@ const SalaryStructuresPage: React.FC = () => {
 			return;
 		}
 		try {
-			await hrPayrollStructureApi.create({
+			await dispatch(createPayrollStructure({
 				name: structName,
 				description: structDesc,
 				items: structItems
-			});
+			})).unwrap();
 			success('Salary Structure created successfully');
 			setOpenStructDialog(false);
-			loadData();
 		} catch {
 			error('Failed to create salary structure');
 		}
@@ -117,9 +116,8 @@ const SalaryStructuresPage: React.FC = () => {
 	const handleDeleteStructure = async (id: number) => {
 		if (window.confirm('Are you sure you want to delete this salary structure?')) {
 			try {
-				await hrPayrollStructureApi.delete(id);
+				await dispatch(deletePayrollStructure(id)).unwrap();
 				success('Salary structure deleted');
-				loadData();
 			} catch {
 				error('Failed to delete salary structure');
 			}
@@ -132,15 +130,15 @@ const SalaryStructuresPage: React.FC = () => {
 			return;
 		}
 		try {
-			await hrEmployeeSalaryApi.assign({
+			const assigned = await dispatch(assignEmployeeSalary({
 				user_id: Number(selectedUserId),
 				structure_id: Number(selectedStructId),
 				ctc: Number(ctcAmount),
 				effective_from: effectiveDate
-			});
+			})).unwrap();
+			setAllocations((prev) => [...prev.filter((a) => a.user_id !== assigned.user_id), assigned]);
 			success('Salary structure assigned successfully');
 			setOpenAllocDialog(false);
-			loadData();
 		} catch {
 			error('Failed to assign salary structure');
 		}

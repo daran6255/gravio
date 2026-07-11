@@ -14,29 +14,31 @@ import {
 } from '@mui/icons-material';
 import HRLayout from '../../components/hr/HRLayout';
 import {
-	hrChecklistTemplateApi,
-	hrChecklistInstanceApi,
-	hrEmployeeApi
-} from '../../services/hrService';
+	fetchChecklistTemplates, createChecklistTemplate, updateChecklistTemplate, deleteChecklistTemplate,
+	fetchChecklistInstances, launchChecklistInstance, toggleChecklistTask,
+	fetchEmployees
+} from '../../store/slices/hrSlice';
 import type {
 	HRChecklistTemplate,
-	HRChecklistInstance,
-	HREmployeeListItem
+	HRChecklistInstance
 } from '../../models/hr';
 import useToast from '../../hooks/useToast';
-import { useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 
 const ChecklistPage: React.FC = () => {
 	const theme = useTheme();
+	const dispatch = useAppDispatch();
 	const { success, error } = useToast();
 	const currentUser = useAppSelector((state) => state.auth.user);
 	const isAdminOrHR = currentUser?.role === 'admin' || currentUser?.role === 'hr_admin';
 
+	const {
+		checklistTemplates: templates, checklistTemplatesLoading,
+		checklistInstances: instances, checklistInstancesLoading,
+		employees, employeesLoading
+	} = useAppSelector((state) => state.hr);
 	const [tab, setTab] = useState(0);
-	const [templates, setTemplates] = useState<HRChecklistTemplate[]>([]);
-	const [instances, setInstances] = useState<HRChecklistInstance[]>([]);
-	const [employees, setEmployees] = useState<HREmployeeListItem[]>([]);
-	const [loading, setLoading] = useState(true);
+	const loading = checklistTemplatesLoading || checklistInstancesLoading || employeesLoading;
 
 	// Dialog States
 	const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
@@ -57,27 +59,15 @@ const ChecklistPage: React.FC = () => {
 	// itself lives on the template, so look it up from the templates already loaded.
 	const activeTemplate = activeInstance ? templates.find(t => t.id === activeInstance.template_id) : undefined;
 
-	const fetchData = async () => {
-		setLoading(true);
-		try {
-			const tmpls = await hrChecklistTemplateApi.list();
-			setTemplates(tmpls);
-
-			const insts = await hrChecklistInstanceApi.list();
-			setInstances(insts);
-
-			// Load employees for launch dropdown
-			const empData = await hrEmployeeApi.list({ limit: 100 });
-			setEmployees(empData.items || []);
-		} catch (e: any) {
-			error('Failed to load checklist data');
-		} finally {
-			setLoading(false);
-		}
+	const fetchData = () => {
+		dispatch(fetchChecklistTemplates()).unwrap().catch(() => error('Failed to load checklist templates'));
+		dispatch(fetchChecklistInstances()).unwrap().catch(() => error('Failed to load checklist trackers'));
+		dispatch(fetchEmployees({ limit: 100 }));
 	};
 
 	useEffect(() => {
 		fetchData();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	// Checklist Template Handlers
@@ -118,14 +108,13 @@ const ChecklistPage: React.FC = () => {
 			};
 
 			if (editTemplate) {
-				await hrChecklistTemplateApi.update(editTemplate.id, payload);
+				await dispatch(updateChecklistTemplate({ id: editTemplate.id, payload })).unwrap();
 				success('Template updated successfully');
 			} else {
-				await hrChecklistTemplateApi.create(payload);
+				await dispatch(createChecklistTemplate(payload)).unwrap();
 				success('Template created successfully');
 			}
 			setTemplateDialogOpen(false);
-			fetchData();
 		} catch (e: any) {
 			error('Failed to save template');
 		}
@@ -134,9 +123,8 @@ const ChecklistPage: React.FC = () => {
 	const handleDeleteTemplate = async (id: number) => {
 		if (!window.confirm('Are you sure you want to delete this template?')) return;
 		try {
-			await hrChecklistTemplateApi.delete(id);
+			await dispatch(deleteChecklistTemplate(id)).unwrap();
 			success('Template deleted');
-			fetchData();
 		} catch (e: any) {
 			error('Failed to delete template');
 		}
@@ -146,17 +134,16 @@ const ChecklistPage: React.FC = () => {
 	const handleLaunchChecklist = async () => {
 		if (!selectedEmployee || !selectedTemplate) return;
 		try {
-			await hrChecklistInstanceApi.launch({
+			await dispatch(launchChecklistInstance({
 				user_id: Number(selectedEmployee),
 				template_id: Number(selectedTemplate)
-			});
+			})).unwrap();
 			success('Checklist launched successfully');
 			setLaunchDialogOpen(false);
 			setSelectedEmployee('');
 			setSelectedTemplate('');
-			fetchData();
 		} catch (e: any) {
-			error(e?.response?.data?.detail || 'Failed to launch checklist');
+			error(e || 'Failed to launch checklist');
 		}
 	};
 
@@ -178,22 +165,19 @@ const ChecklistPage: React.FC = () => {
 	const handleToggleTask = async (taskId: string, currentlyCompleted: boolean) => {
 		if (!activeInstance) return;
 		try {
-			const updated = await hrChecklistInstanceApi.toggleTask(
-				activeInstance.id,
+			const updated = await dispatch(toggleChecklistTask({
+				id: activeInstance.id,
 				taskId,
-				!currentlyCompleted
-			);
-			// Refresh activeInstance in modal
-			const cleanUpdated = {
+				completed: !currentlyCompleted
+			})).unwrap();
+			// Refresh activeInstance in modal (the response doesn't carry the display-only
+			// fields joined in list(), so keep them from what was already shown)
+			setActiveInstance({
 				...updated,
 				employee_name: activeInstance.employee_name,
 				template_name: activeInstance.template_name,
 				checklist_type: activeInstance.checklist_type
-			};
-			setActiveInstance(cleanUpdated);
-			
-			// Refresh instances list
-			setInstances(instances.map(inst => inst.id === updated.id ? cleanUpdated : inst));
+			});
 			success(currentlyCompleted ? 'Task marked incomplete' : 'Task completed!');
 		} catch (e: any) {
 			error('Failed to update task state');

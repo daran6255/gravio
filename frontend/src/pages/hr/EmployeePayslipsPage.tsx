@@ -8,23 +8,24 @@ import {
 } from '@mui/icons-material';
 import HRLayout from '../../components/hr/HRLayout';
 import { hrPayslipApi } from '../../services/hrService';
+import { fetchPayslips, fetchPayslip } from '../../store/slices/hrSlice';
 import type { HRPayslip } from '../../models/hr';
 import useToast from '../../hooks/useToast';
-import { useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 
 const EmployeePayslipsPage: React.FC = () => {
 	const theme = useTheme();
+	const dispatch = useAppDispatch();
 	const { error } = useToast();
 	const currentUser = useAppSelector((state) => state.auth.user);
+	const payslips = useAppSelector((state) => state.hr.payslips);
 
-	const [payslips, setPayslips] = useState<HRPayslip[]>([]);
 	const [selectedPayslip, setSelectedPayslip] = useState<HRPayslip | null>(null);
 
 	const loadPayslips = async () => {
 		try {
 			// standard users can only see their own (the backend filters it anyway)
-			const res = await hrPayslipApi.list({ user_id: currentUser?.id });
-			setPayslips(res);
+			const res = await dispatch(fetchPayslips({ user_id: currentUser?.id })).unwrap();
 			if (res.length > 0) {
 				handleViewPayslip(res[0].public_id);
 			}
@@ -37,11 +38,12 @@ const EmployeePayslipsPage: React.FC = () => {
 		if (currentUser?.id) {
 			loadPayslips();
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [currentUser]);
 
 	const handleViewPayslip = async (publicId: string) => {
 		try {
-			const res = await hrPayslipApi.get(publicId);
+			const res = await dispatch(fetchPayslip(publicId)).unwrap();
 			setSelectedPayslip(res);
 		} catch {
 			error('Failed to fetch payslip details');

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
 	Box, Typography, Grid, Card, CardContent, Paper, Stack,
 	Skeleton, useTheme, alpha, Table, TableBody, TableCell,
@@ -11,48 +11,24 @@ import {
 } from '@mui/icons-material';
 import { BarChart, PieChart, LineChart } from '@mui/x-charts';
 import HRLayout from '../../components/hr/HRLayout';
-import { hrAnalyticsApi } from '../../services/hrService';
-import type {
-	HeadcountReport,
-	AttritionReport,
-	LeaveSummaryReport,
-	PayrollCostReport
-} from '../../models/hr';
+import { fetchAllHRAnalytics } from '../../store/slices/hrSlice';
 import useToast from '../../hooks/useToast';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 
 const AnalyticsDashboardPage: React.FC = () => {
 	const theme = useTheme();
+	const dispatch = useAppDispatch();
 	const { error } = useToast();
 
-	const [headcount, setHeadcount] = useState<HeadcountReport | null>(null);
-	const [attrition, setAttrition] = useState<AttritionReport | null>(null);
-	const [leaves, setLeaves] = useState<LeaveSummaryReport | null>(null);
-	const [payroll, setPayroll] = useState<PayrollCostReport | null>(null);
-	const [loading, setLoading] = useState(true);
-
-	const loadAnalytics = async () => {
-		setLoading(true);
-		try {
-			const hc = await hrAnalyticsApi.getHeadcount();
-			setHeadcount(hc);
-
-			const attr = await hrAnalyticsApi.getAttrition();
-			setAttrition(attr);
-
-			const lv = await hrAnalyticsApi.getLeavesSummary();
-			setLeaves(lv);
-
-			const pr = await hrAnalyticsApi.getPayrollCosts();
-			setPayroll(pr);
-		} catch (e: any) {
-			error('Failed to load reports analytics');
-		} finally {
-			setLoading(false);
-		}
-	};
+	const {
+		headcountReport: headcount, attritionReport: attrition,
+		leaveSummaryReport: leaves, payrollCostReport: payroll,
+		analyticsLoading: loading
+	} = useAppSelector((state) => state.hr);
 
 	useEffect(() => {
-		loadAnalytics();
+		dispatch(fetchAllHRAnalytics()).unwrap().catch(() => error('Failed to load reports analytics'));
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	// Headcount chart data

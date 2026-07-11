@@ -13,21 +13,20 @@ import {
 	FolderSharedOutlined as VaultIcon
 } from '@mui/icons-material';
 import HRLayout from '../../components/hr/HRLayout';
-import { hrEmployeeDocumentApi, hrEmployeeApi } from '../../services/hrService';
-import type { HREmployeeDocument, HREmployeeListItem } from '../../models/hr';
+import { hrEmployeeDocumentApi } from '../../services/hrService';
+import { fetchDocuments, uploadDocument, verifyDocument, deleteDocument, fetchEmployees } from '../../store/slices/hrSlice';
 import useToast from '../../hooks/useToast';
-import { useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 
 const DocumentVaultPage: React.FC = () => {
 	const theme = useTheme();
+	const dispatch = useAppDispatch();
 	const { success, error } = useToast();
 	const currentUser = useAppSelector((state) => state.auth.user);
 	const isHRManager = currentUser?.role === 'admin' || currentUser?.role === 'hr_admin' || currentUser?.role === 'hr_manager';
 	const isHRViewer = isHRManager || currentUser?.role === 'leadership';
 
-	const [documents, setDocuments] = useState<HREmployeeDocument[]>([]);
-	const [employees, setEmployees] = useState<HREmployeeListItem[]>([]);
-	const [loading, setLoading] = useState(true);
+	const { documents, documentsLoading: loading, employees } = useAppSelector((state) => state.hr);
 
 	// Upload Dialog State
 	const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -37,25 +36,16 @@ const DocumentVaultPage: React.FC = () => {
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [uploading, setUploading] = useState(false);
 
-	const fetchDocuments = async () => {
-		setLoading(true);
-		try {
-			const data = await hrEmployeeDocumentApi.list();
-			setDocuments(data);
-
-			if (isHRViewer) {
-				const empData = await hrEmployeeApi.list({ limit: 100 });
-				setEmployees(empData.items || []);
-			}
-		} catch (e: any) {
-			error('Failed to load documents');
-		} finally {
-			setLoading(false);
+	const loadDocuments = () => {
+		dispatch(fetchDocuments(undefined)).unwrap().catch(() => error('Failed to load documents'));
+		if (isHRViewer) {
+			dispatch(fetchEmployees({ limit: 100 }));
 		}
 	};
 
 	useEffect(() => {
-		fetchDocuments();
+		loadDocuments();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,15 +70,14 @@ const DocumentVaultPage: React.FC = () => {
 		}
 
 		try {
-			await hrEmployeeDocumentApi.upload(formData);
+			await dispatch(uploadDocument(formData)).unwrap();
 			success('Document uploaded successfully');
 			setUploadDialogOpen(false);
 			setSelectedFile(null);
 			setExpiryDate('');
 			setSelectedEmployeeId('');
-			fetchDocuments();
 		} catch (e: any) {
-			error(e?.response?.data?.detail || 'Failed to upload document');
+			error(e || 'Failed to upload document');
 		} finally {
 			setUploading(false);
 		}
@@ -96,9 +85,8 @@ const DocumentVaultPage: React.FC = () => {
 
 	const handleVerify = async (id: number, currentVerified: boolean) => {
 		try {
-			await hrEmployeeDocumentApi.verify(id, !currentVerified);
+			await dispatch(verifyDocument({ id, isVerified: !currentVerified })).unwrap();
 			success(!currentVerified ? 'Document verified' : 'Document marked unverified');
-			fetchDocuments();
 		} catch (e: any) {
 			error('Failed to update verification status');
 		}
@@ -107,9 +95,8 @@ const DocumentVaultPage: React.FC = () => {
 	const handleDelete = async (id: number) => {
 		if (!window.confirm('Are you sure you want to delete this document?')) return;
 		try {
-			await hrEmployeeDocumentApi.delete(id);
+			await dispatch(deleteDocument(id)).unwrap();
 			success('Document deleted');
-			fetchDocuments();
 		} catch (e: any) {
 			error('Failed to delete document');
 		}

@@ -10,7 +10,8 @@ import {
 	WorkOutlined as DesignationIcon,
 } from '@mui/icons-material';
 import HRLayout from '../../components/hr/HRLayout';
-import { hrDesignationApi, hrDepartmentApi } from '../../services/hrService';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { fetchDesignations, createDesignation, updateDesignation, deleteDesignation, fetchDepartments } from '../../store/slices/hrSlice';
 import type { HRDesignationListItem, HRDesignationCreate, HRDepartmentListItem } from '../../models/hr';
 import useToast from '../../hooks/useToast';
 
@@ -21,12 +22,12 @@ import useToast from '../../hooks/useToast';
 interface DesignationDialogProps {
 	open: boolean;
 	onClose: () => void;
-	onSave: () => void;
 	existing?: HRDesignationListItem | null;
 	departments: HRDepartmentListItem[];
 }
 
-const DesignationDialog: React.FC<DesignationDialogProps> = ({ open, onClose, onSave, existing, departments }) => {
+const DesignationDialog: React.FC<DesignationDialogProps> = ({ open, onClose, existing, departments }) => {
+	const dispatch = useAppDispatch();
 	const { success, error } = useToast();
 	const [saving, setSaving] = useState(false);
 	const [form, setForm] = useState<HRDesignationCreate>({
@@ -51,16 +52,15 @@ const DesignationDialog: React.FC<DesignationDialogProps> = ({ open, onClose, on
 		setSaving(true);
 		try {
 			if (existing) {
-				await hrDesignationApi.update(existing.id, form);
+				await dispatch(updateDesignation({ id: existing.id, payload: form })).unwrap();
 				success('Designation updated');
 			} else {
-				await hrDesignationApi.create(form);
+				await dispatch(createDesignation(form)).unwrap();
 				success('Designation created');
 			}
-			onSave();
 			onClose();
 		} catch (e: any) {
-			error(e?.response?.data?.detail || 'Failed to save designation');
+			error(e || 'Failed to save designation');
 		} finally {
 			setSaving(false);
 		}
@@ -122,35 +122,26 @@ const DesignationDialog: React.FC<DesignationDialogProps> = ({ open, onClose, on
 
 const DesignationsPage: React.FC = () => {
 	const theme = useTheme();
-	const { success, error } = useToast();
-	const [designations, setDesignations] = useState<HRDesignationListItem[]>([]);
-	const [departments, setDepartments] = useState<HRDepartmentListItem[]>([]);
-	const [loading, setLoading] = useState(true);
+	const dispatch = useAppDispatch();
+	const { error, success } = useToast();
+	const { designations, designationsLoading: loading, departments } = useAppSelector((state) => state.hr);
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [editTarget, setEditTarget] = useState<HRDesignationListItem | null>(null);
 	const [deptFilter, setDeptFilter] = useState<number | ''>('');
 
-	const fetchDesignations = async () => {
-		setLoading(true);
-		try {
-			const data = await hrDesignationApi.list(deptFilter as number | undefined);
-			setDesignations(data);
-		} catch {
-			error('Failed to load designations');
-		} finally {
-			setLoading(false);
-		}
-	};
+	useEffect(() => {
+		dispatch(fetchDepartments(undefined));
+	}, [dispatch]);
 
-	useEffect(() => { hrDepartmentApi.list().then(setDepartments).catch(() => {}); }, []);
-	useEffect(() => { fetchDesignations(); }, [deptFilter]);
+	useEffect(() => {
+		dispatch(fetchDesignations(deptFilter as number | undefined)).unwrap().catch(() => error('Failed to load designations'));
+	}, [dispatch, deptFilter]);
 
 	const handleDelete = async (d: HRDesignationListItem) => {
 		if (!window.confirm(`Delete "${d.name}"?`)) return;
 		try {
-			await hrDesignationApi.delete(d.id);
+			await dispatch(deleteDesignation(d.id)).unwrap();
 			success('Designation deleted');
-			fetchDesignations();
 		} catch {
 			error('Failed to delete designation');
 		}
@@ -269,7 +260,6 @@ const DesignationsPage: React.FC = () => {
 			<DesignationDialog
 				open={dialogOpen}
 				onClose={() => { setDialogOpen(false); setEditTarget(null); }}
-				onSave={fetchDesignations}
 				existing={editTarget}
 				departments={departments}
 			/>
