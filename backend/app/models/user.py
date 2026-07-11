@@ -19,6 +19,10 @@ class UserRole(str, enum.Enum):
     PROJECT_COORDINATOR = "project_coordinator"
     DEVELOPER = "developer"
     MARKETING = "marketing"
+    # HR Module roles
+    HR_ADMIN = "hr_admin"
+    HR_MANAGER = "hr_manager"
+    LEADERSHIP = "leadership"
 
 class User(BaseModel):
     __tablename__ = "users"

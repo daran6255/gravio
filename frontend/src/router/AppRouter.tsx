@@ -14,6 +14,9 @@ import BillingSettings from '../pages/settings/BillingSettings';
 import { LeadsPage, DealsPage, CompaniesPage, TasksPage } from '../pages/crm';
 import { ProjectsListPage, ProjectDetailPage } from '../pages/projects';
 import TimesheetPage from '../pages/timesheets/TimesheetPage';
+import EmployeeDirectoryPage from '../pages/hr/EmployeeDirectoryPage';
+import DepartmentsPage from '../pages/hr/DepartmentsPage';
+import DesignationsPage from '../pages/hr/DesignationsPage';
 
 // Legacy auth links (e.g. tokenized verify/invite/reset links already sent by
 // email before the /auth prefix existed) redirect here — preserve the query
@@ -69,6 +72,12 @@ const AppRouter: React.FC = () => {
 					<Route path="projects" element={<ProjectsListPage />} />
 					<Route path="projects/:publicId" element={<ProjectDetailPage />} />
 
+					{/* HR Module */}
+					<Route path="hr/employees" element={<EmployeeDirectoryPage />} />
+					<Route path="hr/departments" element={<DepartmentsPage />} />
+					<Route path="hr/designations" element={<DesignationsPage />} />
+					<Route path="hr" element={<Navigate to="/hr/employees" replace />} />
+
 					{/* Prefixed Tenant Routes */}
 					<Route path="org/:orgId/dashboard" element={<Dashboard />} />
 					<Route path="org/:orgId/users" element={<OrgManagement />} />
@@ -89,6 +98,11 @@ const AppRouter: React.FC = () => {
 
 					<Route path="org/:orgId/projects" element={<ProjectsListPage />} />
 					<Route path="org/:orgId/projects/:publicId" element={<ProjectDetailPage />} />
+
+					{/* Tenant-prefixed HR Module */}
+					<Route path="org/:orgId/hr/employees" element={<EmployeeDirectoryPage />} />
+					<Route path="org/:orgId/hr/departments" element={<DepartmentsPage />} />
+					<Route path="org/:orgId/hr/designations" element={<DesignationsPage />} />
 				</Route>
 			</Route>
 

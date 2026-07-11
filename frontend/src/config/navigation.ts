@@ -13,6 +13,7 @@ import {
 	Handshake as DealsIcon,
 	Assignment as TasksIcon,
 	PendingActions as TimesheetIcon,
+	PeopleAltOutlined as HRIcon,
 } from '@mui/icons-material';
 import type { SvgIconComponent } from '@mui/icons-material';
 
@@ -94,6 +95,31 @@ export const topNavigation: NavigationItem[] = [
 				path: '/crm/tasks',
 				icon: TasksIcon,
 				roles: ['admin', 'manager', 'marketing', 'placement'],
+			},
+		],
+	},
+	{
+		label: 'HR',
+		isSection: true,
+		roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
+		children: [
+			{
+				label: 'Employees',
+				path: '/hr/employees',
+				icon: HRIcon,
+				roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
+			},
+			{
+				label: 'Departments',
+				path: '/hr/departments',
+				icon: HRIcon,
+				roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
+			},
+			{
+				label: 'Designations',
+				path: '/hr/designations',
+				icon: HRIcon,
+				roles: ['admin', 'hr_admin', 'hr_manager'],
 			},
 		],
 	},

@@ -36,6 +36,14 @@ from app.models.project import (
     ProjectStatus,
     BillingType,
 )
+from app.models.hr import (
+    HRDepartment,
+    HRDesignation,
+    HREmployeeProfile,
+    EmploymentType,
+    WorkLocation,
+    EmployeeStatus,
+)
 
 __all__ = [
     "Organization",
@@ -75,6 +83,12 @@ __all__ = [
     "ProjectTaskStatus",
     "ProjectStatus",
     "BillingType",
+    "HRDepartment",
+    "HRDesignation",
+    "HREmployeeProfile",
+    "EmploymentType",
+    "WorkLocation",
+    "EmployeeStatus",
 ]
 
 

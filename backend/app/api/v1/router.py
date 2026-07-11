@@ -54,3 +54,9 @@ router.include_router(project_task_statuses_router)
 from app.api.v1.endpoints.timesheets import router as timesheets_router, router_holidays as holidays_router
 router.include_router(timesheets_router)
 router.include_router(holidays_router)
+
+# HR Module                    →  /api/v1/hr/departments
+#                             /api/v1/hr/designations
+#                             /api/v1/hr/employees
+from app.api.v1.endpoints.hr import router as hr_router
+router.include_router(hr_router)
