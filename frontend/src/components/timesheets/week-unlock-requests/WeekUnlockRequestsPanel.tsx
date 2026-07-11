@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 import {
 	Typography,
 	TableRow,
@@ -8,6 +8,7 @@ import {
 	Chip,
 	TextField
 } from '@mui/material';
+import { useWeekUnlockRequests } from './hooks/useWeekUnlockRequests';
 import { BaseDialog } from '../../common/dialogbox';
 import { DataTable, type ColumnDefinition } from '../../common/table';
 import type { TimesheetWeekUnlockRequest } from '../../../models/timesheet';
@@ -26,52 +27,20 @@ const statusChipColor: Record<string, 'warning' | 'success' | 'error'> = {
 };
 
 const WeekUnlockRequestsPanel: React.FC<WeekUnlockRequestsPanelProps> = ({ requests, loading, onApprove, onDeny }) => {
-	const [denyTarget, setDenyTarget] = useState<TimesheetWeekUnlockRequest | null>(null);
-	const [denyNote, setDenyNote] = useState('');
-
-	const [pendingPage, setPendingPage] = useState(0);
-	const [pendingRowsPerPage, setPendingRowsPerPage] = useState(10);
-	const [resolvedPage, setResolvedPage] = useState(0);
-	const [resolvedRowsPerPage, setResolvedRowsPerPage] = useState(10);
-
-	const { pending, resolved } = useMemo(() => {
-		const pending = requests.filter((r) => r.status === 'pending');
-		const resolved = requests.filter((r) => r.status !== 'pending');
-		return { pending, resolved };
-	}, [requests]);
-
-	const paginatedPending = useMemo(
-		() => pending.slice(pendingPage * pendingRowsPerPage, pendingPage * pendingRowsPerPage + pendingRowsPerPage),
-		[pending, pendingPage, pendingRowsPerPage]
-	);
-	const paginatedResolved = useMemo(
-		() => resolved.slice(resolvedPage * resolvedRowsPerPage, resolvedPage * resolvedRowsPerPage + resolvedRowsPerPage),
-		[resolved, resolvedPage, resolvedRowsPerPage]
-	);
-
-	// Clamp back to the last valid page if the underlying list shrinks (e.g. a
-	// pending request gets approved/denied) and the current page runs off the end.
-	useEffect(() => {
-		const maxPage = Math.max(0, Math.ceil(pending.length / pendingRowsPerPage) - 1);
-		if (pendingPage > maxPage) setPendingPage(maxPage);
-	}, [pending.length, pendingRowsPerPage, pendingPage]);
-
-	useEffect(() => {
-		const maxPage = Math.max(0, Math.ceil(resolved.length / resolvedRowsPerPage) - 1);
-		if (resolvedPage > maxPage) setResolvedPage(maxPage);
-	}, [resolved.length, resolvedRowsPerPage, resolvedPage]);
-
-	const handleOpenDeny = (req: TimesheetWeekUnlockRequest) => {
-		setDenyTarget(req);
-		setDenyNote('');
-	};
-
-	const handleConfirmDeny = () => {
-		if (denyTarget) {
-			onDeny(denyTarget.id, denyNote.trim() || undefined);
-			setDenyTarget(null);
-		}
-	};
+	const {
+		denyTarget, setDenyTarget,
+		denyNote, setDenyNote,
+		pendingPage, setPendingPage,
+		pendingRowsPerPage, setPendingRowsPerPage,
+		resolvedPage, setResolvedPage,
+		resolvedRowsPerPage, setResolvedRowsPerPage,
+		pending,
+		resolved,
+		paginatedPending,
+		paginatedResolved,
+		handleOpenDeny,
+		handleConfirmDeny
+	} = useWeekUnlockRequests({ requests, onDeny });
 
 	const columns = (showActions: boolean): ColumnDefinition<TimesheetWeekUnlockRequest>[] => [
 		{ id: 'user_id', label: 'Team Member' },
