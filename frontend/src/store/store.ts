@@ -8,6 +8,7 @@ import crmReducer from './slices/crmSlice';
 import notificationsReducer from './slices/notificationSlice';
 import projectsReducer from './slices/projectsSlice';
 import timesheetReducer from './slices/timesheetSlice';
+import hrReducer from './slices/hrSlice';
 
 export const store = configureStore({
 	reducer: {
@@ -20,6 +21,7 @@ export const store = configureStore({
 		notifications: notificationsReducer,
 		projects: projectsReducer,
 		timesheets: timesheetReducer,
+		hr: hrReducer,
 	},
 	middleware: (getDefaultMiddleware) =>
 		getDefaultMiddleware({
