@@ -106,7 +106,7 @@ export const topNavigation: NavigationItem[] = [
 		],
 	},
 	{
-		label: 'HR',
+		label: 'HRM',
 		isSection: true,
 		children: [
 			{
@@ -133,6 +133,28 @@ export const topNavigation: NavigationItem[] = [
 				icon: LeaveIcon,
 			},
 			{
+				label: 'Lifecycle',
+				path: '/hr/onboarding',
+				icon: OnboardingIcon,
+			},
+			{
+				label: 'Documents',
+				path: '/hr/documents',
+				icon: DocumentsIcon,
+			},
+			{
+				label: 'Reports',
+				path: '/hr/reports',
+				icon: ReportsIcon,
+				roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
+			},
+		],
+	},
+	{
+		label: 'Payroll',
+		isSection: true,
+		children: [
+			{
 				label: 'Salary Config',
 				path: '/hr/payroll/structures',
 				icon: StructuresIcon,
@@ -148,22 +170,6 @@ export const topNavigation: NavigationItem[] = [
 				label: 'My Payslips',
 				path: '/hr/payslips',
 				icon: PayslipsIcon,
-			},
-			{
-				label: 'Lifecycle',
-				path: '/hr/onboarding',
-				icon: OnboardingIcon,
-			},
-			{
-				label: 'Documents',
-				path: '/hr/documents',
-				icon: DocumentsIcon,
-			},
-			{
-				label: 'Reports',
-				path: '/hr/reports',
-				icon: ReportsIcon,
-				roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
 			},
 		],
 	},
