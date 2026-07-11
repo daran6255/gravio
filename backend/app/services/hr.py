@@ -288,6 +288,20 @@ async def list_designations(
     result = await db.execute(q.order_by(HRDesignation.name))
     designations = result.scalars().all()
 
+    # Employee count per designation
+    emp_counts_result = await db.execute(
+        select(
+            HREmployeeProfile.designation_id,
+            func.count(HREmployeeProfile.id).label("cnt")
+        ).where(
+            and_(
+                HREmployeeProfile.organization_id == org_id,
+                HREmployeeProfile.is_deleted == False,
+            )
+        ).group_by(HREmployeeProfile.designation_id)
+    )
+    emp_counts = {row.designation_id: row.cnt for row in emp_counts_result}
+
     return [
         DesignationListItem(
             id=d.id,
@@ -296,7 +310,9 @@ async def list_designations(
             department_id=d.department_id,
             department_name=d.department.name if d.department else None,
             grade=d.grade,
+            description=d.description,
             is_active=d.is_active,
+            employee_count=emp_counts.get(d.id, 0),
             created_at=d.created_at,
         )
         for d in designations

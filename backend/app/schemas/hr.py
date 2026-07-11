@@ -116,7 +116,9 @@ class DesignationListItem(BaseModel):
     department_id: Optional[int]
     department_name: Optional[str] = None
     grade: Optional[str]
+    description: Optional[str] = None
     is_active: bool
+    employee_count: int = 0
     created_at: datetime
 
 

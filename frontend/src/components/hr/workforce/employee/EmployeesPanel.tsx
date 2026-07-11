@@ -5,12 +5,13 @@ import {
 } from '@mui/material';
 import { Work as WorkIcon } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
-import { fetchEmployees, fetchDepartments } from '../../../../store/slices/hrSlice';
+import { fetchEmployees, fetchDepartments, fetchDesignations } from '../../../../store/slices/hrSlice';
 import type { EmployeeStatus, HREmployeeListItem } from '../../../../models/hr';
 import { EMPLOYEE_STATUS_LABELS, EMPLOYEE_STATUS_COLORS, EMPLOYMENT_TYPE_LABELS, WORK_LOCATION_LABELS } from '../../../../models/hr';
 import useToast from '../../../../hooks/useToast';
 import { DataTable, type ColumnDefinition } from '../../../common/table';
 import EnterpriseAvatar from '../../../common/avatar/Avatar';
+import EmployeeDialog from './EmployeeDialog';
 
 const STATUS_OPTIONS: Array<{ value: EmployeeStatus | ''; label: string }> = [
 	{ value: '', label: 'All Statuses' },
@@ -23,15 +24,16 @@ const STATUS_OPTIONS: Array<{ value: EmployeeStatus | ''; label: string }> = [
 ];
 
 export const EmployeesPanel: React.FC = () => {
-	const { error, info } = useToast();
+	const { error } = useToast();
 	const dispatch = useAppDispatch();
-	const { employees, employeesTotal, employeesLoading: loading, departments } = useAppSelector((state) => state.hr);
+	const { employees, employeesTotal, employeesLoading: loading, departments, designations } = useAppSelector((state) => state.hr);
 
 	const [search, setSearch] = useState('');
 	const [deptFilter, setDeptFilter] = useState<number | ''>('');
 	const [statusFilter, setStatusFilter] = useState<EmployeeStatus | ''>('');
 	const [page, setPage] = useState(0);
 	const [rowsPerPage, setRowsPerPage] = useState(10);
+	const [dialogOpen, setDialogOpen] = useState(false);
 
 	const loadEmployees = useCallback(() => {
 		const params = {
@@ -46,6 +48,7 @@ export const EmployeesPanel: React.FC = () => {
 
 	useEffect(() => {
 		dispatch(fetchDepartments(undefined));
+		dispatch(fetchDesignations(undefined));
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [dispatch]);
 
@@ -107,6 +110,7 @@ export const EmployeesPanel: React.FC = () => {
 	);
 
 	return (
+		<>
 		<DataTable<HREmployeeListItem>
 			columns={columns}
 			data={employees}
@@ -121,7 +125,7 @@ export const EmployeesPanel: React.FC = () => {
 			searchPlaceholder="Search by name or email…"
 			canCreate
 			createButtonText="Add Employee"
-			onCreateClick={() => info('Employee onboarding is coming soon — create employees from the Lifecycle tab for now.')}
+			onCreateClick={() => setDialogOpen(true)}
 			headerActions={
 				<Stack direction="row" spacing={1.5}>
 					<FormControl size="small" sx={{ minWidth: 170 }}>
@@ -155,6 +159,16 @@ export const EmployeesPanel: React.FC = () => {
 			renderRow={renderRow}
 			emptyMessage={search || deptFilter || statusFilter ? 'No employees match your filters.' : 'No employees yet — add your first employee to get started.'}
 		/>
+
+		<EmployeeDialog
+			open={dialogOpen}
+			onClose={() => setDialogOpen(false)}
+			onCreated={loadEmployees}
+			departments={departments}
+			designations={designations}
+			existingUserIds={employees.map((e) => e.user_id)}
+		/>
+		</>
 	);
 };
 

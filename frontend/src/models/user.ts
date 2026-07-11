@@ -23,6 +23,7 @@ export const USER_ROLES: UserRole[] = [
 
 /** A row in the Org Admin's Team list — matches backend's UserListItem exactly. */
 export interface TeamMember {
+	id: number;
 	public_id: string;
 	username: string;
 	email: string;

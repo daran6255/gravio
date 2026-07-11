@@ -7,7 +7,9 @@ export interface HRDesignationListItem {
 	department_id: number | null;
 	department_name: string | null;
 	grade: string | null;
+	description: string | null;
 	is_active: boolean;
+	employee_count: number;
 	created_at: string;
 }
 

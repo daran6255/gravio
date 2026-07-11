@@ -210,7 +210,7 @@ async def list_employees(
         skip=skip,
         limit=limit,
     )
-    return PaginatedResponse(items=items, total=total, skip=skip, limit=limit)
+    return PaginatedResponse(items=items, total=total, page=(skip // limit) + 1, page_size=limit)
 
 
 @router.post(

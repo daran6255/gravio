@@ -25,6 +25,7 @@ class UserListItem(BaseModel):
     """A single row in the org's user list"""
     model_config = ConfigDict(from_attributes=True)
 
+    id: int
     public_id: uuid.UUID
     username: str
     email: str
