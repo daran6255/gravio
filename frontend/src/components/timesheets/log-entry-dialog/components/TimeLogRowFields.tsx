@@ -178,7 +178,7 @@ export const TimeLogRowFields: React.FC<TimeLogRowFieldsProps> = ({
 					</Button>
 				)}
 
-				<Stack direction="row" spacing={2}>
+				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
 					<DatePicker
 						label="Date"
 						value={row.logDate || null}

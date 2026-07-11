@@ -23,6 +23,7 @@ import { fetchTimesheetReport } from '../../../store/slices/timesheetSlice';
 import { fetchProjects } from '../../../store/slices/projectsSlice';
 import { fetchOwners } from '../../../store/slices/crmSlice';
 import { fetchTeamUsers } from '../../../store/slices/userSlice';
+import { responsiveStyles } from '../../../theme';
 import { DatePicker } from '../../common/form';
 import type { TimesheetReportRow } from '../../../models/timesheet';
 
@@ -298,7 +299,7 @@ const TimesheetReportPanel: React.FC = () => {
 					bgcolor: 'background.paper'
 				}}
 			>
-				<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 2.5, borderBottom: 1, borderColor: 'divider' }}>
+				<Stack sx={{ ...responsiveStyles.headerRow, p: 2.5, borderBottom: 1, borderColor: 'divider' }}>
 					<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
 						Report Details
 					</Typography>

@@ -251,48 +251,50 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 															</Box>
 														)}
 
-														<Table size="small">
-															<TableHead>
-																<TableRow>
-																	<TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-																	<TableCell sx={{ fontWeight: 700 }}>Log Target</TableCell>
-																	<TableCell sx={{ fontWeight: 700 }}>Billing</TableCell>
-																	<TableCell sx={{ fontWeight: 700 }}>Notes</TableCell>
-																	<TableCell align="right" sx={{ fontWeight: 700 }}>Hours</TableCell>
-																</TableRow>
-															</TableHead>
-															<TableBody>
-																{sheet.logs.map((log) => (
-																	<TableRow key={log.id}>
-																		<TableCell>{log.log_date}</TableCell>
-																		<TableCell>
-																			{log.project?.name || `General: ${log.category?.name || 'Category'}`}
-																			{log.task && (
-																				<Typography variant="caption" color="text.secondary" display="block">
-																					Task: {log.task.title}
-																				</Typography>
-																			)}
-																		</TableCell>
-																		<TableCell>
-																			<Typography
-																				variant="caption"
-																				sx={{
-																					fontWeight: 700,
-																					color: log.billing_type === 'billable' ? 'success.main' : 'text.secondary',
-																					textTransform: 'uppercase'
-																				}}
-																			>
-																				{log.billing_type}
-																			</Typography>
-																		</TableCell>
-																		<TableCell>{log.notes || '—'}</TableCell>
-																		<TableCell align="right" sx={{ fontWeight: 700 }}>
-																			{formatHoursDisplay(log.hours)}
-																		</TableCell>
+														<TableContainer>
+															<Table size="small">
+																<TableHead>
+																	<TableRow>
+																		<TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
+																		<TableCell sx={{ fontWeight: 700 }}>Log Target</TableCell>
+																		<TableCell sx={{ fontWeight: 700 }}>Billing</TableCell>
+																		<TableCell sx={{ fontWeight: 700 }}>Notes</TableCell>
+																		<TableCell align="right" sx={{ fontWeight: 700 }}>Hours</TableCell>
 																	</TableRow>
-																))}
-															</TableBody>
-														</Table>
+																</TableHead>
+																<TableBody>
+																	{sheet.logs.map((log) => (
+																		<TableRow key={log.id}>
+																			<TableCell>{log.log_date}</TableCell>
+																			<TableCell>
+																				{log.project?.name || `General: ${log.category?.name || 'Category'}`}
+																				{log.task && (
+																					<Typography variant="caption" color="text.secondary" display="block">
+																						Task: {log.task.title}
+																					</Typography>
+																				)}
+																			</TableCell>
+																			<TableCell>
+																				<Typography
+																					variant="caption"
+																					sx={{
+																						fontWeight: 700,
+																						color: log.billing_type === 'billable' ? 'success.main' : 'text.secondary',
+																						textTransform: 'uppercase'
+																					}}
+																				>
+																					{log.billing_type}
+																				</Typography>
+																			</TableCell>
+																			<TableCell>{log.notes || '—'}</TableCell>
+																			<TableCell align="right" sx={{ fontWeight: 700 }}>
+																				{formatHoursDisplay(log.hours)}
+																			</TableCell>
+																		</TableRow>
+																	))}
+																</TableBody>
+															</Table>
+														</TableContainer>
 													</Box>
 												</Collapse>
 											</TableCell>

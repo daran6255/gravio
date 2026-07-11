@@ -80,7 +80,16 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 				maxWidth="sm"
 				loading={submitting}
 				actions={
-					<Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+					<Box
+						sx={{
+							display: 'flex',
+							flexDirection: { xs: 'column', sm: 'row' },
+							justifyContent: 'space-between',
+							alignItems: { xs: 'stretch', sm: 'center' },
+							gap: 1,
+							width: '100%'
+						}}
+					>
 						<Box>
 							{canDelete && (
 								<Button
@@ -88,20 +97,22 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 									startIcon={<DeleteIcon />}
 									onClick={() => setConfirmDeleteOpen(true)}
 									disabled={submitting}
-									sx={{ fontWeight: 700, borderRadius: 4 }}
+									fullWidth
+									sx={{ fontWeight: 700, borderRadius: 4, width: { xs: '100%', sm: 'auto' } }}
 								>
 									Delete
 								</Button>
 							)}
 						</Box>
-						<Stack direction="row" spacing={1}>
-							<Button onClick={onClose} disabled={submitting}>
+						<Stack direction="row" spacing={1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+							<Button onClick={onClose} disabled={submitting} fullWidth>
 								Cancel
 							</Button>
 							<Button
 								variant="contained"
 								onClick={handleSubmit}
 								disabled={submitting}
+								fullWidth
 								sx={{ fontWeight: 700, borderRadius: 4 }}
 							>
 								{submitting ? (

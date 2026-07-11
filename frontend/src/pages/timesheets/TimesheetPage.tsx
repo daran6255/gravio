@@ -31,6 +31,7 @@ import {
 	denyWeekUnlock,
 	fetchUserSettings
 } from '../../store/slices/timesheetSlice';
+import { responsiveStyles } from '../../theme';
 import PageHeader from '../../components/common/page-header';
 import WeeklyTimesheetGrid from '../../components/timesheets/weekly-grid';
 import TeamTimesheetTable from '../../components/timesheets/team-approvals';
@@ -266,7 +267,7 @@ const TimesheetPage: React.FC = () => {
 	};
 
 	return (
-		<Container maxWidth="xl" sx={{ py: 4 }}>
+		<Container maxWidth="xl" sx={responsiveStyles.pageContainer}>
 			{/* Page Title & Navigation Header */}
 			<Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} spacing={2} sx={{ mb: 4 }}>
 				<PageHeader title="Timesheet Workspace" subtitle="Log and approve hours across projects and operations." />
@@ -304,7 +305,13 @@ const TimesheetPage: React.FC = () => {
 
 			{/* Tabs Header */}
 			<Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-				<Tabs value={activeTab} onChange={(_, val) => setActiveTab(val)}>
+				<Tabs
+					value={activeTab}
+					onChange={(_, val) => setActiveTab(val)}
+					variant="scrollable"
+					scrollButtons="auto"
+					allowScrollButtonsMobile
+				>
 					{tabLabels.map((label, idx) => (
 						<Tab key={idx} label={label} />
 					))}

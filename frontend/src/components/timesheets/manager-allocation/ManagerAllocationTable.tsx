@@ -128,8 +128,13 @@ export const ManagerAllocationTable: React.FC<ManagerAllocationTableProps> = ({
 							</Typography>
 						</Stack>
 						
-						<Stack direction="row" spacing={1.5} alignItems="center">
-							<FormControl size="small" sx={{ minWidth: 200 }}>
+						<Stack
+							direction={{ xs: 'column', sm: 'row' }}
+							spacing={1.5}
+							alignItems={{ xs: 'stretch', sm: 'center' }}
+							sx={{ width: { xs: '100%', sm: 'auto' } }}
+						>
+							<FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 } }}>
 								<InputLabel id="bulk-manager-select-label">Assign Reporting Manager</InputLabel>
 								<Select
 									labelId="bulk-manager-select-label"

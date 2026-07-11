@@ -23,6 +23,7 @@ import {
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchHolidays, createHoliday, deleteHoliday } from '../../../store/slices/timesheetSlice';
+import { responsiveStyles } from '../../../theme';
 import { BaseDialog, ConfirmationDialog } from '../../common/dialogbox';
 import { DatePicker } from '../../common/form';
 import type { OrgHoliday } from '../../../models/timesheet';
@@ -339,7 +340,7 @@ const HolidayCalendarPanel: React.FC = () => {
 						bgcolor: 'background.paper'
 					}}
 				>
-					<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
+					<Stack sx={{ ...responsiveStyles.headerRow, mb: 2.5 }}>
 						<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
 							Organization Holidays
 						</Typography>
