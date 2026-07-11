@@ -14,6 +14,8 @@ import type {
 	HRPayrollRun, HRPayrollRunCreate,
 	HRVariablePayEntry, HRVariablePayEntryCreate,
 	HRPayslip,
+	HRChecklistTemplate, HRChecklistInstance, HREmployeeDocument,
+	HeadcountReport, AttritionReport, LeaveSummaryReport, PayrollCostReport,
 } from '../models/hr';
 
 interface PaginatedResponse<T> {
@@ -248,5 +250,82 @@ export const hrPayslipApi = {
 		return `${base}/hr/payroll/payslips/${publicId}/pdf`;
 	},
 };
+
+// ---------------------------------------------------------------------------
+// Checklist Templates
+// ---------------------------------------------------------------------------
+
+export const hrChecklistTemplateApi = {
+	list: (): Promise<HRChecklistTemplate[]> =>
+		api.get('/hr/checklists/templates').then(r => r.data),
+
+	create: (payload: Partial<HRChecklistTemplate>): Promise<HRChecklistTemplate> =>
+		api.post('/hr/checklists/templates', payload).then(r => r.data),
+
+	update: (id: number, payload: Partial<HRChecklistTemplate>): Promise<HRChecklistTemplate> =>
+		api.patch(`/hr/checklists/templates/${id}`, payload).then(r => r.data),
+
+	delete: (id: number): Promise<void> =>
+		api.delete(`/hr/checklists/templates/${id}`).then(r => r.data),
+};
+
+// ---------------------------------------------------------------------------
+// Checklist Instances
+// ---------------------------------------------------------------------------
+
+export const hrChecklistInstanceApi = {
+	list: (): Promise<HRChecklistInstance[]> =>
+		api.get('/hr/checklists/instances').then(r => r.data),
+
+	launch: (payload: { user_id: number; template_id: number; others?: any }): Promise<HRChecklistInstance> =>
+		api.post('/hr/checklists/instances', payload).then(r => r.data),
+
+	toggleTask: (id: number, taskId: string, completed: boolean): Promise<HRChecklistInstance> =>
+		api.post(`/hr/checklists/instances/${id}/tasks/${taskId}/toggle`, { completed }).then(r => r.data),
+};
+
+// ---------------------------------------------------------------------------
+// Employee Documents
+// ---------------------------------------------------------------------------
+
+export const hrEmployeeDocumentApi = {
+	list: (userId?: number): Promise<HREmployeeDocument[]> =>
+		api.get('/hr/documents', { params: userId ? { user_id: userId } : {} }).then(r => r.data),
+
+	upload: (formData: FormData): Promise<HREmployeeDocument> =>
+		api.post('/hr/documents/upload', formData, {
+			headers: { 'Content-Type': 'multipart/form-data' }
+		}).then(r => r.data),
+
+	verify: (id: number, isVerified: boolean): Promise<HREmployeeDocument> =>
+		api.post(`/hr/documents/${id}/verify`, { is_verified: isVerified }).then(r => r.data),
+
+	delete: (id: number): Promise<void> =>
+		api.delete(`/hr/documents/${id}`).then(r => r.data),
+
+	getDownloadUrl: (id: number): string => {
+		const base = api.defaults.baseURL || '/api/v1';
+		return `${base}/hr/documents/${id}/download`;
+	},
+};
+
+// ---------------------------------------------------------------------------
+// HR Analytics & Reports
+// ---------------------------------------------------------------------------
+
+export const hrAnalyticsApi = {
+	getHeadcount: (): Promise<HeadcountReport> =>
+		api.get('/hr/analytics/headcount').then(r => r.data),
+
+	getAttrition: (): Promise<AttritionReport> =>
+		api.get('/hr/analytics/attrition').then(r => r.data),
+
+	getLeavesSummary: (): Promise<LeaveSummaryReport> =>
+		api.get('/hr/analytics/leaves-summary').then(r => r.data),
+
+	getPayrollCosts: (): Promise<PayrollCostReport> =>
+		api.get('/hr/analytics/payroll-costs').then(r => r.data),
+};
+
 
 

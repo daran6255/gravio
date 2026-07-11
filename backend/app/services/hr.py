@@ -18,7 +18,9 @@ from app.models.hr import (
     HRLeaveType, HRLeaveBalance, HRLeaveRequest, LeaveStatus,
     HRSalaryComponent, HRSalaryStructure, HRSalaryStructureItem,
     HREmployeeSalary, HRPayrollRun, HRVariablePayEntry, HRPayslip,
-    SalaryComponentType, SalaryCalculationType, PayrollRunStatus
+    SalaryComponentType, SalaryCalculationType, PayrollRunStatus,
+    HRChecklistTemplate, HRChecklistInstance, HREmployeeDocument,
+    ChecklistType, ChecklistStatus, EmployeeStatus
 )
 from app.models.user import User
 from app.schemas.hr import (
@@ -33,7 +35,12 @@ from app.schemas.hr import (
     EmployeeSalaryCreate, EmployeeSalaryUpdate, EmployeeSalaryResponse,
     PayrollRunCreate, PayrollRunUpdate, PayrollRunResponse,
     VariablePayEntryCreate, VariablePayEntryResponse,
-    PayslipResponse
+    PayslipResponse,
+    ChecklistTemplateCreate, ChecklistTemplateUpdate, ChecklistTemplateResponse,
+    ChecklistInstanceCreate, ChecklistInstanceResponse,
+    ChecklistTaskToggle, EmployeeDocumentResponse, DocumentVerifyRequest,
+    HeadcountReportResponse, AttritionReportResponse, LeaveSummaryReportResponse,
+    PayrollCostReportResponse
 )
 
 
@@ -1886,5 +1893,530 @@ def generate_payslip_pdf(payslip: HRPayslip) -> BytesIO:
     doc.build(story)
     buffer.seek(0)
     return buffer
+
+
+# ===========================================================================
+# Checklists Templates Config (Phase 4: Advanced)
+# ===========================================================================
+
+async def list_checklist_templates(db: AsyncSession, org_id: int) -> list[HRChecklistTemplate]:
+    res = await db.execute(
+        select(HRChecklistTemplate).where(
+            and_(HRChecklistTemplate.organization_id == org_id, HRChecklistTemplate.is_deleted == False)
+        ).order_by(HRChecklistTemplate.id.desc())
+    )
+    return list(res.scalars().all())
+
+
+async def create_checklist_template(db: AsyncSession, org_id: int, payload: ChecklistTemplateCreate) -> HRChecklistTemplate:
+    tmpl = HRChecklistTemplate(
+        organization_id=org_id,
+        name=payload.name,
+        checklist_type=payload.checklist_type,
+        tasks=payload.tasks,
+        is_active=payload.is_active,
+        others=payload.others,
+    )
+    db.add(tmpl)
+    await db.commit()
+    await db.refresh(tmpl)
+    return tmpl
+
+
+async def update_checklist_template(db: AsyncSession, org_id: int, id: int, payload: ChecklistTemplateUpdate) -> HRChecklistTemplate:
+    res = await db.execute(
+        select(HRChecklistTemplate).where(
+            and_(
+                HRChecklistTemplate.organization_id == org_id,
+                HRChecklistTemplate.id == id,
+                HRChecklistTemplate.is_deleted == False
+            )
+        )
+    )
+    tmpl = res.scalar_one_or_none()
+    if not tmpl:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Checklist template not found")
+
+    for field, val in payload.model_dump(exclude_unset=True).items():
+        setattr(tmpl, field, val)
+
+    await db.commit()
+    await db.refresh(tmpl)
+    return tmpl
+
+
+async def delete_checklist_template(db: AsyncSession, org_id: int, id: int) -> None:
+    res = await db.execute(
+        select(HRChecklistTemplate).where(
+            and_(
+                HRChecklistTemplate.organization_id == org_id,
+                HRChecklistTemplate.id == id,
+                HRChecklistTemplate.is_deleted == False
+            )
+        )
+    )
+    tmpl = res.scalar_one_or_none()
+    if not tmpl:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Checklist template not found")
+
+    tmpl.is_deleted = True
+    tmpl.deleted_at = datetime.utcnow()
+    await db.commit()
+
+
+# ===========================================================================
+# Checklists Instances Tracking (Phase 4: Advanced)
+# ===========================================================================
+
+async def list_checklist_instances(db: AsyncSession, org_id: int) -> list[HRChecklistInstance]:
+    res = await db.execute(
+        select(HRChecklistInstance).where(
+            and_(HRChecklistInstance.organization_id == org_id, HRChecklistInstance.is_deleted == False)
+        ).options(
+            selectinload(HRChecklistInstance.user),
+            selectinload(HRChecklistInstance.template)
+        ).order_by(HRChecklistInstance.id.desc())
+    )
+    return list(res.scalars().all())
+
+
+async def create_checklist_instance(db: AsyncSession, org_id: int, payload: ChecklistInstanceCreate) -> HRChecklistInstance:
+    # Verify template
+    t_res = await db.execute(
+        select(HRChecklistTemplate).where(
+            and_(
+                HRChecklistTemplate.organization_id == org_id,
+                HRChecklistTemplate.id == payload.template_id,
+                HRChecklistTemplate.is_deleted == False
+            )
+        )
+    )
+    tmpl = t_res.scalar_one_or_none()
+    if not tmpl:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid checklist template ID")
+
+    # Verify user exists in the org
+    u_res = await db.execute(
+        select(User).where(and_(User.organization_id == org_id, User.id == payload.user_id, User.is_deleted == False))
+    )
+    if not u_res.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid employee user ID")
+
+    # Initialize task statuses
+    task_statuses = {}
+    for task in tmpl.tasks:
+        task_id = task.get("id")
+        if task_id:
+            task_statuses[task_id] = {
+                "completed": False,
+                "completed_by_id": None,
+                "completed_at": None
+            }
+
+    inst = HRChecklistInstance(
+        organization_id=org_id,
+        user_id=payload.user_id,
+        template_id=payload.template_id,
+        status=ChecklistStatus.PENDING,
+        task_statuses=task_statuses,
+        others=payload.others,
+    )
+    db.add(inst)
+    await db.commit()
+    
+    # Reload with relations
+    res = await db.execute(
+        select(HRChecklistInstance).where(HRChecklistInstance.id == inst.id)
+        .options(
+            selectinload(HRChecklistInstance.user),
+            selectinload(HRChecklistInstance.template)
+        )
+    )
+    return res.scalar_one()
+
+
+async def toggle_checklist_task(db: AsyncSession, org_id: int, id: int, task_id: str, completed: bool, actor_id: int) -> HRChecklistInstance:
+    res = await db.execute(
+        select(HRChecklistInstance).where(
+            and_(
+                HRChecklistInstance.organization_id == org_id,
+                HRChecklistInstance.id == id,
+                HRChecklistInstance.is_deleted == False
+            )
+        ).options(
+            selectinload(HRChecklistInstance.user),
+            selectinload(HRChecklistInstance.template)
+        )
+    )
+    inst = res.scalar_one_or_none()
+    if not inst:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Checklist instance not found")
+
+    # Update task state in JSON
+    # Duplicate dictionary to let SQLAlchemy detect mutation
+    task_statuses = dict(inst.task_statuses)
+    if task_id not in task_statuses:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Task ID '{task_id}' not found in checklist")
+
+    if completed:
+        task_statuses[task_id] = {
+            "completed": True,
+            "completed_by_id": actor_id,
+            "completed_at": datetime.utcnow().isoformat()
+        }
+    else:
+        task_statuses[task_id] = {
+            "completed": False,
+            "completed_by_id": None,
+            "completed_at": None
+        }
+
+    # Verify if all completed
+    all_completed = all(v.get("completed") for v in task_statuses.values())
+    inst.status = ChecklistStatus.COMPLETED if all_completed else ChecklistStatus.PENDING
+    inst.task_statuses = task_statuses
+
+    await db.commit()
+    await db.refresh(inst)
+    return inst
+
+
+# ===========================================================================
+# Documents Management (Phase 4: Advanced)
+# ===========================================================================
+
+async def list_employee_documents(db: AsyncSession, org_id: int, user_id: Optional[int] = None) -> list[HREmployeeDocument]:
+    conditions = [HREmployeeDocument.organization_id == org_id, HREmployeeDocument.is_deleted == False]
+    if user_id:
+        conditions.append(HREmployeeDocument.user_id == user_id)
+
+    res = await db.execute(
+        select(HREmployeeDocument).where(and_(*conditions))
+        .options(
+            selectinload(HREmployeeDocument.user),
+            selectinload(HREmployeeDocument.verified_by)
+        ).order_by(HREmployeeDocument.id.desc())
+    )
+    return list(res.scalars().all())
+
+
+async def create_employee_document(
+    db: AsyncSession,
+    org_id: int,
+    user_id: int,
+    document_type: str,
+    file_url: str,
+    expiry_date: Optional[date] = None,
+    others: Optional[dict] = None
+) -> HREmployeeDocument:
+    # Verify user belongs to the org
+    u_res = await db.execute(
+        select(User).where(and_(User.organization_id == org_id, User.id == user_id, User.is_deleted == False))
+    )
+    if not u_res.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid employee user ID")
+
+    doc = HREmployeeDocument(
+        organization_id=org_id,
+        user_id=user_id,
+        document_type=document_type,
+        file_url=file_url,
+        expiry_date=expiry_date,
+        is_verified=False,
+        others=others,
+    )
+    db.add(doc)
+    await db.commit()
+    
+    # Reload with relations
+    res = await db.execute(
+        select(HREmployeeDocument).where(HREmployeeDocument.id == doc.id)
+        .options(selectinload(HREmployeeDocument.user))
+    )
+    return res.scalar_one()
+
+
+async def verify_employee_document(db: AsyncSession, org_id: int, id: int, verified_by_id: int, is_verified: bool) -> HREmployeeDocument:
+    res = await db.execute(
+        select(HREmployeeDocument).where(
+            and_(
+                HREmployeeDocument.organization_id == org_id,
+                HREmployeeDocument.id == id,
+                HREmployeeDocument.is_deleted == False
+            )
+        ).options(selectinload(HREmployeeDocument.user))
+    )
+    doc = res.scalar_one_or_none()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    doc.is_verified = is_verified
+    doc.verified_by_id = verified_by_id if is_verified else None
+    doc.verified_at = datetime.utcnow() if is_verified else None
+    await db.commit()
+    await db.refresh(doc)
+    return doc
+
+
+async def delete_employee_document(db: AsyncSession, org_id: int, id: int) -> None:
+    res = await db.execute(
+        select(HREmployeeDocument).where(
+            and_(
+                HREmployeeDocument.organization_id == org_id,
+                HREmployeeDocument.id == id,
+                HREmployeeDocument.is_deleted == False
+            )
+        )
+    )
+    doc = res.scalar_one_or_none()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    doc.is_deleted = True
+    doc.deleted_at = datetime.utcnow()
+    await db.commit()
+
+
+# ===========================================================================
+# HR Analytics & Reports (Phase 4: Advanced)
+# ===========================================================================
+
+async def get_headcount_report(db: AsyncSession, org_id: int) -> HeadcountReportResponse:
+    # Query active employees in the org
+    res = await db.execute(
+        select(HREmployeeProfile).where(
+            and_(
+                HREmployeeProfile.organization_id == org_id,
+                HREmployeeProfile.employee_status != EmployeeStatus.TERMINATED,
+                HREmployeeProfile.is_deleted == False
+            )
+        ).options(
+            selectinload(HREmployeeProfile.department),
+            selectinload(HREmployeeProfile.designation)
+        )
+    )
+    profiles = res.scalars().all()
+    
+    dept_dist = {}
+    desig_dist = {}
+    emptype_dist = {}
+    
+    for p in profiles:
+        dept_name = p.department.name if p.department else "No Department"
+        desig_name = p.designation.name if p.designation else "No Designation"
+        emp_type = p.employment_type.value
+        
+        dept_dist[dept_name] = dept_dist.get(dept_name, 0) + 1
+        desig_dist[desig_name] = desig_dist.get(desig_name, 0) + 1
+        emptype_dist[emp_type] = emptype_dist.get(emp_type, 0) + 1
+
+    return HeadcountReportResponse(
+        department_distribution=dept_dist,
+        designation_distribution=desig_dist,
+        employment_type_distribution=emptype_dist,
+        total_count=len(profiles)
+    )
+
+
+async def get_attrition_report(db: AsyncSession, org_id: int) -> AttritionReportResponse:
+    # Retrieve all profiles (including terminated ones to compute joins/resigns)
+    res = await db.execute(
+        select(HREmployeeProfile).where(
+            and_(HREmployeeProfile.organization_id == org_id, HREmployeeProfile.is_deleted == False)
+        )
+    )
+    profiles = res.scalars().all()
+    
+    # We will aggregate joiners vs leavers by Month-Year over the past 12 months
+    import collections
+    from datetime import timedelta
+    
+    today = date.today()
+    months_keys = []
+    # Build list of past 12 months
+    for i in range(11, -1, -1):
+        # Subtract months
+        m = today.month - i
+        y = today.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        months_keys.append((y, m))
+
+    month_names = {
+        1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun",
+        7: "Jul", 8: "Aug", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"
+    }
+    
+    joiners_count = collections.Counter()
+    leavers_count = collections.Counter()
+    
+    for p in profiles:
+        if p.date_of_joining:
+            jd = p.date_of_joining
+            joiners_count[(jd.year, jd.month)] += 1
+        if p.date_of_leaving:
+            ld = p.date_of_leaving
+            leavers_count[(ld.year, ld.month)] += 1
+            
+    timeline = []
+    total_leavers_12m = 0
+    headcounts = []
+    current_headcount = 0
+    
+    # Simple headcount progression calculation over 12 months
+    # 1. Starting headcount 12 months ago
+    starting_hc = 0
+    for p in profiles:
+        if p.date_of_joining and p.date_of_joining < date(months_keys[0][0], months_keys[0][1], 1):
+            if not p.date_of_leaving or p.date_of_leaving >= date(months_keys[0][0], months_keys[0][1], 1):
+                starting_hc += 1
+                
+    current_headcount = starting_hc
+    
+    for y, m in months_keys:
+        joins = joiners_count[(y, m)]
+        leaves = leavers_count[(y, m)]
+        total_leavers_12m += leaves
+        current_headcount = current_headcount + joins - leaves
+        headcounts.append(current_headcount)
+        
+        month_label = f"{month_names[m]} {y}"
+        timeline.append({
+            "month_year": month_label,
+            "joiners": joins,
+            "leavers": leaves,
+            "headcount": current_headcount
+        })
+
+    avg_headcount = sum(headcounts) / len(headcounts) if headcounts else 1.0
+    if avg_headcount == 0:
+        avg_headcount = 1.0
+        
+    attrition_rate = round((total_leavers_12m / avg_headcount) * 100.0, 2)
+    
+    return AttritionReportResponse(
+        timeline=timeline,
+        annual_attrition_rate=attrition_rate
+    )
+
+
+async def get_leaves_report(db: AsyncSession, org_id: int) -> LeaveSummaryReportResponse:
+    # 1. approved requests
+    req_res = await db.execute(
+        select(HRLeaveRequest).where(
+            and_(
+                HRLeaveRequest.organization_id == org_id,
+                HRLeaveRequest.status == LeaveStatus.APPROVED,
+                HRLeaveRequest.is_deleted == False
+            )
+        )
+    )
+    requests = req_res.scalars().all()
+    
+    # Average days calculated
+    total_days = sum(r.total_days for r in requests)
+    avg_days = round(total_days / len(requests), 2) if requests else 0.0
+
+    # 2. Leave balances averages by leave type
+    bal_res = await db.execute(
+        select(HRLeaveBalance).where(
+            and_(
+                HRLeaveBalance.organization_id == org_id,
+                HRLeaveBalance.year == date.today().year,
+                HRLeaveBalance.is_deleted == False
+            )
+        ).options(selectinload(HRLeaveBalance.leave_type))
+    )
+    balances = bal_res.scalars().all()
+    
+    type_stats = {}
+    for b in balances:
+        name = b.leave_type.name
+        if name not in type_stats:
+            type_stats[name] = {"allocated": 0.0, "used": 0.0, "remaining": 0.0, "count": 0}
+        type_stats[name]["allocated"] += b.allocated
+        type_stats[name]["used"] += b.used
+        type_stats[name]["remaining"] += (b.allocated - b.used)
+        type_stats[name]["count"] += 1
+
+    type_timeline = []
+    for name, stat in type_stats.items():
+        cnt = stat["count"] if stat["count"] > 0 else 1
+        type_timeline.append({
+            "type": name,
+            "allocated": round(stat["allocated"] / cnt, 1),
+            "used": round(stat["used"] / cnt, 1),
+            "remaining": round(stat["remaining"] / cnt, 1)
+        })
+
+    return LeaveSummaryReportResponse(
+        leave_type_balances=type_timeline,
+        total_approved_requests=len(requests),
+        average_leave_days=avg_days
+    )
+
+
+async def get_payroll_report(db: AsyncSession, org_id: int) -> PayrollCostReportResponse:
+    # Query payroll cost trend based on finalized payslips over past 12 runs
+    res = await db.execute(
+        select(HRPayslip).where(
+            and_(HRPayslip.organization_id == org_id, HRPayslip.is_deleted == False)
+        ).options(selectinload(HRPayslip.payroll_run))
+    )
+    slips = res.scalars().all()
+    
+    import collections
+    run_costs = collections.defaultdict(lambda: {"gross": 0.0, "net": 0.0})
+    
+    for s in slips:
+        run_key = (s.payroll_run.year, s.payroll_run.month)
+        run_costs[run_key]["gross"] += s.gross_earnings
+        run_costs[run_key]["net"] += s.net_pay
+
+    # Sort past runs
+    sorted_runs = sorted(run_costs.keys(), key=lambda x: (x[0], x[1]))[-12:]
+    
+    month_names = {
+        1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun",
+        7: "Jul", 8: "Aug", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"
+    }
+
+    timeline = []
+    current_cost = 0.0
+    for key in sorted_runs:
+        cost = run_costs[key]
+        month_label = f"{month_names[key[1]]} {key[0]}"
+        timeline.append({
+            "month_year": month_label,
+            "gross_total": round(cost["gross"], 2),
+            "net_total": round(cost["net"], 2)
+        })
+        current_cost = cost["net"]
+
+    # Fallback to annual CTC/12 estimate if no slips processed yet
+    if not timeline:
+        emp_sal_res = await db.execute(
+            select(HREmployeeSalary).where(
+                and_(
+                    HREmployeeSalary.organization_id == org_id,
+                    HREmployeeSalary.is_active == True,
+                    HREmployeeSalary.is_deleted == False
+                )
+            )
+        )
+        total_monthly_ctc = sum(es.ctc for es in emp_sal_res.scalars().all()) / 12.0
+        current_cost = total_monthly_ctc
+        timeline.append({
+            "month_year": "Current Month (Estimate)",
+            "gross_total": round(total_monthly_ctc, 2),
+            "net_total": round(total_monthly_ctc, 2)
+        })
+
+    return PayrollCostReportResponse(
+        monthly_trend=timeline,
+        current_month_cost=round(current_cost, 2)
+    )
+
 
 

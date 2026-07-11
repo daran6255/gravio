@@ -7,7 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.hr import (
     EmploymentType, WorkLocation, EmployeeStatus,
-    SalaryComponentType, SalaryCalculationType, PayrollRunStatus
+    SalaryComponentType, SalaryCalculationType, PayrollRunStatus,
+    ChecklistType, ChecklistStatus
 )
 
 
@@ -593,5 +594,124 @@ class PayslipResponse(BaseModel):
     organization_id: int
     created_at: datetime
     updated_at: datetime
+
+
+# ===========================================================================
+# Checklists & Documents Schemas (Phase 4: Advanced)
+# ===========================================================================
+
+# --- Checklist Templates ---
+
+class ChecklistTemplateCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=150)
+    checklist_type: ChecklistType
+    tasks: list[dict] = []
+    is_active: bool = True
+    others: Optional[dict] = None
+
+
+class ChecklistTemplateUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=150)
+    checklist_type: Optional[ChecklistType] = None
+    tasks: Optional[list[dict]] = None
+    is_active: Optional[bool] = None
+    others: Optional[dict] = None
+
+
+class ChecklistTemplateResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    public_id: uuid.UUID
+    name: str
+    checklist_type: ChecklistType
+    tasks: list[dict]
+    is_active: bool
+    others: Optional[dict]
+    organization_id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+# --- Checklist Instances ---
+
+class ChecklistInstanceCreate(BaseModel):
+    user_id: int
+    template_id: int
+    others: Optional[dict] = None
+
+
+class ChecklistInstanceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    public_id: uuid.UUID
+    user_id: int
+    employee_name: Optional[str] = None
+    template_id: int
+    template_name: Optional[str] = None
+    checklist_type: Optional[ChecklistType] = None
+    status: ChecklistStatus
+    task_statuses: dict
+    others: Optional[dict]
+    organization_id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class ChecklistTaskToggle(BaseModel):
+    completed: bool
+
+
+# --- Employee Documents ---
+
+class EmployeeDocumentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    public_id: uuid.UUID
+    user_id: int
+    employee_name: Optional[str] = None
+    document_type: str
+    file_url: str
+    expiry_date: Optional[date] = None
+    is_verified: bool
+    verified_by_id: Optional[int] = None
+    verified_by_name: Optional[str] = None
+    verified_at: Optional[datetime] = None
+    others: Optional[dict]
+    organization_id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class DocumentVerifyRequest(BaseModel):
+    is_verified: bool
+
+
+# --- Analytics Reports ---
+
+class HeadcountReportResponse(BaseModel):
+    department_distribution: dict[str, int]
+    designation_distribution: dict[str, int]
+    employment_type_distribution: dict[str, int]
+    total_count: int
+
+
+class AttritionReportResponse(BaseModel):
+    timeline: list[dict[str, Any]] # [{"month_year": "July 2026", "joiners": 2, "leavers": 0}]
+    annual_attrition_rate: float
+
+
+class LeaveSummaryReportResponse(BaseModel):
+    leave_type_balances: list[dict[str, Any]] # [{"type": "Sick Leave", "allocated": 12.0, "used": 2.5, "remaining": 9.5}]
+    total_approved_requests: int
+    average_leave_days: float
+
+
+class PayrollCostReportResponse(BaseModel):
+    monthly_trend: list[dict[str, Any]] # [{"month_year": "July 2026", "gross_total": 450000.0, "net_total": 410000.0}]
+    current_month_cost: float
+
 
 

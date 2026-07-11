@@ -8,6 +8,9 @@ import {
 	SettingsOutlined as StructuresIcon,
 	MonetizationOnOutlined as RunsIcon,
 	ReceiptLongOutlined as PayslipsIcon,
+	PlaylistAddCheck as OnboardingIcon,
+	FolderSharedOutlined as DocumentsIcon,
+	BarChartOutlined as ReportsIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -26,6 +29,9 @@ const HR_TABS: HRTab[] = [
 	{ label: 'Salary Config', path: '/hr/payroll/structures', icon: <StructuresIcon /> },
 	{ label: 'Payroll Engine', path: '/hr/payroll/runs', icon: <RunsIcon /> },
 	{ label: 'My Payslips', path: '/hr/payslips', icon: <PayslipsIcon /> },
+	{ label: 'Lifecycle', path: '/hr/onboarding', icon: <OnboardingIcon /> },
+	{ label: 'Documents', path: '/hr/documents', icon: <DocumentsIcon /> },
+	{ label: 'Reports', path: '/hr/reports', icon: <ReportsIcon /> },
 ];
 
 interface HRLayoutProps {

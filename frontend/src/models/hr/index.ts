@@ -3,3 +3,4 @@ export * from './designation';
 export * from './employee';
 export * from './leave';
 export * from './payroll';
+export * from './advanced';

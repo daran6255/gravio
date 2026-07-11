@@ -68,6 +68,11 @@ from app.models.hr import (
     SalaryComponentType,
     SalaryCalculationType,
     PayrollRunStatus,
+    HRChecklistTemplate,
+    HRChecklistInstance,
+    HREmployeeDocument,
+    ChecklistType,
+    ChecklistStatus,
 )
 
 __all__ = [
@@ -137,6 +142,11 @@ __all__ = [
     "SalaryComponentType",
     "SalaryCalculationType",
     "PayrollRunStatus",
+    "HRChecklistTemplate",
+    "HRChecklistInstance",
+    "HREmployeeDocument",
+    "ChecklistType",
+    "ChecklistStatus",
 ]
 
 

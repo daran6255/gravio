@@ -11,7 +11,7 @@ Routes:
 
 import uuid
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, status, File, UploadFile, Form
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,7 +30,12 @@ from app.schemas.hr import (
     EmployeeSalaryCreate, EmployeeSalaryUpdate, EmployeeSalaryResponse,
     PayrollRunCreate, PayrollRunUpdate, PayrollRunResponse,
     VariablePayEntryCreate, VariablePayEntryResponse,
-    PayslipResponse
+    PayslipResponse,
+    ChecklistTemplateCreate, ChecklistTemplateUpdate, ChecklistTemplateResponse,
+    ChecklistInstanceCreate, ChecklistInstanceResponse,
+    ChecklistTaskToggle, EmployeeDocumentResponse, DocumentVerifyRequest,
+    HeadcountReportResponse, AttritionReportResponse, LeaveSummaryReportResponse,
+    PayrollCostReportResponse
 )
 from app.schemas.common import PaginatedResponse
 from app.services import hr as hr_service
@@ -763,5 +768,388 @@ async def download_payslip_pdf(
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+
+# ===========================================================================
+# Checklists Templates REST (Phase 4: Advanced)
+# ===========================================================================
+
+@router.get(
+    "/checklists/templates",
+    response_model=list[ChecklistTemplateResponse],
+    summary="List all active checklist templates",
+)
+async def get_templates(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    # Only HR admins, managers can see templates
+    if current_user.role not in HR_VIEWER_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    return await hr_service.list_checklist_templates(db, current_user.organization_id)
+
+
+@router.post(
+    "/checklists/templates",
+    response_model=ChecklistTemplateResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new checklist template",
+)
+async def create_template(
+    payload: ChecklistTemplateCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role not in HR_ADMIN_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    return await hr_service.create_checklist_template(db, current_user.organization_id, payload)
+
+
+@router.patch(
+    "/checklists/templates/{id}",
+    response_model=ChecklistTemplateResponse,
+    summary="Update an existing checklist template",
+)
+async def update_template(
+    id: int,
+    payload: ChecklistTemplateUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role not in HR_ADMIN_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    return await hr_service.update_checklist_template(db, current_user.organization_id, id, payload)
+
+
+@router.delete(
+    "/checklists/templates/{id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a checklist template",
+)
+async def delete_template(
+    id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role not in HR_ADMIN_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    await hr_service.delete_checklist_template(db, current_user.organization_id, id)
+
+
+# ===========================================================================
+# Checklists Instances REST (Phase 4: Advanced)
+# ===========================================================================
+
+@router.get(
+    "/checklists/instances",
+    response_model=list[ChecklistInstanceResponse],
+    summary="List employee lifecycle checklist instances",
+)
+async def get_checklist_instances(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    # Employees can only see their own checklists, HR team can see all
+    instances = await hr_service.list_checklist_instances(db, current_user.organization_id)
+    if current_user.role in HR_VIEWER_ROLES:
+        # Populate names dynamically
+        for inst in instances:
+            inst.employee_name = inst.user.full_name or inst.user.username
+            inst.template_name = inst.template.name
+            inst.checklist_type = inst.template.checklist_type
+        return instances
+
+    # Filter to only the user's checklist
+    filtered = [inst for inst in instances if inst.user_id == current_user.id]
+    for inst in filtered:
+        inst.employee_name = inst.user.full_name or inst.user.username
+        inst.template_name = inst.template.name
+        inst.checklist_type = inst.template.checklist_type
+    return filtered
+
+
+@router.post(
+    "/checklists/instances",
+    response_model=ChecklistInstanceResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Launch a lifecycle checklist tracker for an employee",
+)
+async def launch_checklist(
+    payload: ChecklistInstanceCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role not in HR_MANAGER_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    inst = await hr_service.create_checklist_instance(db, current_user.organization_id, payload)
+    inst.employee_name = inst.user.full_name or inst.user.username
+    inst.template_name = inst.template.name
+    inst.checklist_type = inst.template.checklist_type
+    return inst
+
+
+@router.post(
+    "/checklists/instances/{id}/tasks/{task_id}/toggle",
+    response_model=ChecklistInstanceResponse,
+    summary="Complete/uncomplete a checklist task item",
+)
+async def toggle_task(
+    id: int,
+    task_id: str,
+    payload: ChecklistTaskToggle,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    # Only HR Managers/Admins can toggle checklist items
+    if current_user.role not in HR_MANAGER_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    inst = await hr_service.toggle_checklist_task(
+        db, current_user.organization_id, id, task_id, payload.completed, current_user.id
+    )
+    inst.employee_name = inst.user.full_name or inst.user.username
+    inst.template_name = inst.template.name
+    inst.checklist_type = inst.template.checklist_type
+    return inst
+
+
+# ===========================================================================
+# Documents Management REST (Phase 4: Advanced)
+# ===========================================================================
+
+import os
+from fastapi.responses import FileResponse
+
+@router.get(
+    "/documents",
+    response_model=list[EmployeeDocumentResponse],
+    summary="List all employee documents",
+)
+async def get_documents(
+    user_id: Optional[int] = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    # Employees can only see their own, HR can see all
+    is_hr = current_user.role in HR_VIEWER_ROLES
+    target_user_id = user_id if is_hr else current_user.id
+    
+    docs = await hr_service.list_employee_documents(db, current_user.organization_id, target_user_id)
+    for doc in docs:
+        doc.employee_name = doc.user.full_name or doc.user.username
+        if doc.verified_by:
+            doc.verified_by_name = doc.verified_by.full_name or doc.verified_by.username
+    return docs
+
+
+@router.post(
+    "/documents/upload",
+    response_model=EmployeeDocumentResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload an employee verification document",
+)
+async def upload_document(
+    user_id: int = Form(...),
+    document_type: str = Form(...),
+    expiry_date: Optional[str] = Form(None),
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    # Permissions checks
+    is_hr = current_user.role in HR_MANAGER_ROLES
+    if user_id != current_user.id and not is_hr:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    # Create folder path
+    upload_dir = os.path.join("static", "documents", str(current_user.organization_id))
+    os.makedirs(upload_dir, exist_ok=True)
+
+    # Clean filename
+    file_ext = os.path.splitext(file.filename)[1]
+    safe_filename = f"user_{user_id}_{uuid.uuid4().hex}{file_ext}"
+    file_path = os.path.join(upload_dir, safe_filename)
+
+    # Save to disk
+    with open(file_path, "wb") as buffer:
+        content = await file.read()
+        buffer.write(content)
+
+    # Date parsing
+    parsed_date = None
+    if expiry_date:
+        try:
+            from datetime import datetime as dt
+            parsed_date = dt.strptime(expiry_date, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+
+    # Save metadata in DB
+    db_doc = await hr_service.create_employee_document(
+        db=db,
+        org_id=current_user.organization_id,
+        user_id=user_id,
+        document_type=document_type,
+        file_url=file_path,
+        expiry_date=parsed_date,
+    )
+    db_doc.employee_name = db_doc.user.full_name or db_doc.user.username
+    return db_doc
+
+
+@router.get(
+    "/documents/{id}/download",
+    summary="Download an employee verification file",
+)
+async def download_document(
+    id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    res = await db.execute(
+        sa_select := hr_service.select(hr_service.HREmployeeDocument).where(
+            hr_service.and_(
+                hr_service.HREmployeeDocument.organization_id == current_user.organization_id,
+                hr_service.HREmployeeDocument.id == id,
+                hr_service.HREmployeeDocument.is_deleted == False
+            )
+        )
+    )
+    doc = res.scalar_one_or_none()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    is_hr = current_user.role in HR_VIEWER_ROLES
+    if doc.user_id != current_user.id and not is_hr:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    if not os.path.exists(doc.file_url):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File on disk not found")
+
+    return FileResponse(
+        path=doc.file_url,
+        filename=os.path.basename(doc.file_url)
+    )
+
+
+@router.post(
+    "/documents/{id}/verify",
+    response_model=EmployeeDocumentResponse,
+    summary="Verify an employee document status",
+)
+async def verify_document(
+    id: int,
+    payload: DocumentVerifyRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role not in HR_MANAGER_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    doc = await hr_service.verify_employee_document(
+        db, current_user.organization_id, id, current_user.id, payload.is_verified
+    )
+    doc.employee_name = doc.user.full_name or doc.user.username
+    if doc.verified_by:
+        doc.verified_by_name = doc.verified_by.full_name or doc.verified_by.username
+    return doc
+
+
+@router.delete(
+    "/documents/{id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete an employee document",
+)
+async def delete_document(
+    id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    res = await db.execute(
+        sa_select := hr_service.select(hr_service.HREmployeeDocument).where(
+            hr_service.and_(
+                hr_service.HREmployeeDocument.organization_id == current_user.organization_id,
+                hr_service.HREmployeeDocument.id == id,
+                hr_service.HREmployeeDocument.is_deleted == False
+            )
+        )
+    )
+    doc = res.scalar_one_or_none()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    is_hr = current_user.role in HR_MANAGER_ROLES
+    if doc.user_id != current_user.id and not is_hr:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    # Remove actual file on disk if exists
+    try:
+        if os.path.exists(doc.file_url):
+            os.remove(doc.file_url)
+    except Exception:
+        pass
+
+    await hr_service.delete_employee_document(db, current_user.organization_id, id)
+
+
+# ===========================================================================
+# HR Analytics REST (Phase 4: Advanced)
+# ===========================================================================
+
+@router.get(
+    "/analytics/headcount",
+    response_model=HeadcountReportResponse,
+    summary="Get employee headcount distribution analytics",
+)
+async def headcount_analytics(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role not in HR_VIEWER_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    return await hr_service.get_headcount_report(db, current_user.organization_id)
+
+
+@router.get(
+    "/analytics/attrition",
+    response_model=AttritionReportResponse,
+    summary="Get monthly attrition and joiners/leavers trend metrics",
+)
+async def attrition_analytics(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role not in HR_VIEWER_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    return await hr_service.get_attrition_report(db, current_user.organization_id)
+
+
+@router.get(
+    "/analytics/leaves-summary",
+    response_model=LeaveSummaryReportResponse,
+    summary="Get average leave balances & duration analytics",
+)
+async def leaves_analytics(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role not in HR_VIEWER_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    return await hr_service.get_leaves_report(db, current_user.organization_id)
+
+
+@router.get(
+    "/analytics/payroll-costs",
+    response_model=PayrollCostReportResponse,
+    summary="Get monthly company payroll expenses trends",
+)
+async def payroll_costs_analytics(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role not in HR_VIEWER_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    return await hr_service.get_payroll_report(db, current_user.organization_id)
+
 
 

@@ -537,3 +537,97 @@ class HRPayslip(BaseModel, TenantAwareMixin):
         return f"<HRPayslip(id={self.id}, user_id={self.user_id}, net_pay={self.net_pay})>"
 
 
+# ===========================================================================
+# Checklists & Documents Models (Phase 4: Advanced)
+# ===========================================================================
+
+class ChecklistType(str, enum.Enum):
+    ONBOARDING = "onboarding"
+    OFFBOARDING = "offboarding"
+
+
+class ChecklistStatus(str, enum.Enum):
+    PENDING = "pending"
+    COMPLETED = "completed"
+
+
+class HRChecklistTemplate(BaseModel, TenantAwareMixin):
+    """Lifecycle checklist template definitions for onboarding/offboarding."""
+    __tablename__ = "hr_checklist_templates"
+
+    public_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, unique=True, index=True, nullable=False, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    checklist_type: Mapped[ChecklistType] = mapped_column(
+        Enum(ChecklistType, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        index=True
+    )
+    tasks: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    others: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    def __repr__(self) -> str:
+        return f"<HRChecklistTemplate(id={self.id}, name={self.name!r}, type={self.checklist_type})>"
+
+
+class HRChecklistInstance(BaseModel, TenantAwareMixin):
+    """Lifecycle checklist execution tracker instances for specific employees."""
+    __tablename__ = "hr_checklist_instances"
+
+    public_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, unique=True, index=True, nullable=False, default=uuid.uuid4
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    template_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("hr_checklist_templates.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    status: Mapped[ChecklistStatus] = mapped_column(
+        Enum(ChecklistStatus, values_callable=lambda x: [e.value for e in x]),
+        default=ChecklistStatus.PENDING,
+        nullable=False,
+        index=True
+    )
+    task_statuses: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    others: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+    template: Mapped["HRChecklistTemplate"] = relationship("HRChecklistTemplate")
+
+    def __repr__(self) -> str:
+        return f"<HRChecklistInstance(id={self.id}, user_id={self.user_id}, status={self.status})>"
+
+
+class HREmployeeDocument(BaseModel, TenantAwareMixin):
+    """Secure document attachments for employee verification."""
+    __tablename__ = "hr_employee_documents"
+
+    public_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, unique=True, index=True, nullable=False, default=uuid.uuid4
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    document_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    file_url: Mapped[str] = mapped_column(String(255), nullable=False)
+    expiry_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    verified_by_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    others: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+    verified_by: Mapped[Optional["User"]] = relationship("User", foreign_keys=[verified_by_id])
+
+    def __repr__(self) -> str:
+        return f"<HREmployeeDocument(id={self.id}, user_id={self.user_id}, type={self.document_type!r})>"
+
+
+

@@ -18,6 +18,9 @@ import {
 	Settings as StructuresIcon,
 	MonetizationOn as RunsIcon,
 	ReceiptLong as PayslipsIcon,
+	PlaylistAddCheck as OnboardingIcon,
+	FolderShared as DocumentsIcon,
+	BarChart as ReportsIcon,
 } from '@mui/icons-material';
 import type { SvgIconComponent } from '@mui/icons-material';
 
@@ -145,6 +148,22 @@ export const topNavigation: NavigationItem[] = [
 				label: 'My Payslips',
 				path: '/hr/payslips',
 				icon: PayslipsIcon,
+			},
+			{
+				label: 'Lifecycle',
+				path: '/hr/onboarding',
+				icon: OnboardingIcon,
+			},
+			{
+				label: 'Documents',
+				path: '/hr/documents',
+				icon: DocumentsIcon,
+			},
+			{
+				label: 'Reports',
+				path: '/hr/reports',
+				icon: ReportsIcon,
+				roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
 			},
 		],
 	},
