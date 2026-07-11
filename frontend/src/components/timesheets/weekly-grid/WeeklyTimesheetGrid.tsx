@@ -335,11 +335,11 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 					bgcolor: 'background.paper'
 				}}
 			>
-				<Table sx={{ minWidth: 800 }}>
+				<Table sx={{ width: '100%', minWidth: 760, tableLayout: 'fixed' }}>
 					<TableHead>
 						<TableRow sx={{ bgcolor: 'action.hover' }}>
-							<TableCell sx={{ fontWeight: 700, width: 240 }}>Log Target</TableCell>
-							<TableCell sx={{ fontWeight: 700, width: 100 }}>Billing</TableCell>
+							<TableCell sx={{ fontWeight: 700, width: '24%' }}>Log Target</TableCell>
+							<TableCell sx={{ fontWeight: 700, width: '8%' }}>Billing</TableCell>
 							{dates.map((date, i) => {
 								const dStr = dateStrings[i];
 								const isHoliday = isHolidayDate(dStr);
@@ -352,7 +352,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 										align="center"
 										sx={{
 											fontWeight: 700,
-											width: 90,
+											width: '8%',
 											bgcolor: isHoliday ? alpha(theme.palette.warning.main, isDark ? 0.08 : 0.05) : 'inherit'
 										}}
 									>
@@ -369,7 +369,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 									</TableCell>
 								);
 							})}
-							<TableCell align="center" sx={{ fontWeight: 700, width: 100 }}>Total</TableCell>
+							<TableCell align="center" sx={{ fontWeight: 700, width: '12%' }}>Total</TableCell>
 						</TableRow>
 					</TableHead>
 					<TableBody>

@@ -14,7 +14,6 @@ import BillingSettings from '../pages/settings/BillingSettings';
 import { LeadsPage, DealsPage, CompaniesPage, TasksPage } from '../pages/crm';
 import { ProjectsListPage, ProjectDetailPage } from '../pages/projects';
 import TimesheetPage from '../pages/timesheets/TimesheetPage';
-import TimesheetSettingsPage from '../pages/timesheets/TimesheetSettingsPage';
 
 // Legacy auth links (e.g. tokenized verify/invite/reset links already sent by
 // email before the /auth prefix existed) redirect here — preserve the query
@@ -58,7 +57,6 @@ const AppRouter: React.FC = () => {
 
 					{/* Settings — single page, all sections, own sidebar */}
 					<Route path="settings" element={<SettingsLayout />} />
-					<Route path="settings/timesheets" element={<TimesheetSettingsPage />} />
 
 					<Route path="timesheets" element={<TimesheetPage />} />
 
@@ -81,7 +79,6 @@ const AppRouter: React.FC = () => {
 
 					{/* Tenant-prefixed Settings — single page */}
 					<Route path="org/:orgId/settings" element={<SettingsLayout />} />
-					<Route path="org/:orgId/settings/timesheets" element={<TimesheetSettingsPage />} />
 
 					<Route path="org/:orgId/timesheets" element={<TimesheetPage />} />
 

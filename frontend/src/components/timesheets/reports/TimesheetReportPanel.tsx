@@ -3,8 +3,6 @@ import {
 	Paper,
 	Typography,
 	Grid,
-	Card,
-	CardContent,
 	Button,
 	TextField,
 	MenuItem,
@@ -15,9 +13,9 @@ import {
 	TableContainer,
 	TableHead,
 	TableRow,
-	TablePagination
+	useTheme
 } from '@mui/material';
-import { Download as ExportIcon } from '@mui/icons-material';
+import { Download as ExportIcon, Schedule as TotalHoursIcon, AttachMoney as BillableIcon, MoneyOff as NonBillableIcon } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTimesheetReport } from '../../../store/slices/timesheetSlice';
 import { fetchProjects } from '../../../store/slices/projectsSlice';
@@ -25,6 +23,8 @@ import { fetchOwners } from '../../../store/slices/crmSlice';
 import { fetchTeamUsers } from '../../../store/slices/userSlice';
 import { responsiveStyles } from '../../../theme';
 import { DatePicker } from '../../common/form';
+import { StatCard } from '../../common/stats/StatCard';
+import { CustomTablePagination } from '../../common/table';
 import type { TimesheetReportRow } from '../../../models/timesheet';
 
 // CSV exporter helper
@@ -55,6 +55,7 @@ const exportReportToCSV = (rows: TimesheetReportRow[]) => {
 
 const TimesheetReportPanel: React.FC = () => {
 	const dispatch = useAppDispatch();
+	const theme = useTheme();
 
 	const currentUser = useAppSelector((state) => state.auth.user);
 	const { projects } = useAppSelector((state) => state.projects);
@@ -249,42 +250,33 @@ const TimesheetReportPanel: React.FC = () => {
 			</Paper>
 
 			{/* KPI Summary Cards */}
-			<Grid container spacing={3}>
+			<Grid container spacing={responsiveStyles.statsGridSpacing}>
 				<Grid size={{ xs: 12, sm: 4 }}>
-					<Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 6, bgcolor: 'background.paper' }}>
-						<CardContent>
-							<Typography color="text.secondary" variant="body2" sx={{ fontWeight: 600 }}>
-								Total Logged Hours
-							</Typography>
-							<Typography variant="h4" sx={{ fontWeight: 800, mt: 1, color: 'primary.main' }}>
-								{summaryStats.total} hrs
-							</Typography>
-						</CardContent>
-					</Card>
+					<StatCard
+						title="TOTAL LOGGED HOURS"
+						value={`${summaryStats.total} hrs`}
+						icon={<TotalHoursIcon sx={{ fontSize: 24 }} />}
+						color={theme.palette.primary.main}
+						tooltip="Total hours logged across all matching entries for the selected filters"
+					/>
 				</Grid>
 				<Grid size={{ xs: 12, sm: 4 }}>
-					<Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 6, bgcolor: 'background.paper' }}>
-						<CardContent>
-							<Typography color="text.secondary" variant="body2" sx={{ fontWeight: 600 }}>
-								Billable Hours
-							</Typography>
-							<Typography variant="h4" sx={{ fontWeight: 800, mt: 1, color: 'success.main' }}>
-								{summaryStats.billable} hrs
-							</Typography>
-						</CardContent>
-					</Card>
+					<StatCard
+						title="BILLABLE HOURS"
+						value={`${summaryStats.billable} hrs`}
+						icon={<BillableIcon sx={{ fontSize: 24 }} />}
+						color={theme.palette.success.main}
+						tooltip="Hours logged as billable within the selected filters"
+					/>
 				</Grid>
 				<Grid size={{ xs: 12, sm: 4 }}>
-					<Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 6, bgcolor: 'background.paper' }}>
-						<CardContent>
-							<Typography color="text.secondary" variant="body2" sx={{ fontWeight: 600 }}>
-								Non-Billable Hours
-							</Typography>
-							<Typography variant="h4" sx={{ fontWeight: 800, mt: 1, color: 'text.secondary' }}>
-								{summaryStats.nonBillable} hrs
-							</Typography>
-						</CardContent>
-					</Card>
+					<StatCard
+						title="NON-BILLABLE HOURS"
+						value={`${summaryStats.nonBillable} hrs`}
+						icon={<NonBillableIcon sx={{ fontSize: 24 }} />}
+						color={theme.palette.text.secondary}
+						tooltip="Hours logged as non-billable within the selected filters"
+					/>
 				</Grid>
 			</Grid>
 
@@ -361,14 +353,13 @@ const TimesheetReportPanel: React.FC = () => {
 					</Table>
 				</TableContainer>
 
-				<TablePagination
-					rowsPerPageOptions={[10, 25, 50]}
-					component="div"
+				<CustomTablePagination
 					count={reportRows.length}
-					rowsPerPage={rowsPerPage}
 					page={page}
+					rowsPerPage={rowsPerPage}
 					onPageChange={handleChangePage}
 					onRowsPerPageChange={handleChangeRowsPerPage}
+					onRowsPerPageSelectChange={(rows) => { setRowsPerPage(rows); setPage(0); }}
 				/>
 			</Paper>
 		</Stack>

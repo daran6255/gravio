@@ -19,13 +19,17 @@ import {
 } from '@mui/material';
 import {
 	KeyboardArrowDown as ExpandIcon,
-	KeyboardArrowUp as CollapseIcon
+	KeyboardArrowUp as CollapseIcon,
+	TaskAlt as ApproveIcon,
+	Cancel as RejectIcon,
+	Undo as RevokeIcon
 } from '@mui/icons-material';
 import type { ProjectTimeLog } from '../../../models/timesheet';
 import TimesheetStatusBadge from '../shared/TimesheetStatusBadge';
 import { computeWeekStatus } from '../shared/weekStatus';
 import { formatHoursDisplay } from '../weekly-grid';
 import { BaseDialog, ConfirmationDialog } from '../../common/dialogbox';
+import { DataTableActions, type TableMenuAction } from '../../common/table';
 
 interface TeamTimesheetTableProps {
 	logs: ProjectTimeLog[];
@@ -40,6 +44,12 @@ interface TeamTimesheetTableProps {
 	 * that would 403 (e.g. an admin browsing another manager's direct reports). */
 	currentUserId?: number;
 }
+
+const formatWeekRange = (startDate: string, endDate: string): string => {
+	const start = new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+	const end = new Date(endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+	return `${start} — ${end}`;
+};
 
 interface UserGroupedTimesheet {
 	userId: number;
@@ -130,6 +140,15 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 
 	return (
 		<Box>
+			<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+				<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+					Team Timesheets
+				</Typography>
+				<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+					Week: {formatWeekRange(startDate, endDate)}
+				</Typography>
+			</Stack>
+
 			<TableContainer component={Paper} elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 6, overflow: 'hidden' }}>
 				<Table>
 					<TableHead>
@@ -153,6 +172,33 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 						) : (
 							groupedTimesheets.map((sheet) => {
 								const isExpanded = expandedUser === sheet.userId;
+
+								const actions: TableMenuAction<UserGroupedTimesheet>[] = [
+									{
+										label: 'Approve',
+										icon: <ApproveIcon fontSize="small" />,
+										color: 'success.main',
+										onClick: () => onApprove(sheet.userId),
+										disabled: actionLoading,
+										hidden: sheet.status !== 'submitted'
+									},
+									{
+										label: 'Reject',
+										icon: <RejectIcon fontSize="small" />,
+										color: 'error.main',
+										onClick: () => handleOpenRejectDialog(sheet.userId),
+										disabled: actionLoading,
+										hidden: sheet.status !== 'submitted'
+									},
+									{
+										label: 'Revoke Approval',
+										icon: <RevokeIcon fontSize="small" />,
+										color: 'warning.main',
+										onClick: () => setRevokeTarget(sheet),
+										disabled: actionLoading,
+										hidden: sheet.status !== 'submitted' && sheet.status !== 'approved'
+									}
+								];
 
 								return (
 									<React.Fragment key={sheet.userId}>
@@ -181,45 +227,10 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 											<TableCell align="center">
 												<TimesheetStatusBadge status={sheet.status} />
 											</TableCell>
-											<TableCell align="right" sx={{ pr: 3 }}>
+											<TableCell align="right" sx={{ pr: 3 }} onClick={(e) => e.stopPropagation()}>
 												{sheet.isMyDirectReport ? (
-													<Stack direction="row" spacing={1} justifyContent="flex-end">
-														{sheet.status === 'submitted' && (
-															<>
-																<Button
-																	variant="contained"
-																	color="success"
-																	size="small"
-																	onClick={() => onApprove(sheet.userId)}
-																	disabled={actionLoading}
-																	sx={{ borderRadius: 3, fontWeight: 700 }}
-																>
-																	Approve
-																</Button>
-																<Button
-																	variant="outlined"
-																	color="error"
-																	size="small"
-																	onClick={() => handleOpenRejectDialog(sheet.userId)}
-																	disabled={actionLoading}
-																	sx={{ borderRadius: 3, fontWeight: 700 }}
-																>
-																	Reject
-																</Button>
-															</>
-														)}
-														{(sheet.status === 'submitted' || sheet.status === 'approved') && (
-															<Button
-																variant="outlined"
-																color="warning"
-																size="small"
-																onClick={() => setRevokeTarget(sheet)}
-																disabled={actionLoading}
-																sx={{ borderRadius: 3, fontWeight: 700 }}
-															>
-																Revoke
-															</Button>
-														)}
+													<Stack direction="row" justifyContent="flex-end">
+														<DataTableActions item={sheet} tooltipTitle="Approval Actions" actions={actions} />
 													</Stack>
 												) : (
 													(sheet.status === 'submitted' || sheet.status === 'approved') && (

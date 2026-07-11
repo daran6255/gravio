@@ -120,7 +120,6 @@ export const settingsNavigation: NavigationItem[] = [
 	{ label: 'Preferences', icon: PreferencesIcon, sectionId: 'settings-preferences' },
 	{ label: 'Security', icon: SecurityIcon, sectionId: 'settings-security' },
 	{ label: 'Notifications', icon: NotificationsIcon, sectionId: 'settings-notifications' },
-	{ label: 'Timesheet Config', icon: PreferencesIcon, path: '/settings/timesheets' },
 ];
 
 /**
