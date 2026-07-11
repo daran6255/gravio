@@ -1,8 +1,11 @@
-import React from 'react';
-import { Box, Container, Grid, Stack } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Container, Grid, Stack, Button } from '@mui/material';
+import { HelpOutline as HelpIcon } from '@mui/icons-material';
 import { responsiveStyles } from '../../theme';
 import PageHeader from '../../components/common/page-header';
 import { ConfirmationDialog } from '../../components/common/dialogbox';
+import { WelcomeBanner } from '../../components/common/guide/WelcomeBanner';
+import { HelpGuideDrawer } from '../../components/common/guide/HelpGuideDrawer';
 import {
 	ProjectsTable,
 	ProjectCreateDrawer,
@@ -12,6 +15,66 @@ import {
 	ProjectsBulkActionBar,
 	useProjectsManagement,
 } from '../../components/projects';
+
+const guideContent = {
+	icon: HelpIcon,
+	title: 'Projects Workspace Guide',
+	subtitle: 'Learn how to create projects, configure tasks, and assign team members.',
+	banner: {
+		title: 'Welcome to your Projects Workspace!',
+		description: 'Configure delivery projects, assign owners, and track deliverables. Let\'s get started by creating your first project.'
+	},
+	tabs: [
+		{
+			label: 'Project Setup',
+			intro: 'Follow these steps to establish a new delivery project:',
+			steps: [
+				{
+					marker: '1',
+					accent: 'primary' as const,
+					title: 'Create Project Workspace',
+					description: 'Click "Create Project" or convert won deals from CRM to initialize a delivery workspace.'
+				},
+				{
+					marker: '2',
+					accent: 'info' as const,
+					title: 'Assign Project Owner',
+					description: 'Set a manager or administrator as the project owner to oversee deliverables, timelines, and budgets.'
+				},
+				{
+					marker: '3',
+					accent: 'success' as const,
+					title: 'Manage Timelines & Budgets',
+					description: 'Set start/end dates and allocate estimated hours to measure performance and delivery efficiency.'
+				}
+			]
+		},
+		{
+			label: 'Tasks & Teams',
+			intro: 'Add operational tasks and assign project resources to enable timesheet logging:',
+			steps: [
+				{
+					marker: '1',
+					accent: 'primary' as const,
+					title: 'Define Project Tasks',
+					description: 'Within a project\'s details view, specify component tasks or milestones that need to be logged.'
+				},
+				{
+					marker: '2',
+					accent: 'info' as const,
+					title: 'Assign Team Resources',
+					description: 'Associate team members with specific tasks to enable them to log work hours against them in their weekly grids.'
+				},
+				{
+					marker: '3',
+					accent: 'success' as const,
+					title: 'Establish Billing Type',
+					description: 'Mark tasks as Billable or Non-Billable to feed accurate data into organizational timesheet reports.'
+				}
+			]
+		}
+	]
+};
 
 /**
  * Project Management — projects created from Won deals (or directly).
@@ -53,13 +116,43 @@ const ProjectsListPage: React.FC = () => {
 		handleConfirmDelete,
 	} = useProjectsManagement();
 
+	const [guideOpen, setGuideOpen] = useState(false);
+	const [showBanner, setShowBanner] = useState(() => {
+		return !localStorage.getItem('dismissed_projects_onboarding');
+	});
+
 	return (
 		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
 			<Container maxWidth={false} sx={responsiveStyles.pageContainer}>
 				<PageHeader
 					title="Projects"
 					subtitle="Delivery projects converted from Won deals"
+					action={
+						<Button
+							variant="outlined"
+							size="small"
+							startIcon={<HelpIcon />}
+							onClick={() => setGuideOpen(true)}
+							sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700 }}
+						>
+							Help Guide
+						</Button>
+					}
 				/>
+
+				{showBanner && !projectsLoading && projects.length === 0 && (
+					<WelcomeBanner
+						icon={HelpIcon}
+						title={guideContent.banner.title}
+						description={guideContent.banner.description}
+						onExplore={() => { setGuideOpen(true); }}
+						onDismiss={() => {
+							localStorage.setItem('dismissed_projects_onboarding', 'true');
+							setShowBanner(false);
+						}}
+						exploreLabel="Explore Guide"
+					/>
+				)}
 
 				<ProjectsStatsPanel stats={projectStats} />
 
@@ -128,6 +221,13 @@ const ProjectsListPage: React.FC = () => {
 					confirmLabel="Delete"
 					severity="error"
 					loading={deleteLoading}
+				/>
+
+				{/* Help Guide Drawer */}
+				<HelpGuideDrawer
+					open={guideOpen}
+					onClose={() => setGuideOpen(false)}
+					content={guideContent}
 				/>
 			</Container>
 		</Box>

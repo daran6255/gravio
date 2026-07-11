@@ -13,8 +13,11 @@ import {
 import {
 	ChevronLeft as PrevIcon,
 	ChevronRight as NextIcon,
-	Today as CurrentIcon
+	Today as CurrentIcon,
+	HelpOutline as HelpIcon
 } from '@mui/icons-material';
+import { WelcomeBanner } from '../../components/common/guide/WelcomeBanner';
+import { HelpGuideDrawer } from '../../components/common/guide/HelpGuideDrawer';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
 	fetchMyTimeLogs,
@@ -69,6 +72,96 @@ const formatDateStr = (d: Date): string => {
 	return `${year}-${month}-${day}`;
 };
 
+const guideContent = {
+	icon: HelpIcon,
+	title: 'Timesheet Workspace Guide',
+	subtitle: 'Learn how to manage timesheets, reporting structure, and holidays.',
+	banner: {
+		title: 'Welcome to your new Timesheet Workspace!',
+		description: 'As an Administrator, you can configure reporting hierarchies and holiday schedules to get your organization up and running.'
+	},
+	tabs: [
+		{
+			label: 'Timesheet Guide',
+			intro: 'Follow these steps to log and submit your weekly hours:',
+			steps: [
+				{
+					marker: '1',
+					accent: 'primary' as const,
+					title: 'Add Time Log Entries',
+					description: 'Click any cell inside the weekly timesheet grid or click "Log Daily Entry" to record hours for projects or tasks.'
+				},
+				{
+					marker: '2',
+					accent: 'info' as const,
+					title: 'Monitor Weekly Progress',
+					description: 'The progress bar helps you track logged hours against the standard 40-hour target.'
+				},
+				{
+					marker: '3',
+					accent: 'success' as const,
+					title: 'Submit Weekly Timesheet',
+					description: 'Once all hours are logged for the week, click "Submit Week" at the top to send it to your reporting manager for approval.'
+				},
+				{
+					marker: '4',
+					accent: 'warning' as const,
+					title: 'Request Weekly Unlock',
+					description: 'If you need to make changes to an already submitted or approved timesheet, click "Request Unlock" to ask your manager.'
+				}
+			]
+		},
+		{
+			label: 'Manager Allocation',
+			intro: 'Reporting structures must be configured so managers can view and approve their team members\' timesheets:',
+			steps: [
+				{
+					marker: '1',
+					accent: 'primary' as const,
+					title: 'Go to Manager Allocation Tab',
+					description: 'Only Administrators have access to this page to set up organization structure.'
+				},
+				{
+					marker: '2',
+					accent: 'info' as const,
+					title: 'Drag and Drop Placement',
+					description: 'Drag unassigned employee cards from the right-hand panel and drop them directly onto managers\' boxes to establish reporting lines.'
+				},
+				{
+					marker: '3',
+					accent: 'success' as const,
+					title: 'Reassign Reporting Lines',
+					description: 'Use the options menu on any employee card to quickly change their manager or remove them from a manager.'
+				}
+			]
+		},
+		{
+			label: 'Holiday List Setup',
+			intro: 'Configure company holidays to automatically lock days (e.g. weekends or national holidays) or mark them with custom logging permissions:',
+			steps: [
+				{
+					marker: '1',
+					accent: 'primary' as const,
+					title: 'Access Holiday List Tab',
+					description: 'Administrators can view, add, and delete holidays from the central calendar.'
+				},
+				{
+					marker: '2',
+					accent: 'info' as const,
+					title: 'Add Single Holiday',
+					description: 'Provide the name, date, type (Public, Company, or Custom Override), and optional location code.'
+				},
+				{
+					marker: '3',
+					accent: 'success' as const,
+					title: 'Import in Bulk',
+					description: 'Click "Import Holidays" to drop a CSV or JSON file following the expected schema to populate the calendar instantly.'
+				}
+			]
+		}
+	]
+};
+
 const TimesheetPage: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const toast = useToast();
@@ -86,6 +179,11 @@ const TimesheetPage: React.FC = () => {
 	// Navigation Date State (defaults to current week's Monday)
 	const [currentMonday, setCurrentMonday] = useState<Date>(() => getMondayOfDate(new Date()));
 	const [activeTab, setActiveTab] = useState(0);
+
+	const [guideOpen, setGuideOpen] = useState(false);
+	const [showBanner, setShowBanner] = useState(() => {
+		return currentUser?.role === 'admin' && !localStorage.getItem('dismissed_timesheet_onboarding');
+	});
 
 	const tabLabels = useMemo(() => {
 		const labels = ['My Timesheet'];
@@ -272,30 +370,55 @@ const TimesheetPage: React.FC = () => {
 			<Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} spacing={2} sx={{ mb: 4 }}>
 				<PageHeader title="Timesheet Workspace" subtitle="Log and approve hours across projects and operations." />
 				
-				{/* Week Navigator */}
-				{(tabLabels[activeTab] === 'My Timesheet' || tabLabels[activeTab] === 'Team Approvals') && (
-					<Stack direction="row" alignItems="center" spacing={1} sx={{ alignSelf: { xs: 'center', md: 'auto' } }}>
-						<IconButton onClick={handlePrevWeek} size="small">
-							<PrevIcon />
-						</IconButton>
-						<Button
-							variant="outlined"
-							size="small"
-							startIcon={<CurrentIcon />}
-							onClick={handleCurrentWeek}
-							sx={{ borderRadius: 3 }}
-						>
-							This Week
-						</Button>
-						<Typography variant="body2" sx={{ fontWeight: 700, px: 2, minWidth: { xs: 140, sm: 200 }, textAlign: 'center' }}>
-							{formatWeekRangeDisplay()}
-						</Typography>
-						<IconButton onClick={handleNextWeek} size="small">
-							<NextIcon />
-						</IconButton>
-					</Stack>
-				)}
+				<Stack direction="row" alignItems="center" spacing={2} sx={{ alignSelf: { xs: 'center', md: 'auto' } }}>
+					{/* Week Navigator */}
+					{(tabLabels[activeTab] === 'My Timesheet' || tabLabels[activeTab] === 'Team Approvals') && (
+						<Stack direction="row" alignItems="center" spacing={1}>
+							<IconButton onClick={handlePrevWeek} size="small">
+								<PrevIcon />
+							</IconButton>
+							<Button
+								variant="outlined"
+								size="small"
+								startIcon={<CurrentIcon />}
+								onClick={handleCurrentWeek}
+								sx={{ borderRadius: 3 }}
+							>
+								This Week
+							</Button>
+							<Typography variant="body2" sx={{ fontWeight: 700, px: 2, minWidth: { xs: 140, sm: 200 }, textAlign: 'center' }}>
+								{formatWeekRangeDisplay()}
+							</Typography>
+							<IconButton onClick={handleNextWeek} size="small">
+								<NextIcon />
+							</IconButton>
+						</Stack>
+					)}
+					<Button
+						variant="outlined"
+						size="small"
+						startIcon={<HelpIcon />}
+						onClick={() => setGuideOpen(true)}
+						sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700 }}
+					>
+						Help Guide
+					</Button>
+				</Stack>
 			</Stack>
+
+			{showBanner && (
+				<WelcomeBanner
+					icon={HelpIcon}
+					title={guideContent.banner.title}
+					description={guideContent.banner.description}
+					onExplore={() => { setGuideOpen(true); }}
+					onDismiss={() => {
+						localStorage.setItem('dismissed_timesheet_onboarding', 'true');
+						setShowBanner(false);
+					}}
+					exploreLabel="Set Up Workspace"
+				/>
+			)}
 
 			{actionError && (
 				<Alert severity="error" sx={{ mb: 3, borderRadius: 4 }}>
@@ -391,6 +514,12 @@ const TimesheetPage: React.FC = () => {
 				onSave={loadMyTimesheet}
 			/>
 
+			{/* Onboarding Help Guide Drawer */}
+			<HelpGuideDrawer
+				open={guideOpen}
+				onClose={() => setGuideOpen(false)}
+				content={guideContent}
+			/>
 
 		</Container>
 	);
