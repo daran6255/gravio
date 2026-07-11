@@ -9,7 +9,7 @@ import {
 	DragIndicator as DragIcon
 } from '@mui/icons-material';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import EnterpriseAvatar from '../../common/avatar/Avatar';
+import EnterpriseAvatar from '../avatar/Avatar';
 import type { TeamMember } from '../../../models/user';
 import type { CRMOwnerOption } from '../../../models/crm/owner';
 

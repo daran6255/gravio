@@ -22,7 +22,7 @@ import {
 	type DragEndEvent,
 	type DragStartEvent
 } from '@dnd-kit/core';
-import { OrgHierarchyTree } from './OrgHierarchyTree';
+import { OrgHierarchyTree } from '../../common/org-tree';
 import { UnassignedGrid } from './UnassignedGrid';
 import EnterpriseAvatar from '../../common/avatar/Avatar';
 import { useManagerAllocation } from './hooks/useManagerAllocation';
