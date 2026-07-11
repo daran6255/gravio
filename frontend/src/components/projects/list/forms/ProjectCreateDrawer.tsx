@@ -22,7 +22,8 @@ import {
 	StepLabel,
 	useTheme,
 	alpha,
-	InputAdornment
+	InputAdornment,
+	Chip
 } from '@mui/material';
 import {
 	Close,
@@ -217,11 +218,57 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 					{activeStep === 0 ? (
 						<Grid container spacing={3} sx={{ height: '100%' }}>
 							{/* Left Sidebar - Categories */}
-							<Grid size={{ xs: 3 }} sx={{ borderRight: '1px solid', borderColor: 'divider', pr: 2 }}>
-								<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', pl: 1 }}>
+							<Grid 
+								size={{ xs: 12, md: 3 }} 
+								sx={{ 
+									borderRight: { xs: 'none', md: '1px solid' }, 
+									borderBottom: { xs: '1px solid', md: 'none' }, 
+									borderColor: 'divider', 
+									pr: { xs: 0, md: 2 },
+									pb: { xs: 2, md: 0 }
+								}}
+							>
+								<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', pl: 1, display: { xs: 'none', md: 'block' } }}>
 									Categories
 								</Typography>
-								<List component="nav" sx={{ mt: 1 }}>
+
+								{/* Mobile Horizontal scroll categories */}
+								<Stack 
+									direction="row" 
+									spacing={1} 
+									sx={{ 
+										display: { xs: 'flex', md: 'none' }, 
+										overflowX: 'auto', 
+										pb: 1,
+										'&::-webkit-scrollbar': { display: 'none' } 
+									}}
+								>
+									<Chip
+										icon={<WorkOutline fontSize="small" />}
+										label="Blank Project"
+										clickable
+										variant={selectedTemplate === null && selectedCategory === 'Blank' ? 'filled' : 'outlined'}
+										color={selectedTemplate === null && selectedCategory === 'Blank' ? 'primary' : 'default'}
+										onClick={() => {
+											setSelectedCategory('Blank');
+											handleTemplateSelect(null);
+										}}
+									/>
+									{TEMPLATE_CATEGORIES.map((cat) => (
+										<Chip
+											key={cat.name}
+											icon={React.cloneElement(cat.icon as React.ReactElement<any>, { fontSize: 'small' })}
+											label={cat.name}
+											clickable
+											variant={selectedCategory === cat.name ? 'filled' : 'outlined'}
+											color={selectedCategory === cat.name ? 'primary' : 'default'}
+											onClick={() => handleCategoryClick(cat.name)}
+										/>
+									))}
+								</Stack>
+
+								{/* Desktop Sidebar categories list */}
+								<List component="nav" sx={{ mt: 1, display: { xs: 'none', md: 'block' } }}>
 									<ListItemButton
 										selected={selectedTemplate === null && selectedCategory === 'Blank'}
 										onClick={() => {
@@ -248,7 +295,7 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 							</Grid>
 
 							{/* Right - Templates list */}
-							<Grid size={{ xs: 9 }} sx={{ pr: 2 }}>
+							<Grid size={{ xs: 12, md: 9 }} sx={{ pl: { xs: 0, md: 2 }, pr: 2, mt: { xs: 2, md: 0 } }}>
 								{selectedCategory === 'Blank' ? (
 									<Box sx={{ p: 2, textAlign: 'center', mt: 4 }}>
 										<Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
