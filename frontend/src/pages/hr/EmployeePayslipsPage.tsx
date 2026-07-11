@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
-	Box, Typography, Button, Card, CardContent, Divider, Grid,
+	Box, Container, Typography, Button, Card, CardContent, Divider, Grid,
 	Alert, Stack, alpha, useTheme
 } from '@mui/material';
 import {
 	Download as DownloadIcon,
 } from '@mui/icons-material';
-import HRLayout from '../../components/hr/HRLayout';
+import PageHeader from '../../components/common/page-header';
+import { responsiveStyles } from '../../theme';
 import { hrPayslipApi } from '../../services/hrService';
 import { fetchPayslips, fetchPayslip } from '../../store/slices/hrSlice';
 import type { HRPayslip } from '../../models/hr';
@@ -60,10 +61,11 @@ const EmployeePayslipsPage: React.FC = () => {
 	};
 
 	return (
-		<HRLayout
-			title="My Payslips Summary"
-			subtitle="View your earnings breakdown, tax deductions, and download official PDF payslips"
-		>
+		<Container maxWidth="xl" sx={responsiveStyles.pageContainer}>
+			<PageHeader
+				title="My Payslips Summary"
+				subtitle="View your earnings breakdown, tax deductions, and download official PDF payslips"
+			/>
 			<Grid container spacing={3}>
 				{/* List on left */}
 				<Grid size={{ xs: 12, md: 5 }}>
@@ -249,7 +251,7 @@ const EmployeePayslipsPage: React.FC = () => {
 					)}
 				</Grid>
 			</Grid>
-		</HRLayout>
+		</Container>
 	);
 };
 

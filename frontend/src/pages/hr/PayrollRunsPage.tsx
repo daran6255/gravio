@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-	Box, Typography, Button, Card, CardContent, Divider, Grid,
+	Box, Container, Typography, Button, Card, CardContent, Divider, Grid,
 	Table, TableBody, TableCell, TableContainer, TableHead,
 	TableRow, Paper, TextField, Dialog, DialogTitle, DialogContent,
 	DialogActions, MenuItem, Select, FormControl, InputLabel,
@@ -13,7 +13,8 @@ import {
 	Download as DownloadIcon,
 	AttachMoney as MoneyIcon,
 } from '@mui/icons-material';
-import HRLayout from '../../components/hr/HRLayout';
+import PageHeader from '../../components/common/page-header';
+import { responsiveStyles } from '../../theme';
 import { hrPayslipApi } from '../../services/hrService';
 import {
 	fetchPayrollRuns, createPayrollRun, calculatePayrollRun, finalizePayrollRun,
@@ -159,10 +160,11 @@ const PayrollRunsPage: React.FC = () => {
 	const totalNet = payslips.reduce((acc, curr) => acc + curr.net_pay, 0);
 
 	return (
-		<HRLayout
-			title="Payroll Process Engine"
-			subtitle="Run monthly payroll engine, post variable earnings/deductions, audit balances, and generate PDF payslips"
-		>
+		<Container maxWidth="xl" sx={responsiveStyles.pageContainer}>
+			<PageHeader
+				title="Payroll Process Engine"
+				subtitle="Run monthly payroll engine, post variable earnings/deductions, audit balances, and generate PDF payslips"
+			/>
 			<Grid container spacing={3}>
 				{/* Sidebar: Run List */}
 				<Grid size={{ xs: 12, md: 3 }}>
@@ -439,7 +441,7 @@ const PayrollRunsPage: React.FC = () => {
 					<Button variant="contained" onClick={handleSaveVariablePay}>Apply & Re-calculate</Button>
 				</DialogActions>
 			</Dialog>
-		</HRLayout>
+		</Container>
 	);
 };
 

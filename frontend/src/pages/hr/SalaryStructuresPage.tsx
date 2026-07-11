@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-	Box, Typography, Button, Card, CardContent, Divider, Grid,
+	Box, Container, Typography, Button, Card, CardContent, Divider, Grid,
 	Tab, Tabs, Table, TableBody, TableCell, TableContainer, TableHead,
 	TableRow, Paper, TextField, Dialog, DialogTitle, DialogContent,
 	DialogActions, MenuItem, Select, FormControl, InputLabel,
@@ -12,7 +12,8 @@ import {
 	Settings as SettingsIcon,
 	AssignmentInd as AssignmentIcon
 } from '@mui/icons-material';
-import HRLayout from '../../components/hr/HRLayout';
+import PageHeader from '../../components/common/page-header';
+import { responsiveStyles } from '../../theme';
 import {
 	fetchPayrollStructures, fetchPayrollComponents, fetchEmployees,
 	createPayrollStructure, deletePayrollStructure,
@@ -149,10 +150,11 @@ const SalaryStructuresPage: React.FC = () => {
 	};
 
 	return (
-		<HRLayout
-			title="Salary Config & Allocations"
-			subtitle="Configure salary structures, statutory rules, and map them to employee profiles"
-		>
+		<Container maxWidth="xl" sx={responsiveStyles.pageContainer}>
+			<PageHeader
+				title="Salary Config & Allocations"
+				subtitle="Configure salary structures, statutory rules, and map them to employee profiles"
+			/>
 			<Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
 				<Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>
 					<Tab icon={<SettingsIcon sx={{ fontSize: '1.1rem' }} />} iconPosition="start" label="Salary Structures" />
@@ -458,7 +460,7 @@ const SalaryStructuresPage: React.FC = () => {
 					<Button variant="contained" onClick={handleSaveAllocation}>Assign & Save</Button>
 				</DialogActions>
 			</Dialog>
-		</HRLayout>
+		</Container>
 	);
 };
 

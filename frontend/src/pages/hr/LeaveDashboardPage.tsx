@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-	Box, Grid, Typography, Card, CardContent, Button, Chip, Tabs, Tab,
+	Box, Container, Grid, Typography, Card, CardContent, Button, Chip, Tabs, Tab,
 	Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
 	Paper, TextField, Dialog, DialogTitle, DialogContent, DialogActions,
 	FormControl, InputLabel, Select, MenuItem, Stack, Checkbox,
@@ -17,7 +17,8 @@ import {
 	HistoryOutlined as HistoryIcon,
 	PeopleAltOutlined as PeopleIcon,
 } from '@mui/icons-material';
-import HRLayout from '../../components/hr/HRLayout';
+import PageHeader from '../../components/common/page-header';
+import { responsiveStyles } from '../../theme';
 import {
 	fetchLeaveTypes, fetchMyLeaveBalances, fetchMyLeaveRequests, fetchPendingLeaveRequests,
 	createLeaveRequest, createLeaveType, cancelLeaveRequest, approveRejectLeaveRequest
@@ -403,11 +404,13 @@ const LeaveDashboardPage: React.FC = () => {
 	);
 
 	return (
-		<HRLayout
-			title="Leave Management"
-			subtitle="Track leaves, verify balances, and manage team approvals"
-			actions={actionButtons}
-		>
+		<Container maxWidth="xl" sx={responsiveStyles.pageContainer}>
+			<Stack spacing={3}>
+				<PageHeader
+					title="Leave Management"
+					subtitle="Track leaves, verify balances, and manage team approvals"
+					action={actionButtons}
+				/>
 			{loading ? (
 				<Stack spacing={3}>
 					<Skeleton variant="rounded" height={120} />
@@ -666,7 +669,8 @@ const LeaveDashboardPage: React.FC = () => {
 				onClose={() => setPolicyOpen(false)}
 				onSave={fetchData}
 			/>
-		</HRLayout>
+			</Stack>
+		</Container>
 	);
 };
 

@@ -1,9 +1,7 @@
 import React from 'react';
 import { Box, Tabs, Tab, Typography, Chip, useTheme, alpha } from '@mui/material';
 import {
-	PeopleAltOutlined as EmployeesIcon,
-	AccountTreeOutlined as DeptIcon,
-	BadgeOutlined as DesignationIcon,
+	PeopleAltOutlined as WorkforceIcon,
 	CalendarMonthOutlined as LeaveIcon,
 	SettingsOutlined as StructuresIcon,
 	MonetizationOnOutlined as RunsIcon,
@@ -22,9 +20,7 @@ interface HRTab {
 }
 
 const HR_TABS: HRTab[] = [
-	{ label: 'Employees', path: '/hr/employees', icon: <EmployeesIcon /> },
-	{ label: 'Departments', path: '/hr/departments', icon: <DeptIcon /> },
-	{ label: 'Designations', path: '/hr/designations', icon: <DesignationIcon /> },
+	{ label: 'Workforce', path: '/hr/workforce', icon: <WorkforceIcon /> },
 	{ label: 'Leaves', path: '/hr/leaves', icon: <LeaveIcon /> },
 	{ label: 'Salary Config', path: '/hr/payroll/structures', icon: <StructuresIcon /> },
 	{ label: 'Payroll Engine', path: '/hr/payroll/runs', icon: <RunsIcon /> },

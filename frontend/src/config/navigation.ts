@@ -110,22 +110,10 @@ export const topNavigation: NavigationItem[] = [
 		isSection: true,
 		children: [
 			{
-				label: 'Employees',
-				path: '/hr/employees',
+				label: 'Workforce',
+				path: '/hr/workforce',
 				icon: HRIcon,
 				roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
-			},
-			{
-				label: 'Departments',
-				path: '/hr/departments',
-				icon: HRIcon,
-				roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
-			},
-			{
-				label: 'Designations',
-				path: '/hr/designations',
-				icon: HRIcon,
-				roles: ['admin', 'hr_admin', 'hr_manager'],
 			},
 			{
 				label: 'Leaves',

@@ -14,9 +14,7 @@ import BillingSettings from '../pages/settings/BillingSettings';
 import { LeadsPage, DealsPage, CompaniesPage, TasksPage } from '../pages/crm';
 import { ProjectsListPage, ProjectDetailPage } from '../pages/projects';
 import TimesheetPage from '../pages/timesheets/TimesheetPage';
-import EmployeeDirectoryPage from '../pages/hr/EmployeeDirectoryPage';
-import DepartmentsPage from '../pages/hr/DepartmentsPage';
-import DesignationsPage from '../pages/hr/DesignationsPage';
+import WorkforcePage from '../pages/hr/WorkforcePage';
 import LeaveDashboardPage from '../pages/hr/LeaveDashboardPage';
 import SalaryStructuresPage from '../pages/hr/SalaryStructuresPage';
 import PayrollRunsPage from '../pages/hr/PayrollRunsPage';
@@ -80,9 +78,11 @@ const AppRouter: React.FC = () => {
 					<Route path="projects/:publicId" element={<ProjectDetailPage />} />
 
 					{/* HR Module */}
-					<Route path="hr/employees" element={<EmployeeDirectoryPage />} />
-					<Route path="hr/departments" element={<DepartmentsPage />} />
-					<Route path="hr/designations" element={<DesignationsPage />} />
+					<Route path="hr/workforce" element={<WorkforcePage />} />
+					{/* Legacy: Employees/Departments/Designations are now tabs inside Workforce */}
+					<Route path="hr/employees" element={<Navigate to="/hr/workforce" replace />} />
+					<Route path="hr/departments" element={<Navigate to="/hr/workforce" replace />} />
+					<Route path="hr/designations" element={<Navigate to="/hr/workforce" replace />} />
 					<Route path="hr/leaves" element={<LeaveDashboardPage />} />
 					<Route path="hr/payroll/structures" element={<SalaryStructuresPage />} />
 					<Route path="hr/payroll/runs" element={<PayrollRunsPage />} />
@@ -90,7 +90,7 @@ const AppRouter: React.FC = () => {
 					<Route path="hr/onboarding" element={<ChecklistPage />} />
 					<Route path="hr/documents" element={<DocumentVaultPage />} />
 					<Route path="hr/reports" element={<AnalyticsDashboardPage />} />
-					<Route path="hr" element={<Navigate to="/hr/employees" replace />} />
+					<Route path="hr" element={<Navigate to="/hr/workforce" replace />} />
 
 					{/* Prefixed Tenant Routes */}
 					<Route path="org/:orgId/dashboard" element={<Dashboard />} />
@@ -114,9 +114,10 @@ const AppRouter: React.FC = () => {
 					<Route path="org/:orgId/projects/:publicId" element={<ProjectDetailPage />} />
 
 					{/* Tenant-prefixed HR Module */}
-					<Route path="org/:orgId/hr/employees" element={<EmployeeDirectoryPage />} />
-					<Route path="org/:orgId/hr/departments" element={<DepartmentsPage />} />
-					<Route path="org/:orgId/hr/designations" element={<DesignationsPage />} />
+					<Route path="org/:orgId/hr/workforce" element={<WorkforcePage />} />
+					<Route path="org/:orgId/hr/employees" element={<Navigate to="../workforce" replace />} />
+					<Route path="org/:orgId/hr/departments" element={<Navigate to="../workforce" replace />} />
+					<Route path="org/:orgId/hr/designations" element={<Navigate to="../workforce" replace />} />
 					<Route path="org/:orgId/hr/leaves" element={<LeaveDashboardPage />} />
 					<Route path="org/:orgId/hr/payroll/structures" element={<SalaryStructuresPage />} />
 					<Route path="org/:orgId/hr/payroll/runs" element={<PayrollRunsPage />} />
