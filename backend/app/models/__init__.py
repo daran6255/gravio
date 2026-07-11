@@ -43,6 +43,10 @@ from app.models.hr import (
     EmploymentType,
     WorkLocation,
     EmployeeStatus,
+    HRLeaveType,
+    HRLeaveBalance,
+    HRLeaveRequest,
+    LeaveStatus,
 )
 
 __all__ = [
@@ -89,6 +93,10 @@ __all__ = [
     "EmploymentType",
     "WorkLocation",
     "EmployeeStatus",
+    "HRLeaveType",
+    "HRLeaveBalance",
+    "HRLeaveRequest",
+    "LeaveStatus",
 ]
 
 

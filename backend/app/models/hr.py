@@ -8,11 +8,12 @@ Tables:
 
 from __future__ import annotations
 
+from datetime import date, datetime
 import enum
 import uuid
 from typing import Optional, TYPE_CHECKING
 from sqlalchemy import (
-    String, Integer, ForeignKey, Uuid, JSON, Date, Enum, Text, Boolean
+    String, Integer, ForeignKey, Uuid, JSON, Date, DateTime, Enum, Text, Boolean
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -208,3 +209,129 @@ class HREmployeeProfile(BaseModel, TenantAwareMixin):
 
     def __repr__(self) -> str:
         return f"<HREmployeeProfile(id={self.id}, user_id={self.user_id}, employee_id={self.employee_id!r})>"
+
+
+# ---------------------------------------------------------------------------
+# Leave Management
+# ---------------------------------------------------------------------------
+
+class LeaveStatus(str, enum.Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+
+
+class HRLeaveType(BaseModel, TenantAwareMixin):
+    """Leave type configuration per organization (e.g. Sick Leave, Casual Leave)"""
+    __tablename__ = "hr_leave_types"
+
+    public_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, unique=True, index=True, nullable=False, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    code: Mapped[str] = mapped_column(String(20), nullable=False, index=True) # e.g. SL, CL, EL
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
+    # Default yearly allocation (days)
+    default_allocation: Mapped[float] = mapped_column(default=0.0, nullable=False)
+    
+    # Policies
+    is_carry_forward: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    max_carry_forward: Mapped[float] = mapped_column(default=0.0, nullable=False)
+    is_lop: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False) # Loss of Pay flag
+    
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    others: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    # Relationships
+    balances: Mapped[list["HRLeaveBalance"]] = relationship(
+        "HRLeaveBalance", back_populates="leave_type", cascade="all, delete-orphan"
+    )
+    requests: Mapped[list["HRLeaveRequest"]] = relationship(
+        "HRLeaveRequest", back_populates="leave_type", cascade="all, delete-orphan"
+    )
+
+    def __repr__(self) -> str:
+        return f"<HRLeaveType(id={self.id}, code={self.code!r}, name={self.name!r})>"
+
+
+class HRLeaveBalance(BaseModel, TenantAwareMixin):
+    """Yearly leave balance tracker per employee, per leave type"""
+    __tablename__ = "hr_leave_balances"
+
+    public_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, unique=True, index=True, nullable=False, default=uuid.uuid4
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    leave_type_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("hr_leave_types.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    year: Mapped[int] = mapped_column(Integer, nullable=False, index=True) # e.g. 2026
+
+    # Days tracking
+    allocated: Mapped[float] = mapped_column(default=0.0, nullable=False)
+    used: Mapped[float] = mapped_column(default=0.0, nullable=False)
+    pending: Mapped[float] = mapped_column(default=0.0, nullable=False) # Applied but pending approval
+
+    others: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+    leave_type: Mapped["HRLeaveType"] = relationship("HRLeaveType", back_populates="balances")
+
+    def __repr__(self) -> str:
+        return f"<HRLeaveBalance(id={self.id}, user_id={self.user_id}, leave_type_id={self.leave_type_id}, year={self.year})>"
+
+
+class HRLeaveRequest(BaseModel, TenantAwareMixin):
+    """Leave requests submitted by employees"""
+    __tablename__ = "hr_leave_requests"
+
+    public_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, unique=True, index=True, nullable=False, default=uuid.uuid4
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    leave_type_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("hr_leave_types.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    
+    # Dates
+    from_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    to_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    
+    # Custom options
+    is_half_day: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    half_day_session: Mapped[Optional[str]] = mapped_column(String(10), nullable=True) # "forenoon" or "afternoon"
+    
+    # Total computed days
+    total_days: Mapped[float] = mapped_column(nullable=False)
+    
+    status: Mapped[LeaveStatus] = mapped_column(
+        Enum(LeaveStatus, values_callable=lambda x: [e.value for e in x]),
+        default=LeaveStatus.PENDING, nullable=False, index=True
+    )
+    
+    reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
+    # Approver details
+    approved_by_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    manager_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    others: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+    leave_type: Mapped["HRLeaveType"] = relationship("HRLeaveType", back_populates="requests")
+    approved_by: Mapped[Optional["User"]] = relationship("User", foreign_keys=[approved_by_id])
+
+    def __repr__(self) -> str:
+        return f"<HRLeaveRequest(id={self.id}, user_id={self.user_id}, status={self.status.value})>"
+

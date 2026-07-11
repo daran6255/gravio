@@ -17,6 +17,7 @@ import TimesheetPage from '../pages/timesheets/TimesheetPage';
 import EmployeeDirectoryPage from '../pages/hr/EmployeeDirectoryPage';
 import DepartmentsPage from '../pages/hr/DepartmentsPage';
 import DesignationsPage from '../pages/hr/DesignationsPage';
+import LeaveDashboardPage from '../pages/hr/LeaveDashboardPage';
 
 // Legacy auth links (e.g. tokenized verify/invite/reset links already sent by
 // email before the /auth prefix existed) redirect here — preserve the query
@@ -76,6 +77,7 @@ const AppRouter: React.FC = () => {
 					<Route path="hr/employees" element={<EmployeeDirectoryPage />} />
 					<Route path="hr/departments" element={<DepartmentsPage />} />
 					<Route path="hr/designations" element={<DesignationsPage />} />
+					<Route path="hr/leaves" element={<LeaveDashboardPage />} />
 					<Route path="hr" element={<Navigate to="/hr/employees" replace />} />
 
 					{/* Prefixed Tenant Routes */}
@@ -103,6 +105,7 @@ const AppRouter: React.FC = () => {
 					<Route path="org/:orgId/hr/employees" element={<EmployeeDirectoryPage />} />
 					<Route path="org/:orgId/hr/departments" element={<DepartmentsPage />} />
 					<Route path="org/:orgId/hr/designations" element={<DesignationsPage />} />
+					<Route path="org/:orgId/hr/leaves" element={<LeaveDashboardPage />} />
 				</Route>
 			</Route>
 

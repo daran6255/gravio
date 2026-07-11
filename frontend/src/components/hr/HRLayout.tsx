@@ -4,6 +4,7 @@ import {
 	PeopleAltOutlined as EmployeesIcon,
 	AccountTreeOutlined as DeptIcon,
 	BadgeOutlined as DesignationIcon,
+	CalendarMonthOutlined as LeaveIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -18,6 +19,7 @@ const HR_TABS: HRTab[] = [
 	{ label: 'Employees', path: '/hr/employees', icon: <EmployeesIcon /> },
 	{ label: 'Departments', path: '/hr/departments', icon: <DeptIcon /> },
 	{ label: 'Designations', path: '/hr/designations', icon: <DesignationIcon /> },
+	{ label: 'Leaves', path: '/hr/leaves', icon: <LeaveIcon /> },
 ];
 
 interface HRLayoutProps {

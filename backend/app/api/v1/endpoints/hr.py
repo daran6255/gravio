@@ -21,6 +21,9 @@ from app.schemas.hr import (
     DepartmentCreate, DepartmentUpdate, DepartmentListItem, DepartmentResponse,
     DesignationCreate, DesignationUpdate, DesignationListItem, DesignationResponse,
     EmployeeProfileCreate, EmployeeProfileUpdate, EmployeeListItem, EmployeeResponse,
+    LeaveTypeCreate, LeaveTypeUpdate, LeaveTypeResponse,
+    LeaveBalanceUpdate, LeaveBalanceResponse,
+    LeaveRequestCreate, LeaveRequestUpdate, LeaveRequestResponse, LeaveApprovalRequest
 )
 from app.schemas.common import PaginatedResponse
 from app.services import hr as hr_service
@@ -250,3 +253,207 @@ async def get_employee_by_user(
     db: AsyncSession = Depends(get_db),
 ):
     return await hr_service.get_employee_by_user_id(db, current_user.organization_id, user_id)
+
+
+# ===========================================================================
+# Leave Types Configuration
+# ===========================================================================
+
+@router.get(
+    "/leave-types",
+    response_model=list[LeaveTypeResponse],
+    summary="List configure leave types",
+)
+async def list_leave_types(
+    include_inactive: bool = Query(False),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.list_leave_types(
+        db, current_user.organization_id, include_inactive=include_inactive
+    )
+
+
+@router.post(
+    "/leave-types",
+    response_model=LeaveTypeResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a leave type configuration",
+)
+async def create_leave_type(
+    payload: LeaveTypeCreate,
+    current_user: User = Depends(require_hr_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.create_leave_type(db, current_user.organization_id, payload)
+
+
+@router.patch(
+    "/leave-types/{id}",
+    response_model=LeaveTypeResponse,
+    summary="Update a leave type configuration",
+)
+async def update_leave_type(
+    id: int,
+    payload: LeaveTypeUpdate,
+    current_user: User = Depends(require_hr_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.update_leave_type(db, current_user.organization_id, id, payload)
+
+
+@router.delete(
+    "/leave-types/{id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a leave type configuration",
+)
+async def delete_leave_type(
+    id: int,
+    current_user: User = Depends(require_hr_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    await hr_service.delete_leave_type(db, current_user.organization_id, id)
+
+
+# ===========================================================================
+# Leave Balances
+# ===========================================================================
+
+@router.get(
+    "/leaves/balances",
+    response_model=list[LeaveBalanceResponse],
+    summary="Get current user's leave balances",
+)
+async def get_my_balances(
+    year: Optional[int] = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    yr = year or datetime.utcnow().year
+    return await hr_service.get_user_balances(db, current_user.organization_id, current_user.id, yr)
+
+
+@router.get(
+    "/leaves/balances/{user_id}",
+    response_model=list[LeaveBalanceResponse],
+    summary="Get specific employee's leave balances",
+)
+async def get_employee_balances(
+    user_id: int,
+    year: Optional[int] = Query(None),
+    current_user: User = Depends(require_hr_viewer),
+    db: AsyncSession = Depends(get_db),
+):
+    yr = year or datetime.utcnow().year
+    return await hr_service.get_user_balances(db, current_user.organization_id, user_id, yr)
+
+
+@router.patch(
+    "/leaves/balances/{id}",
+    response_model=LeaveBalanceResponse,
+    summary="Update leave balance tracker (admin only)",
+)
+async def update_leave_balance(
+    id: int,
+    payload: LeaveBalanceUpdate,
+    current_user: User = Depends(require_hr_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.update_leave_balance(db, current_user.organization_id, id, payload)
+
+
+# ===========================================================================
+# Leave Requests
+# ===========================================================================
+
+@router.get(
+    "/leaves/requests",
+    response_model=list[LeaveRequestResponse],
+    summary="Get personal leave requests history",
+)
+async def get_my_requests(
+    status_filter: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.list_leave_requests(
+        db, current_user.organization_id, user_id=current_user.id, status_filter=status_filter
+    )
+
+
+@router.post(
+    "/leaves/requests",
+    response_model=LeaveRequestResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Submit a leave request",
+)
+async def create_leave_request(
+    payload: LeaveRequestCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.create_leave_request(db, current_user.organization_id, current_user.id, payload)
+
+
+@router.get(
+    "/leaves/requests/pending",
+    response_model=list[LeaveRequestResponse],
+    summary="List pending requests for manager's approval",
+)
+async def list_pending_requests(
+    current_user: User = Depends(require_hr_manager),
+    db: AsyncSession = Depends(get_db),
+):
+    # Manager sees pending requests of their direct reports. HR Admin sees all pending requests.
+    mgr_id = None if UserRole.HR_ADMIN in [current_user.role, UserRole.ADMIN] else current_user.id
+    return await hr_service.list_leave_requests(
+        db, current_user.organization_id, status_filter="pending", manager_user_id=mgr_id
+    )
+
+
+@router.get(
+    "/leaves/requests/{public_id}",
+    response_model=LeaveRequestResponse,
+    summary="Get leave request details",
+)
+async def get_leave_request(
+    public_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    req = await hr_service.get_leave_request(db, current_user.organization_id, public_id)
+    # Only owner or viewer can see details
+    is_hr_viewer = current_user.role in [UserRole.ADMIN, UserRole.HR_ADMIN, UserRole.HR_MANAGER, UserRole.LEADERSHIP, UserRole.MANAGER]
+    if req.user_id != current_user.id and not is_hr_viewer:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    return req
+
+
+@router.post(
+    "/leaves/requests/{public_id}/approve-reject",
+    response_model=LeaveRequestResponse,
+    summary="Approve or reject a leave request (manager/admin only)",
+)
+async def approve_reject_request(
+    public_id: uuid.UUID,
+    payload: LeaveApprovalRequest,
+    current_user: User = Depends(require_hr_manager),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.approve_reject_leave_request(
+        db, current_user.organization_id, public_id, current_user.id, payload
+    )
+
+
+@router.post(
+    "/leaves/requests/{public_id}/cancel",
+    response_model=LeaveRequestResponse,
+    summary="Cancel a submitted leave request",
+)
+async def cancel_request(
+    public_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.cancel_leave_request(db, current_user.organization_id, public_id, current_user.id)
+

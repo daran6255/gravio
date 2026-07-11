@@ -14,6 +14,7 @@ import {
 	Assignment as TasksIcon,
 	PendingActions as TimesheetIcon,
 	PeopleAltOutlined as HRIcon,
+	CalendarMonthOutlined as LeaveIcon,
 } from '@mui/icons-material';
 import type { SvgIconComponent } from '@mui/icons-material';
 
@@ -120,6 +121,12 @@ export const topNavigation: NavigationItem[] = [
 				path: '/hr/designations',
 				icon: HRIcon,
 				roles: ['admin', 'hr_admin', 'hr_manager'],
+			},
+			{
+				label: 'Leaves',
+				path: '/hr/leaves',
+				icon: LeaveIcon,
+				roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
 			},
 		],
 	},

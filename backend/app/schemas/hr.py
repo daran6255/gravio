@@ -238,3 +238,137 @@ class EmployeeListItem(BaseModel):
     date_of_joining: Optional[date] = None
     is_active: Optional[bool] = None
     created_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Leave Types Schemas
+# ---------------------------------------------------------------------------
+
+class LeaveTypeCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    code: str = Field(..., min_length=1, max_length=20)
+    description: Optional[str] = None
+    default_allocation: float = Field(0.0, ge=0.0)
+    is_carry_forward: bool = False
+    max_carry_forward: float = Field(0.0, ge=0.0)
+    is_lop: bool = False
+    others: Optional[dict] = None
+
+
+class LeaveTypeUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    code: Optional[str] = Field(None, min_length=1, max_length=20)
+    description: Optional[str] = None
+    default_allocation: Optional[float] = Field(None, ge=0.0)
+    is_carry_forward: Optional[bool] = None
+    max_carry_forward: Optional[float] = Field(None, ge=0.0)
+    is_lop: Optional[bool] = None
+    is_active: Optional[bool] = None
+    others: Optional[dict] = None
+
+
+class LeaveTypeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    public_id: uuid.UUID
+    name: str
+    code: str
+    description: Optional[str]
+    default_allocation: float
+    is_carry_forward: bool
+    max_carry_forward: float
+    is_lop: bool
+    is_active: bool
+    others: Optional[dict]
+    organization_id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Leave Balance Schemas
+# ---------------------------------------------------------------------------
+
+class LeaveBalanceUpdate(BaseModel):
+    allocated: Optional[float] = Field(None, ge=0.0)
+    used: Optional[float] = Field(None, ge=0.0)
+    pending: Optional[float] = Field(None, ge=0.0)
+    others: Optional[dict] = None
+
+
+class LeaveBalanceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    public_id: uuid.UUID
+    user_id: int
+    leave_type_id: int
+    leave_type_name: Optional[str] = None
+    leave_type_code: Optional[str] = None
+    is_lop: Optional[bool] = None
+    year: int
+    allocated: float
+    used: float
+    pending: float
+    others: Optional[dict]
+    organization_id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Leave Request Schemas
+# ---------------------------------------------------------------------------
+
+class LeaveRequestCreate(BaseModel):
+    leave_type_id: int
+    from_date: date
+    to_date: date
+    is_half_day: bool = False
+    half_day_session: Optional[str] = None # "forenoon" or "afternoon"
+    reason: Optional[str] = None
+    others: Optional[dict] = None
+
+
+class LeaveRequestUpdate(BaseModel):
+    from_date: Optional[date] = None
+    to_date: Optional[date] = None
+    is_half_day: Optional[bool] = None
+    half_day_session: Optional[str] = None
+    reason: Optional[str] = None
+    others: Optional[dict] = None
+
+
+class LeaveApprovalRequest(BaseModel):
+    status: str = Field(..., pattern="^(approved|rejected)$")
+    manager_notes: Optional[str] = None
+
+
+class LeaveRequestResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    public_id: uuid.UUID
+    user_id: int
+    employee_name: Optional[str] = None
+    employee_code: Optional[str] = None
+    leave_type_id: int
+    leave_type_name: Optional[str] = None
+    leave_type_code: Optional[str] = None
+    from_date: date
+    to_date: date
+    is_half_day: bool
+    half_day_session: Optional[str]
+    total_days: float
+    status: str
+    reason: Optional[str]
+    approved_by_id: Optional[int]
+    approved_by_name: Optional[str] = None
+    approved_at: Optional[datetime]
+    manager_notes: Optional[str]
+    others: Optional[dict]
+    organization_id: int
+    created_at: datetime
+    updated_at: datetime
+

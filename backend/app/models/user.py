@@ -8,6 +8,7 @@ from app.models.base import BaseModel
 
 if TYPE_CHECKING:
     from app.models.organization import Organization
+    from app.models.hr import HREmployeeProfile
 
 class UserRole(str, enum.Enum):
     ADMIN = "admin"
@@ -68,6 +69,9 @@ class User(BaseModel):
     
     organization: Mapped[Organization] = relationship("Organization", back_populates="users")
     reporting_manager: Mapped[User | None] = relationship("User", remote_side="User.id")
+    employee_profile: Mapped[HREmployeeProfile | None] = relationship(
+        "HREmployeeProfile", back_populates="user", uselist=False
+    )
 
     # Profile extras (date of birth, phone, avatar) aren't first-class columns —
     # they're stored inside `others` and exposed here as plain properties so the
