@@ -8,6 +8,12 @@ import type {
 	HRLeaveTypeListItem, HRLeaveTypeResponse, HRLeaveTypeCreate, HRLeaveTypeUpdate,
 	HRLeaveBalanceResponse, HRLeaveBalanceUpdate,
 	HRLeaveRequestResponse, HRLeaveRequestCreate, HRLeaveApprovalRequest,
+	HRSalaryComponent, HRSalaryComponentCreate, HRSalaryComponentUpdate,
+	HRSalaryStructure, HRSalaryStructureCreate, HRSalaryStructureUpdate,
+	HREmployeeSalary, HREmployeeSalaryCreate,
+	HRPayrollRun, HRPayrollRunCreate,
+	HRVariablePayEntry, HRVariablePayEntryCreate,
+	HRPayslip,
 } from '../models/hr';
 
 interface PaginatedResponse<T> {
@@ -141,4 +147,106 @@ export const hrLeaveRequestApi = {
 	cancel: (publicId: string): Promise<HRLeaveRequestResponse> =>
 		api.post(`/hr/leaves/requests/${publicId}/cancel`).then(r => r.data),
 };
+
+// ---------------------------------------------------------------------------
+// Payroll Components Config
+// ---------------------------------------------------------------------------
+
+export const hrPayrollComponentApi = {
+	list: (): Promise<HRSalaryComponent[]> =>
+		api.get('/hr/payroll/components').then(r => r.data),
+
+	create: (payload: HRSalaryComponentCreate): Promise<HRSalaryComponent> =>
+		api.post('/hr/payroll/components', payload).then(r => r.data),
+
+	update: (id: number, payload: HRSalaryComponentUpdate): Promise<HRSalaryComponent> =>
+		api.patch(`/hr/payroll/components/${id}`, payload).then(r => r.data),
+
+	delete: (id: number): Promise<void> =>
+		api.delete(`/hr/payroll/components/${id}`).then(r => r.data),
+};
+
+// ---------------------------------------------------------------------------
+// Salary Structures Config
+// ---------------------------------------------------------------------------
+
+export const hrPayrollStructureApi = {
+	list: (): Promise<HRSalaryStructure[]> =>
+		api.get('/hr/payroll/structures').then(r => r.data),
+
+	create: (payload: HRSalaryStructureCreate): Promise<HRSalaryStructure> =>
+		api.post('/hr/payroll/structures', payload).then(r => r.data),
+
+	update: (id: number, payload: HRSalaryStructureUpdate): Promise<HRSalaryStructure> =>
+		api.patch(`/hr/payroll/structures/${id}`, payload).then(r => r.data),
+
+	delete: (id: number): Promise<void> =>
+		api.delete(`/hr/payroll/structures/${id}`).then(r => r.data),
+};
+
+// ---------------------------------------------------------------------------
+// Employee Salary Assignments
+// ---------------------------------------------------------------------------
+
+export const hrEmployeeSalaryApi = {
+	get: (userId: number): Promise<HREmployeeSalary | null> =>
+		api.get(`/hr/payroll/salaries/${userId}`).then(r => r.data),
+
+	assign: (payload: HREmployeeSalaryCreate): Promise<HREmployeeSalary> =>
+		api.post('/hr/payroll/salaries', payload).then(r => r.data),
+};
+
+// ---------------------------------------------------------------------------
+// Payroll Runs
+// ---------------------------------------------------------------------------
+
+export const hrPayrollRunApi = {
+	list: (): Promise<HRPayrollRun[]> =>
+		api.get('/hr/payroll/runs').then(r => r.data),
+
+	create: (payload: HRPayrollRunCreate): Promise<HRPayrollRun> =>
+		api.post('/hr/payroll/runs', payload).then(r => r.data),
+
+	calculate: (id: number): Promise<HRPayrollRun> =>
+		api.post(`/hr/payroll/runs/${id}/calculate`).then(r => r.data),
+
+	finalize: (id: number): Promise<HRPayrollRun> =>
+		api.post(`/hr/payroll/runs/${id}/finalize`).then(r => r.data),
+};
+
+// ---------------------------------------------------------------------------
+// Variable Pay Entries
+// ---------------------------------------------------------------------------
+
+export const hrVariablePayApi = {
+	create: (runId: number, payload: HRVariablePayEntryCreate): Promise<HRVariablePayEntry> =>
+		api.post(`/hr/payroll/runs/${runId}/variable-pay`, payload).then(r => r.data),
+
+	delete: (id: number): Promise<void> =>
+		api.delete(`/hr/payroll/variable-pay/${id}`).then(r => r.data),
+};
+
+// ---------------------------------------------------------------------------
+// Payslips
+// ---------------------------------------------------------------------------
+
+export interface PayslipListParams {
+	run_id?: number;
+	user_id?: number;
+}
+
+export const hrPayslipApi = {
+	list: (params?: PayslipListParams): Promise<HRPayslip[]> =>
+		api.get('/hr/payroll/payslips', { params }).then(r => r.data),
+
+	get: (publicId: string): Promise<HRPayslip> =>
+		api.get(`/hr/payroll/payslips/${publicId}`).then(r => r.data),
+
+	getPdfUrl: (publicId: string): string => {
+		// Use baseURL or resolve from location origin if base is relative
+		const base = api.defaults.baseURL || '/api/v1';
+		return `${base}/hr/payroll/payslips/${publicId}/pdf`;
+	},
+};
+
 

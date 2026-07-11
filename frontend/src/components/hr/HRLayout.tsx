@@ -5,6 +5,9 @@ import {
 	AccountTreeOutlined as DeptIcon,
 	BadgeOutlined as DesignationIcon,
 	CalendarMonthOutlined as LeaveIcon,
+	SettingsOutlined as StructuresIcon,
+	MonetizationOnOutlined as RunsIcon,
+	ReceiptLongOutlined as PayslipsIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -20,6 +23,9 @@ const HR_TABS: HRTab[] = [
 	{ label: 'Departments', path: '/hr/departments', icon: <DeptIcon /> },
 	{ label: 'Designations', path: '/hr/designations', icon: <DesignationIcon /> },
 	{ label: 'Leaves', path: '/hr/leaves', icon: <LeaveIcon /> },
+	{ label: 'Salary Config', path: '/hr/payroll/structures', icon: <StructuresIcon /> },
+	{ label: 'Payroll Engine', path: '/hr/payroll/runs', icon: <RunsIcon /> },
+	{ label: 'My Payslips', path: '/hr/payslips', icon: <PayslipsIcon /> },
 ];
 
 interface HRLayoutProps {

@@ -36,6 +36,17 @@ from app.models.project import (
     ProjectStatus,
     BillingType,
 )
+from app.models.timesheet import (
+    UserTimesheetCategory,
+    OrgHoliday,
+    TimesheetUserSettings,
+    ProjectTimeLog,
+    TimesheetWeekUnlockRequest,
+    TimesheetBillingType,
+    TimesheetStatus,
+    HolidayType,
+    WeekUnlockStatus,
+)
 from app.models.hr import (
     HRDepartment,
     HRDesignation,
@@ -47,6 +58,16 @@ from app.models.hr import (
     HRLeaveBalance,
     HRLeaveRequest,
     LeaveStatus,
+    HRSalaryComponent,
+    HRSalaryStructure,
+    HRSalaryStructureItem,
+    HREmployeeSalary,
+    HRPayrollRun,
+    HRVariablePayEntry,
+    HRPayslip,
+    SalaryComponentType,
+    SalaryCalculationType,
+    PayrollRunStatus,
 )
 
 __all__ = [
@@ -87,6 +108,15 @@ __all__ = [
     "ProjectTaskStatus",
     "ProjectStatus",
     "BillingType",
+    "UserTimesheetCategory",
+    "OrgHoliday",
+    "TimesheetUserSettings",
+    "ProjectTimeLog",
+    "TimesheetWeekUnlockRequest",
+    "TimesheetBillingType",
+    "TimesheetStatus",
+    "HolidayType",
+    "WeekUnlockStatus",
     "HRDepartment",
     "HRDesignation",
     "HREmployeeProfile",
@@ -97,6 +127,16 @@ __all__ = [
     "HRLeaveBalance",
     "HRLeaveRequest",
     "LeaveStatus",
+    "HRSalaryComponent",
+    "HRSalaryStructure",
+    "HRSalaryStructureItem",
+    "HREmployeeSalary",
+    "HRPayrollRun",
+    "HRVariablePayEntry",
+    "HRPayslip",
+    "SalaryComponentType",
+    "SalaryCalculationType",
+    "PayrollRunStatus",
 ]
 
 

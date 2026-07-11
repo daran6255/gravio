@@ -5,7 +5,10 @@ from datetime import date, datetime
 from typing import Optional, Any
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.hr import EmploymentType, WorkLocation, EmployeeStatus
+from app.models.hr import (
+    EmploymentType, WorkLocation, EmployeeStatus,
+    SalaryComponentType, SalaryCalculationType, PayrollRunStatus
+)
 
 
 # ---------------------------------------------------------------------------
@@ -371,4 +374,224 @@ class LeaveRequestResponse(BaseModel):
     organization_id: int
     created_at: datetime
     updated_at: datetime
+
+
+# ===========================================================================
+# Payroll Management Schemas
+# ===========================================================================
+
+# --- Salary Components ---
+
+class SalaryComponentCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    code: str = Field(..., min_length=1, max_length=50)
+    component_type: SalaryComponentType
+    is_statutory: bool = False
+    is_taxable: bool = True
+    others: Optional[dict] = None
+
+
+class SalaryComponentUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    code: Optional[str] = Field(None, min_length=1, max_length=50)
+    component_type: Optional[SalaryComponentType] = None
+    is_statutory: Optional[bool] = None
+    is_taxable: Optional[bool] = None
+    others: Optional[dict] = None
+
+
+class SalaryComponentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    public_id: uuid.UUID
+    name: str
+    code: str
+    component_type: SalaryComponentType
+    is_statutory: bool
+    is_taxable: bool
+    others: Optional[dict]
+    organization_id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+# --- Salary Structure Items ---
+
+class SalaryStructureItemCreate(BaseModel):
+    salary_component_id: int
+    calculation_type: SalaryCalculationType = SalaryCalculationType.FLAT
+    value_expr: str = Field(..., min_length=1, max_length=255)
+    others: Optional[dict] = None
+
+
+class SalaryStructureItemResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    structure_id: int
+    salary_component_id: int
+    calculation_type: SalaryCalculationType
+    value_expr: str
+    others: Optional[dict]
+    created_at: datetime
+    updated_at: datetime
+    component: Optional[SalaryComponentResponse] = None
+
+
+# --- Salary Structures ---
+
+class SalaryStructureCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = None
+    items: list[SalaryStructureItemCreate] = []
+    others: Optional[dict] = None
+
+
+class SalaryStructureUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    description: Optional[str] = None
+    items: Optional[list[SalaryStructureItemCreate]] = None
+    others: Optional[dict] = None
+
+
+class SalaryStructureResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    public_id: uuid.UUID
+    name: str
+    description: Optional[str]
+    others: Optional[dict]
+    organization_id: int
+    created_at: datetime
+    updated_at: datetime
+    items: list[SalaryStructureItemResponse] = []
+
+
+# --- Employee Salary Assignment ---
+
+class EmployeeSalaryCreate(BaseModel):
+    user_id: int
+    structure_id: int
+    ctc: float = Field(..., ge=0.0)
+    effective_from: date
+    is_active: bool = True
+    others: Optional[dict] = None
+
+
+class EmployeeSalaryUpdate(BaseModel):
+    structure_id: Optional[int] = None
+    ctc: Optional[float] = Field(None, ge=0.0)
+    effective_from: Optional[date] = None
+    is_active: Optional[bool] = None
+    others: Optional[dict] = None
+
+
+class EmployeeSalaryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    public_id: uuid.UUID
+    user_id: int
+    employee_name: Optional[str] = None
+    employee_code: Optional[str] = None
+    structure_id: int
+    structure_name: Optional[str] = None
+    ctc: float
+    effective_from: date
+    is_active: bool
+    others: Optional[dict]
+    organization_id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+# --- Payroll Run ---
+
+class PayrollRunCreate(BaseModel):
+    month: int = Field(..., ge=1, le=12)
+    year: int = Field(..., ge=2020)
+    others: Optional[dict] = None
+
+
+class PayrollRunUpdate(BaseModel):
+    status: PayrollRunStatus
+    others: Optional[dict] = None
+
+
+class PayrollRunResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    public_id: uuid.UUID
+    month: int
+    year: int
+    status: PayrollRunStatus
+    processed_by_id: Optional[int]
+    processed_by_name: Optional[str] = None
+    processed_at: Optional[datetime]
+    others: Optional[dict]
+    organization_id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+# --- Variable Pay ---
+
+class VariablePayEntryCreate(BaseModel):
+    user_id: int
+    component_code: str = Field(..., min_length=1, max_length=50)
+    amount: float
+    entry_type: SalaryComponentType
+    reason: Optional[str] = None
+    others: Optional[dict] = None
+
+
+class VariablePayEntryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    public_id: uuid.UUID
+    user_id: int
+    employee_name: Optional[str] = None
+    payroll_run_id: int
+    component_code: str
+    amount: float
+    entry_type: SalaryComponentType
+    reason: Optional[str]
+    others: Optional[dict]
+    organization_id: int
+    created_at: datetime
+
+
+# --- Payslip ---
+
+class PayslipResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    public_id: uuid.UUID
+    user_id: int
+    employee_id: Optional[str] = None
+    employee_name: Optional[str] = None
+    department_name: Optional[str] = None
+    designation_name: Optional[str] = None
+    bank_account_number: Optional[str] = None
+    bank_name: Optional[str] = None
+    pan_number: Optional[str] = None
+    payroll_run_id: int
+    month: Optional[int] = None
+    year: Optional[int] = None
+    earnings_breakdown: dict[str, float]
+    deductions_breakdown: dict[str, float]
+    gross_earnings: float
+    total_deductions: float
+    net_pay: float
+    lop_days: float
+    others: Optional[dict]
+    organization_id: int
+    created_at: datetime
+    updated_at: datetime
+
 

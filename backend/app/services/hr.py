@@ -7,6 +7,7 @@ All queries are org-scoped via organization_id.
 from datetime import date, datetime
 import uuid
 from typing import Optional
+from io import BytesIO
 from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -14,7 +15,10 @@ from fastapi import HTTPException, status
 
 from app.models.hr import (
     HRDepartment, HRDesignation, HREmployeeProfile,
-    HRLeaveType, HRLeaveBalance, HRLeaveRequest, LeaveStatus
+    HRLeaveType, HRLeaveBalance, HRLeaveRequest, LeaveStatus,
+    HRSalaryComponent, HRSalaryStructure, HRSalaryStructureItem,
+    HREmployeeSalary, HRPayrollRun, HRVariablePayEntry, HRPayslip,
+    SalaryComponentType, SalaryCalculationType, PayrollRunStatus
 )
 from app.models.user import User
 from app.schemas.hr import (
@@ -23,7 +27,13 @@ from app.schemas.hr import (
     EmployeeProfileCreate, EmployeeProfileUpdate, EmployeeListItem, EmployeeResponse,
     LeaveTypeCreate, LeaveTypeUpdate, LeaveTypeResponse,
     LeaveBalanceUpdate, LeaveBalanceResponse,
-    LeaveRequestCreate, LeaveRequestUpdate, LeaveRequestResponse, LeaveApprovalRequest
+    LeaveRequestCreate, LeaveRequestUpdate, LeaveRequestResponse, LeaveApprovalRequest,
+    SalaryComponentCreate, SalaryComponentUpdate, SalaryComponentResponse,
+    SalaryStructureCreate, SalaryStructureUpdate, SalaryStructureResponse,
+    EmployeeSalaryCreate, EmployeeSalaryUpdate, EmployeeSalaryResponse,
+    PayrollRunCreate, PayrollRunUpdate, PayrollRunResponse,
+    VariablePayEntryCreate, VariablePayEntryResponse,
+    PayslipResponse
 )
 
 
@@ -1031,4 +1041,850 @@ async def approve_reject_leave_request(
 
     await db.commit()
     return _leave_req_response(req)
+
+
+# ===========================================================================
+# Payroll Management Services
+# ===========================================================================
+
+# --- Salary Components ---
+
+async def list_salary_components(db: AsyncSession, org_id: int) -> list[HRSalaryComponent]:
+    res = await db.execute(
+        select(HRSalaryComponent).where(
+            and_(HRSalaryComponent.organization_id == org_id, HRSalaryComponent.is_deleted == False)
+        ).order_by(HRSalaryComponent.code)
+    )
+    return list(res.scalars().all())
+
+
+async def create_salary_component(db: AsyncSession, org_id: int, payload: SalaryComponentCreate) -> HRSalaryComponent:
+    comp = HRSalaryComponent(
+        organization_id=org_id,
+        name=payload.name,
+        code=payload.code.upper(),
+        component_type=payload.component_type,
+        is_statutory=payload.is_statutory,
+        is_taxable=payload.is_taxable,
+        others=payload.others,
+    )
+    db.add(comp)
+    await db.commit()
+    await db.refresh(comp)
+    return comp
+
+
+async def update_salary_component(db: AsyncSession, org_id: int, id: int, payload: SalaryComponentUpdate) -> HRSalaryComponent:
+    res = await db.execute(
+        select(HRSalaryComponent).where(
+            and_(
+                HRSalaryComponent.organization_id == org_id,
+                HRSalaryComponent.id == id,
+                HRSalaryComponent.is_deleted == False
+            )
+        )
+    )
+    comp = res.scalar_one_or_none()
+    if not comp:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Salary component not found")
+
+    for field, val in payload.model_dump(exclude_unset=True).items():
+        if field == "code":
+            setattr(comp, field, val.upper())
+        else:
+            setattr(comp, field, val)
+
+    await db.commit()
+    await db.refresh(comp)
+    return comp
+
+
+async def delete_salary_component(db: AsyncSession, org_id: int, id: int) -> None:
+    res = await db.execute(
+        select(HRSalaryComponent).where(
+            and_(
+                HRSalaryComponent.organization_id == org_id,
+                HRSalaryComponent.id == id,
+                HRSalaryComponent.is_deleted == False
+            )
+        )
+    )
+    comp = res.scalar_one_or_none()
+    if not comp:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Salary component not found")
+
+    comp.is_deleted = True
+    comp.deleted_at = datetime.utcnow()
+    await db.commit()
+
+
+# --- Salary Structures ---
+
+async def list_salary_structures(db: AsyncSession, org_id: int) -> list[HRSalaryStructure]:
+    res = await db.execute(
+        select(HRSalaryStructure).where(
+            and_(HRSalaryStructure.organization_id == org_id, HRSalaryStructure.is_deleted == False)
+        ).options(selectinload(HRSalaryStructure.items).selectinload(HRSalaryStructureItem.component))
+        .order_by(HRSalaryStructure.id.desc())
+    )
+    return list(res.scalars().all())
+
+
+async def create_salary_structure(db: AsyncSession, org_id: int, payload: SalaryStructureCreate) -> HRSalaryStructure:
+    struct = HRSalaryStructure(
+        organization_id=org_id,
+        name=payload.name,
+        description=payload.description,
+        others=payload.others,
+    )
+    db.add(struct)
+    await db.flush()
+
+    for item in payload.items:
+        # Verify component exists
+        comp_res = await db.execute(
+            select(HRSalaryComponent).where(
+                and_(
+                    HRSalaryComponent.organization_id == org_id,
+                    HRSalaryComponent.id == item.salary_component_id,
+                    HRSalaryComponent.is_deleted == False
+                )
+            )
+        )
+        if not comp_res.scalar_one_or_none():
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid component ID: {item.salary_component_id}")
+
+        db_item = HRSalaryStructureItem(
+            structure_id=struct.id,
+            salary_component_id=item.salary_component_id,
+            calculation_type=item.calculation_type,
+            value_expr=item.value_expr,
+            others=item.others,
+        )
+        db.add(db_item)
+
+    await db.commit()
+    
+    # Reload structure with items
+    struct_res = await db.execute(
+        select(HRSalaryStructure).where(HRSalaryStructure.id == struct.id)
+        .options(selectinload(HRSalaryStructure.items).selectinload(HRSalaryStructureItem.component))
+    )
+    return struct_res.scalar_one()
+
+
+async def update_salary_structure(db: AsyncSession, org_id: int, id: int, payload: SalaryStructureUpdate) -> HRSalaryStructure:
+    res = await db.execute(
+        select(HRSalaryStructure).where(
+            and_(
+                HRSalaryStructure.organization_id == org_id,
+                HRSalaryStructure.id == id,
+                HRSalaryStructure.is_deleted == False
+            )
+        ).options(selectinload(HRSalaryStructure.items))
+    )
+    struct = res.scalar_one_or_none()
+    if not struct:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Salary structure not found")
+
+    dump = payload.model_dump(exclude_unset=True)
+    if "name" in dump:
+        struct.name = dump["name"]
+    if "description" in dump:
+        struct.description = dump["description"]
+    if "others" in dump:
+        struct.others = dump["others"]
+
+    if "items" in dump and dump["items"] is not None:
+        # Clear existing items
+        from sqlalchemy import delete
+        await db.execute(delete(HRSalaryStructureItem).where(HRSalaryStructureItem.structure_id == struct.id))
+        await db.flush()
+
+        for item in payload.items:
+            # Verify component exists
+            comp_res = await db.execute(
+                select(HRSalaryComponent).where(
+                    and_(
+                        HRSalaryComponent.organization_id == org_id,
+                        HRSalaryComponent.id == item.salary_component_id,
+                        HRSalaryComponent.is_deleted == False
+                    )
+                )
+            )
+            if not comp_res.scalar_one_or_none():
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid component ID: {item.salary_component_id}")
+
+            db_item = HRSalaryStructureItem(
+                structure_id=struct.id,
+                salary_component_id=item.salary_component_id,
+                calculation_type=item.calculation_type,
+                value_expr=item.value_expr,
+                others=item.others,
+            )
+            db.add(db_item)
+
+    await db.commit()
+    
+    # Reload structure with items
+    struct_res = await db.execute(
+        select(HRSalaryStructure).where(HRSalaryStructure.id == struct.id)
+        .options(selectinload(HRSalaryStructure.items).selectinload(HRSalaryStructureItem.component))
+    )
+    return struct_res.scalar_one()
+
+
+async def delete_salary_structure(db: AsyncSession, org_id: int, id: int) -> None:
+    res = await db.execute(
+        select(HRSalaryStructure).where(
+            and_(
+                HRSalaryStructure.organization_id == org_id,
+                HRSalaryStructure.id == id,
+                HRSalaryStructure.is_deleted == False
+            )
+        )
+    )
+    struct = res.scalar_one_or_none()
+    if not struct:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Salary structure not found")
+
+    struct.is_deleted = True
+    struct.deleted_at = datetime.utcnow()
+    await db.commit()
+
+
+# --- Employee Salaries ---
+
+async def get_employee_salary(db: AsyncSession, org_id: int, user_id: int) -> Optional[HREmployeeSalary]:
+    res = await db.execute(
+        select(HREmployeeSalary).where(
+            and_(
+                HREmployeeSalary.organization_id == org_id,
+                HREmployeeSalary.user_id == user_id,
+                HREmployeeSalary.is_deleted == False
+            )
+        ).options(selectinload(HREmployeeSalary.structure))
+    )
+    return res.scalar_one_or_none()
+
+
+async def create_or_update_employee_salary(db: AsyncSession, org_id: int, payload: EmployeeSalaryCreate) -> HREmployeeSalary:
+    # Check if structure exists
+    struct_res = await db.execute(
+        select(HRSalaryStructure).where(
+            and_(
+                HRSalaryStructure.organization_id == org_id,
+                HRSalaryStructure.id == payload.structure_id,
+                HRSalaryStructure.is_deleted == False
+            )
+        )
+    )
+    if not struct_res.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid salary structure")
+
+    # Check if already exists
+    res = await db.execute(
+        select(HREmployeeSalary).where(
+            and_(
+                HREmployeeSalary.organization_id == org_id,
+                HREmployeeSalary.user_id == payload.user_id,
+                HREmployeeSalary.is_deleted == False
+            )
+        )
+    )
+    sal = res.scalar_one_or_none()
+
+    if sal:
+        sal.structure_id = payload.structure_id
+        sal.ctc = payload.ctc
+        sal.effective_from = payload.effective_from
+        sal.is_active = payload.is_active
+        if payload.others is not None:
+            sal.others = payload.others
+    else:
+        sal = HREmployeeSalary(
+            organization_id=org_id,
+            user_id=payload.user_id,
+            structure_id=payload.structure_id,
+            ctc=payload.ctc,
+            effective_from=payload.effective_from,
+            is_active=payload.is_active,
+            others=payload.others,
+        )
+        db.add(sal)
+
+    await db.commit()
+    
+    # Reload with structure
+    res = await db.execute(
+        select(HREmployeeSalary).where(HREmployeeSalary.id == sal.id)
+        .options(selectinload(HREmployeeSalary.structure))
+    )
+    return res.scalar_one()
+
+
+# --- Payroll Runs ---
+
+async def list_payroll_runs(db: AsyncSession, org_id: int) -> list[HRPayrollRun]:
+    res = await db.execute(
+        select(HRPayrollRun).where(
+            and_(HRPayrollRun.organization_id == org_id, HRPayrollRun.is_deleted == False)
+        ).options(selectinload(HRPayrollRun.processed_by))
+        .order_by(HRPayrollRun.year.desc(), HRPayrollRun.month.desc())
+    )
+    return list(res.scalars().all())
+
+
+async def create_payroll_run(db: AsyncSession, org_id: int, payload: PayrollRunCreate) -> HRPayrollRun:
+    # Check if run already exists for this month/year
+    res = await db.execute(
+        select(HRPayrollRun).where(
+            and_(
+                HRPayrollRun.organization_id == org_id,
+                HRPayrollRun.month == payload.month,
+                HRPayrollRun.year == payload.year,
+                HRPayrollRun.is_deleted == False
+            )
+        )
+    )
+    if res.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Payroll run already exists for {payload.month}/{payload.year}"
+        )
+
+    run = HRPayrollRun(
+        organization_id=org_id,
+        month=payload.month,
+        year=payload.year,
+        status=PayrollRunStatus.DRAFT,
+        others=payload.others,
+    )
+    db.add(run)
+    await db.commit()
+    await db.refresh(run)
+    return run
+
+
+# --- Safe expression evaluator for simple arithmetic formulas ---
+def _evaluate_expr(expr: str, context: dict) -> float:
+    expr = expr.upper()
+    for key, val in context.items():
+        expr = expr.replace(key.upper(), str(val))
+    
+    import re
+    # Match ONLY digits, operators, dots, parentheses, and spaces for strict safety
+    if re.match(r'^[\d\.\+\-\*\/\(\)\s]+$', expr):
+        try:
+            return float(eval(expr))
+        except Exception:
+            pass
+    return 0.0
+
+
+async def run_payroll_calculations(db: AsyncSession, org_id: int, run_id: int) -> HRPayrollRun:
+    # Fetch payroll run
+    res = await db.execute(
+        select(HRPayrollRun).where(
+            and_(
+                HRPayrollRun.organization_id == org_id,
+                HRPayrollRun.id == run_id,
+                HRPayrollRun.is_deleted == False
+            )
+        )
+    )
+    run = res.scalar_one_or_none()
+    if not run:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payroll run not found")
+
+    if run.status == PayrollRunStatus.FINALIZED:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot recalculate finalized run")
+
+    run.status = PayrollRunStatus.PROCESSING
+    await db.flush()
+
+    # Get all active employees with salary structures
+    salaries_res = await db.execute(
+        select(HREmployeeSalary).where(
+            and_(
+                HREmployeeSalary.organization_id == org_id,
+                HREmployeeSalary.is_active == True,
+                HREmployeeSalary.is_deleted == False
+            )
+        ).options(
+            selectinload(HREmployeeSalary.user),
+            selectinload(HREmployeeSalary.structure).selectinload(HRSalaryStructure.items).selectinload(HRSalaryStructureItem.component)
+        )
+    )
+    salaries = salaries_res.scalars().all()
+
+    # Clear existing payslips for this run
+    from sqlalchemy import delete
+    await db.execute(delete(HRPayslip).where(HRPayslip.payroll_run_id == run.id))
+    await db.flush()
+
+    import calendar
+    days_in_month = calendar.monthrange(run.year, run.month)[1]
+
+    # Calculate for each employee
+    for es in salaries:
+        monthly_ctc = es.ctc / 12.0
+        
+        # Calculate LOP leaves
+        import datetime as dt
+        from_date = dt.date(run.year, run.month, 1)
+        to_date = dt.date(run.year, run.month, days_in_month)
+
+        leaves_res = await db.execute(
+            select(HRLeaveRequest).where(
+                and_(
+                    HRLeaveRequest.user_id == es.user_id,
+                    HRLeaveRequest.status == LeaveStatus.APPROVED,
+                    HRLeaveRequest.from_date <= to_date,
+                    HRLeaveRequest.to_date >= from_date,
+                    HRLeaveRequest.is_deleted == False
+                )
+            ).options(selectinload(HRLeaveRequest.leave_type))
+        )
+        leaves = leaves_res.scalars().all()
+        
+        lop_days = 0.0
+        for lv in leaves:
+            if lv.leave_type.is_lop:
+                # Count days overlapping with current month
+                overlap_start = max(lv.from_date, from_date)
+                overlap_end = min(lv.to_date, to_date)
+                days = (overlap_end - overlap_start).days + 1
+                # Adjust if leave is half day
+                if lv.is_half_day:
+                    lop_days += 0.5
+                else:
+                    lop_days += days
+
+        # Evaluate Earnings components first
+        earnings = {}
+        context = {"CTC": monthly_ctc}
+        
+        # Standard CTC breakdown: Basic, HRA, Special Allowance
+        # Sort items: BASIC first, HRA second, then others to resolve dependencies in formula evaluation
+        sorted_items = sorted(
+            es.structure.items,
+            key=lambda x: 0 if x.component.code == "BASIC" else (1 if x.component.code == "HRA" else 2)
+        )
+
+        for item in sorted_items:
+            comp = item.component
+            if comp.component_type != SalaryComponentType.EARNING:
+                continue
+
+            if item.calculation_type == SalaryCalculationType.FLAT:
+                amount = float(item.value_expr)
+            else:
+                amount = _evaluate_expr(item.value_expr, context)
+            
+            earnings[comp.code] = round(amount, 2)
+            context[comp.code] = round(amount, 2)
+
+        # Standard Statutory deductions
+        deductions = {}
+        basic = earnings.get("BASIC", 0.0)
+        
+        # 1. Employee PF: 12% of Basic, capped at ₹1,800
+        pf_employee = round(min(basic * 0.12, 1800.0), 2)
+        deductions["PF"] = pf_employee
+        
+        # Calculate Gross earnings (pre-deductions)
+        gross_earnings = sum(earnings.values())
+        
+        # 2. Employee ESI: 0.75% of Gross, only if monthly Gross <= 21000
+        esi_employee = 0.0
+        if gross_earnings <= 21000.0:
+            esi_employee = round(gross_earnings * 0.0075, 2)
+        deductions["ESI"] = esi_employee
+
+        # 3. Professional Tax (PT)
+        pt = 0.0
+        if gross_earnings > 15000.0:
+            pt = 200.0
+        deductions["PT"] = pt
+
+        # 4. LOP deduction
+        lop_deduction = 0.0
+        if lop_days > 0.0:
+            lop_deduction = round((gross_earnings / days_in_month) * lop_days, 2)
+            deductions["LOP"] = lop_deduction
+
+        # 5. TDS - simple slab-based tax estimator
+        annual_taxable = gross_earnings * 12.0
+        tds = 0.0
+        if annual_taxable > 1000000.0:
+            tds = round(((annual_taxable - 1000000.0) * 0.20 + 75000.0) / 12.0, 2)
+        elif annual_taxable > 500000.0:
+            tds = round(((annual_taxable - 500000.0) * 0.10) / 12.0, 2)
+        deductions["TDS"] = tds
+
+        # Fetch custom Variable Pay Entries (bonuses or TDS overrides)
+        var_res = await db.execute(
+            select(HRVariablePayEntry).where(
+                and_(
+                    HRVariablePayEntry.organization_id == org_id,
+                    HRVariablePayEntry.user_id == es.user_id,
+                    HRVariablePayEntry.payroll_run_id == run.id,
+                    HRVariablePayEntry.is_deleted == False
+                )
+            )
+        )
+        var_entries = var_res.scalars().all()
+        for ve in var_entries:
+            if ve.entry_type == SalaryComponentType.EARNING:
+                earnings[ve.component_code] = round(ve.amount, 2)
+                gross_earnings += round(ve.amount, 2)
+            else:
+                deductions[ve.component_code] = round(ve.amount, 2)
+
+        # Re-calc Gross and Deductions
+        gross_earnings = max(0.0, gross_earnings - lop_deduction)
+        total_deductions = sum(deductions.values())
+        net_pay = max(0.0, gross_earnings - total_deductions)
+
+        # Create Payslip record
+        payslip = HRPayslip(
+            organization_id=org_id,
+            user_id=es.user_id,
+            payroll_run_id=run.id,
+            earnings_breakdown=earnings,
+            deductions_breakdown=deductions,
+            gross_earnings=gross_earnings,
+            total_deductions=total_deductions,
+            net_pay=net_pay,
+            lop_days=lop_days,
+        )
+        db.add(payslip)
+
+    run.status = PayrollRunStatus.DRAFT
+    await db.commit()
+    await db.refresh(run)
+    return run
+
+
+async def finalize_payroll_run(db: AsyncSession, org_id: int, run_id: int, manager_id: int) -> HRPayrollRun:
+    res = await db.execute(
+        select(HRPayrollRun).where(
+            and_(
+                HRPayrollRun.organization_id == org_id,
+                HRPayrollRun.id == run_id,
+                HRPayrollRun.is_deleted == False
+            )
+        )
+    )
+    run = res.scalar_one_or_none()
+    if not run:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payroll run not found")
+
+    # Finalize
+    run.status = PayrollRunStatus.FINALIZED
+    run.processed_by_id = manager_id
+    run.processed_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(run)
+    return run
+
+
+# --- Variable Pay Entries ---
+
+async def create_variable_pay_entry(db: AsyncSession, org_id: int, run_id: int, payload: VariablePayEntryCreate) -> HRVariablePayEntry:
+    # Verify run exists
+    run_res = await db.execute(
+        select(HRPayrollRun).where(
+            and_(HRPayrollRun.organization_id == org_id, HRPayrollRun.id == run_id, HRPayrollRun.is_deleted == False)
+        )
+    )
+    if not run_res.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payroll run ID")
+
+    entry = HRVariablePayEntry(
+        organization_id=org_id,
+        user_id=payload.user_id,
+        payroll_run_id=run_id,
+        component_code=payload.component_code.upper(),
+        amount=payload.amount,
+        entry_type=payload.entry_type,
+        reason=payload.reason,
+        others=payload.others,
+    )
+    db.add(entry)
+    await db.commit()
+    await db.refresh(entry)
+    return entry
+
+
+async def delete_variable_pay_entry(db: AsyncSession, org_id: int, id: int) -> None:
+    res = await db.execute(
+        select(HRVariablePayEntry).where(
+            and_(
+                HRVariablePayEntry.organization_id == org_id,
+                HRVariablePayEntry.id == id,
+                HRVariablePayEntry.is_deleted == False
+            )
+        )
+    )
+    entry = res.scalar_one_or_none()
+    if not entry:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Variable pay entry not found")
+
+    entry.is_deleted = True
+    entry.deleted_at = datetime.utcnow()
+    await db.commit()
+
+
+# --- Payslips & PDF Generation ---
+
+async def list_payslips(db: AsyncSession, org_id: int, run_id: Optional[int] = None, user_id: Optional[int] = None) -> list[HRPayslip]:
+    conditions = [HRPayslip.organization_id == org_id, HRPayslip.is_deleted == False]
+    if run_id:
+        conditions.append(HRPayslip.payroll_run_id == run_id)
+    if user_id:
+        conditions.append(HRPayslip.user_id == user_id)
+
+    res = await db.execute(
+        select(HRPayslip).where(and_(*conditions))
+        .options(
+            selectinload(HRPayslip.user),
+            selectinload(HRPayslip.payroll_run)
+        )
+        .order_by(HRPayslip.id.desc())
+    )
+    return list(res.scalars().all())
+
+
+async def get_payslip(db: AsyncSession, org_id: int, public_id: uuid.UUID) -> HRPayslip:
+    res = await db.execute(
+        select(HRPayslip).where(
+            and_(HRPayslip.organization_id == org_id, HRPayslip.public_id == public_id, HRPayslip.is_deleted == False)
+        ).options(
+            selectinload(HRPayslip.user).selectinload(User.employee_profile).selectinload(HREmployeeProfile.department),
+            selectinload(HRPayslip.user).selectinload(User.employee_profile).selectinload(HREmployeeProfile.designation),
+            selectinload(HRPayslip.payroll_run)
+        )
+    )
+    ps = res.scalar_one_or_none()
+    if not ps:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payslip not found")
+    return ps
+
+
+def generate_payslip_pdf(payslip: HRPayslip) -> BytesIO:
+    """Generates a professional, print-ready payslip PDF in-memory using ReportLab."""
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    import calendar
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=36, bottomMargin=36)
+    story = []
+    
+    styles = getSampleStyleSheet()
+    
+    # Custom colors
+    primary_color = colors.HexColor('#002B49') # Sleeek dark blue
+    border_color = colors.HexColor('#CCCCCC')
+    
+    title_style = ParagraphStyle(
+        'TitleStyle',
+        parent=styles['Heading1'],
+        fontName='Helvetica-Bold',
+        fontSize=18,
+        leading=22,
+        textColor=primary_color,
+        alignment=1 # Centered
+    )
+    
+    subtitle_style = ParagraphStyle(
+        'SubStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=10,
+        leading=14,
+        textColor=colors.HexColor('#666666'),
+        alignment=1
+    )
+    
+    bold_style = ParagraphStyle(
+        'BoldStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=10,
+        leading=14,
+    )
+    
+    normal_style = ParagraphStyle(
+        'NormalStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=10,
+        leading=14,
+    )
+    
+    header_style = ParagraphStyle(
+        'HeaderStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=11,
+        leading=15,
+        textColor=colors.white,
+    )
+
+    # 1. Title Block
+    story.append(Paragraph(f"{payslip.user.organization.name if payslip.user.organization else 'GRAVIT LOGISTICS'}", title_style))
+    month_name = calendar.month_name[payslip.payroll_run.month]
+    story.append(Paragraph(f"Payslip for the month of {month_name} {payslip.payroll_run.year}", subtitle_style))
+    story.append(Spacer(1, 15))
+
+    # 2. Employee Details Block Table
+    profile = payslip.user.employee_profile if payslip.user else None
+    
+    details_data = [
+        [
+            Paragraph("Employee Name:", bold_style),
+            Paragraph(f"{payslip.user.full_name or payslip.user.username}", normal_style),
+            Paragraph("Employee ID:", bold_style),
+            Paragraph(f"{profile.employee_id if profile else '—'}", normal_style)
+        ],
+        [
+            Paragraph("Department:", bold_style),
+            Paragraph(f"{profile.department.name if profile and profile.department else '—'}", normal_style),
+            Paragraph("Designation:", bold_style),
+            Paragraph(f"{profile.designation.name if profile and profile.designation else '—'}", normal_style)
+        ],
+        [
+            Paragraph("Bank Name:", bold_style),
+            Paragraph(f"{profile.bank_name if profile and profile.bank_name else '—'}", normal_style),
+            Paragraph("Account No:", bold_style),
+            Paragraph(f"{profile.bank_account_number if profile and profile.bank_account_number else '—'}", normal_style)
+        ],
+        [
+            Paragraph("PAN Number:", bold_style),
+            Paragraph(f"{profile.pan_number if profile and profile.pan_number else '—'}", normal_style),
+            Paragraph("LOP Days:", bold_style),
+            Paragraph(f"{payslip.lop_days}", normal_style)
+        ]
+    ]
+    
+    # 540 width total
+    details_table = Table(details_data, colWidths=[110, 160, 110, 160])
+    details_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('LINEBELOW', (0,0), (-1,-1), 0.5, colors.HexColor('#EEEEEE')),
+    ]))
+    
+    story.append(details_table)
+    story.append(Spacer(1, 20))
+
+    # 3. Earnings & Deductions Tables side-by-side
+    earnings_list = [[Paragraph("Earnings Component", header_style), Paragraph("Amount (INR)", header_style)]]
+    for k, v in payslip.earnings_breakdown.items():
+        earnings_list.append([Paragraph(k, normal_style), Paragraph(f"₹{v:,.2f}", normal_style)])
+        
+    deductions_list = [[Paragraph("Deductions Component", header_style), Paragraph("Amount (INR)", header_style)]]
+    for k, v in payslip.deductions_breakdown.items():
+        deductions_list.append([Paragraph(k, normal_style), Paragraph(f"₹{v:,.2f}", normal_style)])
+
+    # Pad the shorter list to match lengths
+    max_len = max(len(earnings_list), len(deductions_list))
+    while len(earnings_list) < max_len:
+        earnings_list.append([Paragraph("", normal_style), Paragraph("", normal_style)])
+    while len(deductions_list) < max_len:
+        deductions_list.append([Paragraph("", normal_style), Paragraph("", normal_style)])
+
+    # Combined side by side structure
+    combined_data = []
+    for i in range(max_len):
+        combined_data.append([
+            earnings_list[i][0], earnings_list[i][1],
+            Paragraph("", normal_style), # Spacer column
+            deductions_list[i][0], deductions_list[i][1]
+        ])
+
+    # 540 width total: E_name(170), E_amt(90), Spacer(20), D_name(170), D_amt(90)
+    payslip_table = Table(combined_data, colWidths=[170, 90, 20, 170, 90])
+    payslip_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (1,0), primary_color),
+        ('BACKGROUND', (3,0), (4,0), primary_color),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('LINEBELOW', (0,0), (1,-1), 0.5, colors.HexColor('#EAEAEA')),
+        ('LINEBELOW', (3,0), (4,-1), 0.5, colors.HexColor('#EAEAEA')),
+        ('LINEBELOW', (0,0), (1,0), 1, primary_color),
+        ('LINEBELOW', (3,0), (4,0), 1, primary_color),
+    ]))
+    
+    story.append(payslip_table)
+    story.append(Spacer(1, 15))
+
+    # 4. Totals Block Table
+    totals_data = [
+        [
+            Paragraph("Gross Earnings:", bold_style),
+            Paragraph(f"₹{payslip.gross_earnings:,.2f}", bold_style),
+            Paragraph("", normal_style),
+            Paragraph("Total Deductions:", bold_style),
+            Paragraph(f"₹{payslip.total_deductions:,.2f}", bold_style)
+        ]
+    ]
+    
+    totals_table = Table(totals_data, colWidths=[170, 90, 20, 170, 90])
+    totals_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('LINEBELOW', (0,0), (1,-1), 1, primary_color),
+        ('LINEBELOW', (3,0), (4,-1), 1, primary_color),
+    ]))
+    story.append(totals_table)
+    story.append(Spacer(1, 20))
+
+    # 5. Net Pay Summary Banner
+    net_data = [
+        [
+            Paragraph("NET TAKE HOME PAY:", ParagraphStyle('NetLbl', parent=bold_style, textColor=colors.white, fontSize=11)),
+            Paragraph(f"INR {payslip.net_pay:,.2f}", ParagraphStyle('NetVal', parent=bold_style, textColor=colors.white, fontSize=12, alignment=2))
+        ]
+    ]
+    
+    net_table = Table(net_data, colWidths=[200, 340])
+    net_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), primary_color),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('TOPPADDING', (0,0), (-1,-1), 10),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+        ('LEFTPADDING', (0,0), (-1,-1), 12),
+        ('RIGHTPADDING', (0,0), (-1,-1), 12),
+    ]))
+    story.append(net_table)
+    story.append(Spacer(1, 40))
+
+    # 6. Signatures block
+    sig_data = [
+        [
+            Paragraph("_____________________________<br/>Employer Signature", normal_style),
+            Paragraph("", normal_style),
+            Paragraph("_____________________________<br/>Employee Signature", normal_style)
+        ]
+    ]
+    sig_table = Table(sig_data, colWidths=[220, 100, 220])
+    sig_table.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+    ]))
+    story.append(sig_table)
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
 

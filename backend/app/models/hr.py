@@ -335,3 +335,205 @@ class HRLeaveRequest(BaseModel, TenantAwareMixin):
     def __repr__(self) -> str:
         return f"<HRLeaveRequest(id={self.id}, user_id={self.user_id}, status={self.status.value})>"
 
+
+# ===========================================================================
+# Payroll Management Models
+# ===========================================================================
+
+class SalaryComponentType(str, enum.Enum):
+    EARNING = "earning"
+    DEDUCTION = "deduction"
+
+
+class SalaryCalculationType(str, enum.Enum):
+    FLAT = "flat"
+    FORMULA = "formula"
+
+
+class PayrollRunStatus(str, enum.Enum):
+    DRAFT = "draft"
+    PROCESSING = "processing"
+    FINALIZED = "finalized"
+
+
+class HRSalaryComponent(BaseModel, TenantAwareMixin):
+    """Salary component configuration, e.g. Basic, HRA, PF, etc."""
+    __tablename__ = "hr_salary_components"
+
+    public_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, unique=True, index=True, nullable=False, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    code: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    component_type: Mapped[SalaryComponentType] = mapped_column(
+        Enum(SalaryComponentType, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+    )
+    is_statutory: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_taxable: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    others: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    def __repr__(self) -> str:
+        return f"<HRSalaryComponent(id={self.id}, code={self.code!r}, type={self.component_type.value})>"
+
+
+class HRSalaryStructure(BaseModel, TenantAwareMixin):
+    """Salary structure templates defining how earnings/deductions are calculated."""
+    __tablename__ = "hr_salary_structures"
+
+    public_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, unique=True, index=True, nullable=False, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    others: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    # Relationships
+    items: Mapped[list["HRSalaryStructureItem"]] = relationship(
+        "HRSalaryStructureItem", back_populates="structure", cascade="all, delete-orphan"
+    )
+
+    def __repr__(self) -> str:
+        return f"<HRSalaryStructure(id={self.id}, name={self.name!r})>"
+
+
+class HRSalaryStructureItem(BaseModel):
+    """Link table between structures and components, with calculation rules."""
+    __tablename__ = "hr_salary_structure_items"
+
+    structure_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("hr_salary_structures.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    salary_component_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("hr_salary_components.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    calculation_type: Mapped[SalaryCalculationType] = mapped_column(
+        Enum(SalaryCalculationType, values_callable=lambda x: [e.value for e in x]),
+        default=SalaryCalculationType.FLAT, nullable=False,
+    )
+    value_expr: Mapped[str] = mapped_column(String(255), nullable=False)  # flat amount (e.g. "1800") or expression ("0.5 * CTC")
+    others: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    # Relationships
+    structure: Mapped["HRSalaryStructure"] = relationship("HRSalaryStructure", back_populates="items")
+    component: Mapped["HRSalaryComponent"] = relationship("HRSalaryComponent")
+
+    def __repr__(self) -> str:
+        return f"<HRSalaryStructureItem(structure_id={self.structure_id}, component_id={self.salary_component_id})>"
+
+
+class HREmployeeSalary(BaseModel, TenantAwareMixin):
+    """Maps employee user to a salary structure and sets annual CTC."""
+    __tablename__ = "hr_employee_salaries"
+
+    public_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, unique=True, index=True, nullable=False, default=uuid.uuid4
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True
+    )
+    structure_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("hr_salary_structures.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    ctc: Mapped[float] = mapped_column(nullable=False)  # Annual CTC
+    effective_from: Mapped[date] = mapped_column(Date, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    others: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User")
+    structure: Mapped["HRSalaryStructure"] = relationship("HRSalaryStructure")
+
+    def __repr__(self) -> str:
+        return f"<HREmployeeSalary(id={self.id}, user_id={self.user_id}, ctc={self.ctc})>"
+
+
+class HRPayrollRun(BaseModel, TenantAwareMixin):
+    """Monthly payroll processing cycles."""
+    __tablename__ = "hr_payroll_runs"
+
+    public_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, unique=True, index=True, nullable=False, default=uuid.uuid4
+    )
+    month: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    year: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    status: Mapped[PayrollRunStatus] = mapped_column(
+        Enum(PayrollRunStatus, values_callable=lambda x: [e.value for e in x]),
+        default=PayrollRunStatus.DRAFT, nullable=False, index=True
+    )
+    processed_by_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    others: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    # Relationships
+    processed_by: Mapped[Optional["User"]] = relationship("User")
+    payslips: Mapped[list["HRPayslip"]] = relationship("HRPayslip", back_populates="payroll_run", cascade="all, delete-orphan")
+
+    def __repr__(self) -> str:
+        return f"<HRPayrollRun(id={self.id}, month={self.month}, year={self.year}, status={self.status.value})>"
+
+
+class HRVariablePayEntry(BaseModel, TenantAwareMixin):
+    """Custom overrides (incentives, bonuses, TDS manual overrides) per run, per employee."""
+    __tablename__ = "hr_variable_pay_entries"
+
+    public_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, unique=True, index=True, nullable=False, default=uuid.uuid4
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    payroll_run_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("hr_payroll_runs.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    component_code: Mapped[str] = mapped_column(String(50), nullable=False)  # e.g. "BONUS", "INCENTIVE", "TDS_OVERRIDE"
+    amount: Mapped[float] = mapped_column(nullable=False)
+    entry_type: Mapped[SalaryComponentType] = mapped_column(
+        Enum(SalaryComponentType, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+    )
+    reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    others: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User")
+    payroll_run: Mapped["HRPayrollRun"] = relationship("HRPayrollRun")
+
+    def __repr__(self) -> str:
+        return f"<HRVariablePayEntry(id={self.id}, user_id={self.user_id}, amount={self.amount})>"
+
+
+class HRPayslip(BaseModel, TenantAwareMixin):
+    """Processed payslip records for an employee."""
+    __tablename__ = "hr_payslips"
+
+    public_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, unique=True, index=True, nullable=False, default=uuid.uuid4
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    payroll_run_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("hr_payroll_runs.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    
+    # Store dynamic details as JSON
+    earnings_breakdown: Mapped[dict] = mapped_column(JSON, nullable=False)
+    deductions_breakdown: Mapped[dict] = mapped_column(JSON, nullable=False)
+    
+    gross_earnings: Mapped[float] = mapped_column(nullable=False)
+    total_deductions: Mapped[float] = mapped_column(nullable=False)
+    net_pay: Mapped[float] = mapped_column(nullable=False)
+    lop_days: Mapped[float] = mapped_column(default=0.0, nullable=False)
+    others: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User")
+    payroll_run: Mapped["HRPayrollRun"] = relationship("HRPayrollRun", back_populates="payslips")
+
+    def __repr__(self) -> str:
+        return f"<HRPayslip(id={self.id}, user_id={self.user_id}, net_pay={self.net_pay})>"
+
+

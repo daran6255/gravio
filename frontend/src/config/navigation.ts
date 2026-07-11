@@ -15,6 +15,9 @@ import {
 	PendingActions as TimesheetIcon,
 	PeopleAltOutlined as HRIcon,
 	CalendarMonthOutlined as LeaveIcon,
+	Settings as StructuresIcon,
+	MonetizationOn as RunsIcon,
+	ReceiptLong as PayslipsIcon,
 } from '@mui/icons-material';
 import type { SvgIconComponent } from '@mui/icons-material';
 
@@ -102,7 +105,6 @@ export const topNavigation: NavigationItem[] = [
 	{
 		label: 'HR',
 		isSection: true,
-		roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
 		children: [
 			{
 				label: 'Employees',
@@ -126,7 +128,23 @@ export const topNavigation: NavigationItem[] = [
 				label: 'Leaves',
 				path: '/hr/leaves',
 				icon: LeaveIcon,
-				roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
+			},
+			{
+				label: 'Salary Config',
+				path: '/hr/payroll/structures',
+				icon: StructuresIcon,
+				roles: ['admin', 'hr_admin', 'hr_manager'],
+			},
+			{
+				label: 'Payroll Engine',
+				path: '/hr/payroll/runs',
+				icon: RunsIcon,
+				roles: ['admin', 'hr_admin', 'hr_manager'],
+			},
+			{
+				label: 'My Payslips',
+				path: '/hr/payslips',
+				icon: PayslipsIcon,
 			},
 		],
 	},

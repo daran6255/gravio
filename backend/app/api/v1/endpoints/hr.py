@@ -12,6 +12,7 @@ Routes:
 import uuid
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -23,7 +24,13 @@ from app.schemas.hr import (
     EmployeeProfileCreate, EmployeeProfileUpdate, EmployeeListItem, EmployeeResponse,
     LeaveTypeCreate, LeaveTypeUpdate, LeaveTypeResponse,
     LeaveBalanceUpdate, LeaveBalanceResponse,
-    LeaveRequestCreate, LeaveRequestUpdate, LeaveRequestResponse, LeaveApprovalRequest
+    LeaveRequestCreate, LeaveRequestUpdate, LeaveRequestResponse, LeaveApprovalRequest,
+    SalaryComponentCreate, SalaryComponentUpdate, SalaryComponentResponse,
+    SalaryStructureCreate, SalaryStructureUpdate, SalaryStructureResponse,
+    EmployeeSalaryCreate, EmployeeSalaryUpdate, EmployeeSalaryResponse,
+    PayrollRunCreate, PayrollRunUpdate, PayrollRunResponse,
+    VariablePayEntryCreate, VariablePayEntryResponse,
+    PayslipResponse
 )
 from app.schemas.common import PaginatedResponse
 from app.services import hr as hr_service
@@ -456,4 +463,305 @@ async def cancel_request(
     db: AsyncSession = Depends(get_db),
 ):
     return await hr_service.cancel_leave_request(db, current_user.organization_id, public_id, current_user.id)
+
+
+# ===========================================================================
+# Payroll Components Config
+# ===========================================================================
+
+@router.get(
+    "/payroll/components",
+    response_model=list[SalaryComponentResponse],
+    summary="List salary components",
+)
+async def list_salary_components(
+    current_user: User = Depends(require_hr_viewer),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.list_salary_components(db, current_user.organization_id)
+
+
+@router.post(
+    "/payroll/components",
+    response_model=SalaryComponentResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a salary component",
+)
+async def create_salary_component(
+    payload: SalaryComponentCreate,
+    current_user: User = Depends(require_hr_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.create_salary_component(db, current_user.organization_id, payload)
+
+
+@router.patch(
+    "/payroll/components/{id}",
+    response_model=SalaryComponentResponse,
+    summary="Update a salary component",
+)
+async def update_salary_component(
+    id: int,
+    payload: SalaryComponentUpdate,
+    current_user: User = Depends(require_hr_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.update_salary_component(db, current_user.organization_id, id, payload)
+
+
+@router.delete(
+    "/payroll/components/{id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a salary component",
+)
+async def delete_salary_component(
+    id: int,
+    current_user: User = Depends(require_hr_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    await hr_service.delete_salary_component(db, current_user.organization_id, id)
+
+
+# ===========================================================================
+# Salary Structures Config
+# ===========================================================================
+
+@router.get(
+    "/payroll/structures",
+    response_model=list[SalaryStructureResponse],
+    summary="List salary structures",
+)
+async def list_salary_structures(
+    current_user: User = Depends(require_hr_viewer),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.list_salary_structures(db, current_user.organization_id)
+
+
+@router.post(
+    "/payroll/structures",
+    response_model=SalaryStructureResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a salary structure template",
+)
+async def create_salary_structure(
+    payload: SalaryStructureCreate,
+    current_user: User = Depends(require_hr_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.create_salary_structure(db, current_user.organization_id, payload)
+
+
+@router.patch(
+    "/payroll/structures/{id}",
+    response_model=SalaryStructureResponse,
+    summary="Update a salary structure template",
+)
+async def update_salary_structure(
+    id: int,
+    payload: SalaryStructureUpdate,
+    current_user: User = Depends(require_hr_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.update_salary_structure(db, current_user.organization_id, id, payload)
+
+
+@router.delete(
+    "/payroll/structures/{id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a salary structure template",
+)
+async def delete_salary_structure(
+    id: int,
+    current_user: User = Depends(require_hr_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    await hr_service.delete_salary_structure(db, current_user.organization_id, id)
+
+
+# ===========================================================================
+# Employee Salary Allocations
+# ===========================================================================
+
+@router.get(
+    "/payroll/salaries/{user_id}",
+    response_model=Optional[EmployeeSalaryResponse],
+    summary="Get employee salary setup",
+)
+async def get_employee_salary(
+    user_id: int,
+    current_user: User = Depends(require_hr_viewer),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.get_employee_salary(db, current_user.organization_id, user_id)
+
+
+@router.post(
+    "/payroll/salaries",
+    response_model=EmployeeSalaryResponse,
+    summary="Assign or update employee salary setup",
+)
+async def assign_employee_salary(
+    payload: EmployeeSalaryCreate,
+    current_user: User = Depends(require_hr_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.create_or_update_employee_salary(db, current_user.organization_id, payload)
+
+
+# ===========================================================================
+# Payroll Runs
+# ===========================================================================
+
+@router.get(
+    "/payroll/runs",
+    response_model=list[PayrollRunResponse],
+    summary="List monthly payroll runs",
+)
+async def list_payroll_runs(
+    current_user: User = Depends(require_hr_viewer),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.list_payroll_runs(db, current_user.organization_id)
+
+
+@router.post(
+    "/payroll/runs",
+    response_model=PayrollRunResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new monthly payroll run",
+)
+async def create_payroll_run(
+    payload: PayrollRunCreate,
+    current_user: User = Depends(require_hr_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.create_payroll_run(db, current_user.organization_id, payload)
+
+
+@router.post(
+    "/payroll/runs/{id}/calculate",
+    response_model=PayrollRunResponse,
+    summary="Execute calculations for a payroll run",
+)
+async def calculate_payroll(
+    id: int,
+    current_user: User = Depends(require_hr_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.run_payroll_calculations(db, current_user.organization_id, id)
+
+
+@router.post(
+    "/payroll/runs/{id}/finalize",
+    response_model=PayrollRunResponse,
+    summary="Finalize and lock a payroll run",
+)
+async def finalize_payroll(
+    id: int,
+    current_user: User = Depends(require_hr_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.finalize_payroll_run(db, current_user.organization_id, id, current_user.id)
+
+
+# ===========================================================================
+# Variable Pay Entries
+# ===========================================================================
+
+@router.post(
+    "/payroll/runs/{run_id}/variable-pay",
+    response_model=VariablePayEntryResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add a variable pay entry to a payroll run",
+)
+async def create_variable_pay_entry(
+    run_id: int,
+    payload: VariablePayEntryCreate,
+    current_user: User = Depends(require_hr_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.create_variable_pay_entry(db, current_user.organization_id, run_id, payload)
+
+
+@router.delete(
+    "/payroll/variable-pay/{id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a variable pay entry",
+)
+async def delete_variable_pay_entry(
+    id: int,
+    current_user: User = Depends(require_hr_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    await hr_service.delete_variable_pay_entry(db, current_user.organization_id, id)
+
+
+# ===========================================================================
+# Payslips & PDF Download
+# ===========================================================================
+
+@router.get(
+    "/payroll/payslips",
+    response_model=list[PayslipResponse],
+    summary="List employee payslips",
+)
+async def list_payslips(
+    run_id: Optional[int] = Query(None),
+    user_id: Optional[int] = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    # Viewer roles can list anyone's payslips, standard users only their own
+    is_hr_viewer = current_user.role in HR_VIEWER_ROLES
+    target_user_id = user_id
+    if not is_hr_viewer:
+        target_user_id = current_user.id
+        
+    return await hr_service.list_payslips(db, current_user.organization_id, run_id=run_id, user_id=target_user_id)
+
+
+@router.get(
+    "/payroll/payslips/{public_id}",
+    response_model=PayslipResponse,
+    summary="Get details of a specific payslip",
+)
+async def get_payslip(
+    public_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    ps = await hr_service.get_payslip(db, current_user.organization_id, public_id)
+    # Check permissions
+    is_hr_viewer = current_user.role in HR_VIEWER_ROLES
+    if ps.user_id != current_user.id and not is_hr_viewer:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    return ps
+
+
+@router.get(
+    "/payroll/payslips/{public_id}/pdf",
+    summary="Download a print-ready payslip PDF",
+)
+async def download_payslip_pdf(
+    public_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    ps = await hr_service.get_payslip(db, current_user.organization_id, public_id)
+    # Check permissions
+    is_hr_viewer = current_user.role in HR_VIEWER_ROLES
+    if ps.user_id != current_user.id and not is_hr_viewer:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    pdf_buffer = hr_service.generate_payslip_pdf(ps)
+    month_str = str(ps.payroll_run.month).zfill(2)
+    filename = f"payslip_{ps.user.username}_{ps.payroll_run.year}_{month_str}.pdf"
+
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 
