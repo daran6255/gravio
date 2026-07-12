@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, Button, Grid, Typography, useTheme } from '@mui/material';
-import { AssignmentOutlined as EmptyIcon } from '@mui/icons-material';
+import { Box, Button, CircularProgress, Grid, Stack, Typography, alpha, useTheme } from '@mui/material';
+import { AssignmentOutlined as EmptyIcon, AutoAwesome as SeedIcon } from '@mui/icons-material';
 import type { HRChecklistTemplate } from '../../../../models/hr';
 import TemplateCard from './TemplateCard';
 
@@ -10,9 +10,11 @@ interface TemplatesGridProps {
 	onCreateClick: () => void;
 	onEdit: (template: HRChecklistTemplate) => void;
 	onDelete: (template: HRChecklistTemplate) => void;
+	onSeedDefaults: () => void;
+	seeding: boolean;
 }
 
-const TemplatesGrid: React.FC<TemplatesGridProps> = ({ templates, canManage, onCreateClick, onEdit, onDelete }) => {
+const TemplatesGrid: React.FC<TemplatesGridProps> = ({ templates, canManage, onCreateClick, onEdit, onDelete, onSeedDefaults, seeding }) => {
 	const theme = useTheme();
 
 	if (templates.length === 0) {
@@ -23,7 +25,24 @@ const TemplatesGrid: React.FC<TemplatesGridProps> = ({ templates, canManage, onC
 				<Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 3 }}>
 					Create templates outlining standard checklists for onboarding engineers, admins, exits, etc.
 				</Typography>
-				{canManage && <Button variant="contained" onClick={onCreateClick}>Create Template</Button>}
+				{canManage && (
+					<Stack direction="row" spacing={1.5} justifyContent="center">
+						<Button variant="contained" onClick={onCreateClick}>Create Template</Button>
+						<Button
+							variant="outlined"
+							startIcon={seeding ? <CircularProgress size={16} color="inherit" /> : <SeedIcon />}
+							onClick={onSeedDefaults}
+							disabled={seeding}
+							sx={{
+								textTransform: 'none', fontWeight: 700, borderRadius: '12px',
+								borderColor: alpha(theme.palette.primary.main, 0.35), color: 'primary.main',
+								'&:hover': { borderColor: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.06) },
+							}}
+						>
+							{seeding ? 'Adding Templates…' : 'Add Sample Templates'}
+						</Button>
+					</Stack>
+				)}
 			</Box>
 		);
 	}

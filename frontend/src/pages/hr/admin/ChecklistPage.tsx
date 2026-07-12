@@ -4,7 +4,7 @@ import { Add as AddIcon, PlayArrow as LaunchIcon } from '@mui/icons-material';
 import PageHeader from '../../../components/common/page-header';
 import { responsiveStyles } from '../../../theme';
 import {
-	fetchChecklistTemplates, deleteChecklistTemplate,
+	fetchChecklistTemplates, createChecklistTemplate, deleteChecklistTemplate,
 	fetchChecklistInstances, toggleChecklistTask,
 	fetchEmployees
 } from '../../../store/slices/hrSlice';
@@ -20,6 +20,7 @@ import {
 	TemplateDialog,
 	LaunchChecklistDialog,
 	TrackerDetailDialog,
+	DEFAULT_CHECKLIST_TEMPLATES,
 } from '../../../components/hr/admin/lifecycle';
 
 const ChecklistPage: React.FC = () => {
@@ -41,6 +42,7 @@ const ChecklistPage: React.FC = () => {
 	const [editTemplate, setEditTemplate] = useState<HRChecklistTemplate | null>(null);
 	const [deleteTarget, setDeleteTarget] = useState<HRChecklistTemplate | null>(null);
 	const [deleting, setDeleting] = useState(false);
+	const [seeding, setSeeding] = useState(false);
 
 	const [launchDialogOpen, setLaunchDialogOpen] = useState(false);
 
@@ -64,6 +66,25 @@ const ChecklistPage: React.FC = () => {
 	const handleOpenTemplateDialog = (tmpl?: HRChecklistTemplate) => {
 		setEditTemplate(tmpl || null);
 		setTemplateDialogOpen(true);
+	};
+
+	const handleSeedDefaults = async () => {
+		setSeeding(true);
+		try {
+			for (const tmpl of DEFAULT_CHECKLIST_TEMPLATES) {
+				await dispatch(createChecklistTemplate({
+					name: tmpl.name,
+					checklist_type: tmpl.checklist_type,
+					tasks: tmpl.tasks,
+					is_active: true,
+				})).unwrap();
+			}
+			success('Sample templates added');
+		} catch {
+			error('Some sample templates could not be added');
+		} finally {
+			setSeeding(false);
+		}
 	};
 
 	const handleConfirmDelete = async () => {
@@ -169,6 +190,8 @@ const ChecklistPage: React.FC = () => {
 									onCreateClick={() => handleOpenTemplateDialog()}
 									onEdit={(tmpl) => handleOpenTemplateDialog(tmpl)}
 									onDelete={(tmpl) => setDeleteTarget(tmpl)}
+									onSeedDefaults={handleSeedDefaults}
+									seeding={seeding}
 								/>
 							)}
 						</Stack>

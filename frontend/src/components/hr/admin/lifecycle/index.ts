@@ -6,3 +6,5 @@ export { default as TemplatesGrid } from './TemplatesGrid';
 export { default as TemplateDialog } from './TemplateDialog';
 export { default as LaunchChecklistDialog } from './LaunchChecklistDialog';
 export { default as TrackerDetailDialog } from './TrackerDetailDialog';
+export { DEFAULT_CHECKLIST_TEMPLATES } from './defaultTemplates';
+export type { DefaultChecklistTemplate } from './defaultTemplates';
