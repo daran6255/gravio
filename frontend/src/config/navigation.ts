@@ -122,7 +122,7 @@ export const topNavigation: NavigationItem[] = [
 				label: 'Lifecycle',
 				path: '/hr/admin/onboarding',
 				icon: OnboardingIcon,
-				roles: ['admin', 'hr_admin'],
+				roles: ['admin', 'hr_admin', 'hr_manager'],
 			},
 			{
 				label: 'Documents',

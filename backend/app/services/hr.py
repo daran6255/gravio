@@ -4,7 +4,7 @@ Handles Departments, Designations, and Employee Profiles.
 All queries are org-scoped via organization_id.
 """
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import uuid
 from typing import Optional
 from io import BytesIO
@@ -2128,15 +2128,22 @@ async def create_checklist_instance(db: AsyncSession, org_id: int, payload: Chec
     if not u_res.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid employee user ID")
 
-    # Initialize task statuses
+    # Initialize task statuses, seeding a computed due_date from each task's
+    # optional "due_days" (days from launch) so the tracker UI can flag overdue items.
+    launch_date = date.today()
     task_statuses = {}
     for task in tmpl.tasks:
         task_id = task.get("id")
         if task_id:
+            due_days = task.get("due_days")
+            due_date = None
+            if isinstance(due_days, (int, float)):
+                due_date = (launch_date + timedelta(days=int(due_days))).isoformat()
             task_statuses[task_id] = {
                 "completed": False,
                 "completed_by_id": None,
-                "completed_at": None
+                "completed_at": None,
+                "due_date": due_date,
             }
 
     inst = HRChecklistInstance(
@@ -2149,7 +2156,27 @@ async def create_checklist_instance(db: AsyncSession, org_id: int, payload: Chec
     )
     db.add(inst)
     await db.commit()
-    
+
+    # Launching a lifecycle checklist marks the employee as being mid-transition:
+    # onboarding -> PROBATION, offboarding -> ON_NOTICE. Skip if they're already
+    # in a terminal state (resigned/terminated) to avoid clobbering an exit record.
+    profile_res = await db.execute(
+        select(HREmployeeProfile).where(
+            and_(
+                HREmployeeProfile.organization_id == org_id,
+                HREmployeeProfile.user_id == payload.user_id,
+                HREmployeeProfile.is_deleted == False,
+            )
+        )
+    )
+    profile = profile_res.scalar_one_or_none()
+    if profile and profile.employee_status not in (EmployeeStatus.RESIGNED, EmployeeStatus.TERMINATED):
+        if tmpl.checklist_type == ChecklistType.ONBOARDING:
+            profile.employee_status = EmployeeStatus.PROBATION
+        elif tmpl.checklist_type == ChecklistType.OFFBOARDING:
+            profile.employee_status = EmployeeStatus.ON_NOTICE
+        await db.commit()
+
     # Reload with relations
     res = await db.execute(
         select(HRChecklistInstance).where(HRChecklistInstance.id == inst.id)
@@ -2184,23 +2211,51 @@ async def toggle_checklist_task(db: AsyncSession, org_id: int, id: int, task_id:
     if task_id not in task_statuses:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Task ID '{task_id}' not found in checklist")
 
+    existing = task_statuses[task_id]
     if completed:
         task_statuses[task_id] = {
+            **existing,
             "completed": True,
             "completed_by_id": actor_id,
             "completed_at": datetime.utcnow().isoformat()
         }
     else:
         task_statuses[task_id] = {
+            **existing,
             "completed": False,
             "completed_by_id": None,
             "completed_at": None
         }
 
     # Verify if all completed
+    was_completed = inst.status == ChecklistStatus.COMPLETED
     all_completed = all(v.get("completed") for v in task_statuses.values())
     inst.status = ChecklistStatus.COMPLETED if all_completed else ChecklistStatus.PENDING
     inst.task_statuses = task_statuses
+
+    # Finishing a lifecycle checklist closes out the employee's transition:
+    # onboarding complete -> ACTIVE, offboarding complete -> RESIGNED/TERMINATED
+    # (per the exit_reason captured at launch, defaulting to resigned) + exit date.
+    if all_completed and not was_completed:
+        profile_res = await db.execute(
+            select(HREmployeeProfile).where(
+                and_(
+                    HREmployeeProfile.organization_id == org_id,
+                    HREmployeeProfile.user_id == inst.user_id,
+                    HREmployeeProfile.is_deleted == False,
+                )
+            )
+        )
+        profile = profile_res.scalar_one_or_none()
+        if profile and inst.template.checklist_type == ChecklistType.ONBOARDING:
+            profile.employee_status = EmployeeStatus.ACTIVE
+        elif profile and inst.template.checklist_type == ChecklistType.OFFBOARDING:
+            exit_reason = (inst.others or {}).get("exit_reason", "resigned")
+            profile.employee_status = (
+                EmployeeStatus.TERMINATED if exit_reason == "terminated" else EmployeeStatus.RESIGNED
+            )
+            if not profile.date_of_leaving:
+                profile.date_of_leaving = date.today()
 
     await db.commit()
     await db.refresh(inst)

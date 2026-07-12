@@ -1,6 +1,8 @@
 export type ChecklistType = 'onboarding' | 'offboarding';
 export type ChecklistStatus = 'pending' | 'completed';
 
+export type ChecklistExitReason = 'resigned' | 'terminated';
+
 export interface HRChecklistTemplate {
   id: number;
   public_id: string;
@@ -10,6 +12,8 @@ export interface HRChecklistTemplate {
     id: string;
     title: string;
     role_required: string;
+    /** Days from launch this task is due by. Undefined/null = no deadline. */
+    due_days?: number | null;
   }>;
   is_active: boolean;
   others?: Record<string, any>;
@@ -31,8 +35,10 @@ export interface HRChecklistInstance {
     completed: boolean;
     completed_by_id: number | null;
     completed_at: string | null;
+    due_date?: string | null;
   }>;
-  others?: Record<string, any>;
+  /** For offboarding instances, set at launch time: drives the employee status assigned on completion. */
+  others?: { exit_reason?: ChecklistExitReason } & Record<string, any>;
   organization_id: number;
   created_at: string;
   updated_at: string;
