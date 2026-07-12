@@ -13,16 +13,16 @@ import {
 	Download as DownloadIcon,
 	AttachMoney as MoneyIcon,
 } from '@mui/icons-material';
-import PageHeader from '../../components/common/page-header';
-import { responsiveStyles } from '../../theme';
-import { hrPayslipApi } from '../../services/hrService';
+import PageHeader from '../../../components/common/page-header';
+import { responsiveStyles } from '../../../theme';
+import { hrPayslipApi } from '../../../services/hrService';
 import {
 	fetchPayrollRuns, createPayrollRun, calculatePayrollRun, finalizePayrollRun,
 	createVariablePayEntry, fetchPayslips, fetchEmployees
-} from '../../store/slices/hrSlice';
-import type { HRPayrollRun } from '../../models/hr';
-import useToast from '../../hooks/useToast';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
+} from '../../../store/slices/hrSlice';
+import type { HRPayrollRun } from '../../../models/hr';
+import useToast from '../../../hooks/useToast';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 
 const PayrollRunsPage: React.FC = () => {
 	const theme = useTheme();

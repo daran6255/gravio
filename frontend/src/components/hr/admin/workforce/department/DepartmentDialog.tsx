@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button, TextField, Stack, Select, MenuItem, FormControl, InputLabel, CircularProgress } from '@mui/material';
-import { BaseDialog } from '../../../common/dialogbox';
-import { useAppDispatch } from '../../../../store/hooks';
-import { createDepartment, updateDepartment } from '../../../../store/slices/hrSlice';
-import type { HRDepartmentListItem, HRDepartmentCreate, HRDepartmentUpdate } from '../../../../models/hr';
-import useToast from '../../../../hooks/useToast';
+import { BaseDialog } from '../../../../common/dialogbox';
+import { useAppDispatch } from '../../../../../store/hooks';
+import { createDepartment, updateDepartment } from '../../../../../store/slices/hrSlice';
+import type { HRDepartmentListItem, HRDepartmentCreate, HRDepartmentUpdate } from '../../../../../models/hr';
+import useToast from '../../../../../hooks/useToast';
 
 interface DepartmentDialogProps {
 	open: boolean;

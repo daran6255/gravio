@@ -9,13 +9,13 @@ import {
 	AutoAwesome as SeedIcon,
 	PersonOutline as PersonIcon,
 } from '@mui/icons-material';
-import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
-import { fetchDepartments, deleteDepartment, createDepartment } from '../../../../store/slices/hrSlice';
-import type { HRDepartmentListItem } from '../../../../models/hr';
-import useToast from '../../../../hooks/useToast';
-import ContextMenu, { type ActionMenuItem } from '../../../common/action-menu/ContextMenu';
-import { ConfirmationDialog } from '../../../common/dialogbox';
-import EnterpriseAvatar from '../../../common/avatar/Avatar';
+import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
+import { fetchDepartments, deleteDepartment, createDepartment } from '../../../../../store/slices/hrSlice';
+import type { HRDepartmentListItem } from '../../../../../models/hr';
+import useToast from '../../../../../hooks/useToast';
+import ContextMenu, { type ActionMenuItem } from '../../../../common/action-menu/ContextMenu';
+import { ConfirmationDialog } from '../../../../common/dialogbox';
+import EnterpriseAvatar from '../../../../common/avatar/Avatar';
 import DepartmentDialog from './DepartmentDialog';
 
 const DEFAULT_DEPARTMENTS: Array<{ name: string; description: string }> = [

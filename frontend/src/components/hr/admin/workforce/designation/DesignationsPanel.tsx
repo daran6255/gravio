@@ -11,12 +11,12 @@ import {
 	WorkOutline as DesignationIcon,
 	AutoAwesome as SeedIcon,
 } from '@mui/icons-material';
-import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
-import { fetchDesignations, deleteDesignation, fetchDepartments, createDesignation } from '../../../../store/slices/hrSlice';
-import type { HRDesignationListItem } from '../../../../models/hr';
-import useToast from '../../../../hooks/useToast';
-import ContextMenu, { type ActionMenuItem } from '../../../common/action-menu/ContextMenu';
-import { ConfirmationDialog } from '../../../common/dialogbox';
+import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
+import { fetchDesignations, deleteDesignation, fetchDepartments, createDesignation } from '../../../../../store/slices/hrSlice';
+import type { HRDesignationListItem } from '../../../../../models/hr';
+import useToast from '../../../../../hooks/useToast';
+import ContextMenu, { type ActionMenuItem } from '../../../../common/action-menu/ContextMenu';
+import { ConfirmationDialog } from '../../../../common/dialogbox';
 import DesignationDialog from './DesignationDialog';
 import GradeDistributionCard from './GradeDistributionCard';
 import CoverageCard from './CoverageCard';

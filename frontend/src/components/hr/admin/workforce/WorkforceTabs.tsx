@@ -5,7 +5,7 @@ import {
 	AccountTreeOutlined as DeptIcon,
 	WorkOutlined as DesignationIcon,
 } from '@mui/icons-material';
-import { useAppSelector } from '../../../store/hooks';
+import { useAppSelector } from '../../../../store/hooks';
 
 export type WorkforceTab = 'employees' | 'departments' | 'designations';
 

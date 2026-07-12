@@ -12,19 +12,19 @@ import {
 	Settings as SettingsIcon,
 	AssignmentInd as AssignmentIcon
 } from '@mui/icons-material';
-import PageHeader from '../../components/common/page-header';
-import { responsiveStyles } from '../../theme';
+import PageHeader from '../../../components/common/page-header';
+import { responsiveStyles } from '../../../theme';
 import {
 	fetchPayrollStructures, fetchPayrollComponents, fetchEmployees,
 	createPayrollStructure, deletePayrollStructure,
 	fetchEmployeeSalary, assignEmployeeSalary
-} from '../../store/slices/hrSlice';
+} from '../../../store/slices/hrSlice';
 import type {
 	HREmployeeSalary,
 	HRSalaryStructureItemCreate
-} from '../../models/hr';
-import useToast from '../../hooks/useToast';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
+} from '../../../models/hr';
+import useToast from '../../../hooks/useToast';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 
 const SalaryStructuresPage: React.FC = () => {
 	const theme = useTheme();

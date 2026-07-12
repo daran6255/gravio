@@ -17,19 +17,19 @@ import {
 	HistoryOutlined as HistoryIcon,
 	PeopleAltOutlined as PeopleIcon,
 } from '@mui/icons-material';
-import PageHeader from '../../components/common/page-header';
-import { responsiveStyles } from '../../theme';
+import PageHeader from '../../../components/common/page-header';
+import { responsiveStyles } from '../../../theme';
 import {
 	fetchLeaveTypes, fetchMyLeaveBalances, fetchMyLeaveRequests, fetchPendingLeaveRequests,
 	createLeaveRequest, createLeaveType, cancelLeaveRequest, approveRejectLeaveRequest
-} from '../../store/slices/hrSlice';
+} from '../../../store/slices/hrSlice';
 import type {
 	HRLeaveTypeListItem, HRLeaveBalanceResponse,
 	HRLeaveRequestCreate, HRLeaveTypeCreate
-} from '../../models/hr';
-import { LEAVE_STATUS_LABELS, LEAVE_STATUS_COLORS } from '../../models/hr';
-import useToast from '../../hooks/useToast';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
+} from '../../../models/hr';
+import { LEAVE_STATUS_LABELS, LEAVE_STATUS_COLORS } from '../../../models/hr';
+import useToast from '../../../hooks/useToast';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 
 // ---------------------------------------------------------------------------
 // Apply Leave Dialog

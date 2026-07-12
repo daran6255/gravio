@@ -19,15 +19,19 @@ interface HRTab {
 	badge?: string;
 }
 
-const HR_TABS: HRTab[] = [
-	{ label: 'Workforce', path: '/hr/workforce', icon: <WorkforceIcon /> },
-	{ label: 'Leaves', path: '/hr/leaves', icon: <LeaveIcon /> },
-	{ label: 'Salary Config', path: '/hr/payroll/structures', icon: <StructuresIcon /> },
-	{ label: 'Payroll Engine', path: '/hr/payroll/runs', icon: <RunsIcon /> },
-	{ label: 'My Payslips', path: '/hr/payslips', icon: <PayslipsIcon /> },
-	{ label: 'Lifecycle', path: '/hr/onboarding', icon: <OnboardingIcon /> },
-	{ label: 'Documents', path: '/hr/documents', icon: <DocumentsIcon /> },
-	{ label: 'Reports', path: '/hr/reports', icon: <ReportsIcon /> },
+const HR_ADMIN_TABS: HRTab[] = [
+	{ label: 'Workforce', path: '/hr/admin/workforce', icon: <WorkforceIcon /> },
+	{ label: 'Salary Config', path: '/hr/admin/payroll/structures', icon: <StructuresIcon /> },
+	{ label: 'Payroll Engine', path: '/hr/admin/payroll/runs', icon: <RunsIcon /> },
+	{ label: 'Lifecycle', path: '/hr/admin/onboarding', icon: <OnboardingIcon /> },
+	{ label: 'Documents', path: '/hr/admin/documents', icon: <DocumentsIcon /> },
+	{ label: 'Reports', path: '/hr/admin/reports', icon: <ReportsIcon /> },
+];
+
+const HR_USER_TABS: HRTab[] = [
+	{ label: 'My Profile', path: '/hr/user/profile', icon: <WorkforceIcon /> },
+	{ label: 'Leaves', path: '/hr/user/leaves', icon: <LeaveIcon /> },
+	{ label: 'My Payslips', path: '/hr/user/payslips', icon: <PayslipsIcon /> },
 ];
 
 interface HRLayoutProps {
@@ -42,7 +46,9 @@ const HRLayout: React.FC<HRLayoutProps> = ({ children, title, subtitle, actions 
 	const navigate = useNavigate();
 	const location = useLocation();
 
-	const activeTab = HR_TABS.findIndex((t) => location.pathname.startsWith(t.path));
+	const isAdminFlow = location.pathname.startsWith('/hr/admin');
+	const currentTabs = isAdminFlow ? HR_ADMIN_TABS : HR_USER_TABS;
+	const activeTab = currentTabs.findIndex((t) => location.pathname.startsWith(t.path));
 
 	return (
 		<Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -82,11 +88,11 @@ const HRLayout: React.FC<HRLayoutProps> = ({ children, title, subtitle, actions 
 					</Box>
 					{actions && <Box sx={{ display: 'flex', gap: 1 }}>{actions}</Box>}
 				</Box>
-
+ 
 				{/* Sub-navigation tabs */}
 				<Tabs
 					value={activeTab === -1 ? 0 : activeTab}
-					onChange={(_, v) => navigate(HR_TABS[v].path)}
+					onChange={(_, v) => navigate(currentTabs[v].path)}
 					variant="scrollable"
 					scrollButtons="auto"
 					sx={{
@@ -100,7 +106,7 @@ const HRLayout: React.FC<HRLayoutProps> = ({ children, title, subtitle, actions 
 						'& .Mui-selected': { fontWeight: 700 },
 					}}
 				>
-					{HR_TABS.map((tab) => (
+					{currentTabs.map((tab) => (
 						<Tab
 							key={tab.path}
 							label={tab.label}

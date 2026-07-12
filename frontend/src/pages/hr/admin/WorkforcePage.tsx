@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Container, Stack } from '@mui/material';
-import PageHeader from '../../components/common/page-header';
-import WorkforcePanel, { WorkforceTabs, type WorkforceTab } from '../../components/hr/workforce';
-import { responsiveStyles } from '../../theme';
+import PageHeader from '../../../components/common/page-header';
+import WorkforcePanel, { WorkforceTabs, type WorkforceTab } from '../../../components/hr/admin/workforce';
+import { responsiveStyles } from '../../../theme';
 
 const WorkforcePage: React.FC = () => {
 	const [tab, setTab] = useState<WorkforceTab>('employees');

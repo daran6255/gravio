@@ -10,10 +10,10 @@ import {
 	PieChart as PieIcon, Timeline as LineIcon, BarChart as BarIcon
 } from '@mui/icons-material';
 import { BarChart, PieChart, LineChart } from '@mui/x-charts';
-import HRLayout from '../../components/hr/HRLayout';
-import { fetchAllHRAnalytics } from '../../store/slices/hrSlice';
-import useToast from '../../hooks/useToast';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import HRLayout from '../../../components/hr/HRLayout';
+import { fetchAllHRAnalytics } from '../../../store/slices/hrSlice';
+import useToast from '../../../hooks/useToast';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 
 const AnalyticsDashboardPage: React.FC = () => {
 	const theme = useTheme();

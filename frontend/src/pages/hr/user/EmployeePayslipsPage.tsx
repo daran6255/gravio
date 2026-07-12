@@ -6,13 +6,13 @@ import {
 import {
 	Download as DownloadIcon,
 } from '@mui/icons-material';
-import PageHeader from '../../components/common/page-header';
-import { responsiveStyles } from '../../theme';
-import { hrPayslipApi } from '../../services/hrService';
-import { fetchPayslips, fetchPayslip } from '../../store/slices/hrSlice';
-import type { HRPayslip } from '../../models/hr';
-import useToast from '../../hooks/useToast';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import PageHeader from '../../../components/common/page-header';
+import { responsiveStyles } from '../../../theme';
+import { hrPayslipApi } from '../../../services/hrService';
+import { fetchPayslips, fetchPayslip } from '../../../store/slices/hrSlice';
+import type { HRPayslip } from '../../../models/hr';
+import useToast from '../../../hooks/useToast';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 
 const EmployeePayslipsPage: React.FC = () => {
 	const theme = useTheme();

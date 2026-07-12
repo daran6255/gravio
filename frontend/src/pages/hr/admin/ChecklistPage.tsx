@@ -12,18 +12,18 @@ import {
 	CheckCircleOutline as CheckedIcon, RadioButtonUnchecked as UncheckedIcon,
 	Person as PersonIcon, Assignment as TaskIcon, Schedule as TimeIcon
 } from '@mui/icons-material';
-import HRLayout from '../../components/hr/HRLayout';
+import HRLayout from '../../../components/hr/HRLayout';
 import {
 	fetchChecklistTemplates, createChecklistTemplate, updateChecklistTemplate, deleteChecklistTemplate,
 	fetchChecklistInstances, launchChecklistInstance, toggleChecklistTask,
 	fetchEmployees
-} from '../../store/slices/hrSlice';
+} from '../../../store/slices/hrSlice';
 import type {
 	HRChecklistTemplate,
 	HRChecklistInstance
-} from '../../models/hr';
-import useToast from '../../hooks/useToast';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
+} from '../../../models/hr';
+import useToast from '../../../hooks/useToast';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 
 const ChecklistPage: React.FC = () => {
 	const theme = useTheme();

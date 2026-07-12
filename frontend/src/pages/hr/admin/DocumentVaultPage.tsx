@@ -12,11 +12,11 @@ import {
 	Delete as DeleteIcon, VerifiedUserOutlined as VerifyActionIcon,
 	FolderSharedOutlined as VaultIcon
 } from '@mui/icons-material';
-import HRLayout from '../../components/hr/HRLayout';
-import { hrEmployeeDocumentApi } from '../../services/hrService';
-import { fetchDocuments, uploadDocument, verifyDocument, deleteDocument, fetchEmployees } from '../../store/slices/hrSlice';
-import useToast from '../../hooks/useToast';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import HRLayout from '../../../components/hr/HRLayout';
+import { hrEmployeeDocumentApi } from '../../../services/hrService';
+import { fetchDocuments, uploadDocument, verifyDocument, deleteDocument, fetchEmployees } from '../../../store/slices/hrSlice';
+import useToast from '../../../hooks/useToast';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 
 const DocumentVaultPage: React.FC = () => {
 	const theme = useTheme();

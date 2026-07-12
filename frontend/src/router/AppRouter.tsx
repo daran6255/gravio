@@ -14,14 +14,18 @@ import BillingSettings from '../pages/settings/BillingSettings';
 import { LeadsPage, DealsPage, CompaniesPage, TasksPage } from '../pages/crm';
 import { ProjectsListPage, ProjectDetailPage } from '../pages/projects';
 import TimesheetPage from '../pages/timesheets/TimesheetPage';
-import WorkforcePage from '../pages/hr/WorkforcePage';
-import LeaveDashboardPage from '../pages/hr/LeaveDashboardPage';
-import SalaryStructuresPage from '../pages/hr/SalaryStructuresPage';
-import PayrollRunsPage from '../pages/hr/PayrollRunsPage';
-import EmployeePayslipsPage from '../pages/hr/EmployeePayslipsPage';
-import ChecklistPage from '../pages/hr/ChecklistPage';
-import DocumentVaultPage from '../pages/hr/DocumentVaultPage';
-import AnalyticsDashboardPage from '../pages/hr/AnalyticsDashboardPage';
+// HR Admin Pages
+import WorkforcePage from '../pages/hr/admin/WorkforcePage';
+import SalaryStructuresPage from '../pages/hr/admin/SalaryStructuresPage';
+import PayrollRunsPage from '../pages/hr/admin/PayrollRunsPage';
+import ChecklistPage from '../pages/hr/admin/ChecklistPage';
+import DocumentVaultPage from '../pages/hr/admin/DocumentVaultPage';
+import AnalyticsDashboardPage from '../pages/hr/admin/AnalyticsDashboardPage';
+
+// HR User Pages
+import EmployeeProfilePage from '../pages/hr/user/EmployeeProfilePage';
+import LeaveDashboardPage from '../pages/hr/user/LeaveDashboardPage';
+import EmployeePayslipsPage from '../pages/hr/user/EmployeePayslipsPage';
 
 // Legacy auth links (e.g. tokenized verify/invite/reset links already sent by
 // email before the /auth prefix existed) redirect here — preserve the query
@@ -78,19 +82,32 @@ const AppRouter: React.FC = () => {
 					<Route path="projects/:publicId" element={<ProjectDetailPage />} />
 
 					{/* HR Module */}
-					<Route path="hr/workforce" element={<WorkforcePage />} />
-					{/* Legacy: Employees/Departments/Designations are now tabs inside Workforce */}
-					<Route path="hr/employees" element={<Navigate to="/hr/workforce" replace />} />
-					<Route path="hr/departments" element={<Navigate to="/hr/workforce" replace />} />
-					<Route path="hr/designations" element={<Navigate to="/hr/workforce" replace />} />
-					<Route path="hr/leaves" element={<LeaveDashboardPage />} />
-					<Route path="hr/payroll/structures" element={<SalaryStructuresPage />} />
-					<Route path="hr/payroll/runs" element={<PayrollRunsPage />} />
-					<Route path="hr/payslips" element={<EmployeePayslipsPage />} />
-					<Route path="hr/onboarding" element={<ChecklistPage />} />
-					<Route path="hr/documents" element={<DocumentVaultPage />} />
-					<Route path="hr/reports" element={<AnalyticsDashboardPage />} />
-					<Route path="hr" element={<Navigate to="/hr/workforce" replace />} />
+					{/* Admin Flow */}
+					<Route path="hr/admin/workforce" element={<WorkforcePage />} />
+					<Route path="hr/admin/payroll/structures" element={<SalaryStructuresPage />} />
+					<Route path="hr/admin/payroll/runs" element={<PayrollRunsPage />} />
+					<Route path="hr/admin/onboarding" element={<ChecklistPage />} />
+					<Route path="hr/admin/documents" element={<DocumentVaultPage />} />
+					<Route path="hr/admin/reports" element={<AnalyticsDashboardPage />} />
+
+					{/* User Flow */}
+					<Route path="hr/user/profile" element={<EmployeeProfilePage />} />
+					<Route path="hr/user/leaves" element={<LeaveDashboardPage />} />
+					<Route path="hr/user/payslips" element={<EmployeePayslipsPage />} />
+
+					{/* Legacy/Redirect routes */}
+					<Route path="hr/workforce" element={<Navigate to="/hr/admin/workforce" replace />} />
+					<Route path="hr/employees" element={<Navigate to="/hr/admin/workforce" replace />} />
+					<Route path="hr/departments" element={<Navigate to="/hr/admin/workforce" replace />} />
+					<Route path="hr/designations" element={<Navigate to="/hr/admin/workforce" replace />} />
+					<Route path="hr/leaves" element={<Navigate to="/hr/user/leaves" replace />} />
+					<Route path="hr/payroll/structures" element={<Navigate to="/hr/admin/payroll/structures" replace />} />
+					<Route path="hr/payroll/runs" element={<Navigate to="/hr/admin/payroll/runs" replace />} />
+					<Route path="hr/payslips" element={<Navigate to="/hr/user/payslips" replace />} />
+					<Route path="hr/onboarding" element={<Navigate to="/hr/admin/onboarding" replace />} />
+					<Route path="hr/documents" element={<Navigate to="/hr/admin/documents" replace />} />
+					<Route path="hr/reports" element={<Navigate to="/hr/admin/reports" replace />} />
+					<Route path="hr" element={<Navigate to="/hr/admin/workforce" replace />} />
 
 					{/* Prefixed Tenant Routes */}
 					<Route path="org/:orgId/dashboard" element={<Dashboard />} />
@@ -114,17 +131,31 @@ const AppRouter: React.FC = () => {
 					<Route path="org/:orgId/projects/:publicId" element={<ProjectDetailPage />} />
 
 					{/* Tenant-prefixed HR Module */}
-					<Route path="org/:orgId/hr/workforce" element={<WorkforcePage />} />
-					<Route path="org/:orgId/hr/employees" element={<Navigate to="../workforce" replace />} />
-					<Route path="org/:orgId/hr/departments" element={<Navigate to="../workforce" replace />} />
-					<Route path="org/:orgId/hr/designations" element={<Navigate to="../workforce" replace />} />
-					<Route path="org/:orgId/hr/leaves" element={<LeaveDashboardPage />} />
-					<Route path="org/:orgId/hr/payroll/structures" element={<SalaryStructuresPage />} />
-					<Route path="org/:orgId/hr/payroll/runs" element={<PayrollRunsPage />} />
-					<Route path="org/:orgId/hr/payslips" element={<EmployeePayslipsPage />} />
-					<Route path="org/:orgId/hr/onboarding" element={<ChecklistPage />} />
-					<Route path="org/:orgId/hr/documents" element={<DocumentVaultPage />} />
-					<Route path="org/:orgId/hr/reports" element={<AnalyticsDashboardPage />} />
+					{/* Admin Flow */}
+					<Route path="org/:orgId/hr/admin/workforce" element={<WorkforcePage />} />
+					<Route path="org/:orgId/hr/admin/payroll/structures" element={<SalaryStructuresPage />} />
+					<Route path="org/:orgId/hr/admin/payroll/runs" element={<PayrollRunsPage />} />
+					<Route path="org/:orgId/hr/admin/onboarding" element={<ChecklistPage />} />
+					<Route path="org/:orgId/hr/admin/documents" element={<DocumentVaultPage />} />
+					<Route path="org/:orgId/hr/admin/reports" element={<AnalyticsDashboardPage />} />
+
+					{/* User Flow */}
+					<Route path="org/:orgId/hr/user/profile" element={<EmployeeProfilePage />} />
+					<Route path="org/:orgId/hr/user/leaves" element={<LeaveDashboardPage />} />
+					<Route path="org/:orgId/hr/user/payslips" element={<EmployeePayslipsPage />} />
+
+					{/* Tenant-prefixed Legacy/Redirect routes */}
+					<Route path="org/:orgId/hr/workforce" element={<Navigate to="../admin/workforce" replace />} />
+					<Route path="org/:orgId/hr/employees" element={<Navigate to="../admin/workforce" replace />} />
+					<Route path="org/:orgId/hr/departments" element={<Navigate to="../admin/workforce" replace />} />
+					<Route path="org/:orgId/hr/designations" element={<Navigate to="../admin/workforce" replace />} />
+					<Route path="org/:orgId/hr/leaves" element={<Navigate to="../user/leaves" replace />} />
+					<Route path="org/:orgId/hr/payroll/structures" element={<Navigate to="../admin/payroll/structures" replace />} />
+					<Route path="org/:orgId/hr/payroll/runs" element={<Navigate to="../admin/payroll/runs" replace />} />
+					<Route path="org/:orgId/hr/payslips" element={<Navigate to="../user/payslips" replace />} />
+					<Route path="org/:orgId/hr/onboarding" element={<Navigate to="../admin/onboarding" replace />} />
+					<Route path="org/:orgId/hr/documents" element={<Navigate to="../admin/documents" replace />} />
+					<Route path="org/:orgId/hr/reports" element={<Navigate to="../admin/reports" replace />} />
 				</Route>
 			</Route>
 
