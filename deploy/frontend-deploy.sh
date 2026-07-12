@@ -56,8 +56,12 @@ echo "Using environment file: $ENV_FILE"
 cp $ENV_FILE .env
 
 # Build application
+# NODE_OPTIONS raises V8's heap ceiling: this build (tsc -b + vite/rollup across
+# the whole app) exceeds Node's auto-detected default heap on small EC2 instances
+# and gets OOM-killed otherwise. Requires swap on the host to actually have the
+# memory to grow into.
 echo "Building application..."
-npm run build
+NODE_OPTIONS="--max-old-space-size=3072" npm run build
 
 # Create deploy directory if it doesn't exist
 mkdir -p $DEPLOY_DIR
