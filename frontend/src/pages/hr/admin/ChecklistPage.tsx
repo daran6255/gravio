@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-	Box, Typography, Button, Card, CardContent, Grid, Chip,
+	Box, Container, Typography, Button, Card, CardContent, Grid, Chip,
 	IconButton, TextField, Dialog, DialogTitle,
 	DialogContent, DialogActions, Stack, Skeleton, Tab, Tabs,
 	FormControl, InputLabel, Select, MenuItem, alpha, useTheme,
@@ -12,7 +12,8 @@ import {
 	CheckCircleOutline as CheckedIcon, RadioButtonUnchecked as UncheckedIcon,
 	Person as PersonIcon, Assignment as TaskIcon, Schedule as TimeIcon
 } from '@mui/icons-material';
-import HRLayout from '../../../components/hr/HRLayout';
+import PageHeader from '../../../components/common/page-header';
+import { responsiveStyles } from '../../../theme';
 import {
 	fetchChecklistTemplates, createChecklistTemplate, updateChecklistTemplate, deleteChecklistTemplate,
 	fetchChecklistInstances, launchChecklistInstance, toggleChecklistTask,
@@ -185,37 +186,39 @@ const ChecklistPage: React.FC = () => {
 	};
 
 	return (
-		<HRLayout
-			title="Lifecycle Checklists"
-			subtitle="Track employee onboarding tasks and offboarding clearances."
-			actions={
-				<Stack direction="row" spacing={1.5}>
-					<Button
-						variant="outlined"
-						color="primary"
-						startIcon={<LaunchIcon />}
-						onClick={() => setLaunchDialogOpen(true)}
-						sx={{ borderRadius: 2.5, px: 3, fontWeight: 700 }}
-					>
-						Launch Checklist
-					</Button>
-					{isAdminOrHR && (
-						<Button
-							variant="contained"
-							color="primary"
-							startIcon={<AddIcon />}
-							onClick={() => handleOpenTemplateDialog()}
-							sx={{
-								borderRadius: 2.5, px: 3, fontWeight: 700,
-								boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`
-							}}
-						>
-							New Template
-						</Button>
-					)}
-				</Stack>
-			}
-		>
+		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
+			<Container maxWidth={false} sx={responsiveStyles.pageContainer}>
+				<PageHeader
+					title="Lifecycle Checklists"
+					subtitle="Track employee onboarding tasks and offboarding clearances."
+					action={
+						<Stack direction="row" spacing={1.5}>
+							<Button
+								variant="outlined"
+								color="primary"
+								startIcon={<LaunchIcon />}
+								onClick={() => setLaunchDialogOpen(true)}
+								sx={{ borderRadius: 2.5, px: 3, fontWeight: 700 }}
+							>
+								Launch Checklist
+							</Button>
+							{isAdminOrHR && (
+								<Button
+									variant="contained"
+									color="primary"
+									startIcon={<AddIcon />}
+									onClick={() => handleOpenTemplateDialog()}
+									sx={{
+										borderRadius: 2.5, px: 3, fontWeight: 700,
+										boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`
+									}}
+								>
+									New Template
+								</Button>
+							)}
+						</Stack>
+					}
+				/>
 			<Box sx={{ pb: 5 }}>
 				{/* Tabs Navigation */}
 				<Tabs
@@ -695,7 +698,8 @@ const ChecklistPage: React.FC = () => {
 					)}
 				</Dialog>
 			</Box>
-		</HRLayout>
+			</Container>
+		</Box>
 	);
 };
 

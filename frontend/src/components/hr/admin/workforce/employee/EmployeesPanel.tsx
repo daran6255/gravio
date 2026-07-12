@@ -3,7 +3,7 @@ import {
 	Box, Typography, TableRow, TableCell, Chip, Stack, Grid,
 	MenuItem, Select, FormControl, InputLabel,
 } from '@mui/material';
-import { Work as WorkIcon, Send as InviteIcon, Edit as EditIcon } from '@mui/icons-material';
+import { Work as WorkIcon, Send as InviteIcon, Edit as EditIcon, CalendarMonth as LeaveIcon } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
 import { fetchEmployees, fetchDepartments, fetchDesignations, fetchHeadcountReport } from '../../../../../store/slices/hrSlice';
 import type { EmployeeStatus, HREmployeeListItem } from '../../../../../models/hr';
@@ -13,6 +13,7 @@ import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuActio
 import EnterpriseAvatar from '../../../../common/avatar/Avatar';
 import EmployeeDialog from './EmployeeDialog';
 import InviteEmployeeDialog from './InviteEmployeeDialog';
+import LeaveEntitlementsDialog from './LeaveEntitlementsDialog';
 import DepartmentBreakdownCard from './DepartmentBreakdownCard';
 import InviteCoverageCard from './InviteCoverageCard';
 
@@ -39,6 +40,8 @@ export const EmployeesPanel: React.FC = () => {
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [editTarget, setEditTarget] = useState<HREmployeeListItem | null>(null);
 	const [inviteTarget, setInviteTarget] = useState<HREmployeeListItem | null>(null);
+	const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+	const [leaveTarget, setLeaveTarget] = useState<HREmployeeListItem | null>(null);
 
 	const loadEmployees = useCallback(() => {
 		const params = {
@@ -87,6 +90,12 @@ export const EmployeesPanel: React.FC = () => {
 	const renderRow = (emp: HREmployeeListItem) => {
 		const actions: TableMenuAction<HREmployeeListItem>[] = [
 			{ label: 'Edit', icon: <EditIcon fontSize="small" />, onClick: () => { setEditTarget(emp); setDialogOpen(true); } },
+			{
+				label: 'Leave Entitlements',
+				icon: <LeaveIcon fontSize="small" />,
+				onClick: () => { setLeaveTarget(emp); setLeaveDialogOpen(true); },
+				disabled: !emp.user_id,
+			},
 			{ label: 'Invite to Gravit', icon: <InviteIcon fontSize="small" />, onClick: () => setInviteTarget(emp), hidden: emp.is_invited },
 		];
 
@@ -224,6 +233,12 @@ export const EmployeesPanel: React.FC = () => {
 			employee={inviteTarget}
 			onClose={() => setInviteTarget(null)}
 			onInvited={handleRosterChanged}
+		/>
+
+		<LeaveEntitlementsDialog
+			open={leaveDialogOpen}
+			employee={leaveTarget}
+			onClose={() => { setLeaveDialogOpen(false); setLeaveTarget(null); }}
 		/>
 		</>
 	);

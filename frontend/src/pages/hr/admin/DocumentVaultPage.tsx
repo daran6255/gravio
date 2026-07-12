@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-	Box, Typography, Button, Card, CardContent, Grid, Chip,
+	Box, Container, Typography, Button, Card, CardContent, Grid, Chip,
 	IconButton, Tooltip, TextField, Dialog, DialogTitle,
 	DialogContent, DialogActions, Stack, Skeleton, Table, TableBody,
 	TableCell, TableContainer, TableHead, TableRow, Paper, alpha,
@@ -12,7 +12,8 @@ import {
 	Delete as DeleteIcon, VerifiedUserOutlined as VerifyActionIcon,
 	FolderSharedOutlined as VaultIcon
 } from '@mui/icons-material';
-import HRLayout from '../../../components/hr/HRLayout';
+import PageHeader from '../../../components/common/page-header';
+import { responsiveStyles } from '../../../theme';
 import { hrEmployeeDocumentApi } from '../../../services/hrService';
 import { fetchDocuments, uploadDocument, verifyDocument, deleteDocument, fetchEmployees } from '../../../store/slices/hrSlice';
 import useToast from '../../../hooks/useToast';
@@ -118,24 +119,26 @@ const DocumentVaultPage: React.FC = () => {
 	const expiringDocs = getExpiringDocuments();
 
 	return (
-		<HRLayout
-			title="Document Vault"
-			subtitle="Secure digital repository for verified employee identities, NDAs, and certifications."
-			actions={
-				<Button
-					variant="contained"
-					color="primary"
-					startIcon={<UploadIcon />}
-					onClick={() => setUploadDialogOpen(true)}
-					sx={{
-						borderRadius: 2.5, px: 3, fontWeight: 700,
-						boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`
-					}}
-				>
-					Upload Document
-				</Button>
-			}
-		>
+		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
+			<Container maxWidth={false} sx={responsiveStyles.pageContainer}>
+				<PageHeader
+					title="Document Vault"
+					subtitle="Secure digital repository for verified employee identities, NDAs, and certifications."
+					action={
+						<Button
+							variant="contained"
+							color="primary"
+							startIcon={<UploadIcon />}
+							onClick={() => setUploadDialogOpen(true)}
+							sx={{
+								borderRadius: 2.5, px: 3, fontWeight: 700,
+								boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`
+							}}
+						>
+							Upload Document
+						</Button>
+					}
+				/>
 			<Box sx={{ pb: 5 }}>
 				{/* Warning Banner for Expiry */}
 				{expiringDocs.length > 0 && (
@@ -360,7 +363,8 @@ const DocumentVaultPage: React.FC = () => {
 					</DialogActions>
 				</Dialog>
 			</Box>
-		</HRLayout>
+			</Container>
+		</Box>
 	);
 };
 

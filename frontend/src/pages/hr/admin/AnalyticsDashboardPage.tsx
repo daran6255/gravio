@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import {
-	Box, Typography, Grid, Card, CardContent, Paper, Stack,
+	Box, Container, Typography, Grid, Card, CardContent, Paper, Stack,
 	Skeleton, useTheme, alpha, Table, TableBody, TableCell,
 	TableContainer, TableHead, TableRow
 } from '@mui/material';
@@ -10,7 +10,8 @@ import {
 	PieChart as PieIcon, Timeline as LineIcon, BarChart as BarIcon
 } from '@mui/icons-material';
 import { BarChart, PieChart, LineChart } from '@mui/x-charts';
-import HRLayout from '../../../components/hr/HRLayout';
+import PageHeader from '../../../components/common/page-header';
+import { responsiveStyles } from '../../../theme';
 import { fetchAllHRAnalytics } from '../../../store/slices/hrSlice';
 import useToast from '../../../hooks/useToast';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -74,10 +75,12 @@ const AnalyticsDashboardPage: React.FC = () => {
 	const prData = getPayrollChartData();
 
 	return (
-		<HRLayout
-			title="HR Analytics & Insights"
-			subtitle="GreytHR-style aggregated reports on workforce headcount, leaves patterns, attrition, and payroll budgets."
-		>
+		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
+			<Container maxWidth={false} sx={responsiveStyles.pageContainer}>
+				<PageHeader
+					title="HR Analytics & Insights"
+					subtitle="GreytHR-style aggregated reports on workforce headcount, leaves patterns, attrition, and payroll budgets."
+				/>
 			<Box sx={{ pb: 5 }}>
 				{loading ? (
 					<Stack spacing={4}>
@@ -292,7 +295,8 @@ const AnalyticsDashboardPage: React.FC = () => {
 					</Stack>
 				)}
 			</Box>
-		</HRLayout>
+			</Container>
+		</Box>
 	);
 };
 

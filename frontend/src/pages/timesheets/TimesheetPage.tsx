@@ -364,47 +364,52 @@ const TimesheetPage: React.FC = () => {
 		return `${startMonth} — ${endMonth}`;
 	};
 
-	return (
-		<Container maxWidth="xl" sx={responsiveStyles.pageContainer}>
-			{/* Page Title & Navigation Header */}
-			<Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} spacing={2} sx={{ mb: 4 }}>
-				<PageHeader title="Timesheet Workspace" subtitle="Log and approve hours across projects and operations." />
-				
-				<Stack direction="row" alignItems="center" spacing={2} sx={{ alignSelf: { xs: 'center', md: 'auto' } }}>
-					{/* Week Navigator */}
-					{(tabLabels[activeTab] === 'My Timesheet' || tabLabels[activeTab] === 'Team Approvals') && (
-						<Stack direction="row" alignItems="center" spacing={1}>
-							<IconButton onClick={handlePrevWeek} size="small">
-								<PrevIcon />
-							</IconButton>
-							<Button
-								variant="outlined"
-								size="small"
-								startIcon={<CurrentIcon />}
-								onClick={handleCurrentWeek}
-								sx={{ borderRadius: 3 }}
-							>
-								This Week
-							</Button>
-							<Typography variant="body2" sx={{ fontWeight: 700, px: 2, minWidth: { xs: 140, sm: 200 }, textAlign: 'center' }}>
-								{formatWeekRangeDisplay()}
-							</Typography>
-							<IconButton onClick={handleNextWeek} size="small">
-								<NextIcon />
-							</IconButton>
-						</Stack>
-					)}
+	const headerAction = (
+		<Stack direction="row" alignItems="center" spacing={2} sx={{ alignSelf: { xs: 'center', md: 'auto' } }}>
+			{/* Week Navigator */}
+			{(tabLabels[activeTab] === 'My Timesheet' || tabLabels[activeTab] === 'Team Approvals') && (
+				<Stack direction="row" alignItems="center" spacing={1}>
+					<IconButton onClick={handlePrevWeek} size="small">
+						<PrevIcon />
+					</IconButton>
 					<Button
 						variant="outlined"
 						size="small"
-						startIcon={<HelpIcon />}
-						onClick={() => setGuideOpen(true)}
-						sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700 }}
+						startIcon={<CurrentIcon />}
+						onClick={handleCurrentWeek}
+						sx={{ borderRadius: 3 }}
 					>
-						Help Guide
+						This Week
 					</Button>
+					<Typography variant="body2" sx={{ fontWeight: 700, px: 2, minWidth: { xs: 140, sm: 200 }, textAlign: 'center' }}>
+						{formatWeekRangeDisplay()}
+					</Typography>
+					<IconButton onClick={handleNextWeek} size="small">
+						<NextIcon />
+					</IconButton>
 				</Stack>
-			</Stack>
+			)}
+			<Button
+				variant="outlined"
+				size="small"
+				startIcon={<HelpIcon />}
+				onClick={() => setGuideOpen(true)}
+				sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700 }}
+			>
+				Help Guide
+			</Button>
+		</Stack>
+	);
+
+	return (
+		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
+			<Container maxWidth={false} sx={responsiveStyles.pageContainer}>
+				{/* Page Title & Navigation Header */}
+				<PageHeader
+					title="Timesheet Workspace"
+					subtitle="Log and approve hours across projects and operations."
+					action={headerAction}
+				/>
 
 			{showBanner && (
 				<WelcomeBanner
@@ -521,7 +526,8 @@ const TimesheetPage: React.FC = () => {
 				content={guideContent}
 			/>
 
-		</Container>
+			</Container>
+		</Box>
 	);
 };
 

@@ -404,8 +404,9 @@ const LeaveDashboardPage: React.FC = () => {
 	);
 
 	return (
-		<Container maxWidth="xl" sx={responsiveStyles.pageContainer}>
-			<Stack spacing={3}>
+		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
+			<Container maxWidth={false} sx={responsiveStyles.pageContainer}>
+				<Stack spacing={3}>
 				<PageHeader
 					title="Leave Management"
 					subtitle="Track leaves, verify balances, and manage team approvals"
@@ -670,7 +671,8 @@ const LeaveDashboardPage: React.FC = () => {
 				onSave={fetchData}
 			/>
 			</Stack>
-		</Container>
+			</Container>
+		</Box>
 	);
 };
 
