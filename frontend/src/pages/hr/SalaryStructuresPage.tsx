@@ -55,9 +55,11 @@ const SalaryStructuresPage: React.FC = () => {
 	const [ctcAmount, setCtcAmount] = useState('');
 	const [effectiveDate, setEffectiveDate] = useState(new Date().toISOString().split('T')[0]);
 
-	const loadAllocations = async (empsList: { user_id: number }[]) => {
+	const loadAllocations = async (empsList: { user_id: number | null }[]) => {
+		// Pre-invite employees have no login yet, so salary can't be assigned until they're invited.
+		const invitedEmps = empsList.filter((emp): emp is { user_id: number } => emp.user_id !== null);
 		const allocResults = await Promise.all(
-			empsList.map((emp) =>
+			invitedEmps.map((emp) =>
 				dispatch(fetchEmployeeSalary(emp.user_id)).unwrap().catch(() => null)
 			)
 		);
@@ -145,7 +147,8 @@ const SalaryStructuresPage: React.FC = () => {
 		}
 	};
 
-	const getEmployeeAlloc = (userId: number) => {
+	const getEmployeeAlloc = (userId: number | null) => {
+		if (userId === null) return undefined;
 		return allocations.find(a => a.user_id === userId);
 	};
 
@@ -418,8 +421,8 @@ const SalaryStructuresPage: React.FC = () => {
 								label="Select Employee"
 								onChange={(e) => setSelectedUserId(e.target.value as number)}
 							>
-								{employees.map((emp) => (
-									<MenuItem key={emp.public_id} value={emp.user_id}>{emp.full_name || emp.email}</MenuItem>
+								{employees.filter((emp) => emp.is_invited).map((emp) => (
+									<MenuItem key={emp.public_id} value={emp.user_id as number}>{emp.full_name || emp.email}</MenuItem>
 								))}
 							</Select>
 						</FormControl>

@@ -5,6 +5,7 @@ import type {
 	HRDepartmentListItem, HRDepartmentResponse, HRDepartmentCreate, HRDepartmentUpdate,
 	HRDesignationListItem, HRDesignationResponse, HRDesignationCreate, HRDesignationUpdate,
 	HREmployeeListItem, HREmployeeResponse, HREmployeeProfileCreate, HREmployeeProfileUpdate,
+	EmployeeInviteRequest,
 	HRLeaveTypeListItem, HRLeaveTypeResponse, HRLeaveTypeCreate, HRLeaveTypeUpdate,
 	HRLeaveBalanceResponse, HRLeaveBalanceUpdate,
 	HRLeaveRequestResponse, HRLeaveRequestCreate, HRLeaveApprovalRequest,
@@ -91,6 +92,9 @@ export const hrEmployeeApi = {
 
 	update: (publicId: string, payload: HREmployeeProfileUpdate): Promise<HREmployeeResponse> =>
 		api.patch(`/hr/employees/${publicId}`, payload).then(r => r.data),
+
+	invite: (publicId: string, payload: EmployeeInviteRequest): Promise<HREmployeeResponse> =>
+		api.post(`/hr/employees/${publicId}/invite`, payload).then(r => r.data),
 };
 
 // ---------------------------------------------------------------------------

@@ -302,8 +302,8 @@ const DocumentVaultPage: React.FC = () => {
 										label="Target Employee"
 										onChange={(e) => setSelectedEmployeeId(e.target.value as number)}
 									>
-										{employees.map((emp) => (
-											<MenuItem key={emp.user_id} value={emp.user_id}>
+										{employees.filter((emp) => emp.is_invited).map((emp) => (
+											<MenuItem key={emp.user_id as number} value={emp.user_id as number}>
 												{emp.full_name} ({emp.employee_id})
 											</MenuItem>
 										))}

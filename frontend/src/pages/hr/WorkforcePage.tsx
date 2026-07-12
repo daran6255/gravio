@@ -11,7 +11,7 @@ const WorkforcePage: React.FC = () => {
 		<Container maxWidth="xl" sx={responsiveStyles.pageContainer}>
 			<Stack spacing={3}>
 				<PageHeader
-					title="Workforce"
+					title="HRM Workforce"
 					subtitle="Manage employees, departments, and designations in one place."
 					action={<WorkforceTabs value={tab} onChange={setTab} />}
 				/>

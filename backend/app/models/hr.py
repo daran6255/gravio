@@ -139,10 +139,12 @@ class HRDesignation(BaseModel, TenantAwareMixin):
 
 class HREmployeeProfile(BaseModel, TenantAwareMixin):
     """Extended HR profile for a user — holds all employment-specific metadata.
-    
-    Always linked 1-to-1 with a `users` record via user_id.
-    The `user` record holds login credentials, name, email, and role;
-    this model holds all HR-lifecycle data.
+
+    Optionally linked 1-to-1 with a `users` record via user_id. A profile can
+    exist before the person has a Gravit login ("pre-invite") — HR enters
+    full_name/email/phone directly in that state. Once `user_id` is set, the
+    linked `user` record becomes the sole source of truth for identity and
+    those three columns are cleared.
     """
     __tablename__ = "hr_employee_profiles"
 
@@ -150,10 +152,15 @@ class HREmployeeProfile(BaseModel, TenantAwareMixin):
         Uuid, unique=True, index=True, nullable=False, default=uuid.uuid4
     )
 
-    # Link to the user account
-    user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True
+    # Link to the user account — nullable until the employee is invited
+    user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, unique=True, index=True
     )
+
+    # Pre-invite identity fields — only meaningful while user_id is null
+    full_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
     # HR-assigned employee code (auto-generated or manually set)
     employee_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
@@ -199,7 +206,7 @@ class HREmployeeProfile(BaseModel, TenantAwareMixin):
     others: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     # Relationships
-    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+    user: Mapped[Optional["User"]] = relationship("User", foreign_keys=[user_id], back_populates="employee_profile")
     department: Mapped[Optional["HRDepartment"]] = relationship(
         "HRDepartment", back_populates="employee_profiles"
     )

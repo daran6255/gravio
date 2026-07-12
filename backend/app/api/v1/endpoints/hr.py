@@ -22,6 +22,7 @@ from app.schemas.hr import (
     DepartmentCreate, DepartmentUpdate, DepartmentListItem, DepartmentResponse,
     DesignationCreate, DesignationUpdate, DesignationListItem, DesignationResponse,
     EmployeeProfileCreate, EmployeeProfileUpdate, EmployeeListItem, EmployeeResponse,
+    EmployeeInviteRequest,
     LeaveTypeCreate, LeaveTypeUpdate, LeaveTypeResponse,
     LeaveBalanceUpdate, LeaveBalanceResponse,
     LeaveRequestCreate, LeaveRequestUpdate, LeaveRequestResponse, LeaveApprovalRequest,
@@ -217,7 +218,7 @@ async def list_employees(
     "/employees",
     response_model=EmployeeResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Create an HR employee profile for an existing user",
+    summary="Create an HR employee profile — for an existing user, or as a pre-invite record (name + email only)",
 )
 async def create_employee_profile(
     payload: EmployeeProfileCreate,
@@ -225,6 +226,20 @@ async def create_employee_profile(
     db: AsyncSession = Depends(get_db),
 ):
     return await hr_service.create_employee_profile(db, current_user.organization_id, payload)
+
+
+@router.post(
+    "/employees/{public_id}/invite",
+    response_model=EmployeeResponse,
+    summary="Invite a pre-invite employee to create their Gravit login",
+)
+async def invite_employee(
+    public_id: uuid.UUID,
+    payload: EmployeeInviteRequest,
+    current_user: User = Depends(require_hr_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    return await hr_service.invite_employee_to_gravit(db, current_user.organization_id, public_id, payload, current_user)
 
 
 @router.get(

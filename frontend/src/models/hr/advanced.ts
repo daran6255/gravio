@@ -61,6 +61,7 @@ export interface HeadcountReport {
   designation_distribution: Record<string, number>;
   employment_type_distribution: Record<string, number>;
   total_count: number;
+  invited_count: number;
 }
 
 export interface AttritionReport {

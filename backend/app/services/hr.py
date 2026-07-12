@@ -27,6 +27,7 @@ from app.schemas.hr import (
     DepartmentCreate, DepartmentUpdate, DepartmentListItem, DepartmentResponse,
     DesignationCreate, DesignationUpdate, DesignationListItem, DesignationResponse,
     EmployeeProfileCreate, EmployeeProfileUpdate, EmployeeListItem, EmployeeResponse,
+    EmployeeInviteRequest,
     LeaveTypeCreate, LeaveTypeUpdate, LeaveTypeResponse,
     LeaveBalanceUpdate, LeaveBalanceResponse,
     LeaveRequestCreate, LeaveRequestUpdate, LeaveRequestResponse, LeaveApprovalRequest,
@@ -56,9 +57,11 @@ def _employee_list_item(profile: HREmployeeProfile) -> EmployeeListItem:
         id=profile.id,
         public_id=profile.public_id,
         user_id=profile.user_id,
+        is_invited=user is not None,
         employee_id=profile.employee_id,
-        full_name=user.full_name if user else None,
-        email=user.email if user else None,
+        full_name=user.full_name if user else profile.full_name,
+        email=user.email if user else profile.email,
+        phone=user.phone if user else profile.phone,
         role=user.role.value if user else None,
         avatar=user.avatar if user else None,
         employee_status=profile.employee_status,
@@ -83,6 +86,7 @@ def _employee_response(profile: HREmployeeProfile) -> EmployeeResponse:
         id=profile.id,
         public_id=profile.public_id,
         user_id=profile.user_id,
+        is_invited=user is not None,
         employee_id=profile.employee_id,
         employment_type=profile.employment_type,
         work_location=profile.work_location,
@@ -101,14 +105,14 @@ def _employee_response(profile: HREmployeeProfile) -> EmployeeResponse:
         created_at=profile.created_at,
         updated_at=profile.updated_at,
         user_public_id=user.public_id if user else None,
-        full_name=user.full_name if user else None,
-        email=user.email if user else None,
+        full_name=user.full_name if user else profile.full_name,
+        email=user.email if user else profile.email,
         username=user.username if user else None,
         role=user.role.value if user else None,
         is_active=user.is_active if user else None,
         avatar=user.avatar if user else None,
         job_title=user.job_title if user else None,
-        phone=user.phone if user else None,
+        phone=user.phone if user else profile.phone,
         department_id=profile.department_id,
         department_name=dept.name if dept else None,
         designation_id=profile.designation_id,
@@ -445,20 +449,23 @@ async def list_employees(
             )
         )
         .options(*_PROFILE_LOAD_OPTIONS)
-        .join(HREmployeeProfile.user)
+        .outerjoin(HREmployeeProfile.user)
     )
+
+    display_name = func.coalesce(User.full_name, HREmployeeProfile.full_name)
+    display_email = func.coalesce(User.email, HREmployeeProfile.email)
 
     if department_id:
         q = q.where(HREmployeeProfile.department_id == department_id)
     if status_filter:
         q = q.where(HREmployeeProfile.employee_status == status_filter)
     if search:
-        q = q.where(User.full_name.ilike(f"%{search}%") | User.email.ilike(f"%{search}%"))
+        q = q.where(display_name.ilike(f"%{search}%") | display_email.ilike(f"%{search}%"))
 
     count_result = await db.execute(select(func.count()).select_from(q.subquery()))
     total = count_result.scalar() or 0
 
-    result = await db.execute(q.order_by(User.full_name).offset(skip).limit(limit))
+    result = await db.execute(q.order_by(display_name).offset(skip).limit(limit))
     profiles = result.scalars().all()
 
     return [_employee_list_item(p) for p in profiles], total
@@ -521,34 +528,65 @@ async def _generate_employee_id(db: AsyncSession, org_id: int) -> str:
 async def create_employee_profile(
     db: AsyncSession, org_id: int, payload: EmployeeProfileCreate
 ) -> EmployeeResponse:
-    # Validate user belongs to org
-    user = await db.get(User, payload.user_id)
-    if not user or user.organization_id != org_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found in this organization",
-        )
+    if payload.user_id is not None:
+        # Validate user belongs to org
+        user = await db.get(User, payload.user_id)
+        if not user or user.organization_id != org_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found in this organization",
+            )
 
-    # Check no duplicate profile
-    existing = await db.execute(
-        select(HREmployeeProfile).where(
-            and_(
-                HREmployeeProfile.user_id == payload.user_id,
-                HREmployeeProfile.is_deleted == False,
+        # Check no duplicate profile
+        existing = await db.execute(
+            select(HREmployeeProfile).where(
+                and_(
+                    HREmployeeProfile.user_id == payload.user_id,
+                    HREmployeeProfile.is_deleted == False,
+                )
             )
         )
-    )
-    if existing.scalars().first():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Employee profile already exists for this user",
+        if existing.scalars().first():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Employee profile already exists for this user",
+            )
+    else:
+        # Pre-invite path: dedupe against both existing Users and other
+        # pre-invite employee records sharing this email in the org.
+        existing_user = await db.execute(
+            select(User).where(
+                and_(User.email == payload.email, User.organization_id == org_id)
+            )
         )
+        if existing_user.scalars().first():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A user with this email already exists — link them as an existing team member instead",
+            )
+        existing_profile = await db.execute(
+            select(HREmployeeProfile).where(
+                and_(
+                    HREmployeeProfile.organization_id == org_id,
+                    HREmployeeProfile.email == payload.email,
+                    HREmployeeProfile.is_deleted == False,
+                )
+            )
+        )
+        if existing_profile.scalars().first():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="An employee record with this email already exists",
+            )
 
     emp_id = payload.employee_id or await _generate_employee_id(db, org_id)
 
     profile = HREmployeeProfile(
         organization_id=org_id,
         user_id=payload.user_id,
+        full_name=payload.full_name if payload.user_id is None else None,
+        email=payload.email if payload.user_id is None else None,
+        phone=payload.phone if payload.user_id is None else None,
         employee_id=emp_id,
         department_id=payload.department_id,
         designation_id=payload.designation_id,
@@ -572,6 +610,60 @@ async def create_employee_profile(
     return await get_employee_by_public_id(db, org_id, profile.public_id)
 
 
+async def invite_employee_to_gravit(
+    db: AsyncSession,
+    org_id: int,
+    public_id: uuid.UUID,
+    payload: EmployeeInviteRequest,
+    current_user: User,
+) -> EmployeeResponse:
+    """Create a Gravit login for a pre-invite employee and link it to their profile."""
+    from app.models.user import UserRole
+    from app.schemas.user_management import InviteUserRequest
+    from app.services.user_management import invite_user
+
+    result = await db.execute(
+        select(HREmployeeProfile).where(
+            and_(
+                HREmployeeProfile.public_id == public_id,
+                HREmployeeProfile.organization_id == org_id,
+                HREmployeeProfile.is_deleted == False,
+            )
+        )
+    )
+    profile = result.scalars().first()
+    if not profile:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee profile not found")
+    if profile.user_id is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This employee already has a Gravit login")
+    if not profile.email or not profile.full_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Employee record is missing name/email — cannot invite",
+        )
+    if payload.role == UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot assign the Admin role from the employee invite flow",
+        )
+
+    invite_payload = InviteUserRequest(
+        username=payload.username,
+        email=profile.email,
+        full_name=profile.full_name,
+        role=payload.role,
+    )
+    user = await invite_user(db, current_user=current_user, payload=invite_payload)
+
+    profile.user_id = user.id
+    profile.full_name = None
+    profile.email = None
+    profile.phone = None
+    await db.commit()
+    await db.refresh(profile)
+    return await get_employee_by_public_id(db, org_id, public_id)
+
+
 async def update_employee_profile(
     db: AsyncSession, org_id: int, public_id: uuid.UUID, payload: EmployeeProfileUpdate
 ) -> EmployeeResponse:
@@ -591,6 +683,13 @@ async def update_employee_profile(
     data = payload.model_dump(exclude_none=True)
     if "emergency_contact" in data and data["emergency_contact"] is not None:
         data["emergency_contact"] = data["emergency_contact"]
+
+    if profile.user_id is not None:
+        # full_name/email/phone are only meaningful pre-invite — once a login
+        # exists, identity is sourced live from the linked User instead.
+        data.pop("full_name", None)
+        data.pop("email", None)
+        data.pop("phone", None)
 
     for field, value in data.items():
         setattr(profile, field, value)
@@ -2216,21 +2315,25 @@ async def get_headcount_report(db: AsyncSession, org_id: int) -> HeadcountReport
     dept_dist = {}
     desig_dist = {}
     emptype_dist = {}
-    
+    invited_count = 0
+
     for p in profiles:
         dept_name = p.department.name if p.department else "No Department"
         desig_name = p.designation.name if p.designation else "No Designation"
         emp_type = p.employment_type.value
-        
+
         dept_dist[dept_name] = dept_dist.get(dept_name, 0) + 1
         desig_dist[desig_name] = desig_dist.get(desig_name, 0) + 1
         emptype_dist[emp_type] = emptype_dist.get(emp_type, 0) + 1
+        if p.user_id is not None:
+            invited_count += 1
 
     return HeadcountReportResponse(
         department_distribution=dept_dist,
         designation_distribution=desig_dist,
         employment_type_distribution=emptype_dist,
-        total_count=len(profiles)
+        total_count=len(profiles),
+        invited_count=invited_count
     )
 
 

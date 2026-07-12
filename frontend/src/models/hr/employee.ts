@@ -45,10 +45,12 @@ export interface EmergencyContact {
 export interface HREmployeeListItem {
 	id: number;
 	public_id: string;
-	user_id: number;
+	user_id: number | null;
+	is_invited: boolean;
 	employee_id: string | null;
 	full_name: string | null;
 	email: string | null;
+	phone: string | null;
 	role: string | null;
 	avatar: string | null;
 	employee_status: EmployeeStatus;
@@ -77,7 +79,6 @@ export interface HREmployeeResponse extends HREmployeeListItem {
 	user_public_id: string | null;
 	username: string | null;
 	job_title: string | null;
-	phone: string | null;
 	reporting_manager_id: number | null;
 	reporting_manager_name: string | null;
 	created_at: string;
@@ -85,7 +86,10 @@ export interface HREmployeeResponse extends HREmployeeListItem {
 }
 
 export interface HREmployeeProfileCreate {
-	user_id: number;
+	user_id?: number | null;
+	full_name?: string;
+	email?: string;
+	phone?: string;
 	employee_id?: string;
 	department_id?: number | null;
 	designation_id?: number | null;
@@ -105,6 +109,9 @@ export interface HREmployeeProfileCreate {
 }
 
 export interface HREmployeeProfileUpdate {
+	full_name?: string;
+	email?: string;
+	phone?: string;
 	department_id?: number | null;
 	designation_id?: number | null;
 	employment_type?: EmploymentType;
@@ -120,4 +127,9 @@ export interface HREmployeeProfileUpdate {
 	bank_name?: string;
 	emergency_contact?: EmergencyContact | null;
 	others?: Record<string, unknown> | null;
+}
+
+export interface EmployeeInviteRequest {
+	username: string;
+	role: string;
 }

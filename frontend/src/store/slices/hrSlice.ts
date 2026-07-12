@@ -23,6 +23,7 @@ import type {
 	HRDepartmentListItem, HRDepartmentResponse, HRDepartmentCreate, HRDepartmentUpdate,
 	HRDesignationListItem, HRDesignationResponse, HRDesignationCreate, HRDesignationUpdate,
 	HREmployeeListItem, HREmployeeResponse, HREmployeeProfileCreate, HREmployeeProfileUpdate,
+	EmployeeInviteRequest,
 	HRLeaveTypeListItem, HRLeaveTypeResponse, HRLeaveTypeCreate, HRLeaveTypeUpdate,
 	HRLeaveBalanceResponse, HRLeaveBalanceUpdate,
 	HRLeaveRequestResponse, HRLeaveRequestCreate, HRLeaveApprovalRequest,
@@ -357,6 +358,17 @@ export const updateEmployee = createAsyncThunk(
 			return await hrEmployeeApi.update(arg.publicId, arg.payload);
 		} catch (error: any) {
 			return rejectWithValue(extractErrorMessage(error, 'Failed to update employee profile'));
+		}
+	}
+);
+
+export const inviteEmployeeToGravit = createAsyncThunk(
+	'hr/inviteEmployee',
+	async (arg: { publicId: string; payload: EmployeeInviteRequest }, { rejectWithValue }) => {
+		try {
+			return await hrEmployeeApi.invite(arg.publicId, arg.payload);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to invite employee'));
 		}
 	}
 );
@@ -1054,6 +1066,13 @@ const hrSlice = createSlice({
 				state.currentEmployeeError = action.payload as string;
 			})
 			.addCase(updateEmployee.fulfilled, (state, action: PayloadAction<HREmployeeResponse>) => {
+				if (state.currentEmployee?.public_id === action.payload.public_id) {
+					state.currentEmployee = action.payload;
+				}
+				const idx = state.employees.findIndex((e) => e.public_id === action.payload.public_id);
+				if (idx !== -1) state.employees[idx] = { ...state.employees[idx], ...action.payload };
+			})
+			.addCase(inviteEmployeeToGravit.fulfilled, (state, action: PayloadAction<HREmployeeResponse>) => {
 				if (state.currentEmployee?.public_id === action.payload.public_id) {
 					state.currentEmployee = action.payload;
 				}

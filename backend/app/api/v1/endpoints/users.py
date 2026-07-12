@@ -45,7 +45,7 @@ async def invite_user_endpoint(
 )
 async def list_users_endpoint(
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=200),
     current_user: User = Depends(require_org_admin),
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[UserListItem]:

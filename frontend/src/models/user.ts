@@ -7,7 +7,10 @@ export type UserRole =
 	| 'counselor'
 	| 'project_coordinator'
 	| 'developer'
-	| 'marketing';
+	| 'marketing'
+	| 'hr_admin'
+	| 'hr_manager'
+	| 'leadership';
 
 export const USER_ROLES: UserRole[] = [
 	'admin',
@@ -19,6 +22,9 @@ export const USER_ROLES: UserRole[] = [
 	'project_coordinator',
 	'developer',
 	'marketing',
+	'hr_admin',
+	'hr_manager',
+	'leadership',
 ];
 
 /** A row in the Org Admin's Team list — matches backend's UserListItem exactly. */

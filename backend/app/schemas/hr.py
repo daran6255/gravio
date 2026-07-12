@@ -3,13 +3,14 @@
 import uuid
 from datetime import date, datetime
 from typing import Optional, Any
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, EmailStr, model_validator
 
 from app.models.hr import (
     EmploymentType, WorkLocation, EmployeeStatus,
     SalaryComponentType, SalaryCalculationType, PayrollRunStatus,
     ChecklistType, ChecklistStatus
 )
+from app.models.user import UserRole
 
 
 # ---------------------------------------------------------------------------
@@ -137,8 +138,12 @@ class EmergencyContact(BaseModel):
 # ---------------------------------------------------------------------------
 
 class EmployeeProfileCreate(BaseModel):
-    """Create an HR profile for an existing user."""
-    user_id: int
+    """Create an HR profile — either linked to an existing user, or as a
+    pre-invite record with just full_name+email (no login yet)."""
+    user_id: Optional[int] = None
+    full_name: Optional[str] = Field(None, max_length=255)
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = Field(None, max_length=50)
     employee_id: Optional[str] = Field(None, max_length=50)
     department_id: Optional[int] = None
     designation_id: Optional[int] = None
@@ -156,8 +161,22 @@ class EmployeeProfileCreate(BaseModel):
     emergency_contact: Optional[EmergencyContact] = None
     others: Optional[dict] = None
 
+    @model_validator(mode="after")
+    def _require_user_or_identity(self) -> "EmployeeProfileCreate":
+        if self.user_id is not None:
+            return self
+        if self.full_name and self.email:
+            return self
+        raise ValueError(
+            "Provide either user_id (to link an existing team member) or both "
+            "full_name and email (to create a pre-invite employee record)."
+        )
+
 
 class EmployeeProfileUpdate(BaseModel):
+    full_name: Optional[str] = Field(None, max_length=255)
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = Field(None, max_length=50)
     employee_id: Optional[str] = Field(None, max_length=50)
     department_id: Optional[int] = None
     designation_id: Optional[int] = None
@@ -174,6 +193,18 @@ class EmployeeProfileUpdate(BaseModel):
     bank_name: Optional[str] = Field(None, max_length=100)
     emergency_contact: Optional[EmergencyContact] = None
     others: Optional[dict] = None
+
+
+class EmployeeInviteRequest(BaseModel):
+    """HR picks a username + role to send a pre-invite employee their Gravit login."""
+    username: str = Field(
+        ...,
+        min_length=3,
+        max_length=100,
+        pattern=r"^[a-z0-9_]+$",
+        description="Lowercase alphanumeric username (underscores allowed)",
+    )
+    role: UserRole = Field(..., description="System role to assign to the new login")
 
 
 class EmployeeResponse(BaseModel):
@@ -201,8 +232,10 @@ class EmployeeResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    # From user (denormalized by service layer)
-    user_id: int
+    # From user (denormalized by service layer), or from this profile's own
+    # pre-invite columns when there's no linked user yet
+    user_id: Optional[int] = None
+    is_invited: bool = False
     user_public_id: Optional[uuid.UUID] = None
     full_name: Optional[str] = None
     email: Optional[str] = None
@@ -228,10 +261,12 @@ class EmployeeListItem(BaseModel):
 
     id: int
     public_id: uuid.UUID
-    user_id: int
+    user_id: Optional[int] = None
+    is_invited: bool = False
     employee_id: Optional[str]
     full_name: Optional[str] = None
     email: Optional[str] = None
+    phone: Optional[str] = None
     role: Optional[str] = None
     avatar: Optional[str] = None
     employee_status: EmployeeStatus
@@ -698,6 +733,7 @@ class HeadcountReportResponse(BaseModel):
     designation_distribution: dict[str, int]
     employment_type_distribution: dict[str, int]
     total_count: int
+    invited_count: int = 0
 
 
 class AttritionReportResponse(BaseModel):
