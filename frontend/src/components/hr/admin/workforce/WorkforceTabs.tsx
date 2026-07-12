@@ -4,10 +4,11 @@ import {
 	PeopleAltOutlined as EmployeesIcon,
 	AccountTreeOutlined as DeptIcon,
 	WorkOutlined as DesignationIcon,
+	SupervisedUserCircleOutlined as AllocationIcon,
 } from '@mui/icons-material';
 import { useAppSelector } from '../../../../store/hooks';
 
-export type WorkforceTab = 'employees' | 'departments' | 'designations';
+export type WorkforceTab = 'employees' | 'departments' | 'designations' | 'managers';
 
 interface WorkforceTabsProps {
 	value: WorkforceTab;
@@ -22,6 +23,7 @@ export const WorkforceTabs: React.FC<WorkforceTabsProps> = ({ value, onChange })
 		{ value: 'employees', label: 'Employees', icon: <EmployeesIcon fontSize="small" />, count: employeesTotal },
 		{ value: 'departments', label: 'Departments', icon: <DeptIcon fontSize="small" />, count: departments.length },
 		{ value: 'designations', label: 'Designations', icon: <DesignationIcon fontSize="small" />, count: designations.length },
+		{ value: 'managers', label: 'Managers', icon: <AllocationIcon fontSize="small" />, count: employeesTotal },
 	];
 
 	return (

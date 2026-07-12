@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Button, Container, Grid, Skeleton, Stack, alpha, useTheme } from '@mui/material';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Box, Button, Container, Grid, Skeleton, Stack, Tab, Tabs, alpha, useTheme } from '@mui/material';
 import { AddOutlined as AddIcon } from '@mui/icons-material';
 import PageHeader from '../../../components/common/page-header';
 import { responsiveStyles } from '../../../theme';
@@ -10,11 +10,13 @@ import {
 	LeaveTypeLegend,
 	LeaveHistoryTable,
 	LeaveSnapshotBar,
+	TeamLeavesApprovalsTable,
 } from '../../../components/hr/user/leave';
 
 const LeaveDashboardPage: React.FC = () => {
 	const theme = useTheme();
 	const dispatch = useAppDispatch();
+	const user = useAppSelector((state) => state.auth.user);
 
 	const {
 		leaveTypes, leaveTypesLoading,
@@ -24,6 +26,11 @@ const LeaveDashboardPage: React.FC = () => {
 	const loading = leaveTypesLoading || myLeaveBalancesLoading || myLeaveRequestsLoading;
 
 	const [applyOpen, setApplyOpen] = useState(false);
+	const [activeTab, setActiveTab] = useState(0);
+
+	const isManagerOrAdmin = useMemo(() => {
+		return user?.role === 'admin' || user?.role === 'manager' || user?.role === 'leadership' || user?.role === 'hr_manager';
+	}, [user?.role]);
 
 	const fetchData = () => {
 		dispatch(fetchLeaveTypes(undefined));
@@ -41,28 +48,46 @@ const LeaveDashboardPage: React.FC = () => {
 			<Container maxWidth={false} sx={responsiveStyles.pageContainer}>
 				<Stack spacing={3}>
 					<PageHeader
-						title="My Leaves"
-						subtitle="Track your balances, apply for time off, and follow your request status"
+						title={isManagerOrAdmin ? "Leave Management" : "My Leaves"}
+						subtitle={isManagerOrAdmin ? "Track leaves, verify balances, and manage team approvals" : "Track your balances, apply for time off, and follow your request status"}
 						action={
-							<Button
-								variant="contained"
-								startIcon={<AddIcon />}
-								onClick={() => setApplyOpen(true)}
-								sx={{
-									textTransform: 'none',
-									fontWeight: 700,
-									borderRadius: '10px',
-									px: 2.5,
-									color: 'white',
-									boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`,
-									background: theme.gradients.brand,
-									'&:hover': { boxShadow: `0 8px 20px ${alpha(theme.palette.primary.main, 0.35)}` },
-								}}
-							>
-								Apply Leave
-							</Button>
+							(activeTab === 0 || !isManagerOrAdmin) && (
+								<Button
+									variant="contained"
+									startIcon={<AddIcon />}
+									onClick={() => setApplyOpen(true)}
+									sx={{
+										textTransform: 'none',
+										fontWeight: 700,
+										borderRadius: '10px',
+										px: 2.5,
+										color: 'white',
+										boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`,
+										background: theme.gradients.brand,
+										'&:hover': { boxShadow: `0 8px 20px ${alpha(theme.palette.primary.main, 0.35)}` },
+									}}
+								>
+									Apply Leave
+								</Button>
+							)
 						}
 					/>
+
+					{isManagerOrAdmin && (
+						<Tabs
+							value={activeTab}
+							onChange={(_, v) => setActiveTab(v)}
+							sx={{
+								borderBottom: 1,
+								borderColor: 'divider',
+								mb: 1.5,
+								'& .MuiTab-root': { textTransform: 'none', fontWeight: 700 }
+							}}
+						>
+							<Tab label="My Leaves" />
+							<Tab label="Team Approvals" />
+						</Tabs>
+					)}
 
 					{loading ? (
 						<Stack spacing={3}>
@@ -70,6 +95,8 @@ const LeaveDashboardPage: React.FC = () => {
 							<Skeleton variant="rounded" height={180} />
 							<Skeleton variant="rounded" height={320} />
 						</Stack>
+					) : activeTab === 1 && isManagerOrAdmin ? (
+						<TeamLeavesApprovalsTable />
 					) : (
 						<Stack spacing={3.5}>
 							<LeaveSnapshotBar balances={balances} requests={requests} />
