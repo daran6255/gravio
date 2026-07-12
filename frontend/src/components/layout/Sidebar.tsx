@@ -388,7 +388,7 @@ const Sidebar: React.FC = () => {
 		);
 
 		return (
-			<ListItem disablePadding sx={{ display: 'block', mb: 0.25 }}>
+			<ListItem disablePadding sx={{ display: 'block', mb: 0.150 }}>
 				{drawerExpanded ? content : (
 					<Tooltip title={item.label} placement="right" arrow>
 						<Box>{content}</Box>
@@ -405,15 +405,15 @@ const Sidebar: React.FC = () => {
 		if (visibleChildren.length === 0) return null;
 
 		return (
-			<Box sx={{ mb: drawerExpanded ? 1.5 : 1 }}>
+			<Box sx={{ mb: drawerExpanded ? 0.75 : 0.5 }}>
 				{drawerExpanded ? (
 					<Typography
 						variant="caption"
 						sx={{
 							display: 'block',
 							px: 2.25,
-							pt: 1.5,
-							pb: 0.5,
+							pt: 0.75,
+							pb: 0.25,
 							fontSize: '0.6875rem',
 							fontWeight: 700,
 							letterSpacing: '0.12em',
