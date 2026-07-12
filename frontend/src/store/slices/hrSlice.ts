@@ -78,6 +78,8 @@ interface HRState {
 	myLeaveRequestsError: string | null;
 	pendingLeaveRequests: HRLeaveRequestResponse[];
 	pendingLeaveRequestsLoading: boolean;
+	teamLeaveRequests: HRLeaveRequestResponse[];
+	teamLeaveRequestsLoading: boolean;
 
 	// Payroll Components
 	payrollComponents: HRSalaryComponent[];
@@ -162,6 +164,8 @@ const initialState: HRState = {
 	myLeaveRequestsError: null,
 	pendingLeaveRequests: [],
 	pendingLeaveRequestsLoading: false,
+	teamLeaveRequests: [],
+	teamLeaveRequestsLoading: false,
 
 	payrollComponents: [],
 	payrollComponentsLoading: false,
@@ -492,6 +496,17 @@ export const fetchPendingLeaveRequests = createAsyncThunk(
 			return await hrLeaveRequestApi.listPending();
 		} catch (error: any) {
 			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch pending leave requests'));
+		}
+	}
+);
+
+export const fetchTeamLeaveRequests = createAsyncThunk(
+	'hr/fetchTeamLeaveRequests',
+	async (statusFilter: string | undefined, { rejectWithValue }) => {
+		try {
+			return await hrLeaveRequestApi.listTeamRequests(statusFilter);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch team leave requests'));
 		}
 	}
 );
@@ -1160,10 +1175,22 @@ const hrSlice = createSlice({
 			.addCase(fetchPendingLeaveRequests.rejected, (state) => {
 				state.pendingLeaveRequestsLoading = false;
 			})
+			.addCase(fetchTeamLeaveRequests.pending, (state) => {
+				state.teamLeaveRequestsLoading = true;
+			})
+			.addCase(fetchTeamLeaveRequests.fulfilled, (state, action: PayloadAction<HRLeaveRequestResponse[]>) => {
+				state.teamLeaveRequestsLoading = false;
+				state.teamLeaveRequests = action.payload;
+			})
+			.addCase(fetchTeamLeaveRequests.rejected, (state) => {
+				state.teamLeaveRequestsLoading = false;
+			})
 			.addCase(approveRejectLeaveRequest.fulfilled, (state, action: PayloadAction<HRLeaveRequestResponse>) => {
 				state.pendingLeaveRequests = state.pendingLeaveRequests.filter((r) => r.public_id !== action.payload.public_id);
 				const idx = state.myLeaveRequests.findIndex((r) => r.public_id === action.payload.public_id);
 				if (idx !== -1) state.myLeaveRequests[idx] = action.payload;
+				const tIdx = state.teamLeaveRequests.findIndex((r) => r.public_id === action.payload.public_id);
+				if (tIdx !== -1) state.teamLeaveRequests[tIdx] = action.payload;
 			})
 			.addCase(cancelLeaveRequest.fulfilled, (state, action: PayloadAction<HRLeaveRequestResponse>) => {
 				const idx = state.myLeaveRequests.findIndex((r) => r.public_id === action.payload.public_id);

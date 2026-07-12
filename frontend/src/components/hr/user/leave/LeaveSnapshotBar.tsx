@@ -143,6 +143,69 @@ const LeaveSnapshotBar: React.FC<LeaveSnapshotBarProps> = ({ balances, requests 
 						</Stack>
 					))}
 				</Stack>
+
+				{balances.filter((b) => !b.is_lop).length > 0 && (
+					<>
+						<Divider
+							orientation="vertical"
+							flexItem
+							sx={{
+								display: { xs: 'none', lg: 'block' },
+								borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'
+							}}
+						/>
+						<Stack
+							direction="row"
+							spacing={1.5}
+							alignItems="center"
+							sx={{ display: { xs: 'none', lg: 'flex' }, flexShrink: 0 }}
+						>
+							{balances
+								.filter((b) => !b.is_lop)
+								.slice(0, 3)
+								.map((b) => {
+									const remaining = b.allocated - b.used - b.pending;
+									return (
+										<Box
+											key={b.id}
+											sx={{
+												px: 2,
+												py: 1,
+												borderRadius: '14px',
+												bgcolor: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(15, 23, 42, 0.015)',
+												border: '1px solid',
+												borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(15, 23, 42, 0.04)',
+												minWidth: 90,
+												textAlign: 'center'
+											}}
+										>
+											<Typography
+												variant="caption"
+												color="text.secondary"
+												fontWeight={700}
+												display="block"
+												sx={{
+													textTransform: 'uppercase',
+													fontSize: '0.62rem',
+													letterSpacing: '0.05em'
+												}}
+											>
+												{b.leave_type_name?.replace(' Leave', '') || 'Leave'}
+											</Typography>
+											<Typography
+												variant="subtitle2"
+												fontWeight={800}
+												color="primary.main"
+												sx={{ mt: 0.25 }}
+											>
+												{remaining} / {b.allocated}d
+											</Typography>
+										</Box>
+									);
+								})}
+						</Stack>
+					</>
+				)}
 			</Stack>
 		</Box>
 	);

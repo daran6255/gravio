@@ -144,6 +144,9 @@ export const hrLeaveRequestApi = {
 	listPending: (): Promise<HRLeaveRequestResponse[]> =>
 		api.get('/hr/leaves/requests/pending').then(r => r.data),
 
+	listTeamRequests: (statusFilter?: string): Promise<HRLeaveRequestResponse[]> =>
+		api.get('/hr/leaves/requests/team', { params: statusFilter ? { status_filter: statusFilter } : {} }).then(r => r.data),
+
 	get: (publicId: string): Promise<HRLeaveRequestResponse> =>
 		api.get(`/hr/leaves/requests/${publicId}`).then(r => r.data),
 

@@ -8,7 +8,8 @@ import {
 	Button,
 	Stack,
 	Alert,
-	IconButton
+	IconButton,
+	Grid
 } from '@mui/material';
 import {
 	ChevronLeft as PrevIcon,
@@ -34,6 +35,8 @@ import {
 	denyWeekUnlock,
 	fetchUserSettings
 } from '../../store/slices/timesheetSlice';
+import { fetchTeamUsers } from '../../store/slices/userSlice';
+import { ReportingEmployeesPanel } from '../../components/hr/shared/ReportingEmployeesPanel';
 import { responsiveStyles } from '../../theme';
 import PageHeader from '../../components/common/page-header';
 import WeeklyTimesheetGrid from '../../components/timesheets/weekly-grid';
@@ -241,6 +244,7 @@ const TimesheetPage: React.FC = () => {
 			dispatch(fetchMyWeekUnlockRequests());
 			if (tabLabels[activeTab] === 'Team Approvals') {
 				loadTeamTimesheet();
+				dispatch(fetchTeamUsers({ page: 1, pageSize: 200 }));
 			}
 		}
 	}, [currentMonday, activeTab, currentUser, tabLabels]);
@@ -252,6 +256,20 @@ const TimesheetPage: React.FC = () => {
 			dispatch(fetchTeamWeekUnlockRequests());
 		}
 	}, [activeTab, tabLabels, isManagerOrAdmin]);
+
+	const { users } = useAppSelector((state) => state.users);
+	const myDirectReports = useMemo(() => {
+		if (!currentUser) return [];
+		return users
+			.filter((u) => u.reporting_manager_id === currentUser.id)
+			.map((u) => ({
+				id: u.id,
+				full_name: u.full_name || null,
+				email: u.email || null,
+				role: u.role || null,
+				avatar: null
+			}));
+	}, [users, currentUser]);
 
 	// Own holiday-logging override, so the grid knows whether to lock holiday/Sunday cells
 	useEffect(() => {
@@ -479,16 +497,23 @@ const TimesheetPage: React.FC = () => {
 
 			{/* Team Approvals Table */}
 			{tabLabels[activeTab] === 'Team Approvals' && isManagerOrAdmin && (
-				<TeamTimesheetTable
-					logs={teamTimeLogs}
-					startDate={startDateStr}
-					endDate={endDateStr}
-					onApprove={handleApproveTeamMember}
-					onReject={handleRejectTeamMember}
-					onUnapprove={handleUnapproveTeamMember}
-					actionLoading={actionLoading}
-					currentUserId={currentUser?.id}
-				/>
+				<Grid container spacing={3} alignItems="stretch">
+					<Grid size={{ xs: 12, md: 3 }}>
+						<ReportingEmployeesPanel members={myDirectReports} />
+					</Grid>
+					<Grid size={{ xs: 12, md: 9 }}>
+						<TeamTimesheetTable
+							logs={teamTimeLogs}
+							startDate={startDateStr}
+							endDate={endDateStr}
+							onApprove={handleApproveTeamMember}
+							onReject={handleRejectTeamMember}
+							onUnapprove={handleUnapproveTeamMember}
+							actionLoading={actionLoading}
+							currentUserId={currentUser?.id}
+						/>
+					</Grid>
+				</Grid>
 			)}
 
 			{/* Week Unlock Requests Panel */}

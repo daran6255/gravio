@@ -14,16 +14,16 @@ interface EnterpriseAvatarProps extends MuiAvatarProps {
 const EnterpriseAvatar: React.FC<EnterpriseAvatarProps> = ({ name, size = 40, sx, ...props }) => {
 	const theme = useTheme();
 
-	// Enterprise color palette (consistent with AWS/Cloudscape outcomes)
+	// Enterprise color palette (high-contrast vibrant colors suitable for both light & dark modes)
 	const colors = [
 		theme.palette.primary.main,
 		theme.palette.secondary.main,
-		'#4EA8FF', // Gravit Sky Blue
-		'#6c5ce7', // Purple
-		'#0f172a', // Slate Dark
-		'#10b981', // Success Green
-		'#ef4444', // Error Red
-		'#64748b', // Slate Gray
+		'#3b82f6', // Bright Blue
+		'#7c3aed', // Violet Purple
+		'#0d9488', // Vibrant Teal
+		'#16a34a', // Forest Green
+		'#d97706', // Amber Orange
+		'#e11d48', // Crimson Rose
 	];
 
 	const stringToColor = (str: string) => {

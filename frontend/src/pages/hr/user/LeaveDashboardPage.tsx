@@ -4,6 +4,7 @@ import { AddOutlined as AddIcon } from '@mui/icons-material';
 import PageHeader from '../../../components/common/page-header';
 import { responsiveStyles } from '../../../theme';
 import { fetchLeaveTypes, fetchMyLeaveBalances, fetchMyLeaveRequests } from '../../../store/slices/hrSlice';
+import { fetchTeamUsers } from '../../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
 	ApplyLeaveDialog,
@@ -12,6 +13,7 @@ import {
 	LeaveSnapshotBar,
 	TeamLeavesApprovalsTable,
 } from '../../../components/hr/user/leave';
+import { ReportingEmployeesPanel } from '../../../components/hr/shared/ReportingEmployeesPanel';
 
 const LeaveDashboardPage: React.FC = () => {
 	const theme = useTheme();
@@ -23,6 +25,7 @@ const LeaveDashboardPage: React.FC = () => {
 		myLeaveBalances: balances, myLeaveBalancesLoading,
 		myLeaveRequests: requests, myLeaveRequestsLoading,
 	} = useAppSelector((state) => state.hr);
+	const { users } = useAppSelector((state) => state.users);
 	const loading = leaveTypesLoading || myLeaveBalancesLoading || myLeaveRequestsLoading;
 
 	const [applyOpen, setApplyOpen] = useState(false);
@@ -32,6 +35,19 @@ const LeaveDashboardPage: React.FC = () => {
 		return user?.role === 'admin' || user?.role === 'manager' || user?.role === 'leadership' || user?.role === 'hr_manager';
 	}, [user?.role]);
 
+	const myDirectReports = useMemo(() => {
+		if (!user) return [];
+		return users
+			.filter((u) => u.reporting_manager_id === user.id)
+			.map((u) => ({
+				id: u.id,
+				full_name: u.full_name || null,
+				email: u.email || null,
+				role: u.role || null,
+				avatar: null
+			}));
+	}, [users, user]);
+
 	const fetchData = () => {
 		dispatch(fetchLeaveTypes(undefined));
 		dispatch(fetchMyLeaveBalances(undefined));
@@ -40,8 +56,11 @@ const LeaveDashboardPage: React.FC = () => {
 
 	useEffect(() => {
 		fetchData();
+		if (isManagerOrAdmin) {
+			dispatch(fetchTeamUsers({ page: 1, pageSize: 200 }));
+		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	}, [isManagerOrAdmin]);
 
 	return (
 		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
@@ -96,7 +115,14 @@ const LeaveDashboardPage: React.FC = () => {
 							<Skeleton variant="rounded" height={320} />
 						</Stack>
 					) : activeTab === 1 && isManagerOrAdmin ? (
-						<TeamLeavesApprovalsTable />
+						<Grid container spacing={3} alignItems="stretch">
+							<Grid size={{ xs: 12, md: 3 }}>
+								<ReportingEmployeesPanel members={myDirectReports} />
+							</Grid>
+							<Grid size={{ xs: 12, md: 9 }}>
+								<TeamLeavesApprovalsTable />
+							</Grid>
+						</Grid>
 					) : (
 						<Stack spacing={3.5}>
 							<LeaveSnapshotBar balances={balances} requests={requests} />

@@ -424,6 +424,22 @@ async def create_leave_request(
 
 
 @router.get(
+    "/leaves/requests/team",
+    response_model=list[LeaveRequestResponse],
+    summary="List all leave requests for the manager's team",
+)
+async def list_team_requests(
+    status_filter: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    mgr_id = None if current_user.role in HR_ADMIN_ROLES else current_user.id
+    return await hr_service.list_leave_requests(
+        db, current_user.organization_id, status_filter=status_filter, manager_user_id=mgr_id
+    )
+
+
+@router.get(
     "/leaves/requests/pending",
     response_model=list[LeaveRequestResponse],
     summary="List pending requests for the allocated reporting manager's approval",
