@@ -15,9 +15,6 @@ import {
 	PendingActions as TimesheetIcon,
 	PeopleAltOutlined as HRIcon,
 	CalendarMonthOutlined as LeaveIcon,
-	Settings as StructuresIcon,
-	MonetizationOn as RunsIcon,
-	ReceiptLong as PayslipsIcon,
 	PlaylistAddCheck as OnboardingIcon,
 	FolderShared as DocumentsIcon,
 	BarChart as ReportsIcon,
@@ -67,6 +64,11 @@ export const topNavigation: NavigationItem[] = [
 				icon: TimesheetIcon,
 			},
 			{
+				label: 'Leaves',
+				path: '/hr/user/leaves',
+				icon: LeaveIcon,
+			},
+			{
 				label: 'Billing',
 				path: '/billing',
 				roles: ['admin'],
@@ -106,27 +108,6 @@ export const topNavigation: NavigationItem[] = [
 		],
 	},
 	{
-		label: 'HR Portal',
-		isSection: true,
-		children: [
-			{
-				label: 'My Profile',
-				path: '/hr/user/profile',
-				icon: ProfileIcon,
-			},
-			{
-				label: 'Leaves',
-				path: '/hr/user/leaves',
-				icon: LeaveIcon,
-			},
-			{
-				label: 'My Payslips',
-				path: '/hr/user/payslips',
-				icon: PayslipsIcon,
-			},
-		],
-	},
-	{
 		label: 'HR Administration',
 		isSection: true,
 		roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
@@ -136,18 +117,6 @@ export const topNavigation: NavigationItem[] = [
 				path: '/hr/admin/workforce',
 				icon: HRIcon,
 				roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
-			},
-			{
-				label: 'Salary Config',
-				path: '/hr/admin/payroll/structures',
-				icon: StructuresIcon,
-				roles: ['admin', 'hr_admin', 'hr_manager'],
-			},
-			{
-				label: 'Payroll Engine',
-				path: '/hr/admin/payroll/runs',
-				icon: RunsIcon,
-				roles: ['admin', 'hr_admin', 'hr_manager'],
 			},
 			{
 				label: 'Lifecycle',

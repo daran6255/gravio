@@ -3,9 +3,6 @@ import { Box, Tabs, Tab, Typography, Chip, useTheme, alpha } from '@mui/material
 import {
 	PeopleAltOutlined as WorkforceIcon,
 	CalendarMonthOutlined as LeaveIcon,
-	SettingsOutlined as StructuresIcon,
-	MonetizationOnOutlined as RunsIcon,
-	ReceiptLongOutlined as PayslipsIcon,
 	PlaylistAddCheck as OnboardingIcon,
 	FolderSharedOutlined as DocumentsIcon,
 	BarChartOutlined as ReportsIcon,
@@ -21,8 +18,6 @@ interface HRTab {
 
 const HR_ADMIN_TABS: HRTab[] = [
 	{ label: 'Workforce', path: '/hr/admin/workforce', icon: <WorkforceIcon /> },
-	{ label: 'Salary Config', path: '/hr/admin/payroll/structures', icon: <StructuresIcon /> },
-	{ label: 'Payroll Engine', path: '/hr/admin/payroll/runs', icon: <RunsIcon /> },
 	{ label: 'Lifecycle', path: '/hr/admin/onboarding', icon: <OnboardingIcon /> },
 	{ label: 'Documents', path: '/hr/admin/documents', icon: <DocumentsIcon /> },
 	{ label: 'Reports', path: '/hr/admin/reports', icon: <ReportsIcon /> },
@@ -31,7 +26,6 @@ const HR_ADMIN_TABS: HRTab[] = [
 const HR_USER_TABS: HRTab[] = [
 	{ label: 'My Profile', path: '/hr/user/profile', icon: <WorkforceIcon /> },
 	{ label: 'Leaves', path: '/hr/user/leaves', icon: <LeaveIcon /> },
-	{ label: 'My Payslips', path: '/hr/user/payslips', icon: <PayslipsIcon /> },
 ];
 
 interface HRLayoutProps {

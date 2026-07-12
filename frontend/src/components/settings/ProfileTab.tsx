@@ -1,39 +1,20 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import {
-	Box,
-	Typography,
-	TextField,
-	Avatar,
-	Stack,
-	Chip,
-	Divider,
-	IconButton,
-	InputAdornment,
-	CircularProgress,
-	Switch,
-	alpha,
-} from '@mui/material';
-import {
-	VerifiedUser as VerifiedIcon,
-	PhotoCamera as PhotoCameraIcon,
-	Person as PersonIcon,
-	WorkOutline as WorkIcon,
-	BadgeOutlined as PersonalInfoIcon,
-	LocationOnOutlined as BillingIcon,
-	Autorenew as RenewalIcon,
-	NotificationsActiveOutlined as ReminderIcon,
-} from '@mui/icons-material';
-import { MuiTelInput, type MuiTelInputCountry, type MuiTelInputInfo } from 'mui-tel-input';
+import { Box, Typography, Stack } from '@mui/material';
 import { useTheme } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { updateProfile } from '../../store/slices/authSlice';
+import { fetchEmployeeByUserId } from '../../store/slices/hrSlice';
 import { useSettingsContext } from '../../context/SettingsContext';
 import useDateTime from '../../hooks/useDateTime';
 import usePhoneValidation from '../../hooks/usePhoneValidation';
 import useToast from '../../hooks/useToast';
-import { DatePicker } from '../common/form';
 import type { BillingAddress } from '../../models/auth';
-import ReportingManagerField from '../timesheets/shared/ReportingManagerField';
+
+// Profile Sub-components
+import ProfileCard from './profile/ProfileCard';
+import PaymentCycleCard from './profile/PaymentCycleCard';
+import PersonalInfoForm from './profile/PersonalInfoForm';
+import BillingAddressForm from './profile/BillingAddressForm';
 
 const MAX_AVATAR_BYTES = 1.5 * 1024 * 1024; // ~1.5MB raw; base64 stays under the backend's 2MB cap
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -43,6 +24,7 @@ const ProfileTab: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const user = useAppSelector((state) => state.auth.user);
+	const { currentEmployee } = useAppSelector((state) => state.hr);
 	const dispatch = useAppDispatch();
 	const toast = useToast();
 	const { markDirty, markClean, registerSaveHandler, registerDiscardHandler } = useSettingsContext();
@@ -51,18 +33,11 @@ const ProfileTab: React.FC = () => {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const originalFullName = user?.full_name || '';
-	const originalJobTitle = user?.job_title || '';
 	const originalPhone = user?.phone || '';
 	const originalDob = user?.dob || null;
 	const originalAvatar = user?.avatar || null;
 	const originalEmail = user?.email || '';
-	// Memoized so its reference only changes when the underlying server data
-	// does — otherwise this object literal is recreated every render, which
-	// retriggers the billingAddress dirty-tracking useEffect below on every
-	// render (its deps include this object), which calls markClean/markDirty,
-	// which changes SettingsContext state, which re-renders this component —
-	// an infinite render loop ("Maximum update depth exceeded") that starves
-	// React's update queue and can swallow an in-flight navigation.
+
 	const originalBillingAddress: BillingAddress = useMemo(
 		() => ({ ...EMPTY_ADDRESS, ...(user?.billing_address || {}) }),
 		[user?.billing_address]
@@ -70,7 +45,6 @@ const ProfileTab: React.FC = () => {
 	const originalBillingReminder = user?.billing_reminder ?? false;
 
 	const [fullName, setFullName] = useState(originalFullName);
-	const [jobTitle, setJobTitle] = useState(originalJobTitle);
 	const [phone, setPhone] = useState(originalPhone);
 	const [dob, setDob] = useState<string | null>(originalDob);
 	const [avatar, setAvatar] = useState<string | null>(originalAvatar);
@@ -79,12 +53,11 @@ const ProfileTab: React.FC = () => {
 	const [billingReminder, setBillingReminder] = useState(originalBillingReminder);
 	const [reminderSaving, setReminderSaving] = useState(false);
 
-	const originalReportingManagerId = user?.reporting_manager_id || '';
-	const [reportingManagerId, setReportingManagerId] = useState<number | ''>(originalReportingManagerId);
-
 	useEffect(() => {
-		setReportingManagerId(originalReportingManagerId);
-	}, [originalReportingManagerId]);
+		if (user?.id) {
+			dispatch(fetchEmployeeByUserId(user.id));
+		}
+	}, [dispatch, user?.id]);
 
 	// The avatar and reminder toggle both save themselves immediately (see
 	// below) rather than joining the batched Save/Discard flow, so they must
@@ -107,10 +80,6 @@ const ProfileTab: React.FC = () => {
 	}, [fullName, originalFullName, markDirty, markClean]);
 
 	useEffect(() => {
-		jobTitle !== originalJobTitle ? markDirty('profile.jobTitle') : markClean('profile.jobTitle');
-	}, [jobTitle, originalJobTitle, markDirty, markClean]);
-
-	useEffect(() => {
 		phone !== originalPhone ? markDirty('profile.phone') : markClean('profile.phone');
 	}, [phone, originalPhone, markDirty, markClean]);
 
@@ -124,45 +93,35 @@ const ProfileTab: React.FC = () => {
 			: markClean('profile.billingAddress');
 	}, [billingAddress, originalBillingAddress, markDirty, markClean]);
 
-	useEffect(() => {
-		reportingManagerId !== originalReportingManagerId
-			? markDirty('profile.reportingManagerId')
-			: markClean('profile.reportingManagerId');
-	}, [reportingManagerId, originalReportingManagerId, markDirty, markClean]);
-
 	// Register save & discard handlers
 	const handleSave = useCallback(async () => {
 		try {
 			await dispatch(updateProfile({
 				full_name: fullName || null,
-				job_title: jobTitle || null,
 				phone: phone || null,
 				dob: dob || null,
 				billing_address: billingAddress,
-				reporting_manager_id: reportingManagerId || null,
 			})).unwrap();
 			toast.success('Profile saved');
 		} catch (err: any) {
 			toast.error(err || 'Failed to save profile');
 			throw err;
 		}
-	}, [dispatch, fullName, jobTitle, phone, dob, billingAddress, reportingManagerId, toast]);
+	}, [dispatch, fullName, phone, dob, billingAddress, toast]);
 
 	const handleDiscard = useCallback(() => {
 		setFullName(originalFullName);
-		setJobTitle(originalJobTitle);
 		setPhone(originalPhone);
 		setDob(originalDob);
 		setBillingAddress(originalBillingAddress);
-		setReportingManagerId(originalReportingManagerId);
-	}, [originalFullName, originalJobTitle, originalPhone, originalDob, originalBillingAddress, originalReportingManagerId]);
+	}, [originalFullName, originalPhone, originalDob, originalBillingAddress]);
 
 	useEffect(() => {
 		registerSaveHandler('profile', handleSave);
 		registerDiscardHandler('profile', handleDiscard);
 	}, [registerSaveHandler, registerDiscardHandler, handleSave, handleDiscard]);
 
-	const handlePhoneChange = (value: string, info: MuiTelInputInfo) => {
+	const handlePhoneChange = (value: string, info: any) => {
 		if (!validatePhoneChange(info)) return;
 		if (info.countryCode) setCountryCode(info.countryCode);
 		setPhone(value);
@@ -170,10 +129,6 @@ const ProfileTab: React.FC = () => {
 
 	const handleAvatarClick = () => fileInputRef.current?.click();
 
-	// Saves immediately on selection/removal instead of waiting for the
-	// batched Save Changes bar — previously the preview was only ever held in
-	// local state, so refreshing before clicking the global Save button
-	// silently discarded the upload.
 	const saveAvatar = async (nextAvatar: string | null) => {
 		const previous = avatar;
 		setAvatar(nextAvatar);
@@ -208,8 +163,6 @@ const ProfileTab: React.FC = () => {
 
 	const handleRemoveAvatar = () => saveAvatar(null);
 
-	// Same "save immediately" treatment as the avatar — a reminder toggle that
-	// only takes effect after a later batched save is easy to flip and forget.
 	const handleReminderToggle = async (checked: boolean) => {
 		setBillingReminder(checked);
 		setReminderSaving(true);
@@ -255,20 +208,6 @@ const ProfileTab: React.FC = () => {
 
 	const fieldLabelSx = { color: labelColor, fontWeight: 700, display: 'block' as const, mb: 0.75, fontSize: '0.75rem' };
 
-	const SectionHeader: React.FC<{ icon: React.ReactNode; title: string; color?: string }> = ({ icon, title, color = '#8B7CF6' }) => (
-		<Stack direction="row" spacing={1.25} alignItems="center" sx={{ mb: 2.5 }}>
-			<Box sx={{ bgcolor: alpha(color, isDark ? 0.15 : 0.1), color, p: 0.7, borderRadius: '8px', display: 'flex' }}>
-				{icon}
-			</Box>
-			<Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? '#F4F5F7' : '#1e293b' }}>
-				{title}
-			</Typography>
-		</Stack>
-	);
-
-	// Next Payment Cycle — the only billing-cycle date this app tracks today is
-	// the trial expiry; once an org is off trial there's no separate recurring
-	// charge date wired up yet, so we fall back to a generic "no upcoming date".
 	const org = user?.organization;
 	const isTrial = (org?.subscription_status || 'trial').toLowerCase() === 'trial';
 	const cycleDate = org?.trial_expires_at;
@@ -295,298 +234,90 @@ const ProfileTab: React.FC = () => {
 				Update your personal information and public profile identity.
 			</Typography>
 
-			<Stack direction={{ xs: 'column', lg: 'row' }} spacing={3} alignItems="flex-start">
-				{/* Left rail — identity + billing cycle at a glance */}
-				<Stack spacing={3} sx={{ width: { xs: '100%', lg: 300 }, flexShrink: 0 }}>
-					<Box
-						sx={{
-							bgcolor: cardBg,
-							border: `1px solid ${cardBorder}`,
-							borderRadius: 4,
-							boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.25)' : '0 8px 32px rgba(15,23,42,0.06)',
-							p: 3.5,
-							textAlign: 'center',
-						}}
-					>
-						<Stack alignItems="center" spacing={1.5}>
-							<Box sx={{ position: 'relative' }}>
-								<Avatar
-									src={avatar || undefined}
-									sx={{
-										width: 108,
-										height: 108,
-										bgcolor: alpha('#8B7CF6', 0.2),
-										color: '#8B7CF6',
-										fontSize: '2rem',
-										fontWeight: 800,
-										border: `3px solid ${alpha('#8B7CF6', 0.3)}`,
-										boxShadow: `0 8px 24px ${alpha('#8B7CF6', isDark ? 0.35 : 0.22)}`,
-									}}
-								>
-									{!avatar && userInitials}
-								</Avatar>
-								<IconButton
-									onClick={handleAvatarClick}
-									disabled={avatarSaving}
-									aria-label="Change profile photo"
-									sx={{
-										position: 'absolute',
-										bottom: 0,
-										right: 0,
-										width: 34,
-										height: 34,
-										bgcolor: '#8B7CF6',
-										color: '#ffffff',
-										border: `2px solid ${cardBg}`,
-										boxShadow: `0 2px 8px ${alpha('#8B7CF6', 0.4)}`,
-										'&:hover': { bgcolor: '#7a6ae6' },
-										'&.Mui-disabled': { bgcolor: alpha('#8B7CF6', 0.5), color: '#ffffff' },
-									}}
-								>
-									{avatarSaving ? <CircularProgress size={16} color="inherit" /> : <PhotoCameraIcon sx={{ fontSize: 16 }} />}
-								</IconButton>
-								<input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleAvatarChange} />
-							</Box>
-							{avatar && (
-								<Typography
-									variant="caption"
-									onClick={avatarSaving ? undefined : handleRemoveAvatar}
-									sx={{
-										color: '#ef4444',
-										fontWeight: 600,
-										cursor: avatarSaving ? 'default' : 'pointer',
-										opacity: avatarSaving ? 0.5 : 1,
-										'&:hover': avatarSaving ? undefined : { textDecoration: 'underline' },
-									}}
-								>
-									Remove photo
-								</Typography>
-							)}
-
-							<Box>
-								<Typography variant="subtitle1" sx={{ fontWeight: 800, color: isDark ? '#F4F5F7' : '#1e293b' }} noWrap>
-									{fullName || user?.username}
-								</Typography>
-								<Typography variant="caption" sx={{ color: mutedColor }}>
-									@{user?.username}
-								</Typography>
-							</Box>
-
-							<Stack direction="row" spacing={1}>
-								<Chip
-									label={user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Member'}
-									size="small"
-									sx={{ bgcolor: alpha('#8B7CF6', isDark ? 0.18 : 0.12), color: '#8B7CF6', fontWeight: 700, fontSize: '0.7rem' }}
-								/>
-								{user?.is_verified ? (
-									<Chip
-										icon={<VerifiedIcon sx={{ fontSize: '0.9rem !important' }} />}
-										label="Verified"
-										size="small"
-										sx={{ bgcolor: alpha('#10b981', 0.15), color: '#10b981', fontWeight: 700, fontSize: '0.7rem' }}
-									/>
-								) : (
-									<Chip
-										label="Unverified"
-										size="small"
-										sx={{ bgcolor: alpha('#f59e0b', 0.15), color: '#f59e0b', fontWeight: 700, fontSize: '0.7rem' }}
-									/>
-								)}
-							</Stack>
-						</Stack>
-					</Box>
-
-					{/* Next Payment Cycle */}
-					<Box
-						sx={{
-							bgcolor: cardBg,
-							border: `1px solid ${cardBorder}`,
-							borderRadius: 4,
-							boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.25)' : '0 8px 32px rgba(15,23,42,0.06)',
-							p: 3,
-						}}
-					>
-						<SectionHeader icon={<RenewalIcon sx={{ fontSize: 16 }} />} title="Next Payment Cycle" color="#4EA8FF" />
-						<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
-							<Typography variant="caption" sx={{ color: mutedColor }}>Current Plan</Typography>
-							<Chip
-								label={planLabel}
-								size="small"
-								sx={{ bgcolor: alpha('#4EA8FF', isDark ? 0.18 : 0.12), color: '#4EA8FF', fontWeight: 700, fontSize: '0.7rem' }}
-							/>
-						</Stack>
-						{cycleDate ? (
-							<>
-								<Typography variant="caption" sx={{ color: mutedColor, display: 'block' }}>
-									{isTrial ? 'Trial ends' : 'Renews on'}
-								</Typography>
-								<Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? '#F4F5F7' : '#1e293b' }}>
-									{formatDate(cycleDate)}
-									{cycleDaysLeft !== null && cycleDaysLeft >= 0 && (
-										<Typography component="span" variant="caption" sx={{ color: '#f59e0b', fontWeight: 700, ml: 1 }}>
-											({cycleDaysLeft} day{cycleDaysLeft === 1 ? '' : 's'} left)
-										</Typography>
-									)}
-								</Typography>
-							</>
-						) : (
-							<Typography variant="body2" sx={{ color: mutedColor, fontStyle: 'italic' }}>
-								No upcoming billing date.
-							</Typography>
-						)}
-
-						<Divider sx={{ borderColor: cardBorder, my: 2 }} />
-
-						<Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
-							<Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
-								<ReminderIcon sx={{ fontSize: 18, color: iconColor, flexShrink: 0 }} />
-								<Typography variant="caption" sx={{ color: isDark ? '#F4F5F7' : '#1e293b', fontWeight: 600 }}>
-									Remind me before renewal
-								</Typography>
-							</Stack>
-							{reminderSaving ? (
-								<CircularProgress size={18} sx={{ color: '#8B7CF6' }} />
-							) : (
-								<Switch
-									size="small"
-									checked={billingReminder}
-									onChange={(e) => handleReminderToggle(e.target.checked)}
-									sx={{
-										'& .MuiSwitch-switchBase.Mui-checked': { color: '#8B7CF6' },
-										'& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#8B7CF6' },
-									}}
-								/>
-							)}
-						</Stack>
-					</Box>
+			<Box
+				sx={{
+					display: 'grid',
+					gridTemplateColumns: { xs: '1fr', lg: '300px 1fr' },
+					gap: 3,
+					alignItems: 'start',
+				}}
+			>
+				{/* Left column — identity + billing cycle at a glance */}
+				<Stack spacing={3} sx={{ minWidth: 0 }}>
+					<ProfileCard
+						avatar={avatar}
+						fullName={fullName}
+						setFullName={setFullName}
+						username={user?.username || ''}
+						role={user?.role || ''}
+						isVerified={user?.is_verified ?? false}
+						employee={currentEmployee}
+						avatarSaving={avatarSaving}
+						handleAvatarClick={handleAvatarClick}
+						handleRemoveAvatar={handleRemoveAvatar}
+						fileInputRef={fileInputRef}
+						handleAvatarChange={handleAvatarChange}
+						userInitials={userInitials}
+						cardBg={cardBg}
+						cardBorder={cardBorder}
+						mutedColor={mutedColor}
+						isDark={isDark}
+					/>
+					<PaymentCycleCard
+						cardBg={cardBg}
+						cardBorder={cardBorder}
+						isDark={isDark}
+						mutedColor={mutedColor}
+						iconColor={iconColor}
+						planLabel={planLabel}
+						cycleDate={cycleDate || null}
+						isTrial={isTrial}
+						cycleDaysLeft={cycleDaysLeft}
+						formatDate={formatDate}
+						billingReminder={billingReminder}
+						reminderSaving={reminderSaving}
+						handleReminderToggle={handleReminderToggle}
+					/>
 				</Stack>
 
-				{/* Right column — Personal Information + Billing Address row, then
-				    Account Overview spanning the same width below it */}
-				<Stack spacing={3} sx={{ flexGrow: 1, minWidth: 0, width: '100%' }}>
-				<Stack direction={{ xs: 'column', xl: 'row' }} spacing={3} alignItems="stretch">
-					<Box
-						sx={{
-							flex: 1.2,
-							bgcolor: cardBg,
-							border: `1px solid ${cardBorder}`,
-							borderRadius: 4,
-							boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.25)' : '0 8px 32px rgba(15,23,42,0.06)',
-							p: { xs: 3, sm: 4 },
-						}}
-					>
-						<SectionHeader icon={<PersonalInfoIcon sx={{ fontSize: 16 }} />} title="Personal Information" />
-
-						<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
-							<Box>
-								<Typography variant="caption" sx={fieldLabelSx}>Full Name</Typography>
-								<TextField
-									fullWidth
-									size="small"
-									value={fullName}
-									onChange={(e) => setFullName(e.target.value)}
-									InputProps={{ startAdornment: <InputAdornment position="start"><PersonIcon sx={{ fontSize: 18, color: iconColor }} /></InputAdornment> }}
-									sx={fieldSx()}
-								/>
-							</Box>
-							<Box>
-								<Typography variant="caption" sx={fieldLabelSx}>Job Title</Typography>
-								<TextField
-									fullWidth
-									size="small"
-									value={jobTitle}
-									onChange={(e) => setJobTitle(e.target.value)}
-									placeholder="Enter your job title"
-									InputProps={{ startAdornment: <InputAdornment position="start"><WorkIcon sx={{ fontSize: 18, color: iconColor }} /></InputAdornment> }}
-									sx={fieldSx()}
-								/>
-							</Box>
-							<Box>
-								<Typography variant="caption" sx={fieldLabelSx}>Corporate Email (Read-only)</Typography>
-								<TextField fullWidth size="small" value={originalEmail} disabled sx={fieldSx(true)} />
-							</Box>
-							<Box>
-								<Typography variant="caption" sx={fieldLabelSx}>Phone Number</Typography>
-								<MuiTelInput
-									fullWidth
-									size="small"
-									value={phone}
-									onChange={handlePhoneChange}
-									defaultCountry={countryCode as MuiTelInputCountry}
-									forceCallingCode
-									sx={fieldSx()}
-								/>
-							</Box>
-							<Box>
-								<Typography variant="caption" sx={fieldLabelSx}>Date of Birth</Typography>
-								<DatePicker
-									label=""
-									value={dob}
-									onChange={(v) => setDob(v || null)}
-									maxDate={TODAY}
-									textFieldProps={{ sx: fieldSx() }}
-								/>
-							</Box>
-							<Box>
-								<Typography variant="caption" sx={fieldLabelSx}>Reporting Manager</Typography>
-								<ReportingManagerField
-									value={reportingManagerId}
-									onChange={(val) => setReportingManagerId(val)}
-									excludeUserId={user?.id}
-								/>
-							</Box>
-						</Box>
-					</Box>
-
-					{/* Billing Address — sits next to Personal Information */}
-					<Box
-						sx={{
-							flex: 1,
-							bgcolor: cardBg,
-							border: `1px solid ${cardBorder}`,
-							borderRadius: 4,
-							boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.25)' : '0 8px 32px rgba(15,23,42,0.06)',
-							p: { xs: 3, sm: 3.5 },
-						}}
-					>
-						<SectionHeader icon={<BillingIcon sx={{ fontSize: 16 }} />} title="Billing Address" />
-							<Typography variant="caption" sx={{ color: mutedColor, display: 'block', mb: 2.5, mt: -1.5 }}>
-								Used for invoices if you upgrade your plan.
-							</Typography>
-							<Stack spacing={2.5}>
-								<Box>
-									<Typography variant="caption" sx={fieldLabelSx}>Address Line 1</Typography>
-									<TextField fullWidth size="small" value={billingAddress.line1 || ''} onChange={setAddressField('line1')} placeholder="Street address" sx={fieldSx()} />
-								</Box>
-								<Box>
-									<Typography variant="caption" sx={fieldLabelSx}>Address Line 2</Typography>
-									<TextField fullWidth size="small" value={billingAddress.line2 || ''} onChange={setAddressField('line2')} placeholder="Apartment, suite, etc. (optional)" sx={fieldSx()} />
-								</Box>
-								<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-									<Box>
-										<Typography variant="caption" sx={fieldLabelSx}>City</Typography>
-										<TextField fullWidth size="small" value={billingAddress.city || ''} onChange={setAddressField('city')} sx={fieldSx()} />
-									</Box>
-									<Box>
-										<Typography variant="caption" sx={fieldLabelSx}>State / Province</Typography>
-										<TextField fullWidth size="small" value={billingAddress.state || ''} onChange={setAddressField('state')} sx={fieldSx()} />
-									</Box>
-								</Box>
-								<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-									<Box>
-										<Typography variant="caption" sx={fieldLabelSx}>Postal Code</Typography>
-										<TextField fullWidth size="small" value={billingAddress.postal_code || ''} onChange={setAddressField('postal_code')} sx={fieldSx()} />
-									</Box>
-									<Box>
-										<Typography variant="caption" sx={fieldLabelSx}>Country</Typography>
-										<TextField fullWidth size="small" value={billingAddress.country || ''} onChange={setAddressField('country')} sx={fieldSx()} />
-									</Box>
-								</Box>
-							</Stack>
-						</Box>
-				</Stack>
-				</Stack>
-			</Stack>
+				{/* Right column — Personal Information + Billing Address */}
+				<Box
+					sx={{
+						display: 'grid',
+						gridTemplateColumns: { xs: '1fr', xl: '1.2fr 1fr' },
+						gap: 3,
+						alignItems: 'stretch',
+					}}
+				>
+					<PersonalInfoForm
+						designationName={currentEmployee?.designation_name || null}
+						originalEmail={originalEmail}
+						phone={phone}
+						handlePhoneChange={handlePhoneChange}
+						countryCode={countryCode}
+						dob={dob}
+						setDob={setDob}
+						cardBg={cardBg}
+						cardBorder={cardBorder}
+						isDark={isDark}
+						iconColor={iconColor}
+						labelColor={labelColor}
+						TODAY={TODAY}
+						fieldSx={fieldSx}
+						fieldLabelSx={fieldLabelSx}
+					/>
+					<BillingAddressForm
+						billingAddress={billingAddress}
+						setAddressField={setAddressField}
+						cardBg={cardBg}
+						cardBorder={cardBorder}
+						isDark={isDark}
+						mutedColor={mutedColor}
+						fieldSx={fieldSx}
+						fieldLabelSx={fieldLabelSx}
+					/>
+				</Box>
+			</Box>
 		</Box>
 	);
 };

@@ -16,16 +16,12 @@ import { ProjectsListPage, ProjectDetailPage } from '../pages/projects';
 import TimesheetPage from '../pages/timesheets/TimesheetPage';
 // HR Admin Pages
 import WorkforcePage from '../pages/hr/admin/WorkforcePage';
-import SalaryStructuresPage from '../pages/hr/admin/SalaryStructuresPage';
-import PayrollRunsPage from '../pages/hr/admin/PayrollRunsPage';
 import ChecklistPage from '../pages/hr/admin/ChecklistPage';
 import DocumentVaultPage from '../pages/hr/admin/DocumentVaultPage';
 import AnalyticsDashboardPage from '../pages/hr/admin/AnalyticsDashboardPage';
 
 // HR User Pages
-import EmployeeProfilePage from '../pages/hr/user/EmployeeProfilePage';
 import LeaveDashboardPage from '../pages/hr/user/LeaveDashboardPage';
-import EmployeePayslipsPage from '../pages/hr/user/EmployeePayslipsPage';
 
 // Legacy auth links (e.g. tokenized verify/invite/reset links already sent by
 // email before the /auth prefix existed) redirect here — preserve the query
@@ -84,16 +80,13 @@ const AppRouter: React.FC = () => {
 					{/* HR Module */}
 					{/* Admin Flow */}
 					<Route path="hr/admin/workforce" element={<WorkforcePage />} />
-					<Route path="hr/admin/payroll/structures" element={<SalaryStructuresPage />} />
-					<Route path="hr/admin/payroll/runs" element={<PayrollRunsPage />} />
 					<Route path="hr/admin/onboarding" element={<ChecklistPage />} />
 					<Route path="hr/admin/documents" element={<DocumentVaultPage />} />
 					<Route path="hr/admin/reports" element={<AnalyticsDashboardPage />} />
 
 					{/* User Flow */}
-					<Route path="hr/user/profile" element={<EmployeeProfilePage />} />
+					<Route path="hr/user/profile" element={<Navigate to="/settings" replace />} />
 					<Route path="hr/user/leaves" element={<LeaveDashboardPage />} />
-					<Route path="hr/user/payslips" element={<EmployeePayslipsPage />} />
 
 					{/* Legacy/Redirect routes */}
 					<Route path="hr/workforce" element={<Navigate to="/hr/admin/workforce" replace />} />
@@ -101,9 +94,6 @@ const AppRouter: React.FC = () => {
 					<Route path="hr/departments" element={<Navigate to="/hr/admin/workforce" replace />} />
 					<Route path="hr/designations" element={<Navigate to="/hr/admin/workforce" replace />} />
 					<Route path="hr/leaves" element={<Navigate to="/hr/user/leaves" replace />} />
-					<Route path="hr/payroll/structures" element={<Navigate to="/hr/admin/payroll/structures" replace />} />
-					<Route path="hr/payroll/runs" element={<Navigate to="/hr/admin/payroll/runs" replace />} />
-					<Route path="hr/payslips" element={<Navigate to="/hr/user/payslips" replace />} />
 					<Route path="hr/onboarding" element={<Navigate to="/hr/admin/onboarding" replace />} />
 					<Route path="hr/documents" element={<Navigate to="/hr/admin/documents" replace />} />
 					<Route path="hr/reports" element={<Navigate to="/hr/admin/reports" replace />} />
@@ -133,16 +123,13 @@ const AppRouter: React.FC = () => {
 					{/* Tenant-prefixed HR Module */}
 					{/* Admin Flow */}
 					<Route path="org/:orgId/hr/admin/workforce" element={<WorkforcePage />} />
-					<Route path="org/:orgId/hr/admin/payroll/structures" element={<SalaryStructuresPage />} />
-					<Route path="org/:orgId/hr/admin/payroll/runs" element={<PayrollRunsPage />} />
 					<Route path="org/:orgId/hr/admin/onboarding" element={<ChecklistPage />} />
 					<Route path="org/:orgId/hr/admin/documents" element={<DocumentVaultPage />} />
 					<Route path="org/:orgId/hr/admin/reports" element={<AnalyticsDashboardPage />} />
 
 					{/* User Flow */}
-					<Route path="org/:orgId/hr/user/profile" element={<EmployeeProfilePage />} />
+					<Route path="org/:orgId/hr/user/profile" element={<Navigate to="../settings" replace />} />
 					<Route path="org/:orgId/hr/user/leaves" element={<LeaveDashboardPage />} />
-					<Route path="org/:orgId/hr/user/payslips" element={<EmployeePayslipsPage />} />
 
 					{/* Tenant-prefixed Legacy/Redirect routes */}
 					<Route path="org/:orgId/hr/workforce" element={<Navigate to="../admin/workforce" replace />} />
@@ -150,9 +137,6 @@ const AppRouter: React.FC = () => {
 					<Route path="org/:orgId/hr/departments" element={<Navigate to="../admin/workforce" replace />} />
 					<Route path="org/:orgId/hr/designations" element={<Navigate to="../admin/workforce" replace />} />
 					<Route path="org/:orgId/hr/leaves" element={<Navigate to="../user/leaves" replace />} />
-					<Route path="org/:orgId/hr/payroll/structures" element={<Navigate to="../admin/payroll/structures" replace />} />
-					<Route path="org/:orgId/hr/payroll/runs" element={<Navigate to="../admin/payroll/runs" replace />} />
-					<Route path="org/:orgId/hr/payslips" element={<Navigate to="../user/payslips" replace />} />
 					<Route path="org/:orgId/hr/onboarding" element={<Navigate to="../admin/onboarding" replace />} />
 					<Route path="org/:orgId/hr/documents" element={<Navigate to="../admin/documents" replace />} />
 					<Route path="org/:orgId/hr/reports" element={<Navigate to="../admin/reports" replace />} />
