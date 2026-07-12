@@ -426,14 +426,16 @@ async def create_leave_request(
 @router.get(
     "/leaves/requests/pending",
     response_model=list[LeaveRequestResponse],
-    summary="List pending requests for manager's approval",
+    summary="List pending requests for the allocated reporting manager's approval",
 )
 async def list_pending_requests(
-    current_user: User = Depends(require_hr_manager),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Manager sees pending requests of their direct reports. HR Admin sees all pending requests.
-    mgr_id = None if UserRole.HR_ADMIN in [current_user.role, UserRole.ADMIN] else current_user.id
+    # Mirrors Timesheets: any authenticated user may call this and sees only the
+    # pending requests of their own direct reports (via reporting_manager_id).
+    # HR Admin / Admin see every pending request in the org.
+    mgr_id = None if current_user.role in HR_ADMIN_ROLES else current_user.id
     return await hr_service.list_leave_requests(
         db, current_user.organization_id, status_filter="pending", manager_user_id=mgr_id
     )
@@ -460,16 +462,17 @@ async def get_leave_request(
 @router.post(
     "/leaves/requests/{public_id}/approve-reject",
     response_model=LeaveRequestResponse,
-    summary="Approve or reject a leave request (manager/admin only)",
+    summary="Approve or reject a leave request (allocated reporting manager, or HR admin)",
 )
 async def approve_reject_request(
     public_id: uuid.UUID,
     payload: LeaveApprovalRequest,
-    current_user: User = Depends(require_hr_manager),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     return await hr_service.approve_reject_leave_request(
-        db, current_user.organization_id, public_id, current_user.id, payload
+        db, current_user.organization_id, public_id, current_user.id, payload,
+        is_admin_override=current_user.role in HR_ADMIN_ROLES,
     )
 
 

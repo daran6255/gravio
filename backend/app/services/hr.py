@@ -1105,6 +1105,7 @@ async def cancel_leave_request(db: AsyncSession, org_id: int, public_id: uuid.UU
 
     req.status = LeaveStatus.CANCELLED
     await db.commit()
+    await db.refresh(req, attribute_names=["updated_at"])
     return _leave_req_response(req)
 
 
@@ -1114,6 +1115,7 @@ async def approve_reject_leave_request(
     public_id: uuid.UUID,
     manager_user_id: int,
     payload: LeaveApprovalRequest,
+    is_admin_override: bool = False,
 ) -> LeaveRequestResponse:
     result = await db.execute(
         select(HRLeaveRequest).where(
@@ -1127,6 +1129,14 @@ async def approve_reject_leave_request(
     req = result.scalars().first()
     if not req:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Leave request not found")
+
+    # Only the employee's allocated reporting manager may act -- same identity
+    # check Timesheets enforces for approve/reject. HR admins bypass it.
+    if not is_admin_override and (not req.user or req.user.reporting_manager_id != manager_user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only approve or reject leave requests for your direct reports",
+        )
 
     if req.status != LeaveStatus.PENDING:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Can only approve/reject pending requests")
@@ -1162,6 +1172,7 @@ async def approve_reject_leave_request(
     req.manager_notes = payload.manager_notes
 
     await db.commit()
+    await db.refresh(req, attribute_names=["updated_at", "approved_by"])
     return _leave_req_response(req)
 
 
