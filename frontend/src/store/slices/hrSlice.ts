@@ -847,6 +847,18 @@ export const toggleChecklistTask = createAsyncThunk(
 	}
 );
 
+export const deleteChecklistInstance = createAsyncThunk(
+	'hr/deleteChecklistInstance',
+	async (id: number, { rejectWithValue }) => {
+		try {
+			await hrChecklistInstanceApi.delete(id);
+			return id;
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to delete checklist tracker'));
+		}
+	}
+);
+
 // ==========================================
 // ASYNC THUNKS -- Employee Documents
 // ==========================================
@@ -1346,6 +1358,9 @@ const hrSlice = createSlice({
 					// (employee_name/template_name/checklist_type) -- keep them from the prior row.
 					state.checklistInstances[idx] = { ...state.checklistInstances[idx], ...action.payload };
 				}
+			})
+			.addCase(deleteChecklistInstance.fulfilled, (state, action: PayloadAction<number>) => {
+				state.checklistInstances = state.checklistInstances.filter((i) => i.id !== action.payload);
 			})
 
 			// --- Employee Documents ---

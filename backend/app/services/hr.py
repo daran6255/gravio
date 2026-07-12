@@ -2262,6 +2262,25 @@ async def toggle_checklist_task(db: AsyncSession, org_id: int, id: int, task_id:
     return inst
 
 
+async def delete_checklist_instance(db: AsyncSession, org_id: int, id: int) -> None:
+    res = await db.execute(
+        select(HRChecklistInstance).where(
+            and_(
+                HRChecklistInstance.organization_id == org_id,
+                HRChecklistInstance.id == id,
+                HRChecklistInstance.is_deleted == False
+            )
+        )
+    )
+    inst = res.scalar_one_or_none()
+    if not inst:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Checklist tracker not found")
+
+    inst.is_deleted = True
+    inst.deleted_at = datetime.utcnow()
+    await db.commit()
+
+
 # ===========================================================================
 # Documents Management (Phase 4: Advanced)
 # ===========================================================================

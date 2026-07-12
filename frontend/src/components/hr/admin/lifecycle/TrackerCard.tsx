@@ -1,17 +1,26 @@
 import React, { useMemo } from 'react';
-import { Box, Chip, CircularProgress, Divider, Stack, Typography, alpha, useTheme } from '@mui/material';
-import { WarningAmberRounded as OverdueIcon } from '@mui/icons-material';
+import { Box, Chip, LinearProgress, Stack, Typography, alpha, useTheme } from '@mui/material';
+import {
+	WarningAmberRounded as OverdueIcon,
+	DeleteOutline as DeleteIcon,
+	PersonAddAlt1Outlined as OnboardingIcon,
+	LogoutOutlined as OffboardingIcon,
+} from '@mui/icons-material';
+import ContextMenu from '../../../common/action-menu/ContextMenu';
 import type { HRChecklistInstance } from '../../../../models/hr';
 
 interface TrackerCardProps {
 	instance: HRChecklistInstance;
+	canManage: boolean;
 	onClick: () => void;
+	onDelete: () => void;
 }
 
-const TrackerCard: React.FC<TrackerCardProps> = ({ instance, onClick }) => {
+const TrackerCard: React.FC<TrackerCardProps> = ({ instance, canManage, onClick, onDelete }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const isOnboarding = instance.checklist_type === 'onboarding';
+	const isCompleted = instance.status === 'completed';
 
 	const { progress, completedCount, totalCount, overdueCount } = useMemo(() => {
 		const statuses = Object.values(instance.task_statuses);
@@ -28,6 +37,7 @@ const TrackerCard: React.FC<TrackerCardProps> = ({ instance, onClick }) => {
 	}, [instance.task_statuses]);
 
 	const accent = isOnboarding ? theme.palette.primary.main : theme.palette.error.main;
+	const barColor = isCompleted ? theme.palette.success.main : accent;
 
 	return (
 		<Box
@@ -36,6 +46,7 @@ const TrackerCard: React.FC<TrackerCardProps> = ({ instance, onClick }) => {
 				p: 2.5,
 				borderRadius: '20px',
 				height: '100%',
+				position: 'relative',
 				cursor: 'pointer',
 				bgcolor: theme.palette.background.paper,
 				border: '1px solid',
@@ -50,56 +61,93 @@ const TrackerCard: React.FC<TrackerCardProps> = ({ instance, onClick }) => {
 				},
 			}}
 		>
-			<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+			{canManage && (
+				<Box
+					onClick={(e) => e.stopPropagation()}
+					sx={{ position: 'absolute', top: 14, right: 14, zIndex: 1 }}
+				>
+					<ContextMenu
+						size="small"
+						triggerTooltip="Tracker Actions"
+						actions={[
+							{
+								label: 'Delete Tracker',
+								icon: <DeleteIcon fontSize="small" />,
+								color: theme.palette.error.main,
+								onClick: onDelete,
+								tooltip: 'For trackers launched by mistake',
+							},
+						]}
+					/>
+				</Box>
+			)}
+
+			<Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ mb: 2, pr: canManage ? 4 : 0 }}>
+				<Box
+					sx={{
+						width: 42,
+						height: 42,
+						borderRadius: '14px',
+						flexShrink: 0,
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'center',
+						bgcolor: alpha(accent, 0.12),
+						color: accent,
+					}}
+				>
+					{isOnboarding ? <OnboardingIcon sx={{ fontSize: '1.3rem' }} /> : <OffboardingIcon sx={{ fontSize: '1.3rem' }} />}
+				</Box>
+				<Box sx={{ minWidth: 0, flex: 1 }}>
+					<Typography variant="subtitle1" fontWeight={800} noWrap>{instance.employee_name}</Typography>
+					<Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+						{instance.template_name}
+					</Typography>
+				</Box>
+			</Stack>
+
+			<Stack direction="row" spacing={0.75} sx={{ mb: 2 }}>
 				<Chip
 					label={isOnboarding ? 'Onboarding' : 'Offboarding'}
 					size="small"
 					sx={{
-						fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.4px',
+						fontWeight: 800, textTransform: 'uppercase', fontSize: '0.62rem', letterSpacing: '0.4px',
 						bgcolor: alpha(accent, 0.12), color: accent,
 					}}
 				/>
-				<Stack direction="row" spacing={0.75} alignItems="center">
-					{overdueCount > 0 && instance.status !== 'completed' && (
-						<Chip
-							icon={<OverdueIcon sx={{ fontSize: '0.9rem !important' }} />}
-							label={overdueCount}
-							size="small"
-							color="error"
-							sx={{ fontWeight: 800, fontSize: '0.65rem', height: 22 }}
-						/>
-					)}
+				<Chip
+					label={isCompleted ? 'Completed' : 'Pending'}
+					size="small"
+					color={isCompleted ? 'success' : 'warning'}
+					sx={{ fontWeight: 800, fontSize: '0.62rem' }}
+				/>
+				{overdueCount > 0 && !isCompleted && (
 					<Chip
-						label={instance.status === 'completed' ? 'COMPLETED' : 'PENDING'}
+						icon={<OverdueIcon sx={{ fontSize: '0.85rem !important' }} />}
+						label={`${overdueCount} overdue`}
 						size="small"
-						color={instance.status === 'completed' ? 'success' : 'warning'}
-						sx={{ fontWeight: 800, fontSize: '0.65rem' }}
+						color="error"
+						variant="outlined"
+						sx={{ fontWeight: 700, fontSize: '0.62rem' }}
 					/>
-				</Stack>
+				)}
 			</Stack>
 
-			<Typography variant="subtitle1" fontWeight={800} noWrap>{instance.employee_name}</Typography>
-			<Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', mb: 2 }}>
-				{instance.template_name}
-			</Typography>
-
-			<Divider sx={{ mb: 1.5, borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)' }} />
-
-			<Stack direction="row" alignItems="center" justifyContent="space-between">
-				<Stack direction="row" alignItems="center" spacing={1}>
-					<CircularProgress
-						variant="determinate"
-						value={progress}
-						size={28}
-						thickness={5}
-						sx={{ color: instance.status === 'completed' ? 'success.main' : accent }}
-					/>
-					<Typography variant="body2" fontWeight={700}>{progress}%</Typography>
-				</Stack>
+			<Stack direction="row" justifyContent="space-between" sx={{ mb: 0.75 }}>
 				<Typography variant="caption" color="text.secondary" fontWeight={600}>
-					{completedCount}/{totalCount} tasks
+					{completedCount} of {totalCount} tasks
 				</Typography>
+				<Typography variant="caption" fontWeight={800} color={barColor}>{progress}%</Typography>
 			</Stack>
+			<LinearProgress
+				variant="determinate"
+				value={progress}
+				sx={{
+					height: 7, borderRadius: 4,
+					bgcolor: alpha(barColor, 0.12),
+					'& .MuiLinearProgress-bar': { borderRadius: 4, bgcolor: barColor },
+				}}
+			/>
 		</Box>
 	);
 };

@@ -5,7 +5,7 @@ import PageHeader from '../../../components/common/page-header';
 import { responsiveStyles } from '../../../theme';
 import {
 	fetchChecklistTemplates, createChecklistTemplate, deleteChecklistTemplate,
-	fetchChecklistInstances, toggleChecklistTask,
+	fetchChecklistInstances, toggleChecklistTask, deleteChecklistInstance,
 	fetchEmployees
 } from '../../../store/slices/hrSlice';
 import type { HRChecklistTemplate, HRChecklistInstance } from '../../../models/hr';
@@ -29,6 +29,7 @@ const ChecklistPage: React.FC = () => {
 	const { success, error } = useToast();
 	const currentUser = useAppSelector((state) => state.auth.user);
 	const isAdminOrHR = currentUser?.role === 'admin' || currentUser?.role === 'hr_admin';
+	const canManageTrackers = isAdminOrHR || currentUser?.role === 'hr_manager';
 
 	const {
 		checklistTemplates: templates, checklistTemplatesLoading,
@@ -43,6 +44,9 @@ const ChecklistPage: React.FC = () => {
 	const [deleteTarget, setDeleteTarget] = useState<HRChecklistTemplate | null>(null);
 	const [deleting, setDeleting] = useState(false);
 	const [seeding, setSeeding] = useState(false);
+
+	const [deleteInstanceTarget, setDeleteInstanceTarget] = useState<HRChecklistInstance | null>(null);
+	const [deletingInstance, setDeletingInstance] = useState(false);
 
 	const [launchDialogOpen, setLaunchDialogOpen] = useState(false);
 
@@ -98,6 +102,20 @@ const ChecklistPage: React.FC = () => {
 			error('Failed to delete template');
 		} finally {
 			setDeleting(false);
+		}
+	};
+
+	const handleConfirmDeleteInstance = async () => {
+		if (!deleteInstanceTarget) return;
+		setDeletingInstance(true);
+		try {
+			await dispatch(deleteChecklistInstance(deleteInstanceTarget.id)).unwrap();
+			success('Checklist tracker deleted');
+			setDeleteInstanceTarget(null);
+		} catch (e: any) {
+			error('Failed to delete checklist tracker');
+		} finally {
+			setDeletingInstance(false);
 		}
 	};
 
@@ -180,7 +198,9 @@ const ChecklistPage: React.FC = () => {
 							{tab === 'trackers' ? (
 								<TrackersGrid
 									instances={instances}
+									canManage={canManageTrackers}
 									onSelect={(inst) => { setActiveInstance(inst); setInstanceDetailOpen(true); }}
+									onDelete={(inst) => setDeleteInstanceTarget(inst)}
 									onLaunchClick={() => setLaunchDialogOpen(true)}
 								/>
 							) : (
@@ -229,6 +249,21 @@ const ChecklistPage: React.FC = () => {
 						confirmLabel="Delete"
 						severity="error"
 						loading={deleting}
+					/>
+
+					<ConfirmationDialog
+						open={!!deleteInstanceTarget}
+						onClose={() => setDeleteInstanceTarget(null)}
+						onConfirm={handleConfirmDeleteInstance}
+						title="Delete Checklist Tracker"
+						message={
+							deleteInstanceTarget
+								? `Delete the ${deleteInstanceTarget.checklist_type} tracker for "${deleteInstanceTarget.employee_name}"? Use this for trackers launched by mistake — it won't undo any employee status change it already caused.`
+								: ''
+						}
+						confirmLabel="Delete"
+						severity="error"
+						loading={deletingInstance}
 					/>
 				</Stack>
 			</Container>

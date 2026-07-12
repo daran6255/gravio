@@ -948,6 +948,21 @@ async def toggle_task(
     return inst
 
 
+@router.delete(
+    "/checklists/instances/{id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a checklist tracker (e.g. one launched by mistake)",
+)
+async def delete_checklist_instance(
+    id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role not in HR_MANAGER_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    await hr_service.delete_checklist_instance(db, current_user.organization_id, id)
+
+
 # ===========================================================================
 # Documents Management REST (Phase 4: Advanced)
 # ===========================================================================

@@ -289,6 +289,9 @@ export const hrChecklistInstanceApi = {
 
 	toggleTask: (id: number, taskId: string, completed: boolean): Promise<HRChecklistInstance> =>
 		api.post(`/hr/checklists/instances/${id}/tasks/${taskId}/toggle`, { completed }).then(r => r.data),
+
+	delete: (id: number): Promise<void> =>
+		api.delete(`/hr/checklists/instances/${id}`).then(() => undefined),
 };
 
 // ---------------------------------------------------------------------------

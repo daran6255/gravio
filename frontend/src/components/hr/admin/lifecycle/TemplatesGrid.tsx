@@ -50,7 +50,7 @@ const TemplatesGrid: React.FC<TemplatesGridProps> = ({ templates, canManage, onC
 	return (
 		<Grid container spacing={3}>
 			{templates.map((tmpl) => (
-				<Grid size={{ xs: 12, sm: 6, md: 4 }} key={tmpl.id}>
+				<Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={tmpl.id}>
 					<TemplateCard
 						template={tmpl}
 						canManage={canManage}

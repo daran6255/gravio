@@ -6,11 +6,13 @@ import TrackerCard from './TrackerCard';
 
 interface TrackersGridProps {
 	instances: HRChecklistInstance[];
+	canManage: boolean;
 	onSelect: (instance: HRChecklistInstance) => void;
+	onDelete: (instance: HRChecklistInstance) => void;
 	onLaunchClick: () => void;
 }
 
-const TrackersGrid: React.FC<TrackersGridProps> = ({ instances, onSelect, onLaunchClick }) => {
+const TrackersGrid: React.FC<TrackersGridProps> = ({ instances, canManage, onSelect, onDelete, onLaunchClick }) => {
 	const theme = useTheme();
 
 	if (instances.length === 0) {
@@ -29,8 +31,13 @@ const TrackersGrid: React.FC<TrackersGridProps> = ({ instances, onSelect, onLaun
 	return (
 		<Grid container spacing={3}>
 			{instances.map((inst) => (
-				<Grid size={{ xs: 12, sm: 6, md: 4 }} key={inst.id}>
-					<TrackerCard instance={inst} onClick={() => onSelect(inst)} />
+				<Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={inst.id}>
+					<TrackerCard
+						instance={inst}
+						canManage={canManage}
+						onClick={() => onSelect(inst)}
+						onDelete={() => onDelete(inst)}
+					/>
 				</Grid>
 			))}
 		</Grid>
