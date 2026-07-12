@@ -4,7 +4,6 @@ import {
 	CircularProgress, Typography, Table, TableBody, TableCell, TableContainer,
 	TableHead, TableRow, Paper, Box, alpha, useTheme
 } from '@mui/material';
-import { CalendarMonth as CalendarIcon } from '@mui/icons-material';
 import { BaseDialog } from '../../../../common/dialogbox';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
 import { fetchEmployeeLeaveBalances, updateLeaveBalance } from '../../../../../store/slices/hrSlice';
