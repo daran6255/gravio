@@ -17,7 +17,6 @@ import {
 	CalendarMonthOutlined as LeaveIcon,
 	PlaylistAddCheck as OnboardingIcon,
 	FolderShared as DocumentsIcon,
-	BarChart as ReportsIcon,
 } from '@mui/icons-material';
 import type { SvgIconComponent } from '@mui/icons-material';
 
@@ -129,12 +128,6 @@ export const topNavigation: NavigationItem[] = [
 				path: '/hr/admin/documents',
 				icon: DocumentsIcon,
 				roles: ['admin', 'hr_admin', 'hr_manager'],
-			},
-			{
-				label: 'Reports',
-				path: '/hr/admin/reports',
-				icon: ReportsIcon,
-				roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
 			},
 		],
 	},

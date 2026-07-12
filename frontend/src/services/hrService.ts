@@ -16,7 +16,7 @@ import type {
 	HRVariablePayEntry, HRVariablePayEntryCreate,
 	HRPayslip,
 	HRChecklistTemplate, HRChecklistInstance, HREmployeeDocument,
-	HeadcountReport, AttritionReport, LeaveSummaryReport, PayrollCostReport,
+	HeadcountReport,
 } from '../models/hr';
 
 interface PaginatedResponse<T> {
@@ -336,15 +336,6 @@ export const hrEmployeeDocumentApi = {
 export const hrAnalyticsApi = {
 	getHeadcount: (): Promise<HeadcountReport> =>
 		api.get('/hr/analytics/headcount').then(r => r.data),
-
-	getAttrition: (): Promise<AttritionReport> =>
-		api.get('/hr/analytics/attrition').then(r => r.data),
-
-	getLeavesSummary: (): Promise<LeaveSummaryReport> =>
-		api.get('/hr/analytics/leaves-summary').then(r => r.data),
-
-	getPayrollCosts: (): Promise<PayrollCostReport> =>
-		api.get('/hr/analytics/payroll-costs').then(r => r.data),
 };
 
 

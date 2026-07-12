@@ -84,32 +84,3 @@ export interface HeadcountReport {
   invited_count: number;
 }
 
-export interface AttritionReport {
-  timeline: Array<{
-    month_year: string;
-    joiners: number;
-    leavers: number;
-    headcount: number;
-  }>;
-  annual_attrition_rate: number;
-}
-
-export interface LeaveSummaryReport {
-  leave_type_balances: Array<{
-    type: string;
-    allocated: number;
-    used: number;
-    remaining: number;
-  }>;
-  total_approved_requests: number;
-  average_leave_days: number;
-}
-
-export interface PayrollCostReport {
-  monthly_trend: Array<{
-    month_year: string;
-    gross_total: number;
-    net_total: number;
-  }>;
-  current_month_cost: number;
-}

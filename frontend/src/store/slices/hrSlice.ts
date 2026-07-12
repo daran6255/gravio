@@ -34,7 +34,7 @@ import type {
 	HRVariablePayEntryCreate,
 	HRPayslip,
 	HRChecklistTemplate, HRChecklistInstance, HREmployeeDocument,
-	HeadcountReport, AttritionReport, LeaveSummaryReport, PayrollCostReport,
+	HeadcountReport,
 } from '../../models/hr';
 
 function extractErrorMessage(error: any, fallback: string): string {
@@ -120,13 +120,9 @@ interface HRState {
 	documentsLoading: boolean;
 	documentsError: string | null;
 
-	// Analytics & Reports
+	// Analytics — headcount only; kept for the Workforce Employees panel's
+	// department-breakdown/invite-coverage cards.
 	headcountReport: HeadcountReport | null;
-	attritionReport: AttritionReport | null;
-	leaveSummaryReport: LeaveSummaryReport | null;
-	payrollCostReport: PayrollCostReport | null;
-	analyticsLoading: boolean;
-	analyticsError: string | null;
 
 	// Generic mutation flag shared by create/update/delete actions across HR
 	actionLoading: boolean;
@@ -199,11 +195,6 @@ const initialState: HRState = {
 	documentsError: null,
 
 	headcountReport: null,
-	attritionReport: null,
-	leaveSummaryReport: null,
-	payrollCostReport: null,
-	analyticsLoading: false,
-	analyticsError: null,
 
 	actionLoading: false,
 	actionError: null,
@@ -923,57 +914,6 @@ export const fetchHeadcountReport = createAsyncThunk(
 	}
 );
 
-export const fetchAttritionReport = createAsyncThunk(
-	'hr/fetchAttritionReport',
-	async (_: void | undefined, { rejectWithValue }) => {
-		try {
-			return await hrAnalyticsApi.getAttrition();
-		} catch (error: any) {
-			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch attrition report'));
-		}
-	}
-);
-
-export const fetchLeaveSummaryReport = createAsyncThunk(
-	'hr/fetchLeaveSummaryReport',
-	async (_: void | undefined, { rejectWithValue }) => {
-		try {
-			return await hrAnalyticsApi.getLeavesSummary();
-		} catch (error: any) {
-			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch leave summary report'));
-		}
-	}
-);
-
-export const fetchPayrollCostReport = createAsyncThunk(
-	'hr/fetchPayrollCostReport',
-	async (_: void | undefined, { rejectWithValue }) => {
-		try {
-			return await hrAnalyticsApi.getPayrollCosts();
-		} catch (error: any) {
-			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch payroll cost report'));
-		}
-	}
-);
-
-// A single thunk the Analytics dashboard can dispatch once instead of four separate calls.
-export const fetchAllHRAnalytics = createAsyncThunk(
-	'hr/fetchAllHRAnalytics',
-	async (_: void | undefined, { rejectWithValue }) => {
-		try {
-			const [headcount, attrition, leaves, payroll] = await Promise.all([
-				hrAnalyticsApi.getHeadcount(),
-				hrAnalyticsApi.getAttrition(),
-				hrAnalyticsApi.getLeavesSummary(),
-				hrAnalyticsApi.getPayrollCosts(),
-			]);
-			return { headcount, attrition, leaves, payroll };
-		} catch (error: any) {
-			return rejectWithValue(extractErrorMessage(error, 'Failed to load HR analytics'));
-		}
-	}
-);
-
 // ==========================================
 // HR SLICE
 // ==========================================
@@ -996,7 +936,6 @@ const hrSlice = createSlice({
 			state.checklistTemplatesError = null;
 			state.checklistInstancesError = null;
 			state.documentsError = null;
-			state.analyticsError = null;
 			state.actionError = null;
 		},
 		clearCurrentEmployee(state) {
@@ -1390,30 +1329,6 @@ const hrSlice = createSlice({
 			// --- Analytics & Reports ---
 			.addCase(fetchHeadcountReport.fulfilled, (state, action: PayloadAction<HeadcountReport>) => {
 				state.headcountReport = action.payload;
-			})
-			.addCase(fetchAttritionReport.fulfilled, (state, action: PayloadAction<AttritionReport>) => {
-				state.attritionReport = action.payload;
-			})
-			.addCase(fetchLeaveSummaryReport.fulfilled, (state, action: PayloadAction<LeaveSummaryReport>) => {
-				state.leaveSummaryReport = action.payload;
-			})
-			.addCase(fetchPayrollCostReport.fulfilled, (state, action: PayloadAction<PayrollCostReport>) => {
-				state.payrollCostReport = action.payload;
-			})
-			.addCase(fetchAllHRAnalytics.pending, (state) => {
-				state.analyticsLoading = true;
-				state.analyticsError = null;
-			})
-			.addCase(fetchAllHRAnalytics.fulfilled, (state, action) => {
-				state.analyticsLoading = false;
-				state.headcountReport = action.payload.headcount;
-				state.attritionReport = action.payload.attrition;
-				state.leaveSummaryReport = action.payload.leaves;
-				state.payrollCostReport = action.payload.payroll;
-			})
-			.addCase(fetchAllHRAnalytics.rejected, (state, action) => {
-				state.analyticsLoading = false;
-				state.analyticsError = action.payload as string;
 			})
 
 			// --- Generic mutation loading/error for actions not covered above ---
