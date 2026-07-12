@@ -93,19 +93,6 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, label, color, co
 					display: 'flex',
 					flexDirection: 'column',
 					gap: 1.5,
-					'&::-webkit-scrollbar': {
-						width: '5px',
-					},
-					'&::-webkit-scrollbar-track': {
-						background: 'transparent',
-					},
-					'&::-webkit-scrollbar-thumb': {
-						bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-						borderRadius: '4px',
-					},
-					'&::-webkit-scrollbar-thumb:hover': {
-						bgcolor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
-					}
 				}}
 			>
 				{children}

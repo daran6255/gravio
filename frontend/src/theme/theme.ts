@@ -317,8 +317,10 @@ export const getThemeByMode = (mode: 'light' | 'dark'): Theme => {
 			MuiCssBaseline: {
 				styleOverrides: {
 					html: {
-						scrollbarColor: isDark ? "#4a5568 transparent" : "#d5dbdb transparent",
-						scrollbarWidth: 'thin',
+						"@supports not selector(::-webkit-scrollbar)": {
+							scrollbarColor: isDark ? "#4a5568 transparent" : "#b0b0b0 transparent",
+							scrollbarWidth: 'thin',
+						},
 						"&::-webkit-scrollbar": {
 							width: '4px',
 							height: '4px',
@@ -327,17 +329,19 @@ export const getThemeByMode = (mode: 'light' | 'dark'): Theme => {
 							background: 'transparent',
 						},
 						"&::-webkit-scrollbar-thumb": {
-							background: isDark ? "#4a5568" : "#d5dbdb",
-							borderRadius: '10px',
+							background: isDark ? '#4a5568' : '#b0b0b0',
+							borderRadius: '0px',
 						},
 						"&::-webkit-scrollbar-thumb:hover": {
-							background: isDark ? "#718096" : "#aab7b7",
+							background: isDark ? '#718096' : '#909090',
 						},
 					},
 					body: {
 						"&, & *": {
-							scrollbarColor: isDark ? "#4a5568 transparent" : "#d5dbdb transparent",
-							scrollbarWidth: 'thin',
+							"@supports not selector(::-webkit-scrollbar)": {
+								scrollbarColor: isDark ? "#4a5568 transparent" : "#b0b0b0 transparent",
+								scrollbarWidth: 'thin',
+							},
 						},
 						"&::-webkit-scrollbar, & *::-webkit-scrollbar": {
 							width: '4px',
@@ -347,11 +351,11 @@ export const getThemeByMode = (mode: 'light' | 'dark'): Theme => {
 							background: 'transparent',
 						},
 						"&::-webkit-scrollbar-thumb, & *::-webkit-scrollbar-thumb": {
-							background: isDark ? "#4a5568" : "#d5dbdb",
-							borderRadius: '10px',
+							background: isDark ? '#4a5568' : '#b0b0b0',
+							borderRadius: '0px',
 						},
 						"&::-webkit-scrollbar-thumb:hover, & *::-webkit-scrollbar-thumb:hover": {
-							background: isDark ? "#718096" : "#aab7b7",
+							background: isDark ? '#718096' : '#909090',
 						},
 					},
 				},

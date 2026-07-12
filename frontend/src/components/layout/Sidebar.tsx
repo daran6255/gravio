@@ -532,14 +532,6 @@ const Sidebar: React.FC = () => {
 						overflowY: 'auto',
 						overflowX: 'hidden',
 						py: 1,
-						/* Custom enterprise scrollbar */
-						'&::-webkit-scrollbar': { width: 4 },
-						'&::-webkit-scrollbar-track': { background: 'transparent' },
-						'&::-webkit-scrollbar-thumb': {
-							background: sidebarDivider,
-							borderRadius: 10,
-							'&:hover': { background: sidebarHoverBg }
-						},
 					}}
 				>
 					<List disablePadding>
