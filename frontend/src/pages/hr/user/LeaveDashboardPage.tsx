@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Box, Button, Container, Grid, Skeleton, Stack, Tab, Tabs, alpha, useTheme } from '@mui/material';
+import { Box, Button, Container, Grid, Skeleton, Stack, Tab, Tabs, alpha, useTheme, Alert } from '@mui/material';
 import { AddOutlined as AddIcon } from '@mui/icons-material';
 import PageHeader from '../../../components/common/page-header';
 import { responsiveStyles } from '../../../theme';
@@ -125,6 +125,20 @@ const LeaveDashboardPage: React.FC = () => {
 						</Grid>
 					) : (
 						<Stack spacing={3.5}>
+							{!loading && balances.filter((b) => !b.is_lop).length === 0 && (
+								<Alert
+									severity="warning"
+									sx={{
+										borderRadius: '16px',
+										border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+										fontWeight: 600,
+										boxShadow: 'none',
+										bgcolor: alpha(theme.palette.warning.main, 0.02)
+									}}
+								>
+									No leave entitlements have been configured for you for the current year ({new Date().getFullYear()}). Please contact your HR administrator to set up your annual leave allocations.
+								</Alert>
+							)}
 							<LeaveSnapshotBar balances={balances} requests={requests} />
 							<Grid container spacing={2.5}>
 								<Grid size={{ xs: 12, md: 3 }}>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
 	Box, Typography, TableRow, TableCell, Chip, Stack, Grid,
-	MenuItem, Select, FormControl, InputLabel,
+	MenuItem, Select, FormControl, InputLabel, Alert, useTheme, alpha
 } from '@mui/material';
 import { Work as WorkIcon, Send as InviteIcon, Edit as EditIcon, CalendarMonth as LeaveIcon } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
@@ -28,6 +28,7 @@ const STATUS_OPTIONS: Array<{ value: EmployeeStatus | ''; label: string }> = [
 ];
 
 export const EmployeesPanel: React.FC = () => {
+	const theme = useTheme();
 	const { error } = useToast();
 	const dispatch = useAppDispatch();
 	const { employees, employeesTotal, employeesLoading: loading, departments, designations, headcountReport } = useAppSelector((state) => state.hr);
@@ -156,6 +157,20 @@ export const EmployeesPanel: React.FC = () => {
 
 	return (
 		<>
+		<Alert
+			severity="info"
+			sx={{
+				mb: 3,
+				borderRadius: '16px',
+				border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+				fontWeight: 600,
+				boxShadow: 'none',
+				bgcolor: alpha(theme.palette.info.main, 0.015),
+				'& .MuiAlert-message': { width: '100%' }
+			}}
+		>
+			💡 <strong>Annual Leave Entitlements</strong>: Remember to configure leave entitlements for each employee for the current year (<strong>{new Date().getFullYear()}</strong>). Select <strong>Leave Entitlements</strong> from the employee actions menu on the table to set or update their allocations.
+		</Alert>
 		<Grid container spacing={2.5}>
 			{headcountReport && headcountReport.total_count > 0 && (
 				<Grid size={{ xs: 12, lg: 4 }}>
