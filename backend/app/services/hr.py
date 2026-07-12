@@ -2285,6 +2285,13 @@ async def delete_checklist_instance(db: AsyncSession, org_id: int, id: int) -> N
 # Documents Management (Phase 4: Advanced)
 # ===========================================================================
 
+_DOCUMENT_LOAD_OPTIONS = [
+    selectinload(HREmployeeDocument.user),
+    selectinload(HREmployeeDocument.verified_by),
+    selectinload(HREmployeeDocument.uploaded_by),
+]
+
+
 async def list_employee_documents(db: AsyncSession, org_id: int, user_id: Optional[int] = None) -> list[HREmployeeDocument]:
     conditions = [HREmployeeDocument.organization_id == org_id, HREmployeeDocument.is_deleted == False]
     if user_id:
@@ -2292,10 +2299,7 @@ async def list_employee_documents(db: AsyncSession, org_id: int, user_id: Option
 
     res = await db.execute(
         select(HREmployeeDocument).where(and_(*conditions))
-        .options(
-            selectinload(HREmployeeDocument.user),
-            selectinload(HREmployeeDocument.verified_by)
-        ).order_by(HREmployeeDocument.id.desc())
+        .options(*_DOCUMENT_LOAD_OPTIONS).order_by(HREmployeeDocument.id.desc())
     )
     return list(res.scalars().all())
 
@@ -2306,7 +2310,10 @@ async def create_employee_document(
     user_id: int,
     document_type: str,
     file_url: str,
+    file_name: Optional[str] = None,
+    file_size: Optional[int] = None,
     expiry_date: Optional[date] = None,
+    uploaded_by_id: Optional[int] = None,
     others: Optional[dict] = None
 ) -> HREmployeeDocument:
     # Verify user belongs to the org
@@ -2321,17 +2328,20 @@ async def create_employee_document(
         user_id=user_id,
         document_type=document_type,
         file_url=file_url,
+        file_name=file_name,
+        file_size=file_size,
         expiry_date=expiry_date,
         is_verified=False,
+        uploaded_by_id=uploaded_by_id,
         others=others,
     )
     db.add(doc)
     await db.commit()
-    
+
     # Reload with relations
     res = await db.execute(
         select(HREmployeeDocument).where(HREmployeeDocument.id == doc.id)
-        .options(selectinload(HREmployeeDocument.user))
+        .options(*_DOCUMENT_LOAD_OPTIONS)
     )
     return res.scalar_one()
 
@@ -2344,17 +2354,19 @@ async def verify_employee_document(db: AsyncSession, org_id: int, id: int, verif
                 HREmployeeDocument.id == id,
                 HREmployeeDocument.is_deleted == False
             )
-        ).options(selectinload(HREmployeeDocument.user))
+        ).options(*_DOCUMENT_LOAD_OPTIONS)
     )
     doc = res.scalar_one_or_none()
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
     doc.is_verified = is_verified
-    doc.verified_by_id = verified_by_id if is_verified else None
-    doc.verified_at = datetime.utcnow() if is_verified else None
+    # Always record who last touched verification status and when -- unlike the old
+    # behavior, unverifying no longer wipes the audit trail of who acted on it.
+    doc.verified_by_id = verified_by_id
+    doc.verified_at = datetime.utcnow()
     await db.commit()
-    await db.refresh(doc)
+    await db.refresh(doc, attribute_names=["updated_at", "verified_by"])
     return doc
 
 

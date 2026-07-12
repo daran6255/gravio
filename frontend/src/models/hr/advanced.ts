@@ -44,6 +44,16 @@ export interface HRChecklistInstance {
   updated_at: string;
 }
 
+export type DocumentType =
+  | 'PAN Card'
+  | 'Aadhaar Card'
+  | 'NDA Signoff'
+  | 'Offer Letter'
+  | 'Degree Certificate'
+  | 'Passport/Visa'
+  | 'Resume'
+  | 'Other Identity Proof';
+
 export interface HREmployeeDocument {
   id: number;
   public_id: string;
@@ -51,11 +61,15 @@ export interface HREmployeeDocument {
   employee_name?: string;
   document_type: string;
   file_url: string;
+  file_name?: string | null;
+  file_size?: number | null;
   expiry_date?: string | null;
   is_verified: boolean;
   verified_by_id?: number | null;
   verified_by_name?: string | null;
   verified_at?: string | null;
+  uploaded_by_id?: number | null;
+  uploaded_by_name?: string | null;
   others?: Record<string, any>;
   organization_id: number;
   created_at: string;

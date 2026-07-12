@@ -313,9 +313,19 @@ export const hrEmployeeDocumentApi = {
 	delete: (id: number): Promise<void> =>
 		api.delete(`/hr/documents/${id}`).then(r => r.data),
 
-	getDownloadUrl: (id: number): string => {
-		const base = api.defaults.baseURL || '/api/v1';
-		return `${base}/hr/documents/${id}/download`;
+	// Downloads must go through the authenticated axios instance (a plain <a href>
+	// navigation won't carry the Authorization header) -- fetch as a blob, then
+	// trigger a save via a throwaway anchor element.
+	download: async (id: number, fileName: string): Promise<void> => {
+		const response = await api.get(`/hr/documents/${id}/download`, { responseType: 'blob' });
+		const url = window.URL.createObjectURL(new Blob([response.data]));
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = fileName;
+		document.body.appendChild(link);
+		link.click();
+		link.remove();
+		window.URL.revokeObjectURL(url);
 	},
 };
 

@@ -12,7 +12,7 @@ Routes:
 import uuid
 from datetime import datetime
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, status, File, UploadFile, Form
+from fastapi import APIRouter, Depends, Query, status, File, UploadFile, Form, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,7 +35,7 @@ from app.schemas.hr import (
     PayslipResponse,
     ChecklistTemplateCreate, ChecklistTemplateUpdate, ChecklistTemplateResponse,
     ChecklistInstanceCreate, ChecklistInstanceResponse,
-    ChecklistTaskToggle, EmployeeDocumentResponse, DocumentVerifyRequest,
+    ChecklistTaskToggle, EmployeeDocumentResponse, DocumentVerifyRequest, DocumentType,
     HeadcountReportResponse, AttritionReportResponse, LeaveSummaryReportResponse,
     PayrollCostReportResponse
 )
@@ -969,6 +969,16 @@ async def delete_checklist_instance(
 
 import os
 from fastapi.responses import FileResponse
+from app.utils.file_validation import validate_upload
+
+
+def _hydrate_document(doc: "hr_service.HREmployeeDocument") -> None:
+    doc.employee_name = doc.user.full_name or doc.user.username
+    if doc.verified_by:
+        doc.verified_by_name = doc.verified_by.full_name or doc.verified_by.username
+    if doc.uploaded_by:
+        doc.uploaded_by_name = doc.uploaded_by.full_name or doc.uploaded_by.username
+
 
 @router.get(
     "/documents",
@@ -983,12 +993,10 @@ async def get_documents(
     # Employees can only see their own, HR can see all
     is_hr = current_user.role in HR_VIEWER_ROLES
     target_user_id = user_id if is_hr else current_user.id
-    
+
     docs = await hr_service.list_employee_documents(db, current_user.organization_id, target_user_id)
     for doc in docs:
-        doc.employee_name = doc.user.full_name or doc.user.username
-        if doc.verified_by:
-            doc.verified_by_name = doc.verified_by.full_name or doc.verified_by.username
+        _hydrate_document(doc)
     return docs
 
 
@@ -1011,18 +1019,23 @@ async def upload_document(
     if user_id != current_user.id and not is_hr:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-    # Create folder path
-    upload_dir = os.path.join("static", "documents", str(current_user.organization_id))
+    if document_type not in [t.value for t in DocumentType]:
+        allowed = ", ".join(t.value for t in DocumentType)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid document type. Allowed: {allowed}")
+
+    content = await file.read()
+    validate_upload(file, content)
+
+    # Matches the storage convention used by CRM/Projects uploads:
+    # uploads/org_{org_id}/user_{user_id}/{uuid}_{original_filename}
+    upload_dir = os.path.join("uploads", f"org_{current_user.organization_id}", f"user_{user_id}")
     os.makedirs(upload_dir, exist_ok=True)
 
-    # Clean filename
-    file_ext = os.path.splitext(file.filename)[1]
-    safe_filename = f"user_{user_id}_{uuid.uuid4().hex}{file_ext}"
+    safe_filename = f"{uuid.uuid4()}_{file.filename}"
     file_path = os.path.join(upload_dir, safe_filename)
 
     # Save to disk
     with open(file_path, "wb") as buffer:
-        content = await file.read()
         buffer.write(content)
 
     # Date parsing
@@ -1041,9 +1054,12 @@ async def upload_document(
         user_id=user_id,
         document_type=document_type,
         file_url=file_path,
+        file_name=file.filename,
+        file_size=len(content),
         expiry_date=parsed_date,
+        uploaded_by_id=current_user.id,
     )
-    db_doc.employee_name = db_doc.user.full_name or db_doc.user.username
+    _hydrate_document(db_doc)
     return db_doc
 
 
@@ -1078,7 +1094,7 @@ async def download_document(
 
     return FileResponse(
         path=doc.file_url,
-        filename=os.path.basename(doc.file_url)
+        filename=doc.file_name or os.path.basename(doc.file_url)
     )
 
 
@@ -1099,9 +1115,7 @@ async def verify_document(
     doc = await hr_service.verify_employee_document(
         db, current_user.organization_id, id, current_user.id, payload.is_verified
     )
-    doc.employee_name = doc.user.full_name or doc.user.username
-    if doc.verified_by:
-        doc.verified_by_name = doc.verified_by.full_name or doc.verified_by.username
+    _hydrate_document(doc)
     return doc
 
 

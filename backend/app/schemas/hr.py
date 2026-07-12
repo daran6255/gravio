@@ -1,5 +1,6 @@
 """HR Module — Pydantic schemas (Phase 1: Foundation)"""
 
+import enum
 import uuid
 from datetime import date, datetime
 from typing import Optional, Any
@@ -702,6 +703,17 @@ class ChecklistTaskToggle(BaseModel):
 
 # --- Employee Documents ---
 
+class DocumentType(str, enum.Enum):
+    PAN_CARD = "PAN Card"
+    AADHAAR_CARD = "Aadhaar Card"
+    NDA_SIGNOFF = "NDA Signoff"
+    OFFER_LETTER = "Offer Letter"
+    DEGREE_CERTIFICATE = "Degree Certificate"
+    PASSPORT_VISA = "Passport/Visa"
+    RESUME = "Resume"
+    OTHER = "Other Identity Proof"
+
+
 class EmployeeDocumentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -711,11 +723,15 @@ class EmployeeDocumentResponse(BaseModel):
     employee_name: Optional[str] = None
     document_type: str
     file_url: str
+    file_name: Optional[str] = None
+    file_size: Optional[int] = None
     expiry_date: Optional[date] = None
     is_verified: bool
     verified_by_id: Optional[int] = None
     verified_by_name: Optional[str] = None
     verified_at: Optional[datetime] = None
+    uploaded_by_id: Optional[int] = None
+    uploaded_by_name: Optional[str] = None
     others: Optional[dict]
     organization_id: int
     created_at: datetime

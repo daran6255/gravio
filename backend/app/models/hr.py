@@ -621,17 +621,23 @@ class HREmployeeDocument(BaseModel, TenantAwareMixin):
     )
     document_type: Mapped[str] = mapped_column(String(100), nullable=False)
     file_url: Mapped[str] = mapped_column(String(255), nullable=False)
+    file_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    file_size: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     expiry_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     verified_by_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    uploaded_by_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
     others: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     # Relationships
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
     verified_by: Mapped[Optional["User"]] = relationship("User", foreign_keys=[verified_by_id])
+    uploaded_by: Mapped[Optional["User"]] = relationship("User", foreign_keys=[uploaded_by_id])
 
     def __repr__(self) -> str:
         return f"<HREmployeeDocument(id={self.id}, user_id={self.user_id}, type={self.document_type!r})>"
