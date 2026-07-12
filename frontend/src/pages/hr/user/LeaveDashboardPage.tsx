@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Box, Button, Container, Grid, Skeleton, Stack, Tab, Tabs, alpha, useTheme, Alert } from '@mui/material';
-import { AddOutlined as AddIcon } from '@mui/icons-material';
+import { Box, Button, Container, Grid, Skeleton, Stack, Tab, Tabs, alpha, useTheme, Alert, IconButton } from '@mui/material';
+import { AddOutlined as AddIcon, HelpOutline as HelpIcon } from '@mui/icons-material';
 import PageHeader from '../../../components/common/page-header';
 import { responsiveStyles } from '../../../theme';
 import { fetchLeaveTypes, fetchMyLeaveBalances, fetchMyLeaveRequests } from '../../../store/slices/hrSlice';
@@ -14,6 +14,67 @@ import {
 	TeamLeavesApprovalsTable,
 } from '../../../components/hr/user/leave';
 import { ReportingEmployeesPanel } from '../../../components/hr/shared/ReportingEmployeesPanel';
+import { HelpGuideDrawer } from '../../../components/common/guide/HelpGuideDrawer';
+
+const leavesGuideContent = {
+	icon: HelpIcon,
+	title: 'Leave Workspace Guide',
+	subtitle: 'Learn how to apply for leave, check balances, and approve requests.',
+	banner: {
+		title: 'Welcome to your Leave Workspace!',
+		description: 'Track your annual leave allocations, submit leave requests, and view approval status.'
+	},
+	tabs: [
+		{
+			label: 'Employee Guide',
+			intro: 'Follow these steps to apply for leave and view balances:',
+			steps: [
+				{
+					marker: '1',
+					accent: 'primary' as const,
+					title: 'Check Leave Balances',
+					description: 'Review your available days remaining by leave category (Casual, Sick, LOP, etc.) in the snapshot bar at the top.'
+				},
+				{
+					marker: '2',
+					accent: 'info' as const,
+					title: 'Submit Leave Request',
+					description: 'Click "Apply Leave" to open the request form. Select the leave type, choose dates (including half-day options), specify a reason, and submit.'
+				},
+				{
+					marker: '3',
+					accent: 'success' as const,
+					title: 'Track Approval Status',
+					description: 'Monitor your submitted requests in the "My Leaves" history table. You will see status updates (Pending, Approved, Rejected) along with any manager feedback.'
+				}
+			]
+		},
+		{
+			label: 'Manager Approvals',
+			intro: 'If you manage other employees, follow these steps to review requests:',
+			steps: [
+				{
+					marker: '1',
+					accent: 'primary' as const,
+					title: 'Switch to Team Approvals Tab',
+					description: 'Navigate to the "Team Approvals" tab to view pending, approved, and rejected leave requests from your reporting team.'
+				},
+				{
+					marker: '2',
+					accent: 'info' as const,
+					title: 'View Team Roster',
+					description: 'The sidebar on the left displays the team members currently allocated to report to you.'
+				},
+				{
+					marker: '3',
+					accent: 'success' as const,
+					title: 'Approve or Reject Requests',
+					description: 'On the "Pending" tab, review request details, then click the checkmark button to approve or the cross button to reject. A dialog will prompt you to enter notes.'
+				}
+			]
+		}
+	]
+};
 
 const LeaveDashboardPage: React.FC = () => {
 	const theme = useTheme();
@@ -30,6 +91,7 @@ const LeaveDashboardPage: React.FC = () => {
 
 	const [applyOpen, setApplyOpen] = useState(false);
 	const [activeTab, setActiveTab] = useState(0);
+	const [guideOpen, setGuideOpen] = useState(false);
 
 	const isManagerOrAdmin = useMemo(() => {
 		return user?.role === 'admin' || user?.role === 'manager' || user?.role === 'leadership' || user?.role === 'hr_manager';
@@ -67,28 +129,25 @@ const LeaveDashboardPage: React.FC = () => {
 			<Container maxWidth={false} sx={responsiveStyles.pageContainer}>
 				<Stack spacing={3}>
 					<PageHeader
-						title={isManagerOrAdmin ? "Leave Management" : "My Leaves"}
-						subtitle={isManagerOrAdmin ? "Track leaves, verify balances, and manage team approvals" : "Track your balances, apply for time off, and follow your request status"}
+						title="Leave Management"
+						subtitle="Request leaves and view your allocations."
 						action={
-							(activeTab === 0 || !isManagerOrAdmin) && (
+							<Stack direction="row" spacing={1.5} alignItems="center">
+								<IconButton
+									onClick={() => setGuideOpen(true)}
+									sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}
+								>
+									<HelpIcon />
+								</IconButton>
 								<Button
 									variant="contained"
 									startIcon={<AddIcon />}
 									onClick={() => setApplyOpen(true)}
-									sx={{
-										textTransform: 'none',
-										fontWeight: 700,
-										borderRadius: '10px',
-										px: 2.5,
-										color: 'white',
-										boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`,
-										background: theme.gradients.brand,
-										'&:hover': { boxShadow: `0 8px 20px ${alpha(theme.palette.primary.main, 0.35)}` },
-									}}
+									sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 700 }}
 								>
 									Apply Leave
 								</Button>
-							)
+							</Stack>
 						}
 					/>
 
@@ -157,6 +216,12 @@ const LeaveDashboardPage: React.FC = () => {
 						onSaved={fetchData}
 						leaveTypes={leaveTypes}
 						balances={balances}
+					/>
+
+					<HelpGuideDrawer
+						open={guideOpen}
+						onClose={() => setGuideOpen(false)}
+						content={leavesGuideContent}
 					/>
 				</Stack>
 			</Container>
