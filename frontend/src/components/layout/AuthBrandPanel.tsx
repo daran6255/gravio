@@ -83,7 +83,7 @@ const AuthBrandPanel: React.FC = () => {
 					component="img"
 					src="/assets/img/logo/gravit-dark.svg"
 					alt="Gravit"
-					sx={{ height: 40, cursor: 'pointer', mb: 5 }}
+					sx={{ height: 60, cursor: 'pointer', mb: 5 }}
 					onClick={() => navigate('/')}
 				/>
 
