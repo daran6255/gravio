@@ -160,7 +160,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 						</Typography>
 						<Link
 							component={RouterLink}
-							to="/forgot-password"
+							to="/auth/forgot-password"
 							variant="body2"
 							sx={{
 								color: '#8B7CF6',

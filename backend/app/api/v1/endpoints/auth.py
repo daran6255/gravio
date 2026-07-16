@@ -9,6 +9,7 @@ from app.core.rate_limiter import limiter, rate_limit_auth
 from app.models.user import User
 from app.schemas.auth import (
     AcceptInviteRequest,
+    ForgotPasswordRequest,
     LoginRequest,
     LogoutRequest,
     MessageResponse,
@@ -19,7 +20,7 @@ from app.schemas.auth import (
     ResetPasswordRequest,
     UpdateProfileRequest,
 )
-from app.services.auth import accept_invite, login, logout, refresh_tokens, verify_email, resend_verification_email, reset_password_with_token, update_own_profile
+from app.services.auth import accept_invite, forgot_password, login, logout, refresh_tokens, verify_email, resend_verification_email, reset_password_with_token, update_own_profile
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -150,6 +151,28 @@ async def accept_invite_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
     return await accept_invite(db, token=payload.token, new_password=payload.new_password)
+
+
+# ── Forgot Password ─────────────────────────────────────────────────────────────
+
+@router.post(
+    "/forgot-password",
+    response_model=MessageResponse,
+    summary="Request a password reset link",
+    description=(
+        "Sends a password reset link to the given email if it belongs to an "
+        "active account. Always returns the same generic message — success "
+        "or not — so this can't be used to probe which emails are registered."
+    ),
+)
+@rate_limit_auth()
+async def forgot_password_endpoint(
+    request: Request,
+    payload: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+) -> MessageResponse:
+    message = await forgot_password(db, email=payload.email)
+    return MessageResponse(message=message)
 
 
 # ── Reset Password ─────────────────────────────────────────────────────────────

@@ -81,6 +81,14 @@ const authService = {
 	},
 
 	/**
+	 * Request a password reset link for a forgotten password
+	 */
+	forgotPassword: async (email: string): Promise<any> => {
+		const response = await api.post('/auth/forgot-password', { email });
+		return response.data;
+	},
+
+	/**
 	 * Reset password using the reset token from the email link
 	 */
 	resetPassword: async (token: string, newPassword: string): Promise<any> => {

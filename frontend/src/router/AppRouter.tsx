@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import Login, { Register, VerifyEmail, AcceptInvite, ResetPassword } from '../pages/auth';
+import Login, { Register, ForgotPassword, VerifyEmail, AcceptInvite, ResetPassword } from '../pages/auth';
 import Dashboard from '../pages/dashboard';
 import OrgManagement from '../pages/org/OrgManagement';
 import { OrgConsole } from '../components/orgs';
@@ -35,6 +35,7 @@ const AppRouter: React.FC = () => {
 		<Routes>
 			<Route path="/auth/login" element={<Login />} />
 			<Route path="/auth/register" element={<Register />} />
+			<Route path="/auth/forgot-password" element={<ForgotPassword />} />
 			<Route path="/auth/verify-email" element={<VerifyEmail />} />
 			<Route path="/auth/accept-invite" element={<AcceptInvite />} />
 			<Route path="/auth/reset-password" element={<ResetPassword />} />
@@ -42,6 +43,7 @@ const AppRouter: React.FC = () => {
 			{/* Legacy paths — redirect old bookmarks/links to the new /auth/* routes */}
 			<Route path="/login" element={<LegacyAuthRedirect to="/auth/login" />} />
 			<Route path="/register" element={<LegacyAuthRedirect to="/auth/register" />} />
+			<Route path="/forgot-password" element={<LegacyAuthRedirect to="/auth/forgot-password" />} />
 			<Route path="/verify-email" element={<LegacyAuthRedirect to="/auth/verify-email" />} />
 			<Route path="/accept-invite" element={<LegacyAuthRedirect to="/auth/accept-invite" />} />
 			<Route path="/reset-password" element={<LegacyAuthRedirect to="/auth/reset-password" />} />

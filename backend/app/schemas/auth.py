@@ -56,6 +56,11 @@ class ResendVerificationRequest(BaseModel):
     email: str = Field(..., description="Email address used at registration")
 
 
+class ForgotPasswordRequest(BaseModel):
+    """Request a password reset link for a forgotten password"""
+    email: str = Field(..., description="Email address associated with the account")
+
+
 # ── Response Schemas ───────────────────────────────────────────────────────────
 
 class TokenResponse(BaseModel):

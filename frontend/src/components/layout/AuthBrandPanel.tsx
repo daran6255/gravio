@@ -14,7 +14,7 @@ import {
 	RadioButtonUnchecked as PendingIcon,
 } from '@mui/icons-material';
 
-export type AuthBrandVariant = 'login' | 'register' | 'success';
+export type AuthBrandVariant = 'login' | 'register' | 'success' | 'forgot';
 
 const registerFeatures = [
 	{
@@ -94,6 +94,10 @@ const copy: Record<AuthBrandVariant, { title: string; description: string }> = {
 	success: {
 		title: "You're almost in.",
 		description: 'Just one quick step stands between you and your new workspace.',
+	},
+	forgot: {
+		title: "Let's get you back in.",
+		description: "Enter your email and we'll send you a secure link to reset your password.",
 	},
 };
 
@@ -218,7 +222,7 @@ const AuthBrandPanel: React.FC<AuthBrandPanelProps> = ({ variant = 'register' })
 					</Box>
 				) : (
 					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
-						{(variant === 'login' ? loginHighlights : registerFeatures).map(({ icon: Icon, title: itemTitle, description: itemDescription }) => (
+						{(variant === 'login' || variant === 'forgot' ? loginHighlights : registerFeatures).map(({ icon: Icon, title: itemTitle, description: itemDescription }) => (
 							<Box key={itemTitle} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
 								<Box
 									sx={{
