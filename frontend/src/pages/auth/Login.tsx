@@ -1,9 +1,7 @@
 import React, { useEffect } from 'react';
 import {
 	Box,
-	Typography,
 	Fade,
-	Link,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import useToast from '../../hooks/useToast';
@@ -11,6 +9,7 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { loginUser, clearError } from '../../store/slices/authSlice';
 import LoginForm from '../../components/auth/LoginForm';
 import AuthBrandPanel from '../../components/layout/AuthBrandPanel';
+import AuthRightFooter from '../../components/layout/AuthRightFooter';
 
 const Login: React.FC = () => {
 	const dispatch = useAppDispatch();
@@ -90,35 +89,37 @@ const Login: React.FC = () => {
 								flex: { md: '0 0 50%' },
 								display: 'flex',
 								flexDirection: 'column',
-								alignItems: 'center',
-								justifyContent: 'center',
-								px: { xs: 4, sm: 6, md: 7 },
-								py: { xs: 6, md: 4 },
 							}}
 						>
-							<Box sx={{ width: '100%', maxWidth: 380 }}>
-								{/* Logo shown here only on mobile, where the brand panel is hidden */}
-								<Box
-									component="img"
-									src="/assets/img/logo/gravit-dark.svg"
-									alt="Gravit"
-									sx={{ display: { xs: 'block', md: 'none' }, height: 36, mx: 'auto', mb: 4 }}
-								/>
+							<Box
+								sx={{
+									flex: 1,
+									display: 'flex',
+									flexDirection: 'column',
+									alignItems: 'center',
+									justifyContent: 'center',
+									px: { xs: 4, sm: 6, md: 7 },
+									py: { xs: 6, md: 5 },
+								}}
+							>
+								<Box sx={{ width: '100%', maxWidth: 380 }}>
+									{/* Logo shown here only on mobile, where the brand panel is hidden */}
+									<Box
+										component="img"
+										src="/assets/img/logo/gravit-dark.svg"
+										alt="Gravit"
+										sx={{ display: { xs: 'block', md: 'none' }, height: 36, mx: 'auto', mb: 4 }}
+									/>
 
-								<LoginForm
-									loading={loading}
-									error={typeof error === 'string' ? error : null}
-									onLogin={handleLogin}
-								/>
-
-								{/* Support link */}
-								<Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 3, color: '#64748b' }}>
-									Need help?{' '}
-									<Link href="#" sx={{ color: '#8B7CF6', fontWeight: 600, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
-										Contact our 24/7 support team
-									</Link>
-								</Typography>
+									<LoginForm
+										loading={loading}
+										error={typeof error === 'string' ? error : null}
+										onLogin={handleLogin}
+									/>
+								</Box>
 							</Box>
+
+							<AuthRightFooter />
 						</Box>
 					</Box>
 				</Fade>

@@ -288,18 +288,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 					{loading ? <CircularProgress size={24} color="inherit" aria-hidden="true" /> : 'Sign In'}
 				</Button>
 
-				{/* Terms Disclaimer */}
-				<Typography variant="caption" sx={{ display: 'block', mt: 2.5, textAlign: 'center', color: '#64748b', fontSize: '0.75rem', lineHeight: 1.4 }}>
-					By signing in, you agree to our{' '}
-					<Link component={RouterLink} to="/terms" sx={{ color: '#8B7CF6', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
-						Terms of Service
-					</Link>{' '}
-					and{' '}
-					<Link component={RouterLink} to="/privacy-policy" sx={{ color: '#8B7CF6', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
-						Privacy Policy
-					</Link>.
-				</Typography>
-
 				{/* Redirect Link */}
 				<Box sx={{ mt: 3.5, textAlign: 'center' }}>
 					<Typography variant="body2" sx={{ color: '#94A3B8' }}>

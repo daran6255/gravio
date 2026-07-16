@@ -146,18 +146,6 @@ const RegisterForm: React.FC = () => {
 						/>
 					)}
 
-					{/* Terms Disclaimer */}
-					<Typography variant="caption" sx={{ display: 'block', mt: 2, textAlign: 'center', color: '#64748b', fontSize: '0.725rem', lineHeight: 1.35 }}>
-						By clicking "Register" or "Next", you agree to our{' '}
-						<Link component={RouterLink} to="/terms" sx={{ color: '#8B7CF6', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
-							Terms of Service
-						</Link>{' '}
-						and{' '}
-						<Link component={RouterLink} to="/privacy-policy" sx={{ color: '#8B7CF6', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
-							Privacy Policy
-						</Link>.
-					</Typography>
-
 					{/* Redirect Link */}
 					{!success && (
 						<Box sx={{ mt: 2, textAlign: 'center' }}>
