@@ -3,7 +3,6 @@ import { Link as RouterLink } from 'react-router-dom';
 import {
 	Box,
 	Typography,
-	Paper,
 	Stepper,
 	Step,
 	StepLabel,
@@ -57,18 +56,12 @@ const RegisterForm: React.FC = () => {
 	} = useRegisterForm();
 
 	return (
-		<Paper
-			elevation={0}
+		<Box
 			sx={{
-				p: { xs: 2.5, sm: 3 },
 				display: 'flex',
 				flexDirection: 'column',
-				borderRadius: 2,
-				backgroundColor: '#11141e',
-				border: '1px solid rgba(255, 255, 255, 0.05)',
 				width: '100%',
 				position: 'relative',
-				overflow: 'hidden',
 			}}
 		>
 			{success ? (
@@ -79,33 +72,6 @@ const RegisterForm: React.FC = () => {
 				/>
 			) : (
 				<Box>
-					{/* Top Centered Brand Icon Box */}
-					<Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
-						<Box
-							sx={{
-								backgroundColor: '#1c1e2b',
-								p: 1.25,
-								borderRadius: 1.5,
-								display: 'flex',
-								border: '1px solid rgba(139, 124, 246, 0.2)',
-								boxShadow: '0 4px 12px rgba(139, 124, 246, 0.1)',
-							}}
-						>
-							<svg width="24" height="24" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
-								<defs>
-									<linearGradient id="lum-reg-icon" x1="0" y1="0" x2="1" y2="1">
-										<stop offset="0" stopColor="#8B7CF6"/>
-										<stop offset="1" stopColor="#4EA8FF"/>
-									</linearGradient>
-								</defs>
-								<g transform="translate(90,90) scale(0.92)">
-									<path d="M 36 -54 A 65 65 0 1 0 65 12 L 18 12" fill="none" stroke="url(#lum-reg-icon)" strokeWidth="13" strokeLinecap="round"/>
-									<circle cx="58" cy="-66" r="10" fill="#4EA8FF"/>
-								</g>
-							</svg>
-						</Box>
-					</Box>
-
 					{/* Heading and Subheading */}
 					<Box sx={{ mb: 2, textAlign: 'center' }}>
 						<Typography component="h1" variant="h6" sx={{ fontWeight: 700, color: '#F4F5F7', mb: 0.5 }}>
@@ -214,7 +180,7 @@ const RegisterForm: React.FC = () => {
 					)}
 				</Box>
 			)}
-		</Paper>
+		</Box>
 	);
 };
 
