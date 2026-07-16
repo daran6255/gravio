@@ -137,6 +137,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 							'& input::placeholder': {
 								color: '#64748b',
 								opacity: 1,
+							},
+							'& input:-webkit-autofill': {
+								WebkitBoxShadow: '0 0 0 1000px #191c28 inset !important',
+								WebkitTextFillColor: '#F4F5F7 !important',
 							}
 						}}
 					/>
@@ -228,12 +232,16 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 							'& input::placeholder': {
 								color: '#64748b',
 								opacity: 1,
+							},
+							'& input:-webkit-autofill': {
+								WebkitBoxShadow: '0 0 0 1000px #191c28 inset !important',
+								WebkitTextFillColor: '#F4F5F7 !important',
 							}
 						}}
 					/>
 				</Box>
 
-				{/* Remember Device Box */}
+	{/* Remember Device Box */}
 				<Box sx={{ mb: 3 }}>
 					<FormControlLabel
 						control={
