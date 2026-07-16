@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
 	Box,
 	Typography,
@@ -7,7 +7,9 @@ import {
 	InputAdornment,
 	IconButton,
 	CircularProgress,
-	Chip,
+	ButtonBase,
+	Popper,
+	Paper,
 } from '@mui/material';
 import {
 	Visibility,
@@ -16,6 +18,7 @@ import {
 	BadgeOutlined as BadgeIcon,
 	MailOutline as MailIcon,
 	LockOutlined as LockIcon,
+	AccountCircle as SuggestionIcon,
 } from '@mui/icons-material';
 
 interface PasswordStrengthInfo {
@@ -94,6 +97,8 @@ const AdminStep: React.FC<AdminStepProps> = ({
 		pattern: adminUsername.length > 0 && /^[a-z0-9_]+$/.test(adminUsername)
 	};
 
+	const usernameFieldRef = useRef<HTMLDivElement>(null);
+
 	const allUsernameReqsMet = usernameRequirements.length && usernameRequirements.pattern;
 	const allPasswordReqsMet = passwordStrength.requirements.length &&
 		passwordStrength.requirements.uppercase &&
@@ -157,7 +162,7 @@ const AdminStep: React.FC<AdminStepProps> = ({
 			</Box>
 
 			{/* Username */}
-			<Box sx={{ mb: 1.25 }}>
+			<Box sx={{ mb: 1.25, position: 'relative' }}>
 				<Typography
 					sx={{
 						fontSize: '0.675rem',
@@ -172,6 +177,7 @@ const AdminStep: React.FC<AdminStepProps> = ({
 					Username *
 				</Typography>
 				<TextField
+					ref={usernameFieldRef}
 					required
 					fullWidth
 					id="adminUsername"
@@ -268,50 +274,94 @@ const AdminStep: React.FC<AdminStepProps> = ({
 						</Box>
 					</Box>
 				)}
-				{usernameSuggestions.length > 0 && (
-					<Box sx={{
-						mt: 1.5,
-						p: 1.25,
-						bgcolor: 'rgba(139, 124, 246, 0.02)',
-						borderRadius: 2,
-						border: '1px solid rgba(139, 124, 246, 0.15)',
-						boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-					}}>
-						<Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mb: 1.25, fontSize: '0.725rem', fontWeight: 600 }}>
-							{usernameStatus === 'available'
-								? "Username is available! You can also use one of these suggestions:"
-								: "Taken. Try one of these suggestions:"}
-						</Typography>
-						<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-							{usernameSuggestions.map((sug) => (
-								<Chip
+				<Popper
+					open={usernameSuggestions.length > 0 && usernameStatus !== 'available'}
+					anchorEl={usernameFieldRef.current}
+					placement="right-start"
+					modifiers={[
+						{ name: 'offset', options: { offset: [0, 10] } },
+						{ name: 'preventOverflow', options: { padding: 12, altAxis: true } },
+						{ name: 'flip', options: { fallbackPlacements: ['bottom-start', 'left-start', 'top-start'] } },
+					]}
+					sx={{ zIndex: 20 }}
+				>
+					<Paper elevation={0} sx={{ position: 'relative', width: 240, bgcolor: 'transparent', boxShadow: 'none' }}>
+						{/* Pointer connecting the bubble back to the field */}
+						<Box
+							sx={{
+								position: 'absolute',
+								left: -5,
+								top: 14,
+								width: 12,
+								height: 12,
+								bgcolor: '#191c28',
+								transform: 'rotate(45deg)',
+								zIndex: 0,
+							}}
+						/>
+						<Box
+							sx={{
+								position: 'relative',
+								zIndex: 1,
+								bgcolor: '#191c28',
+								borderRadius: 1.5,
+								border: '1px solid rgba(255, 255, 255, 0.1)',
+								boxShadow: '0 12px 28px rgba(0, 0, 0, 0.45)',
+								overflow: 'hidden',
+							}}
+						>
+							<Typography
+								variant="caption"
+								sx={{
+									display: 'block',
+									color: '#64748b',
+									fontSize: '0.675rem',
+									fontWeight: 600,
+									px: 1.5,
+									pt: 1.25,
+									pb: 0.75,
+								}}
+							>
+								Username taken — try a suggestion
+							</Typography>
+							{usernameSuggestions.map((sug, idx) => (
+								<ButtonBase
 									key={sug}
-									label={sug}
-									size="small"
 									onClick={() => setAdminUsername(sug)}
 									sx={{
-										background: 'linear-gradient(135deg, rgba(139, 124, 246, 0.1) 0%, rgba(78, 168, 255, 0.1) 100%)',
-										color: '#a5b4fc',
-										border: '1px solid rgba(139, 124, 246, 0.2)',
-										fontWeight: 600,
-										fontSize: '0.725rem',
-										cursor: 'pointer',
-										transition: 'all 0.2s ease-in-out',
+										width: '100%',
+										display: 'flex',
+										alignItems: 'center',
+										gap: 1.25,
+										px: 1.5,
+										py: 1,
+										justifyContent: 'flex-start',
+										borderTop: idx === 0 ? 'none' : '1px solid rgba(255, 255, 255, 0.05)',
 										'&:hover': {
-											background: 'linear-gradient(135deg, rgba(139, 124, 246, 0.2) 0%, rgba(78, 168, 255, 0.2) 100%)',
-											transform: 'translateY(-1px)',
-											boxShadow: '0 2px 8px rgba(139, 124, 246, 0.2)',
-											borderColor: '#8B7CF6',
+											bgcolor: 'rgba(139, 124, 246, 0.1)',
 										},
-										'&:active': {
-											transform: 'translateY(0)',
-										}
 									}}
-								/>
+								>
+									<SuggestionIcon sx={{ color: '#64748b', fontSize: 20, flexShrink: 0 }} />
+									<Typography
+										sx={{
+											flex: 1,
+											textAlign: 'left',
+											color: '#F4F5F7',
+											fontWeight: 600,
+											fontSize: '0.825rem',
+										}}
+									>
+										{sug}
+									</Typography>
+									<Typography sx={{ color: '#64748b', fontSize: '0.7rem' }}>
+										Available
+									</Typography>
+								</ButtonBase>
 							))}
 						</Box>
-					</Box>
-				)}
+					</Paper>
+				</Popper>
 			</Box>
 
 			{/* Email */}
