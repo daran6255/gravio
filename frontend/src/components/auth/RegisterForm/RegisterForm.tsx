@@ -181,7 +181,7 @@ const RegisterForm: React.FC = () => {
 					)}
 
 					{/* Terms Disclaimer */}
-					<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, textAlign: 'center', opacity: 0.6, fontSize: '0.725rem', lineHeight: 1.35 }}>
+					<Typography variant="caption" sx={{ display: 'block', mt: 2, textAlign: 'center', color: '#64748b', fontSize: '0.725rem', lineHeight: 1.35 }}>
 						By clicking "Register" or "Next", you agree to our{' '}
 						<Link component={RouterLink} to="/terms" sx={{ color: '#8B7CF6', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
 							Terms of Service

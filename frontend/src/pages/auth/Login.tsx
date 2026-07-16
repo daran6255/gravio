@@ -3,16 +3,14 @@ import {
 	Box,
 	Typography,
 	Fade,
-	Paper,
+	Link,
 } from '@mui/material';
-import { HelpOutline as HelpOutlineIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import useToast from '../../hooks/useToast';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { loginUser, clearError } from '../../store/slices/authSlice';
 import LoginForm from '../../components/auth/LoginForm';
-import AuthNavbar from '../../components/layout/AuthNavbar';
-import AuthFooter from '../../components/layout/AuthFooter';
+import AuthBrandPanel from '../../components/layout/AuthBrandPanel';
 
 const Login: React.FC = () => {
 	const dispatch = useAppDispatch();
@@ -58,84 +56,73 @@ const Login: React.FC = () => {
 				position: 'relative',
 			}}
 		>
-			{/* Top Navigation Bar */}
-			<AuthNavbar />
-
-			{/* Main Content Area */}
+			{/* Main Content Area: a single split card — brand panel (left) + form (right) */}
 			<Box
 				sx={{
 					flex: 1,
 					display: 'flex',
-					flexDirection: 'column',
 					alignItems: 'center',
 					justifyContent: 'center',
-					position: 'relative',
-					pt: { xs: '84px', md: '120px' },
-					pb: { xs: 3, md: '100px' },
-					px: 2,
-					zIndex: 5,
+					px: { xs: 2, md: 4 },
+					py: { xs: 4, md: 6 },
 				}}
 			>
-				<Fade in={true} timeout={1000}>
-					<Box sx={{ width: '100%', maxWidth: 440 }}>
-						<LoginForm
-							loading={loading}
-							error={typeof error === 'string' ? error : null}
-							onLogin={handleLogin}
-						/>
-					</Box>
-				</Fade>
-
-				{/* 24/7 Enterprise Help Widget (desktop: absolute bottom-right, mobile: flow below card) */}
-				<Box
-					sx={{
-						position: { xs: 'static', md: 'absolute' },
-						bottom: { xs: 24, md: 92 },
-						right: 24,
-						maxWidth: 320,
-						width: '100%',
-						mt: { xs: 4, md: 0 },
-						zIndex: 10,
-					}}
-				>
-					<Paper
-						elevation={0}
+				<Fade in={true} timeout={600}>
+					<Box
 						sx={{
-							p: 2,
+							position: 'relative',
 							display: 'flex',
-							alignItems: 'flex-start',
-							gap: 1.5,
-							bgcolor: '#11141e',
-							border: '1px solid rgba(255, 255, 255, 0.05)',
-							borderRadius: 2,
+							flexDirection: { xs: 'column', md: 'row' },
+							width: '100%',
+							maxWidth: 1080,
+							minHeight: { md: 620 },
+							borderRadius: 4,
+							overflow: 'hidden',
+							border: '1px solid rgba(255, 255, 255, 0.07)',
+							boxShadow: '0 30px 80px -20px rgba(0, 0, 0, 0.55)',
+							bgcolor: '#0d0f18',
 						}}
 					>
+						<AuthBrandPanel />
+
 						<Box
 							sx={{
-								bgcolor: 'rgba(139, 124, 246, 0.1)',
-								p: 1,
-								borderRadius: 1,
+								flex: { md: '0 0 50%' },
 								display: 'flex',
+								flexDirection: 'column',
 								alignItems: 'center',
 								justifyContent: 'center',
+								px: { xs: 4, sm: 6, md: 7 },
+								py: { xs: 6, md: 4 },
 							}}
 						>
-							<HelpOutlineIcon sx={{ color: '#8B7CF6', fontSize: 20 }} />
-						</Box>
-						<Box>
-							<Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#F4F5F7' }}>
-								Need help?
-							</Typography>
-							<Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mt: 0.5, lineHeight: 1.4 }}>
-								Our enterprise support team is available 24/7 for account assistance.
-							</Typography>
-						</Box>
-					</Paper>
-				</Box>
-			</Box>
+							<Box sx={{ width: '100%', maxWidth: 380 }}>
+								{/* Logo shown here only on mobile, where the brand panel is hidden */}
+								<Box
+									component="img"
+									src="/assets/img/logo/gravit-dark.svg"
+									alt="Gravit"
+									sx={{ display: { xs: 'block', md: 'none' }, height: 36, mx: 'auto', mb: 4 }}
+								/>
 
-			{/* Footer */}
-			<AuthFooter />
+								<LoginForm
+									loading={loading}
+									error={typeof error === 'string' ? error : null}
+									onLogin={handleLogin}
+								/>
+
+								{/* Support link */}
+								<Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 3, color: '#64748b' }}>
+									Need help?{' '}
+									<Link href="#" sx={{ color: '#8B7CF6', fontWeight: 600, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+										Contact our 24/7 support team
+									</Link>
+								</Typography>
+							</Box>
+						</Box>
+					</Box>
+				</Fade>
+			</Box>
 		</Box>
 	);
 };

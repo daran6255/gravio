@@ -4,7 +4,6 @@ import {
 	Button,
 	Box,
 	Typography,
-	Paper,
 	TextField,
 	CircularProgress,
 	IconButton,
@@ -42,48 +41,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 	} = useLoginForm(onLogin);
 
 	return (
-		<Paper
-			elevation={0}
+		<Box
 			sx={{
-				p: { xs: 4, sm: 5 },
 				display: 'flex',
 				flexDirection: 'column',
-				borderRadius: 2,
-				backgroundColor: '#11141e',
-				border: '1px solid rgba(255, 255, 255, 0.05)',
 				width: '100%',
 				position: 'relative',
-				overflow: 'hidden',
 			}}
 		>
-			{/* Top Centered Brand Icon Box */}
-			<Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
-				<Box
-					sx={{
-						backgroundColor: '#1c1e2b',
-						p: 1.5,
-						borderRadius: 2,
-						display: 'flex',
-						border: '1px solid rgba(139, 124, 246, 0.2)',
-						boxShadow: '0 4px 12px rgba(139, 124, 246, 0.1)',
-					}}
-				>
-					{/* Embedded SVG of Gravit G symbol mark */}
-					<svg width="40" height="40" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
-						<defs>
-							<linearGradient id="lum-card-icon" x1="0" y1="0" x2="1" y2="1">
-								<stop offset="0" stopColor="#8B7CF6"/>
-								<stop offset="1" stopColor="#4EA8FF"/>
-							</linearGradient>
-						</defs>
-						<g transform="translate(90,90) scale(0.92)">
-							<path d="M 36 -54 A 65 65 0 1 0 65 12 L 18 12" fill="none" stroke="url(#lum-card-icon)" strokeWidth="13" strokeLinecap="round"/>
-							<circle cx="58" cy="-66" r="10" fill="#4EA8FF"/>
-						</g>
-					</svg>
-				</Box>
-			</Box>
-
 			{/* Heading and Subheading */}
 			<Box sx={{ mb: 4, textAlign: 'center' }}>
 				<Typography component="h1" variant="h5" sx={{ fontWeight: 700, color: '#F4F5F7', mb: 1 }}>
@@ -324,7 +289,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 				</Button>
 
 				{/* Terms Disclaimer */}
-				<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2.5, textAlign: 'center', opacity: 0.6, fontSize: '0.75rem', lineHeight: 1.4 }}>
+				<Typography variant="caption" sx={{ display: 'block', mt: 2.5, textAlign: 'center', color: '#64748b', fontSize: '0.75rem', lineHeight: 1.4 }}>
 					By signing in, you agree to our{' '}
 					<Link component={RouterLink} to="/terms" sx={{ color: '#8B7CF6', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
 						Terms of Service
@@ -354,7 +319,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ loading, error, onLogin }) => {
 					</Typography>
 				</Box>
 			</Box>
-		</Paper>
+		</Box>
 	);
 };
 
