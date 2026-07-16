@@ -6,8 +6,6 @@ import {
 	Typography,
 	Button,
 	CircularProgress,
-	Paper,
-	useTheme,
 	Fade,
 } from '@mui/material';
 import {
@@ -15,12 +13,9 @@ import {
 	ErrorOutline as ErrorIcon,
 } from '@mui/icons-material';
 import authService from '../../../services/authService';
-import { useColorMode } from '../../../theme/ThemeContext';
 
 const VerifyEmail: React.FC = () => {
-	const theme = useTheme();
 	const navigate = useNavigate();
-	const { mode } = useColorMode();
 	const [searchParams] = useSearchParams();
 	const token = searchParams.get('token');
 
@@ -53,6 +48,8 @@ const VerifyEmail: React.FC = () => {
 		verify();
 	}, [token]);
 
+	const accentColor = status === 'loading' ? '#8B7CF6' : status === 'success' ? '#10b981' : '#ef4444';
+
 	return (
 		<Box
 			component="main"
@@ -62,8 +59,8 @@ const VerifyEmail: React.FC = () => {
 				flexDirection: 'column',
 				alignItems: 'center',
 				justifyContent: 'center',
-				backgroundColor: theme.palette.background.default,
-				backgroundImage: `radial-gradient(circle at 50% 50%, ${theme.palette.background.default} 0%, ${theme.palette.secondary.dark}20 100%)`,
+				backgroundColor: '#08090d',
+				color: '#F4F5F7',
 				position: 'relative',
 				overflow: 'hidden',
 			}}
@@ -72,26 +69,24 @@ const VerifyEmail: React.FC = () => {
 				<Box sx={{ mb: 4, textAlign: 'center' }}>
 					<Box
 						component="img"
-						src={mode === 'dark' ? '/assets/img/logo/gravit-dark.svg' : '/assets/img/logo/gravit-light.svg'}
-						alt="Gravit Logo"
-						sx={{
-							height: 48,
-							mb: 1.5,
-						}}
+						src="/assets/img/logo/gravit-dark.svg"
+						alt="Gravit"
+						sx={{ height: 80, cursor: 'pointer' }}
+						onClick={() => navigate('/')}
 					/>
 				</Box>
 
 				<Fade in={true} timeout={600}>
-					<Paper
-						elevation={1}
+					<Box
 						sx={{
 							p: { xs: 4, sm: 6 },
 							display: 'flex',
 							flexDirection: 'column',
 							alignItems: 'center',
-							borderRadius: 2,
-							backgroundColor: theme.palette.background.paper,
-							border: `1px solid ${theme.palette.divider}`,
+							borderRadius: 3,
+							backgroundColor: '#12141f',
+							border: '1px solid rgba(255, 255, 255, 0.08)',
+							boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
 							textAlign: 'center',
 							position: 'relative',
 							overflow: 'hidden',
@@ -102,22 +97,17 @@ const VerifyEmail: React.FC = () => {
 								left: 0,
 								right: 0,
 								height: 4,
-								backgroundColor:
-									status === 'loading'
-										? theme.palette.primary.main
-										: status === 'success'
-										? theme.palette.success.main
-										: theme.palette.error.main,
+								backgroundColor: accentColor,
 							},
 						}}
 					>
 						{status === 'loading' && (
 							<Box sx={{ py: 4 }}>
-								<CircularProgress size={64} thickness={4} sx={{ color: theme.palette.primary.main, mb: 3 }} />
-								<Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.secondary.main }}>
+								<CircularProgress size={64} thickness={4} sx={{ color: '#8B7CF6', mb: 3 }} />
+								<Typography variant="h6" sx={{ fontWeight: 600, color: '#F4F5F7' }}>
 									Verifying Account
 								</Typography>
-								<Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+								<Typography variant="body2" sx={{ color: '#94A3B8', mt: 1 }}>
 									Please wait while we validate your activation token...
 								</Typography>
 							</Box>
@@ -125,11 +115,11 @@ const VerifyEmail: React.FC = () => {
 
 						{status === 'success' && (
 							<Box>
-								<CheckCircleIcon sx={{ fontSize: 72, color: theme.palette.success.main, mb: 2 }} />
-								<Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette.secondary.main, mb: 2 }}>
+								<CheckCircleIcon sx={{ fontSize: 72, color: '#10b981', mb: 2 }} />
+								<Typography variant="h5" sx={{ fontWeight: 700, color: '#F4F5F7', mb: 2 }}>
 									Email Verified!
 								</Typography>
-								<Typography variant="body1" color="text.secondary" sx={{ mb: 4, px: 2 }}>
+								<Typography variant="body1" sx={{ color: '#94A3B8', mb: 4, px: 2 }}>
 									{message}
 								</Typography>
 								<Button
@@ -138,13 +128,15 @@ const VerifyEmail: React.FC = () => {
 									onClick={() => navigate('/auth/login')}
 									sx={{
 										py: 1.25,
-										backgroundColor: theme.palette.primary.main,
+										backgroundColor: '#8B7CF6',
+										color: '#ffffff',
 										'&:hover': {
-											backgroundColor: theme.palette.primary.dark,
+											backgroundColor: '#7a6ae6',
+											boxShadow: '0 4px 12px rgba(139, 124, 246, 0.3)',
 										},
 										textTransform: 'none',
 										fontWeight: 700,
-										borderRadius: 1,
+										borderRadius: 1.5,
 									}}
 								>
 									Proceed to Sign In
@@ -154,35 +146,35 @@ const VerifyEmail: React.FC = () => {
 
 						{status === 'error' && (
 							<Box>
-								<ErrorIcon sx={{ fontSize: 72, color: theme.palette.error.main, mb: 2 }} />
-								<Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette.secondary.main, mb: 2 }}>
+								<ErrorIcon sx={{ fontSize: 72, color: '#ef4444', mb: 2 }} />
+								<Typography variant="h5" sx={{ fontWeight: 700, color: '#F4F5F7', mb: 2 }}>
 									Verification Failed
 								</Typography>
-								<Typography variant="body1" color="text.secondary" sx={{ mb: 4, px: 2 }}>
+								<Typography variant="body1" sx={{ color: '#94A3B8', mb: 4, px: 2 }}>
 									{message}
 								</Typography>
-								<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-									<Button
-										variant="contained"
-										fullWidth
-										onClick={() => navigate('/auth/login')}
-										sx={{
-											py: 1.25,
-											backgroundColor: theme.palette.primary.main,
-											'&:hover': {
-												backgroundColor: theme.palette.primary.dark,
-											},
-											textTransform: 'none',
-											fontWeight: 700,
-											borderRadius: 1,
-										}}
-									>
-										Back to Login
-									</Button>
-								</Box>
+								<Button
+									variant="contained"
+									fullWidth
+									onClick={() => navigate('/auth/login')}
+									sx={{
+										py: 1.25,
+										backgroundColor: '#8B7CF6',
+										color: '#ffffff',
+										'&:hover': {
+											backgroundColor: '#7a6ae6',
+											boxShadow: '0 4px 12px rgba(139, 124, 246, 0.3)',
+										},
+										textTransform: 'none',
+										fontWeight: 700,
+										borderRadius: 1.5,
+									}}
+								>
+									Back to Login
+								</Button>
 							</Box>
 						)}
-					</Paper>
+					</Box>
 				</Fade>
 			</Container>
 		</Box>

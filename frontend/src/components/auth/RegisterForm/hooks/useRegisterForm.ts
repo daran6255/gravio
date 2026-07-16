@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { onboardUser } from '../../../../store/slices/authSlice';
 import useToast from '../../../../hooks/useToast';
 import api from '../../../../services/api';
 
 export const steps = ['Organization Info', 'Admin Profile'];
+
+export type AccountType = 'organization' | 'individual';
 
 export interface PasswordStrengthInfo {
 	score: number;
@@ -47,7 +48,6 @@ const getPasswordStrength = (password: string): PasswordStrengthInfo => {
 };
 
 export const useRegisterForm = () => {
-	const navigate = useNavigate();
 	const toast = useToast();
 	const dispatch = useAppDispatch();
 	const { loading } = useAppSelector((state) => state.auth);
@@ -55,6 +55,12 @@ export const useRegisterForm = () => {
 	const [activeStep, setActiveStep] = useState(0);
 	const [success, setSuccess] = useState(false);
 	const [successMsg, setSuccessMsg] = useState('');
+
+	const [accountType, setAccountTypeState] = useState<AccountType>('individual');
+	const setAccountType = (type: AccountType) => {
+		setAccountTypeState(type);
+		setActiveStep(0);
+	};
 
 	// Form fields
 	const [orgName, setOrgName] = useState('');
@@ -274,6 +280,23 @@ export const useRegisterForm = () => {
 		setActiveStep(0);
 	};
 
+	// Individual/freelancer signups still need a (unique) organization behind the
+	// scenes since the backend models every account as org-scoped. Derive one from
+	// their name instead of asking them to fill in company details.
+	const resolveIndividualOrgName = async (): Promise<string> => {
+		const base = `${adminName.trim() || adminUsername}'s Workspace`;
+		for (let attempt = 0; attempt < 5; attempt++) {
+			const candidate = attempt === 0 ? base : `${base} ${Math.floor(1000 + Math.random() * 9000)}`;
+			try {
+				const response = await api.get(`/onboard/check-org?name=${encodeURIComponent(candidate)}`);
+				if (response.data.available) return candidate;
+			} catch {
+				// fall through and retry with a new suffix
+			}
+		}
+		return `${base} ${Date.now().toString().slice(-6)}`;
+	};
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (registerDisabled) {
@@ -282,14 +305,16 @@ export const useRegisterForm = () => {
 		}
 
 		const payload = {
-			organization: {
-				name: orgName,
-				location: orgLocation || undefined,
-				metadata: {
-					company_size: companySize,
-					industry: industry,
-				}
-			},
+			organization: accountType === 'individual'
+				? { name: await resolveIndividualOrgName() }
+				: {
+					name: orgName,
+					location: orgLocation || undefined,
+					metadata: {
+						company_size: companySize,
+						industry: industry,
+					}
+				},
 			admin_user: {
 				username: adminUsername.toLowerCase(),
 				email: adminEmail,
@@ -302,7 +327,9 @@ export const useRegisterForm = () => {
 		if (onboardUser.fulfilled.match(resultAction)) {
 			const response = resultAction.payload;
 			setSuccess(true);
-			setSuccessMsg(response.message || 'Organization registered successfully! Verification email sent.');
+			setSuccessMsg(response.message || (accountType === 'individual'
+				? 'Account created successfully! Verification email sent.'
+				: 'Organization registered successfully! Verification email sent.'));
 			toast.success('Registration successful!');
 		} else {
 			const errorDetail = (resultAction.payload as string) || '';
@@ -310,13 +337,14 @@ export const useRegisterForm = () => {
 		}
 	};
 
-	const goToLogin = () => navigate('/auth/login');
-
 	return {
 		loading,
 		activeStep,
 		success,
 		successMsg,
+
+		accountType,
+		setAccountType,
 
 		orgName,
 		setOrgName,
@@ -358,6 +386,5 @@ export const useRegisterForm = () => {
 		handleNext,
 		handleBack,
 		handleSubmit,
-		goToLogin,
 	};
 };

@@ -9,7 +9,6 @@ const RESEND_COOLDOWN_SECONDS = 120;
 interface SuccessStepProps {
 	successMsg: string;
 	email: string;
-	onReturnToLogin: () => void;
 }
 
 const formatCountdown = (seconds: number): string => {
@@ -18,7 +17,7 @@ const formatCountdown = (seconds: number): string => {
 	return `${m}:${s.toString().padStart(2, '0')}`;
 };
 
-const SuccessStep: React.FC<SuccessStepProps> = ({ successMsg, email, onReturnToLogin }) => {
+const SuccessStep: React.FC<SuccessStepProps> = ({ successMsg, email }) => {
 	const toast = useToast();
 	const [secondsLeft, setSecondsLeft] = useState(RESEND_COOLDOWN_SECONDS);
 	const [resending, setResending] = useState(false);
@@ -63,39 +62,13 @@ const SuccessStep: React.FC<SuccessStepProps> = ({ successMsg, email, onReturnTo
 				. You must verify your email before you can log in.
 			</Typography>
 
-			{secondsLeft > 0 ? (
-				<Typography variant="caption" sx={{ color: '#64748b', display: 'block', mb: 2 }}>
-					Didn't get it? You can request a new link in {formatCountdown(secondsLeft)}
-				</Typography>
-			) : (
-				<Button
-					variant="outlined"
-					fullWidth
-					onClick={handleResend}
-					disabled={resending}
-					sx={{
-						mb: 2,
-						py: 1.1,
-						borderColor: 'rgba(139, 124, 246, 0.4)',
-						color: '#8B7CF6',
-						'&:hover': {
-							borderColor: '#8B7CF6',
-							backgroundColor: 'rgba(139, 124, 246, 0.08)',
-						},
-						textTransform: 'none',
-						fontWeight: 700,
-						borderRadius: 1.5,
-					}}
-				>
-					{resending ? <CircularProgress size={20} color="inherit" /> : 'Resend verification email'}
-				</Button>
-			)}
-
 			<Button
 				variant="contained"
 				fullWidth
-				onClick={onReturnToLogin}
+				onClick={handleResend}
+				disabled={resending || secondsLeft > 0}
 				sx={{
+					mb: 1.5,
 					py: 1.25,
 					backgroundColor: '#8B7CF6',
 					color: '#ffffff',
@@ -103,12 +76,22 @@ const SuccessStep: React.FC<SuccessStepProps> = ({ successMsg, email, onReturnTo
 						backgroundColor: '#7a6ae6',
 						boxShadow: '0 4px 12px rgba(139, 124, 246, 0.3)'
 					},
+					'&.Mui-disabled': {
+						backgroundColor: 'rgba(139, 124, 246, 0.12)',
+						color: '#94A3B8',
+					},
 					textTransform: 'none',
 					fontWeight: 700,
 					borderRadius: 1.5,
 				}}
 			>
-				Return to Login
+				{resending ? (
+					<CircularProgress size={20} color="inherit" />
+				) : secondsLeft > 0 ? (
+					`Resend available in ${formatCountdown(secondsLeft)}`
+				) : (
+					'Resend verification email'
+				)}
 			</Button>
 		</Box>
 	);

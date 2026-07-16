@@ -11,7 +11,6 @@ import {
 } from '@mui/material';
 import {
 	BusinessOutlined as BusinessIcon,
-	InfoOutlined as InfoIcon,
 	RoomOutlined as RoomIcon,
 	PeopleAltOutlined as PeopleIcon,
 	WorkOutline as WorkIcon,
@@ -56,29 +55,6 @@ const OrganizationStep: React.FC<OrganizationStepProps> = ({
 }) => {
 	return (
 		<Box component="div">
-			{/* Info helper box */}
-			<Box
-				sx={{
-					border: '1px solid rgba(78, 168, 255, 0.15)',
-					borderRadius: 2,
-					p: 1.25,
-					bgcolor: 'rgba(78, 168, 255, 0.03)',
-					mb: 2,
-					display: 'flex',
-					alignItems: 'flex-start',
-					gap: 1.5,
-				}}
-			>
-				<InfoIcon sx={{ color: '#4EA8FF', mt: 0.25, fontSize: 18 }} />
-				<Box>
-					<Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#F4F5F7', mb: 0.25, fontSize: '0.8rem' }}>
-						Scale Smarter
-					</Typography>
-					<Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', lineHeight: 1.35, fontSize: '0.725rem' }}>
-						Join over 5,000 organizations leveraging Gravit to manage multi-tenant infrastructures, reduce complexity, and streamline resources.
-					</Typography>
-				</Box>
-			</Box>
 
 			<Box sx={{ mb: 1.25 }}>
 				<Typography

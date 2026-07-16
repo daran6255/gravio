@@ -51,6 +51,7 @@ interface AdminStepProps {
 	onBack: () => void;
 	onSubmit: (e: React.FormEvent) => void;
 	registerDisabled: boolean;
+	hideBack?: boolean;
 }
 
 const AdminStep: React.FC<AdminStepProps> = ({
@@ -74,6 +75,7 @@ const AdminStep: React.FC<AdminStepProps> = ({
 	onBack,
 	onSubmit,
 	registerDisabled,
+	hideBack = false,
 }) => {
 	const reqs = [
 		{ key: 'length', label: 'Min. 8 characters' },
@@ -511,26 +513,28 @@ const AdminStep: React.FC<AdminStepProps> = ({
 			</Box>
 
 			<Box sx={{ display: 'flex', gap: 2 }}>
-				<Button
-					variant="outlined"
-					fullWidth
-					onClick={onBack}
-					sx={{
-						py: 1.15,
-						borderColor: 'rgba(255, 255, 255, 0.12)',
-						color: '#94A3B8',
-						textTransform: 'none',
-						fontWeight: 600,
-						borderRadius: 1.5,
-						'&:hover': {
-							borderColor: '#94A3B8',
-							color: '#F4F5F7',
-							backgroundColor: 'rgba(255, 255, 255, 0.02)',
-						},
-					}}
-				>
-					Back
-				</Button>
+				{!hideBack && (
+					<Button
+						variant="outlined"
+						fullWidth
+						onClick={onBack}
+						sx={{
+							py: 1.15,
+							borderColor: 'rgba(255, 255, 255, 0.12)',
+							color: '#94A3B8',
+							textTransform: 'none',
+							fontWeight: 600,
+							borderRadius: 1.5,
+							'&:hover': {
+								borderColor: '#94A3B8',
+								color: '#F4F5F7',
+								backgroundColor: 'rgba(255, 255, 255, 0.02)',
+							},
+						}}
+					>
+						Back
+					</Button>
+				)}
 				<Button
 					type="submit"
 					variant="contained"

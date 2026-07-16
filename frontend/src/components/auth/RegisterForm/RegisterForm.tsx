@@ -7,7 +7,10 @@ import {
 	Step,
 	StepLabel,
 	Link,
+	ToggleButton,
+	ToggleButtonGroup,
 } from '@mui/material';
+import { BusinessOutlined as BusinessIcon, PersonOutline as PersonIcon } from '@mui/icons-material';
 import { useRegisterForm, steps } from './hooks/useRegisterForm';
 import { OrganizationStep, AdminStep, SuccessStep } from './steps';
 
@@ -17,6 +20,8 @@ const RegisterForm: React.FC = () => {
 		activeStep,
 		success,
 		successMsg,
+		accountType,
+		setAccountType,
 		orgName,
 		setOrgName,
 		orgLocation,
@@ -52,7 +57,6 @@ const RegisterForm: React.FC = () => {
 		handleNext,
 		handleBack,
 		handleSubmit,
-		goToLogin,
 	} = useRegisterForm();
 
 	return (
@@ -68,7 +72,6 @@ const RegisterForm: React.FC = () => {
 				<SuccessStep
 					successMsg={successMsg}
 					email={adminEmail}
-					onReturnToLogin={goToLogin}
 				/>
 			) : (
 				<Box>
@@ -78,31 +81,76 @@ const RegisterForm: React.FC = () => {
 							Create your account
 						</Typography>
 						<Typography variant="body2" sx={{ color: '#94A3B8', fontWeight: 500, fontSize: '0.825rem' }}>
-							Start managing your infrastructure with Gravit
+							{accountType === 'individual'
+								? 'Set up your personal workspace on Gravit'
+								: 'Start managing your infrastructure with Gravit'}
 						</Typography>
 					</Box>
 
-					<Stepper
-						activeStep={activeStep}
-						alternativeLabel
+					{/* Account Type Toggle */}
+					<ToggleButtonGroup
+						exclusive
+						value={accountType}
+						onChange={(_, val) => val && setAccountType(val)}
 						sx={{
-							mb: 2,
-							'& .MStepLabel-label': { color: '#94A3B8', fontWeight: 500, fontSize: '0.75rem' },
-							'& .MuiStepLabel-label.Mui-active': { color: '#F4F5F7', fontWeight: 700 },
-							'& .MuiStepLabel-label.Mui-completed': { color: '#8B7CF6' },
-							'& .MuiStepIcon-root': { color: 'rgba(255, 255, 255, 0.1)', transform: 'scale(0.85)' },
-							'& .MuiStepIcon-root.Mui-active': { color: '#8B7CF6' },
-							'& .MuiStepIcon-root.Mui-completed': { color: '#8B7CF6' },
+							width: '100%',
+							display: 'flex',
+							gap: 1,
+							mb: 2.5,
+							'& .MuiToggleButton-root': {
+								flex: 1,
+								py: 1,
+								gap: 0.75,
+								textTransform: 'none',
+								fontWeight: 600,
+								fontSize: '0.8rem',
+								color: '#94A3B8',
+								borderRadius: 1.5,
+								border: '1px solid rgba(255, 255, 255, 0.08)',
+								bgcolor: '#191c28',
+								'&.Mui-selected': {
+									color: '#F4F5F7',
+									bgcolor: 'rgba(139, 124, 246, 0.12)',
+									borderColor: '#8B7CF6',
+									'&:hover': { bgcolor: 'rgba(139, 124, 246, 0.18)' },
+								},
+								'&:hover': { bgcolor: 'rgba(255, 255, 255, 0.04)' },
+							},
 						}}
 					>
-						{steps.map((label) => (
-							<Step key={label}>
-								<StepLabel>{label}</StepLabel>
-							</Step>
-						))}
-					</Stepper>
+						<ToggleButton value="individual">
+							<PersonIcon sx={{ fontSize: 18 }} />
+							Individual / Freelancer
+						</ToggleButton>
+						<ToggleButton value="organization">
+							<BusinessIcon sx={{ fontSize: 18 }} />
+							Organization
+						</ToggleButton>
+					</ToggleButtonGroup>
 
-					{activeStep === 0 ? (
+					{accountType === 'organization' && (
+						<Stepper
+							activeStep={activeStep}
+							alternativeLabel
+							sx={{
+								mb: 2,
+								'& .MStepLabel-label': { color: '#94A3B8', fontWeight: 500, fontSize: '0.75rem' },
+								'& .MuiStepLabel-label.Mui-active': { color: '#F4F5F7', fontWeight: 700 },
+								'& .MuiStepLabel-label.Mui-completed': { color: '#8B7CF6' },
+								'& .MuiStepIcon-root': { color: 'rgba(255, 255, 255, 0.1)', transform: 'scale(0.85)' },
+								'& .MuiStepIcon-root.Mui-active': { color: '#8B7CF6' },
+								'& .MuiStepIcon-root.Mui-completed': { color: '#8B7CF6' },
+							}}
+						>
+							{steps.map((label) => (
+								<Step key={label}>
+									<StepLabel>{label}</StepLabel>
+								</Step>
+							))}
+						</Stepper>
+					)}
+
+					{accountType === 'organization' && activeStep === 0 ? (
 						<OrganizationStep
 							orgName={orgName}
 							setOrgName={setOrgName}
@@ -143,6 +191,7 @@ const RegisterForm: React.FC = () => {
 							onBack={handleBack}
 							onSubmit={handleSubmit}
 							registerDisabled={registerDisabled}
+							hideBack={accountType === 'individual'}
 						/>
 					)}
 
