@@ -4,7 +4,6 @@ import { HelpOutline as HelpOutlineIcon } from '@mui/icons-material';
 import AuthNavbar from '../../components/layout/AuthNavbar';
 import AuthFooter from '../../components/layout/AuthFooter';
 import RegisterForm from '../../components/auth/RegisterForm';
-import AntigravityBackground from '../../components/common/bg-anim/AntigravityBackground';
 
 const Register: React.FC = () => {
 	return (
@@ -19,7 +18,6 @@ const Register: React.FC = () => {
 				position: 'relative',
 			}}
 		>
-			<AntigravityBackground />
 			{/* Top Navigation Bar */}
 			<AuthNavbar />
 
