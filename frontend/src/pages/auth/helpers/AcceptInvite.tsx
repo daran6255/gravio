@@ -20,8 +20,6 @@ import {
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { acceptInvite } from '../../../store/slices/authSlice';
-import AuthNavbar from '../../../components/layout/AuthNavbar';
-import AuthFooter from '../../../components/layout/AuthFooter';
 
 const AcceptInvite: React.FC = () => {
 	const navigate = useNavigate();
@@ -86,9 +84,6 @@ const AcceptInvite: React.FC = () => {
 				overflow: 'hidden',
 			}}
 		>
-			{/* Top Navigation Bar */}
-			<AuthNavbar />
-
 			{/* Main Content Area */}
 			<Box
 				sx={{
@@ -98,8 +93,7 @@ const AcceptInvite: React.FC = () => {
 					alignItems: 'center',
 					justifyContent: 'center',
 					position: 'relative',
-					pt: { xs: '100px', md: '120px' },
-					pb: { xs: '140px', md: '100px' },
+					py: { xs: 6, md: 8 },
 					px: 2,
 					zIndex: 5,
 					overflowY: 'auto',
@@ -456,9 +450,6 @@ const AcceptInvite: React.FC = () => {
 					</Box>
 				</Fade>
 			</Box>
-
-			{/* Footer */}
-			<AuthFooter />
 		</Box>
 	);
 };
