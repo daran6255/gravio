@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Fade } from '@mui/material';
 import RegisterForm from '../../components/auth/RegisterForm';
 import AuthBrandPanel from '../../components/layout/AuthBrandPanel';
 import AuthRightFooter from '../../components/layout/AuthRightFooter';
 
 const Register: React.FC = () => {
+	const [isSuccess, setIsSuccess] = useState(false);
+
 	return (
 		<Box
 			component="main"
@@ -44,7 +46,7 @@ const Register: React.FC = () => {
 							bgcolor: '#0d0f18',
 						}}
 					>
-						<AuthBrandPanel />
+						<AuthBrandPanel variant={isSuccess ? 'success' : 'register'} />
 
 						<Box
 							sx={{
@@ -73,7 +75,7 @@ const Register: React.FC = () => {
 										sx={{ display: { xs: 'block', md: 'none' }, height: 36, mx: 'auto', mb: 4 }}
 									/>
 
-									<RegisterForm />
+									<RegisterForm onSuccessChange={setIsSuccess} />
 								</Box>
 							</Box>
 

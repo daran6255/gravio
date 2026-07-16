@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
 	Box,
@@ -14,7 +14,11 @@ import { BusinessOutlined as BusinessIcon, PersonOutline as PersonIcon } from '@
 import { useRegisterForm, steps } from './hooks/useRegisterForm';
 import { OrganizationStep, AdminStep, SuccessStep } from './steps';
 
-const RegisterForm: React.FC = () => {
+interface RegisterFormProps {
+	onSuccessChange?: (success: boolean) => void;
+}
+
+const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessChange }) => {
 	const {
 		loading,
 		activeStep,
@@ -58,6 +62,10 @@ const RegisterForm: React.FC = () => {
 		handleBack,
 		handleSubmit,
 	} = useRegisterForm();
+
+	useEffect(() => {
+		onSuccessChange?.(success);
+	}, [success, onSuccessChange]);
 
 	return (
 		<Box

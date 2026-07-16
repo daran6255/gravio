@@ -82,7 +82,7 @@ const Login: React.FC = () => {
 							bgcolor: '#0d0f18',
 						}}
 					>
-						<AuthBrandPanel />
+						<AuthBrandPanel variant="login" />
 
 						<Box
 							sx={{

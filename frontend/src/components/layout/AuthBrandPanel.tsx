@@ -6,9 +6,17 @@ import {
 	GroupsOutlined as HrIcon,
 	AssignmentTurnedInOutlined as ProjectIcon,
 	ScheduleOutlined as TimesheetIcon,
+	VerifiedUserOutlined as SecurityIcon,
+	AdminPanelSettingsOutlined as AccessIcon,
+	BoltOutlined as UptimeIcon,
+	SupportAgentOutlined as SupportIcon,
+	CheckCircle as CheckCircleIcon,
+	RadioButtonUnchecked as PendingIcon,
 } from '@mui/icons-material';
 
-const features = [
+export type AuthBrandVariant = 'login' | 'register' | 'success';
+
+const registerFeatures = [
 	{
 		icon: CrmIcon,
 		title: 'CRM & Deal Pipelines',
@@ -31,8 +39,71 @@ const features = [
 	},
 ];
 
-const AuthBrandPanel: React.FC = () => {
+const loginHighlights = [
+	{
+		icon: SecurityIcon,
+		title: 'Enterprise-grade security',
+		description: 'Your data stays encrypted in transit and at rest, always.',
+	},
+	{
+		icon: AccessIcon,
+		title: 'Role-based access',
+		description: 'Every teammate gets exactly the permissions they need.',
+	},
+	{
+		icon: UptimeIcon,
+		title: '99.9% uptime',
+		description: 'Reliable infrastructure that keeps your team moving.',
+	},
+	{
+		icon: SupportIcon,
+		title: 'Real, human support',
+		description: "We're on hand whenever something needs a second pair of eyes.",
+	},
+];
+
+const successSteps = [
+	{
+		label: 'Account created',
+		description: 'Your workspace has been set up and is ready to go.',
+		status: 'done' as const,
+	},
+	{
+		label: 'Verify your email',
+		description: 'Confirm your address using the link we just sent you.',
+		status: 'current' as const,
+	},
+	{
+		label: 'Log in & get started',
+		description: 'Jump straight into your new workspace.',
+		status: 'upcoming' as const,
+	},
+];
+
+const copy: Record<AuthBrandVariant, { title: string; description: string }> = {
+	register: {
+		title: 'Run your entire business from one workspace.',
+		description:
+			'Gravit brings CRM, HR, payroll, projects and timesheets together, so growing teams stop switching between tools.',
+	},
+	login: {
+		title: 'Welcome back to your workspace.',
+		description:
+			'Sign in to pick up right where you left off — your pipelines, payroll runs and projects are exactly as you left them.',
+	},
+	success: {
+		title: "You're almost in.",
+		description: 'Just one quick step stands between you and your new workspace.',
+	},
+};
+
+interface AuthBrandPanelProps {
+	variant?: AuthBrandVariant;
+}
+
+const AuthBrandPanel: React.FC<AuthBrandPanelProps> = ({ variant = 'register' }) => {
 	const navigate = useNavigate();
+	const { title, description } = copy[variant];
 
 	return (
 		<Box
@@ -88,41 +159,94 @@ const AuthBrandPanel: React.FC = () => {
 				/>
 
 				<Typography component="h2" variant="h4" sx={{ fontWeight: 800, color: '#F4F5F7', mb: 2, lineHeight: 1.25 }}>
-					Run your entire business from one workspace.
+					{title}
 				</Typography>
 				<Typography variant="body1" sx={{ color: '#94A3B8', mb: 6, lineHeight: 1.6 }}>
-					Gravit brings CRM, HR, payroll, projects and timesheets together, so growing teams stop switching between tools.
+					{description}
 				</Typography>
 
-				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
-					{features.map(({ icon: Icon, title, description }) => (
-						<Box key={title} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-							<Box
-								sx={{
-									flexShrink: 0,
-									display: 'flex',
-									alignItems: 'center',
-									justifyContent: 'center',
-									width: 40,
-									height: 40,
-									borderRadius: 1.5,
-									bgcolor: 'rgba(139, 124, 246, 0.1)',
-									border: '1px solid rgba(139, 124, 246, 0.15)',
-								}}
-							>
-								<Icon sx={{ color: '#8B7CF6', fontSize: 20 }} />
+				{variant === 'success' ? (
+					<Box sx={{ display: 'flex', flexDirection: 'column' }}>
+						{successSteps.map((step, index) => (
+							<Box key={step.label} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+								<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+									{step.status === 'done' ? (
+										<CheckCircleIcon sx={{ color: '#10b981', fontSize: 24 }} />
+									) : step.status === 'current' ? (
+										<Box
+											sx={{
+												width: 24,
+												height: 24,
+												borderRadius: '50%',
+												border: '2px solid #8B7CF6',
+												bgcolor: 'rgba(139, 124, 246, 0.15)',
+											}}
+										/>
+									) : (
+										<PendingIcon sx={{ color: 'rgba(255, 255, 255, 0.25)', fontSize: 24 }} />
+									)}
+									{index < successSteps.length - 1 && (
+										<Box
+											sx={{
+												width: '2px',
+												flex: 1,
+												minHeight: 28,
+												my: 0.5,
+												bgcolor:
+													step.status === 'upcoming' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(139, 124, 246, 0.4)',
+											}}
+										/>
+									)}
+								</Box>
+								<Box sx={{ pb: 3.5 }}>
+									<Typography
+										variant="subtitle2"
+										sx={{
+											fontWeight: 700,
+											color: step.status === 'upcoming' ? '#64748b' : '#F4F5F7',
+											mb: 0.25,
+										}}
+									>
+										{step.label}
+									</Typography>
+									<Typography variant="body2" sx={{ color: '#94A3B8', lineHeight: 1.5 }}>
+										{step.description}
+									</Typography>
+								</Box>
 							</Box>
-							<Box>
-								<Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#F4F5F7', mb: 0.25 }}>
-									{title}
-								</Typography>
-								<Typography variant="body2" sx={{ color: '#94A3B8', lineHeight: 1.5 }}>
-									{description}
-								</Typography>
+						))}
+					</Box>
+				) : (
+					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
+						{(variant === 'login' ? loginHighlights : registerFeatures).map(({ icon: Icon, title: itemTitle, description: itemDescription }) => (
+							<Box key={itemTitle} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+								<Box
+									sx={{
+										flexShrink: 0,
+										display: 'flex',
+										alignItems: 'center',
+										justifyContent: 'center',
+										width: 40,
+										height: 40,
+										borderRadius: 1.5,
+										bgcolor: 'rgba(139, 124, 246, 0.1)',
+										border: '1px solid rgba(139, 124, 246, 0.15)',
+									}}
+								>
+									<Icon sx={{ color: '#8B7CF6', fontSize: 20 }} />
+								</Box>
+								<Box>
+									<Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#F4F5F7', mb: 0.25 }}>
+										{itemTitle}
+									</Typography>
+									<Typography variant="body2" sx={{ color: '#94A3B8', lineHeight: 1.5 }}>
+										{itemDescription}
+									</Typography>
+								</Box>
 							</Box>
-						</Box>
-					))}
-				</Box>
+						))}
+					</Box>
+				)}
 			</Box>
 		</Box>
 	);
