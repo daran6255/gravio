@@ -27,6 +27,7 @@ export const EditOrgUserDialog: React.FC<EditOrgUserDialogProps> = ({ open, user
 	});
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [usernameWarning, setUsernameWarning] = useState(false);
 
 	useEffect(() => {
 		if (open && user) {
@@ -40,6 +41,16 @@ export const EditOrgUserDialog: React.FC<EditOrgUserDialogProps> = ({ open, user
 			setError(null);
 		}
 	}, [open, user]);
+
+	const handleUsernameChange = (value: string) => {
+		const hasUpper = /[A-Z]/.test(value);
+		if (hasUpper) {
+			setUsernameWarning(true);
+		} else {
+			setUsernameWarning(false);
+		}
+		handleChange('username', value.toLowerCase());
+	};
 
 	const handleChange = (field: string, value: any) => {
 		setFormData((prev) => ({ ...prev, [field]: value }));
@@ -99,8 +110,19 @@ export const EditOrgUserDialog: React.FC<EditOrgUserDialogProps> = ({ open, user
 						}}
 					/>
 					<TextField
-						required fullWidth label="Username" placeholder="e.g. john_doe" helperText="Lowercase letters, numbers, and underscores only."
-						value={formData.username} onChange={(e) => handleChange('username', e.target.value.toLowerCase())} disabled={loading}
+						required fullWidth label="Username" placeholder="e.g. john_doe"
+						value={formData.username} onChange={(e) => handleUsernameChange(e.target.value)} disabled={loading}
+						error={usernameWarning}
+						helperText={
+							usernameWarning 
+								? "Uppercase converted to lowercase (only lowercase, numbers, and underscores allowed)" 
+								: "Lowercase letters, numbers, and underscores only."
+						}
+						FormHelperTextProps={{
+							sx: {
+								color: usernameWarning ? 'warning.main' : undefined
+							}
+						}}
 						InputProps={{
 							startAdornment: (
 								<InputAdornment position="start">

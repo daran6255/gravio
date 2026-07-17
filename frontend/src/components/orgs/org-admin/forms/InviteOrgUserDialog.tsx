@@ -20,6 +20,7 @@ export const InviteOrgUserDialog: React.FC<InviteOrgUserDialogProps> = ({ open, 
 	const [formData, setFormData] = useState(initialForm);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [usernameWarning, setUsernameWarning] = useState(false);
 
 	const [usernameStatus, setUsernameStatus] = useState<'idle' | 'validating' | 'available' | 'error'>('idle');
 	const [usernameMessage, setUsernameMessage] = useState('');
@@ -73,6 +74,16 @@ export const InviteOrgUserDialog: React.FC<InviteOrgUserDialogProps> = ({ open, 
 
 		return () => clearTimeout(timer);
 	}, [formData.username]);
+
+	const handleUsernameChange = (value: string) => {
+		const hasUpper = /[A-Z]/.test(value);
+		if (hasUpper) {
+			setUsernameWarning(true);
+		} else {
+			setUsernameWarning(false);
+		}
+		handleChange('username', value.toLowerCase());
+	};
 
 	const handleChange = (field: keyof typeof initialForm, value: string) => {
 		setFormData((prev) => {
@@ -144,12 +155,18 @@ export const InviteOrgUserDialog: React.FC<InviteOrgUserDialogProps> = ({ open, 
 					/>
 					<TextField
 						required fullWidth label="Username" placeholder="e.g. john_doe"
-						value={formData.username} onChange={(e) => handleChange('username', e.target.value.toLowerCase())} disabled={loading}
-						error={usernameStatus === 'error'}
-						helperText={usernameMessage || "Lowercase letters, numbers, and underscores only."}
+						value={formData.username} onChange={(e) => handleUsernameChange(e.target.value)} disabled={loading}
+						error={usernameStatus === 'error' || usernameWarning}
+						helperText={
+							usernameWarning 
+								? "Uppercase converted to lowercase (only lowercase, numbers, and underscores allowed)" 
+								: (usernameMessage || "Lowercase letters, numbers, and underscores only.")
+						}
 						FormHelperTextProps={{
 							sx: {
-								color: usernameStatus === 'available' ? 'success.main' : undefined
+								color: usernameWarning 
+									? 'warning.main' 
+									: (usernameStatus === 'available' ? 'success.main' : undefined)
 							}
 						}}
 						InputProps={{
@@ -172,7 +189,7 @@ export const InviteOrgUserDialog: React.FC<InviteOrgUserDialogProps> = ({ open, 
 										label={sug}
 										size="small"
 										clickable
-										onClick={() => setFormData((prev) => ({ ...prev, username: sug }))}
+										onClick={() => { setFormData((prev) => ({ ...prev, username: sug })); setUsernameWarning(false); }}
 										sx={{
 											fontWeight: 700,
 											fontSize: '0.75rem',
