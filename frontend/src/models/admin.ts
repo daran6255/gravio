@@ -30,4 +30,6 @@ export interface AdminStats {
 	expired_trials: number;
 	paid_organizations: number;
 	paid_users: number;
+	team_organizations: number;
+	individual_organizations: number;
 }

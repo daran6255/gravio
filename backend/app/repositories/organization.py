@@ -117,18 +117,32 @@ class OrganizationRepository:
         page: int = 1,
         page_size: int = 20,
         search: Optional[str] = None,
+        account_type: Optional[str] = None,
     ) -> tuple[list[Organization], int]:
         """Return a page of organizations, plus the total count.
 
         Args:
             search: Optional case-insensitive substring match on organization name.
+            account_type: Optional filter on others['account_type'] ('organization' or
+                'individual'). Orgs with no account_type recorded are treated as 'organization'
+                (pre-dates the individual-account feature / created directly by a Super Admin).
         """
-        from sqlalchemy import func
+        from sqlalchemy import func, or_
         from sqlalchemy.orm import selectinload
 
         conditions = []
         if search:
             conditions.append(Organization.name.ilike(f"%{search}%"))
+        if account_type == "individual":
+            conditions.append(Organization.others["account_type"].as_string() == "individual")
+        elif account_type == "organization":
+            conditions.append(
+                or_(
+                    Organization.others.is_(None),
+                    Organization.others["account_type"].as_string().is_(None),
+                    Organization.others["account_type"].as_string() != "individual",
+                )
+            )
 
         count_result = await db.execute(
             select(func.count()).select_from(Organization).where(*conditions)

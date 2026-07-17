@@ -38,10 +38,10 @@ const initialState: OrgAdminState = {
 
 export const fetchOrganizations = createAsyncThunk(
 	'orgAdmin/fetchAll',
-	async (params: { page?: number; pageSize?: number; search?: string } | undefined, { rejectWithValue }) => {
+	async (params: { page?: number; pageSize?: number; search?: string; accountType?: string } | undefined, { rejectWithValue }) => {
 		try {
-			const { page = 1, pageSize = 20, search } = params || {};
-			return await orgAdminService.listOrganizations(page, pageSize, search);
+			const { page = 1, pageSize = 20, search, accountType } = params || {};
+			return await orgAdminService.listOrganizations(page, pageSize, search, accountType);
 		} catch (error: any) {
 			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to fetch organizations');
 		}

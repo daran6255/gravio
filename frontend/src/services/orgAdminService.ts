@@ -15,10 +15,11 @@ const orgAdminService = {
 	listOrganizations: async (
 		page = 1,
 		pageSize = 20,
-		search?: string
+		search?: string,
+		accountType?: string
 	): Promise<PaginatedResponse<Organization>> => {
 		const response = await api.get<PaginatedResponse<Organization>>('/admin/organizations', {
-			params: { page, page_size: pageSize, search },
+			params: { page, page_size: pageSize, search, account_type: accountType },
 		});
 		return response.data;
 	},

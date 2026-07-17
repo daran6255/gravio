@@ -65,19 +65,32 @@ export const useOrgConsole = () => {
 	// Organization search state
 	const [searchTerm, setSearchTerm] = useState('');
 
+	// Team / Individual filter tabs
+	const [accountTypeFilter, setAccountTypeFilter] = useState<'all' | 'organization' | 'individual'>('all');
+
 	const fetchData = useCallback(() => {
-		dispatch(fetchOrganizations({ page: page + 1, pageSize: rowsPerPage, search: searchTerm || undefined }));
+		dispatch(fetchOrganizations({
+			page: page + 1,
+			pageSize: rowsPerPage,
+			search: searchTerm || undefined,
+			accountType: accountTypeFilter === 'all' ? undefined : accountTypeFilter,
+		}));
 		dispatch(fetchAdminStats());
-	}, [dispatch, page, rowsPerPage, searchTerm]);
+	}, [dispatch, page, rowsPerPage, searchTerm, accountTypeFilter]);
 
 	useEffect(() => {
 		const delayDebounceFn = setTimeout(() => {
-			dispatch(fetchOrganizations({ page: page + 1, pageSize: rowsPerPage, search: searchTerm || undefined }));
+			dispatch(fetchOrganizations({
+				page: page + 1,
+				pageSize: rowsPerPage,
+				search: searchTerm || undefined,
+				accountType: accountTypeFilter === 'all' ? undefined : accountTypeFilter,
+			}));
 		}, 300);
 		dispatch(fetchAdminStats());
 
 		return () => clearTimeout(delayDebounceFn);
-	}, [dispatch, page, rowsPerPage, searchTerm]);
+	}, [dispatch, page, rowsPerPage, searchTerm, accountTypeFilter]);
 
 	const handleOpenExtendTrial = (org: Organization) => {
 		setTargetOrg(org);
@@ -262,6 +275,11 @@ export const useOrgConsole = () => {
 		searchTerm,
 		setSearchTerm: (term: string) => {
 			setSearchTerm(term);
+			setPage(0);
+		},
+		accountTypeFilter,
+		setAccountTypeFilter: (type: 'all' | 'organization' | 'individual') => {
+			setAccountTypeFilter(type);
 			setPage(0);
 		},
 		userSearchTerm,

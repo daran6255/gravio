@@ -61,11 +61,14 @@ async def list_organizations_endpoint(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     search: str | None = Query(None, description="Case-insensitive substring match on org name"),
+    account_type: str | None = Query(None, description="Filter by 'organization' or 'individual'"),
     current_user: User = Depends(get_current_superuser),
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[OrganizationListItem]:
-    items, total = await list_organizations(db, page=page, page_size=page_size, search=search)
-    
+    items, total = await list_organizations(
+        db, page=page, page_size=page_size, search=search, account_type=account_type
+    )
+
     response_items = []
     for o in items:
         user_count = len(o.users) if o.users else 0
@@ -83,6 +86,7 @@ async def list_organizations_endpoint(
                 user_count=user_count,
                 user_limit=user_limit,
                 plan_name=plan_name,
+                account_type=(o.others or {}).get("account_type", "organization"),
             )
         )
 

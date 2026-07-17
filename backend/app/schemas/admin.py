@@ -56,6 +56,7 @@ class OrganizationListItem(BaseModel):
     user_count: int = 0
     user_limit: Optional[int] = None
     plan_name: str = "Free"
+    account_type: str = "organization"
 
 
 class CreateOrganizationResponse(BaseModel):
@@ -76,3 +77,5 @@ class AdminStatsResponse(BaseModel):
     expired_trials: int
     paid_organizations: int
     paid_users: int
+    team_organizations: int
+    individual_organizations: int

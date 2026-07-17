@@ -228,7 +228,7 @@ export const useRegisterForm = () => {
 	// scenes since the backend models every account as org-scoped. Derive one from
 	// their name instead of asking them to fill in company details.
 	const resolveIndividualOrgName = async (): Promise<string> => {
-		const base = `${adminName.trim() || adminUsername}'s Workspace`;
+		const base = adminName.trim() || adminUsername;
 		for (let attempt = 0; attempt < 5; attempt++) {
 			const candidate = attempt === 0 ? base : `${base} ${Math.floor(1000 + Math.random() * 9000)}`;
 			try {

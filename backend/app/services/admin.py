@@ -97,9 +97,12 @@ async def list_organizations(
     page: int,
     page_size: int,
     search: str | None = None,
+    account_type: str | None = None,
 ) -> tuple[list[Organization], int]:
     """List organizations for the Super Admin console, paginated and optionally searched."""
-    return await OrganizationRepository.list_all(db, page=page, page_size=page_size, search=search)
+    return await OrganizationRepository.list_all(
+        db, page=page, page_size=page_size, search=search, account_type=account_type
+    )
 
 
 async def get_admin_stats(db: AsyncSession) -> dict:
@@ -167,6 +170,14 @@ async def get_admin_stats(db: AsyncSession) -> dict:
     paid_users_res = await db.execute(paid_users_query)
     paid_users = paid_users_res.scalar_one()
 
+    # 9. Team vs Individual organizations (for the console's filter tabs)
+    individual_orgs_query = select(func.count(Organization.id)).where(
+        Organization.others["account_type"].as_string() == "individual"
+    )
+    individual_orgs_res = await db.execute(individual_orgs_query)
+    individual_organizations = individual_orgs_res.scalar_one()
+    team_organizations = total_organizations - individual_organizations
+
     return {
         "total_organizations": total_organizations,
         "active_trials": active_trials,
@@ -176,6 +187,8 @@ async def get_admin_stats(db: AsyncSession) -> dict:
         "expired_trials": expired_trials,
         "paid_organizations": paid_organizations,
         "paid_users": paid_users,
+        "team_organizations": team_organizations,
+        "individual_organizations": individual_organizations,
     }
 
 

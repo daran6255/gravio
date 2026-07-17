@@ -20,6 +20,7 @@ export interface Organization {
 	user_limit?: number | null;
 	plan_name?: string;
 	others?: Record<string, any> | null;
+	account_type?: 'organization' | 'individual';
 }
 
 export interface BillingAddress {

@@ -203,10 +203,10 @@ const ConvertToTeamDialog: React.FC<ConvertToTeamDialogProps> = ({ open, onClose
 							<TextField
 								select
 								fullWidth
-								displayEmpty
 								value={companySize}
 								onChange={(e) => setCompanySize(e.target.value)}
 								disabled={submitting}
+								SelectProps={{ displayEmpty: true }}
 								InputProps={{
 									startAdornment: (
 										<InputAdornment position="start">
@@ -228,10 +228,10 @@ const ConvertToTeamDialog: React.FC<ConvertToTeamDialogProps> = ({ open, onClose
 							<TextField
 								select
 								fullWidth
-								displayEmpty
 								value={industry}
 								onChange={(e) => setIndustry(e.target.value)}
 								disabled={submitting}
+								SelectProps={{ displayEmpty: true }}
 								InputProps={{
 									startAdornment: (
 										<InputAdornment position="start">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Container, Button, TableRow, TableCell, Typography, LinearProgress, useTheme, Grid } from '@mui/material';
+import { Box, Container, Button, TableRow, TableCell, Typography, LinearProgress, useTheme, Grid, Tabs, Tab, Chip, Stack, alpha } from '@mui/material';
 import { Add as AddIcon, Block, CheckCircleOutline, CalendarToday, DeleteOutline } from '@mui/icons-material';
 import type { Organization } from '../../../../models/auth';
 import { useOrgConsole } from '../hooks/useOrgConsole';
@@ -37,8 +37,14 @@ export const OrgConsole: React.FC = () => {
 		handleReactivate, handleConfirmStatusChange, handleUserAction, handleConfirmUserAction,
 		searchTerm, setSearchTerm, editOrgUserOpen, setEditOrgUserOpen,
 		deleteDialogOpen, setDeleteDialogOpen, deleteLoading, handleDeleteOrg, handleConfirmDeleteOrg,
-		isSuperuser
+		isSuperuser, accountTypeFilter, setAccountTypeFilter
 	} = useOrgConsole();
+
+	const tabConfig: { value: 'all' | 'organization' | 'individual'; label: string; count: number }[] = [
+		{ value: 'all', label: 'All', count: stats?.total_organizations ?? 0 },
+		{ value: 'organization', label: 'Team', count: stats?.team_organizations ?? 0 },
+		{ value: 'individual', label: 'Individual', count: stats?.individual_organizations ?? 0 },
+	];
 
 	const getRowActions = (org: Organization): TableMenuAction<Organization>[] => {
 		const actions: TableMenuAction<Organization>[] = [
@@ -276,14 +282,48 @@ export const OrgConsole: React.FC = () => {
 							rowsPerPage={rowsPerPage}
 							onPageChange={(_e, p) => setPage(p)} 
 							onRowsPerPageChange={(rows) => { setRowsPerPage(rows); setPage(0); }}
-							searchTerm={searchTerm} 
-							onSearchChange={setSearchTerm} 
+							searchTerm={searchTerm}
+							onSearchChange={setSearchTerm}
 							searchPlaceholder="Search organizations by name or location..."
-							onRefresh={fetchData} 
+							onRefresh={fetchData}
 							onCreateClick={() => setCreateDialogOpen(true)}
-							createButtonText="Create Organization" 
-							renderRow={renderRow} 
-							emptyMessage="No organizations yet."
+							createButtonText="Create Organization"
+							renderRow={renderRow}
+							emptyMessage={`No ${accountTypeFilter === 'all' ? '' : accountTypeFilter === 'individual' ? 'individual' : 'team'} organizations yet.`}
+							headerActions={
+								<Tabs
+									value={accountTypeFilter}
+									onChange={(_, value: 'all' | 'organization' | 'individual') => setAccountTypeFilter(value)}
+									variant="scrollable"
+									scrollButtons="auto"
+									allowScrollButtonsMobile
+									sx={{ minHeight: 36, maxWidth: '100%', '& .MuiTab-root': { minHeight: 36, py: 0.5, textTransform: 'none', fontWeight: 600 } }}
+								>
+									{tabConfig.map((tab) => (
+										<Tab
+											key={tab.value}
+											value={tab.value}
+											label={
+												<Stack direction="row" spacing={0.75} alignItems="center">
+													<span>{tab.label}</span>
+													<Chip
+														label={tab.count}
+														size="small"
+														sx={{
+															height: 18,
+															minWidth: 18,
+															fontSize: '0.7rem',
+															fontWeight: 700,
+															bgcolor: accountTypeFilter === tab.value ? 'primary.main' : alpha(theme.palette.text.primary, 0.08),
+															color: accountTypeFilter === tab.value ? 'primary.contrastText' : 'text.secondary'
+														}}
+													/>
+												</Stack>
+											}
+										/>
+									))}
+								</Tabs>
+							}
 						/>
 					</Grid>
 				</Grid>
