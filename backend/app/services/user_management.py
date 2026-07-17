@@ -129,10 +129,9 @@ async def invite_user(
         f"into org_id={current_user.organization_id}."
     )
 
-    import asyncio
-    from app.utils.email import send_invite_email
+    from app.utils.email import send_invite_email, spawn_email_task
 
-    asyncio.create_task(
+    spawn_email_task(
         send_invite_email(
             to_email=user.email,
             full_name=user.full_name or user.username,
@@ -393,10 +392,9 @@ async def resend_user_invite(
 
     org = await OrganizationRepository.get_by_id(db, target.organization_id or current_user.organization_id)
 
-    import asyncio
-    from app.utils.email import send_invite_email
+    from app.utils.email import send_invite_email, spawn_email_task
 
-    asyncio.create_task(
+    spawn_email_task(
         send_invite_email(
             to_email=target.email,
             full_name=target.full_name or target.username,
@@ -477,10 +475,9 @@ async def send_user_password_reset(
     if not target.is_active:
         raise BadRequestError("Cannot send password reset to a deactivated user.")
 
-    import asyncio
-    from app.utils.email import send_password_reset_email
+    from app.utils.email import send_password_reset_email, spawn_email_task
 
-    asyncio.create_task(
+    spawn_email_task(
         send_password_reset_email(
             to_email=target.email,
             full_name=target.full_name or target.username,

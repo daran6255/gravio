@@ -1,6 +1,5 @@
 """Onboarding service — orchestrates atomic organization + admin user creation"""
 
-import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
@@ -18,7 +17,7 @@ from app.schemas.onboarding import (
     UserPublic,
 )
 from app.utils.password import validate_password_strength
-from app.utils.email import send_verification_email
+from app.utils.email import send_verification_email, spawn_email_task
 
 
 async def onboard_organization(
@@ -139,7 +138,7 @@ async def onboard_organization(
     )
 
     # ── 7. Verification email (fire-and-forget, never blocks the response) ───
-    asyncio.create_task(
+    spawn_email_task(
         send_verification_email(
             to_email=user.email,
             full_name=user.full_name or user.username,

@@ -1,6 +1,5 @@
 """Super Admin service — provision organizations (Flow B) and list them"""
 
-import asyncio
 import secrets
 import uuid
 from typing import Any
@@ -16,7 +15,7 @@ from app.repositories.trial_registry import TrialRegistryRepository
 from app.core.security import get_password_hash
 from app.middleware.exceptions import ConflictError
 from app.schemas.admin import CreateOrganizationRequest
-from app.utils.email import send_invite_email
+from app.utils.email import send_invite_email, spawn_email_task
 
 
 async def create_organization(
@@ -79,7 +78,7 @@ async def create_organization(
         f"Super Admin provisioned org='{org.name}' (id={org.id}) with admin='{admin_user.username}'."
     )
 
-    asyncio.create_task(
+    spawn_email_task(
         send_invite_email(
             to_email=admin_user.email,
             full_name=admin_user.full_name or admin_user.username,

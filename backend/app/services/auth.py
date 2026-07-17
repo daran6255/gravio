@@ -240,12 +240,11 @@ async def resend_verification_email(db: AsyncSession, *, email: str) -> str:
     exists, is already verified, or is inactive — this endpoint is public and
     unauthenticated, so distinguishing those cases would leak account existence.
     """
-    import asyncio
-    from app.utils.email import send_verification_email
+    from app.utils.email import send_verification_email, spawn_email_task
 
     user = await UserRepository.get_by_email(db, email.strip().lower())
     if user and user.is_active and not user.is_verified:
-        asyncio.create_task(
+        spawn_email_task(
             send_verification_email(
                 to_email=user.email,
                 full_name=user.full_name or user.username,
@@ -271,12 +270,11 @@ async def forgot_password(db: AsyncSession, *, email: str) -> str:
     exists or is active — this endpoint is public and unauthenticated, so
     distinguishing those cases would leak account existence.
     """
-    import asyncio
-    from app.utils.email import send_password_reset_email
+    from app.utils.email import send_password_reset_email, spawn_email_task
 
     user = await UserRepository.get_by_email(db, email.strip().lower())
     if user and user.is_active:
-        asyncio.create_task(
+        spawn_email_task(
             send_password_reset_email(
                 to_email=user.email,
                 full_name=user.full_name or user.username,

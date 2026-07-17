@@ -5,14 +5,33 @@ silently logged (DEV mode). No exception is raised so development
 works without a mail server.
 """
 
+import asyncio
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Coroutine, Optional
 
 from jose import JWTError, jwt
 from loguru import logger
 
 from app.core.config import settings
 from app.templates import render_template
+
+
+# ── Background dispatch ──────────────────────────────────────────────────────
+#
+# asyncio only holds a *weak* reference to a Task once nothing else refers to
+# it — an unreferenced task fired with a bare `asyncio.create_task(...)` can be
+# garbage-collected mid-flight, silently dropping the email with no error
+# logged anywhere. Keep every spawned email task alive in this module-level
+# set until it finishes.
+_background_email_tasks: set[asyncio.Task] = set()
+
+
+def spawn_email_task(coro: Coroutine) -> asyncio.Task:
+    """Fire an email-sending coroutine in the background without losing it to GC."""
+    task = asyncio.create_task(coro)
+    _background_email_tasks.add(task)
+    task.add_done_callback(_background_email_tasks.discard)
+    return task
 
 
 # ── Verification Token ─────────────────────────────────────────────────────────
