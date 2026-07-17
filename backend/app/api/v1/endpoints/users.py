@@ -197,7 +197,18 @@ async def update_organization_plan_endpoint(
     if not org:
         raise NotFoundError("Organization not found.")
 
-    # Validation: enforce seat limits on downgrade
+    # Validation: prevent downgrades
+    tier_ranks = {
+        PlanTier.FREE: 0,
+        PlanTier.BASIC: 1,
+        PlanTier.PRO: 2,
+        PlanTier.ENTERPRISE: 3,
+    }
+    current_tier = org.plan.tier if org.plan else PlanTier.FREE
+    if tier_ranks.get(tier_enum, 0) < tier_ranks.get(current_tier, 0):
+        raise BadRequestError("Downgrades are not permitted. You can only upgrade your plan.")
+
+    # Validation: enforce seat limits on downgrade (fallback check)
     if plan.user_limit is not None:
         current_users = await UserRepository.count_by_organization(db, current_user.organization_id)
         if current_users > plan.user_limit:

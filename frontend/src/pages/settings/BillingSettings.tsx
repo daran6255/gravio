@@ -15,12 +15,22 @@ import {
 	ListItemIcon,
 	ListItemText,
 	Divider,
-	useTheme
+	useTheme,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions,
+	TextField,
+	Alert,
+	InputAdornment,
+	CircularProgress
 } from '@mui/material';
 import {
 	CheckCircleOutline as CheckIcon,
 	People as SeatsIcon,
-	Star as StarIcon
+	Star as StarIcon,
+	CreditCard as CardIcon,
+	Lock as LockIcon
 } from '@mui/icons-material';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { fetchCurrentUser } from '../../store/slices/authSlice';
@@ -104,6 +114,13 @@ const PLAN_CARDS: PlanDetail[] = [
 
 const formatINR = (amount: number) => `₹${amount.toLocaleString('en-IN')}`;
 
+const TIER_RANKS: Record<string, number> = {
+	free: 0,
+	basic: 1,
+	pro: 2,
+	enterprise: 3
+};
+
 const BillingSettings: React.FC = () => {
 	const theme = useTheme();
 	const dispatch = useAppDispatch();
@@ -125,6 +142,14 @@ const BillingSettings: React.FC = () => {
 		: null;
 	const [requestingExtension, setRequestingExtension] = useState(false);
 
+	const [selectedPlan, setSelectedPlan] = useState<PlanDetail | null>(null);
+	const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+	const [processingPayment, setProcessingPayment] = useState(false);
+	const [cardNumber, setCardNumber] = useState('');
+	const [cardExpiry, setCardExpiry] = useState('');
+	const [cardCvc, setCardCvc] = useState('');
+	const [cardName, setCardName] = useState('');
+
 	const handleUpgrade = async (tier: string) => {
 		setLoadingTier(tier);
 		try {
@@ -141,6 +166,49 @@ const BillingSettings: React.FC = () => {
 		} finally {
 			setLoadingTier(null);
 		}
+	};
+
+	const handleSwitchPlanClick = (plan: PlanDetail) => {
+		if (plan.pricePerUser === 0) {
+			// Free plan can be upgraded directly or simple confirmation
+			handleUpgrade(plan.tier);
+		} else {
+			setSelectedPlan(plan);
+			setCardNumber('');
+			setCardExpiry('');
+			setCardCvc('');
+			setCardName('');
+			setPaymentDialogOpen(true);
+		}
+	};
+
+	const handlePaymentSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!selectedPlan) return;
+		if (!cardNumber || !cardExpiry || !cardCvc || !cardName) {
+			toast.error('Please fill in all card details.');
+			return;
+		}
+
+		setProcessingPayment(true);
+		
+		// Simulate payment gateway delay (2 seconds)
+		setTimeout(async () => {
+			try {
+				await userService.updatePlan(selectedPlan.tier);
+				toast.success(`Payment successful! Switched to the ${selectedPlan.name}.`);
+				dispatch(fetchCurrentUser());
+				setPaymentDialogOpen(false);
+			} catch (error: any) {
+				toast.error(
+					error?.response?.data?.error?.message ||
+					error?.message ||
+					'Payment failed or failed to update plan'
+				);
+			} finally {
+				setProcessingPayment(false);
+			}
+		}, 2000);
 	};
 
 	const handleRequestExtension = async () => {
@@ -217,6 +285,7 @@ const BillingSettings: React.FC = () => {
 				<Grid container spacing={3}>
 					{PLAN_CARDS.map((plan) => {
 						const isActive = plan.tier === activePlanTier;
+						const isDowngrade = TIER_RANKS[plan.tier] < TIER_RANKS[activePlanTier];
 						return (
 							<Grid size={{ xs: 12, sm: 6, md: 3 }} key={plan.tier}>
 								<Card
@@ -302,9 +371,9 @@ const BillingSettings: React.FC = () => {
 										<Button
 											fullWidth
 											variant={isActive ? 'outlined' : 'contained'}
-											color={isActive ? 'inherit' : 'primary'}
-											disabled={isActive || loadingTier !== null}
-											onClick={() => handleUpgrade(plan.tier)}
+											color={isActive ? 'inherit' : isDowngrade ? 'inherit' : 'primary'}
+											disabled={isActive || isDowngrade || loadingTier !== null}
+											onClick={() => handleSwitchPlanClick(plan)}
 											sx={{
 												textTransform: 'none',
 												fontWeight: 700,
@@ -314,7 +383,13 @@ const BillingSettings: React.FC = () => {
 												'&:hover': { boxShadow: 'none' }
 											}}
 										>
-											{isActive ? 'Current Plan' : loadingTier === plan.tier ? 'Switching...' : 'Switch Plan'}
+											{isActive 
+												? 'Current Plan' 
+												: isDowngrade 
+													? 'Downgrade Disabled' 
+													: loadingTier === plan.tier 
+														? 'Switching...' 
+														: 'Upgrade Plan'}
 										</Button>
 
 										{plan.tier === 'free' && isActive && isTrial && (
@@ -334,6 +409,181 @@ const BillingSettings: React.FC = () => {
 						);
 					})}
 				</Grid>
+
+				{/* Checkout / Payment Modal Dialog */}
+				<Dialog 
+					open={paymentDialogOpen} 
+					onClose={processingPayment ? undefined : () => setPaymentDialogOpen(false)}
+					maxWidth="sm"
+					fullWidth
+					PaperProps={{
+						sx: {
+							borderRadius: 3,
+							overflow: 'hidden',
+							bgcolor: theme.palette.background.paper,
+							border: `1px solid ${theme.palette.divider}`,
+							boxShadow: '0 24px 48px rgba(0,0,0,0.2)'
+						}
+					}}
+				>
+					<DialogTitle sx={{ 
+						background: theme.gradients.brand, 
+						color: '#ffffff', 
+						fontWeight: 800,
+						py: 2.5,
+						display: 'flex',
+						alignItems: 'center',
+						gap: 1.5
+					}}>
+						<CardIcon /> Checkout & Payment Gateway
+					</DialogTitle>
+					
+					<form onSubmit={handlePaymentSubmit}>
+						<DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+							<Alert severity="info" sx={{ borderRadius: 2 }}>
+								You are upgrading to the <strong>{selectedPlan?.name}</strong>. Total price is calculated based on your team size ({userCount} active users).
+							</Alert>
+
+							{/* Order Summary box */}
+							<Box sx={{ 
+								p: 2.5, 
+								borderRadius: 2.5, 
+								bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)',
+								border: `1px solid ${theme.palette.divider}`
+							}}>
+								<Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+									Order Summary
+								</Typography>
+								<Box display="flex" justifyContent="space-between" mb={1}>
+									<Typography variant="body2" color="text.secondary">
+										{selectedPlan?.name} ({userCount} users @ {formatINR(selectedPlan?.pricePerUser || 0)}/mo)
+									</Typography>
+									<Typography variant="body2" sx={{ fontWeight: 700 }}>
+										{formatINR((selectedPlan?.pricePerUser || 0) * userCount)}
+									</Typography>
+								</Box>
+								<Box display="flex" justifyContent="space-between" mb={1}>
+									<Typography variant="body2" color="text.secondary">GST (18%)</Typography>
+									<Typography variant="body2" sx={{ fontWeight: 700 }}>
+										{formatINR(Math.round((selectedPlan?.pricePerUser || 0) * userCount * 0.18))}
+									</Typography>
+								</Box>
+								<Divider sx={{ my: 1.5 }} />
+								<Box display="flex" justifyContent="space-between">
+									<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Total Monthly Cost</Typography>
+									<Typography variant="subtitle1" color="primary" sx={{ fontWeight: 800 }}>
+										{formatINR(Math.round((selectedPlan?.pricePerUser || 0) * userCount * 1.18))}
+									</Typography>
+								</Box>
+							</Box>
+
+							{/* Card Details form */}
+							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+								<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+									Payment Details
+								</Typography>
+								<TextField
+									required
+									fullWidth
+									label="Card Number"
+									placeholder="4111 2222 3333 4444"
+									value={cardNumber}
+									onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim().slice(0, 19))}
+									disabled={processingPayment}
+									InputProps={{
+										startAdornment: (
+											<InputAdornment position="start">
+												<CardIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+											</InputAdornment>
+										)
+									}}
+								/>
+								<Grid container spacing={2}>
+									<Grid size={6}>
+										<TextField
+											required
+											fullWidth
+											label="Expiry Date"
+											placeholder="MM/YY"
+											value={cardExpiry}
+											onChange={(e) => {
+												let val = e.target.value.replace(/\D/g, '');
+												if (val.length > 2) {
+													val = val.slice(0, 2) + '/' + val.slice(2, 4);
+												}
+												setCardExpiry(val.slice(0, 5));
+											}}
+											disabled={processingPayment}
+										/>
+									</Grid>
+									<Grid size={6}>
+										<TextField
+											required
+											fullWidth
+											label="CVC / CVV"
+											placeholder="123"
+											type="password"
+											value={cardCvc}
+											onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
+											disabled={processingPayment}
+											InputProps={{
+												startAdornment: (
+													<InputAdornment position="start">
+														<LockIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+													</InputAdornment>
+												)
+											}}
+										/>
+									</Grid>
+								</Grid>
+								<TextField
+									required
+									fullWidth
+									label="Cardholder Name"
+									placeholder="John Doe"
+									value={cardName}
+									onChange={(e) => setCardName(e.target.value)}
+									disabled={processingPayment}
+								/>
+							</Box>
+
+							<Box display="flex" alignItems="center" gap={1} sx={{ mt: 1 }}>
+								<LockIcon sx={{ color: 'text.secondary', fontSize: 16 }} />
+								<Typography variant="caption" color="text.secondary">
+									Payments are secure and encrypted. In production, this integrates with Stripe or Razorpay.
+								</Typography>
+							</Box>
+						</DialogContent>
+						<DialogActions sx={{ px: 3, pb: 3, pt: 0, justifyContent: 'space-between' }}>
+							<Button 
+								variant="text" 
+								onClick={() => setPaymentDialogOpen(false)}
+								disabled={processingPayment}
+								sx={{ textTransform: 'none', fontWeight: 700 }}
+							>
+								Cancel
+							</Button>
+							<Button
+								type="submit"
+								variant="contained"
+								color="primary"
+								disabled={processingPayment}
+								sx={{ 
+									textTransform: 'none', 
+									fontWeight: 700, 
+									px: 3,
+									borderRadius: 2.5,
+									background: theme.gradients.brand,
+									boxShadow: 'none',
+									'&:hover': { boxShadow: 'none' }
+								}}
+								startIcon={processingPayment ? <CircularProgress size={18} color="inherit" /> : <LockIcon />}
+							>
+								{processingPayment ? 'Processing Payment...' : `Pay & Upgrade`}
+							</Button>
+						</DialogActions>
+					</form>
+				</Dialog>
 			</Container>
 		</Box>
 	);
