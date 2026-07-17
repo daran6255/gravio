@@ -126,6 +126,8 @@ const AdminStep: React.FC<AdminStepProps> = ({
 					required
 					fullWidth
 					id="adminName"
+					name="name"
+					autoComplete="name"
 					placeholder="Jane Doe"
 					size="small"
 					value={adminName}
@@ -181,6 +183,8 @@ const AdminStep: React.FC<AdminStepProps> = ({
 					required
 					fullWidth
 					id="adminUsername"
+					name="username"
+					autoComplete="username"
 					placeholder="janedoe"
 					size="small"
 					value={adminUsername}
@@ -383,7 +387,9 @@ const AdminStep: React.FC<AdminStepProps> = ({
 					required
 					fullWidth
 					id="adminEmail"
+					name="email"
 					type="email"
+					autoComplete="email"
 					placeholder="jane@company.com"
 					size="small"
 					value={adminEmail}
@@ -450,7 +456,9 @@ const AdminStep: React.FC<AdminStepProps> = ({
 					required
 					fullWidth
 					id="adminPassword"
+					name="new-password"
 					type={showPassword ? 'text' : 'password'}
+					autoComplete="new-password"
 					placeholder="••••••••"
 					size="small"
 					value={adminPassword}
