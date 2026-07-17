@@ -56,9 +56,9 @@ class TenantAwareMixin:
     @declared_attr
     def organization_id(cls) -> Mapped[int]:
         return mapped_column(
-            Integer, 
-            ForeignKey("organizations.id"), 
-            nullable=False, 
+            Integer,
+            ForeignKey("organizations.id", ondelete="CASCADE"),
+            nullable=False,
             index=True
         )
 

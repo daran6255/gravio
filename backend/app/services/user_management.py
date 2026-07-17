@@ -49,8 +49,8 @@ async def _reassign_or_block_owned_leads(
         )
 
     new_owner = await UserRepository.get_by_id(db, reassign_to_user_id)
-    if not new_owner or ((not current_user.is_superuser or current_user.organization_id is not None) and new_owner.organization_id != current_user.organization_id):
-        raise NotFoundError("reassign_to_user_id does not refer to a valid user in your organization.")
+    if not new_owner or new_owner.organization_id != target.organization_id:
+        raise NotFoundError("reassign_to_user_id does not refer to a valid user in the target's organization.")
 
     lead_ids = [lead.id for lead in owned_leads]
     await CRMLeadRepository.bulk_update(db, lead_ids, owner_id=new_owner.id)
@@ -246,7 +246,7 @@ async def set_user_active(
     target = await UserRepository.get_by_public_id(db, target_public_id)
     if not target:
         raise NotFoundError("User not found.")
-    if (not current_user.is_superuser or current_user.organization_id is not None) and target.organization_id != current_user.organization_id:
+    if not current_user.is_superuser and target.organization_id != current_user.organization_id:
         raise NotFoundError("User not found.")
 
     if not active and target.id == current_user.id:
@@ -281,7 +281,7 @@ async def delete_org_user(
     target = await UserRepository.get_by_public_id(db, target_public_id)
     if not target:
         raise NotFoundError("User not found.")
-    if (not current_user.is_superuser or current_user.organization_id is not None) and target.organization_id != current_user.organization_id:
+    if not current_user.is_superuser and target.organization_id != current_user.organization_id:
         raise NotFoundError("User not found.")
 
     if target.id == current_user.id:
@@ -351,7 +351,7 @@ async def update_org_user(
     if not target:
         raise NotFoundError("User not found.")
 
-    if (not current_user.is_superuser or current_user.organization_id is not None) and target.organization_id != current_user.organization_id:
+    if not current_user.is_superuser and target.organization_id != current_user.organization_id:
         raise NotFoundError("User not found.")
 
     if payload.email and payload.email != target.email:
@@ -433,7 +433,7 @@ async def resend_user_invite(
     target = await UserRepository.get_by_public_id(db, target_public_id)
     if not target:
         raise NotFoundError("User not found.")
-    if (not current_user.is_superuser or current_user.organization_id is not None) and target.organization_id != current_user.organization_id:
+    if not current_user.is_superuser and target.organization_id != current_user.organization_id:
         raise NotFoundError("User not found.")
 
     if target.is_verified:
@@ -484,7 +484,7 @@ async def bulk_delete_org_users(
     deleted_count = 0
     for user in users_to_delete:
         # Check tenant boundary unless current_user is superuser
-        if (not current_user.is_superuser or current_user.organization_id is not None) and user.organization_id != current_user.organization_id:
+        if not current_user.is_superuser and user.organization_id != current_user.organization_id:
             continue  # Silently skip cross-tenant deletions
 
         # Prevent self deletion
@@ -521,7 +521,7 @@ async def send_user_password_reset(
     target = await UserRepository.get_by_public_id(db, target_public_id)
     if not target:
         raise NotFoundError("User not found.")
-    if (not current_user.is_superuser or current_user.organization_id is not None) and target.organization_id != current_user.organization_id:
+    if not current_user.is_superuser and target.organization_id != current_user.organization_id:
         raise NotFoundError("User not found.")
 
     if not target.is_active:

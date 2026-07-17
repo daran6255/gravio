@@ -22,7 +22,7 @@ class AIUsageCounter(BaseModel):
 
     organization_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("organizations.id"),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )

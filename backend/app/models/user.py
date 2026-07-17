@@ -50,7 +50,7 @@ class User(BaseModel):
     )
     organization_id: Mapped[int | None] = mapped_column(
         Integer,
-        ForeignKey("organizations.id"),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
         nullable=True,
         index=True,
     )
