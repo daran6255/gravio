@@ -17,7 +17,7 @@ from app.schemas.onboarding import (
     UserPublic,
 )
 from app.utils.password import validate_password_strength
-from app.utils.email import send_verification_email, spawn_email_task
+from app.utils.email import send_verification_email, spawn_email_task, generate_otp, otp_expiry
 
 
 async def onboard_organization(
@@ -32,9 +32,9 @@ async def onboard_organization(
     3. Insert Organization (flush only, no commit yet)
     4. Hash password
     5. Insert User linked to the org (flush only)
-    6. Record email in the trial email registry (flush only)
+    6. Record email in the trial email registry (flush only), attach a verification OTP
     7. Commit the full transaction
-    8. Dispatch verification email in the background (non-blocking)
+    8. Dispatch verification email (with the OTP) in the background (non-blocking)
 
     Raises:
         BadRequestError:  Password does not meet strength requirements.
@@ -114,6 +114,12 @@ async def onboard_organization(
         organization_name=payload.organization.name,
     )
 
+    # ── 5.6 Attach an email-verification OTP ──────────────────────────────────
+    otp = generate_otp()
+    await UserRepository.set_verification_otp(
+        db, user, otp=otp, expires_at=otp_expiry().isoformat()
+    )
+
     # ── 6. Commit transaction ─────────────────────────────────────────────────
     await db.commit()
     
@@ -142,16 +148,27 @@ async def onboard_organization(
         send_verification_email(
             to_email=user.email,
             full_name=user.full_name or user.username,
-            user_id=user.id,
+            otp=otp,
+        )
+    )
+
+    # Individual/freelancer signups get an internal, auto-derived org name (possibly
+    # collision-suffixed — see resolveIndividualOrgName on the frontend) that means
+    # nothing to the user, so the success message stays generic for them instead of
+    # surfacing that name.
+    is_individual = (payload.organization.metadata or {}).get("account_type") == "individual"
+    message = (
+        "Your workspace is ready. Please check your email to verify your account before logging in."
+        if is_individual
+        else (
+            f"Organization '{org.name}' has been created. "
+            "Please check your email to verify your account before logging in."
         )
     )
 
     return OnboardResponse(
         success=True,
-        message=(
-            f"Organization '{org.name}' has been created. "
-            "Please check your email to verify your account before logging in."
-        ),
+        message=message,
         data=OnboardData(
             organization=OrgPublic.model_validate(org),
             admin_user=UserPublic.model_validate(user),

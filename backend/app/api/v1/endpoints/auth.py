@@ -1,6 +1,6 @@
 """Authentication endpoints — login, refresh, logout, email verify, profile"""
 
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
@@ -19,6 +19,7 @@ from app.schemas.auth import (
     ResendVerificationRequest,
     ResetPasswordRequest,
     UpdateProfileRequest,
+    VerifyEmailRequest,
 )
 from app.services.auth import accept_invite, forgot_password, login, logout, refresh_tokens, verify_email, resend_verification_email, reset_password_with_token, update_own_profile
 
@@ -95,29 +96,31 @@ async def logout_endpoint(
 
 # ── Email Verification ─────────────────────────────────────────────────────────
 
-@router.get(
+@router.post(
     "/verify-email",
     response_model=MessageResponse,
     summary="Verify email address",
     description=(
-        "Activate your account by supplying the token received in the verification email. "
-        "The token is valid for 24 hours. After verification you can log in."
+        "Activate your account by supplying the 6-digit code sent to your email. "
+        "The code is valid for 10 minutes. After verification you can log in."
     ),
 )
+@rate_limit_auth()
 async def verify_email_endpoint(
-    token: str = Query(..., description="Verification token from the email link"),
+    request: Request,
+    payload: VerifyEmailRequest,
     db: AsyncSession = Depends(get_db),
 ) -> MessageResponse:
-    message = await verify_email(db, token=token)
+    message = await verify_email(db, email=payload.email, otp=payload.otp)
     return MessageResponse(message=message)
 
 
 @router.post(
     "/resend-verification",
     response_model=MessageResponse,
-    summary="Resend the account verification email",
+    summary="Resend the account verification code",
     description=(
-        "Sends a fresh verification link to the given email if it belongs to an "
+        "Sends a fresh verification code to the given email if it belongs to an "
         "unverified account. Always returns the same generic message — success "
         "or not — so this can't be used to probe which emails are registered."
     ),

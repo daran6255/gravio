@@ -6,6 +6,7 @@ works without a mail server.
 """
 
 import asyncio
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Coroutine, Optional
 
@@ -34,39 +35,24 @@ def spawn_email_task(coro: Coroutine) -> asyncio.Task:
     return task
 
 
-# ── Verification Token ─────────────────────────────────────────────────────────
+# ── Verification OTP ───────────────────────────────────────────────────────────
+#
+# Email verification uses a short numeric code entered directly on the page
+# that requested it, rather than a link that opens a separate page — one
+# consistent verification UI regardless of how the user gets there.
 
-_VERIFY_SECRET = settings.SECRET_KEY + "_email_verify"
-_VERIFY_ALGORITHM = "HS256"
-_VERIFY_EXPIRE_HOURS = 24
-
-
-def create_verification_token(user_id: int) -> str:
-    """Generate a time-limited JWT used for email verification links.
-
-    Token expires in 24 hours.
-    """
-    expire = datetime.now(timezone.utc) + timedelta(hours=_VERIFY_EXPIRE_HOURS)
-    payload = {
-        "sub": str(user_id),
-        "type": "email_verify",
-        "exp": expire,
-    }
-    return jwt.encode(payload, _VERIFY_SECRET, algorithm=_VERIFY_ALGORITHM)
+OTP_LENGTH = 6
+OTP_EXPIRE_MINUTES = 10
 
 
-def decode_verification_token(token: str) -> Optional[int]:
-    """Decode a verification token and return the user_id, or None if invalid/expired."""
-    try:
-        payload = jwt.decode(token, _VERIFY_SECRET, algorithms=[_VERIFY_ALGORITHM])
-        if payload.get("type") != "email_verify":
-            return None
-        user_id_str = payload.get("sub")
-        if user_id_str is None:
-            return None
-        return int(user_id_str)
-    except (JWTError, ValueError):
-        return None
+def generate_otp() -> str:
+    """Generate a zero-padded random numeric one-time code, e.g. '042817'."""
+    return f"{secrets.randbelow(10 ** OTP_LENGTH):0{OTP_LENGTH}d}"
+
+
+def otp_expiry() -> datetime:
+    """Return the UTC expiry timestamp for a freshly generated OTP."""
+    return datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRE_MINUTES)
 
 
 # ── Invite Token ───────────────────────────────────────────────────────────────
@@ -141,30 +127,23 @@ def decode_reset_token(token: str) -> Optional[int]:
 async def send_verification_email(
     to_email: str,
     full_name: str,
-    user_id: int,
+    otp: str,
 ) -> None:
-    """Send an account verification email to a newly registered user.
+    """Send an account verification code to a newly registered (or re-requesting) user.
 
-    In development (SMTP_HOST not set): logs the link and returns gracefully.
+    In development (SMTP_HOST not set): logs the code and returns gracefully.
     In production (SMTP_HOST configured): sends the email via SMTP.
     """
-    token = create_verification_token(user_id)
-    base_url = settings.FRONTEND_URL or "http://localhost:5173"
-    verification_link = f"{base_url}/auth/verify-email?token={token}"
-
     if not settings.SMTP_HOST:
         # Dev / no-SMTP fallback — just log it
-        logger.info(
-            f"[EMAIL - DEV] Verification email for '{full_name}' ({to_email})\n"
-            f"  Link: {verification_link}"
-        )
+        logger.info(f"[EMAIL - DEV] Verification code for '{full_name}' ({to_email}): {otp}")
         return
 
     # Production: send via SMTP (aiosmtplib for async support)
     await _send_via_smtp(
         to_email=to_email,
         subject=f"Verify your {settings.APP_NAME} account",
-        html_body=_build_verification_html(full_name, verification_link),
+        html_body=_build_verification_html(full_name, otp),
     )
 
 
@@ -285,14 +264,14 @@ async def _send_via_smtp(to_email: str, subject: str, html_body: str) -> None:
         logger.error(f"Failed to send email '{subject}' to {to_email}: {exc}")
 
 
-def _build_verification_html(full_name: str, link: str) -> str:
+def _build_verification_html(full_name: str, otp: str) -> str:
     """Build the HTML body for the verification email from templates/email/verification.html."""
     return render_template(
         "email/verification.html",
         app_name=settings.APP_NAME,
         full_name=full_name,
-        link=link,
-        expire_hours=_VERIFY_EXPIRE_HOURS,
+        otp=otp,
+        expire_minutes=OTP_EXPIRE_MINUTES,
         year=datetime.now().year,
     )
 

@@ -9,9 +9,11 @@ import { authPanelContent, type AuthBrandVariant } from '../../data/authPanelDat
 
 interface AuthBrandPanelProps {
 	variant?: AuthBrandVariant;
+	/** Overrides which step (0-indexed) is "current" for the `success` variant's step list — steps before it render as done, steps after as upcoming. Defaults to each step's static status. */
+	activeStepIndex?: number;
 }
 
-const AuthBrandPanel: React.FC<AuthBrandPanelProps> = ({ variant = 'register' }) => {
+const AuthBrandPanel: React.FC<AuthBrandPanelProps> = ({ variant = 'register', activeStepIndex }) => {
 	const navigate = useNavigate();
 	const { title, description, features, steps } = authPanelContent[variant];
 
@@ -77,54 +79,64 @@ const AuthBrandPanel: React.FC<AuthBrandPanelProps> = ({ variant = 'register' })
 
 				{steps ? (
 					<Box sx={{ display: 'flex', flexDirection: 'column' }}>
-						{steps.map((step, index) => (
-							<Box key={step.label} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-								<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-									{step.status === 'done' ? (
-										<CheckCircleIcon sx={{ color: '#10b981', fontSize: 24 }} />
-									) : step.status === 'current' ? (
-										<Box
+						{steps.map((step, index) => {
+							const status =
+								activeStepIndex === undefined
+									? step.status
+									: index < activeStepIndex
+										? 'done'
+										: index === activeStepIndex
+											? 'current'
+											: 'upcoming';
+							return (
+								<Box key={step.label} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+									<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+										{status === 'done' ? (
+											<CheckCircleIcon sx={{ color: '#10b981', fontSize: 24 }} />
+										) : status === 'current' ? (
+											<Box
+												sx={{
+													width: 24,
+													height: 24,
+													borderRadius: '50%',
+													border: '2px solid #8B7CF6',
+													bgcolor: 'rgba(139, 124, 246, 0.15)',
+												}}
+											/>
+										) : (
+											<PendingIcon sx={{ color: 'rgba(255, 255, 255, 0.25)', fontSize: 24 }} />
+										)}
+										{index < steps.length - 1 && (
+											<Box
+												sx={{
+													width: '2px',
+													flex: 1,
+													minHeight: 28,
+													my: 0.5,
+													bgcolor:
+														status === 'upcoming' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(139, 124, 246, 0.4)',
+												}}
+											/>
+										)}
+									</Box>
+									<Box sx={{ pb: 3.5 }}>
+										<Typography
+											variant="subtitle2"
 											sx={{
-												width: 24,
-												height: 24,
-												borderRadius: '50%',
-												border: '2px solid #8B7CF6',
-												bgcolor: 'rgba(139, 124, 246, 0.15)',
+												fontWeight: 700,
+												color: status === 'upcoming' ? '#64748b' : '#F4F5F7',
+												mb: 0.25,
 											}}
-										/>
-									) : (
-										<PendingIcon sx={{ color: 'rgba(255, 255, 255, 0.25)', fontSize: 24 }} />
-									)}
-									{index < steps.length - 1 && (
-										<Box
-											sx={{
-												width: '2px',
-												flex: 1,
-												minHeight: 28,
-												my: 0.5,
-												bgcolor:
-													step.status === 'upcoming' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(139, 124, 246, 0.4)',
-											}}
-										/>
-									)}
+										>
+											{step.label}
+										</Typography>
+										<Typography variant="body2" sx={{ color: '#94A3B8', lineHeight: 1.5 }}>
+											{step.description}
+										</Typography>
+									</Box>
 								</Box>
-								<Box sx={{ pb: 3.5 }}>
-									<Typography
-										variant="subtitle2"
-										sx={{
-											fontWeight: 700,
-											color: step.status === 'upcoming' ? '#64748b' : '#F4F5F7',
-											mb: 0.25,
-										}}
-									>
-										{step.label}
-									</Typography>
-									<Typography variant="body2" sx={{ color: '#94A3B8', lineHeight: 1.5 }}>
-										{step.description}
-									</Typography>
-								</Box>
-							</Box>
-						))}
+							);
+						})}
 					</Box>
 				) : (
 					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>

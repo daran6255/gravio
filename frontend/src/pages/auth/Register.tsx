@@ -6,6 +6,7 @@ import AuthRightFooter from '../../components/layout/AuthRightFooter';
 
 const Register: React.FC = () => {
 	const [isSuccess, setIsSuccess] = useState(false);
+	const [isVerified, setIsVerified] = useState(false);
 
 	return (
 		<Box
@@ -46,7 +47,10 @@ const Register: React.FC = () => {
 							bgcolor: '#0d0f18',
 						}}
 					>
-						<AuthBrandPanel variant={isSuccess ? 'success' : 'register'} />
+						<AuthBrandPanel
+							variant={isSuccess ? 'success' : 'register'}
+							activeStepIndex={isVerified ? 2 : undefined}
+						/>
 
 						<Box
 							sx={{
@@ -75,7 +79,7 @@ const Register: React.FC = () => {
 										sx={{ display: { xs: 'block', md: 'none' }, height: 36, mx: 'auto', mb: 4 }}
 									/>
 
-									<RegisterForm onSuccessChange={setIsSuccess} />
+									<RegisterForm onSuccessChange={setIsSuccess} onVerifiedChange={setIsVerified} />
 								</Box>
 							</Box>
 

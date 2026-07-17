@@ -45,12 +45,10 @@ const authService = {
 	},
 
 	/**
-	 * Verify user email address using the token from the email link
+	 * Verify user email address using the 6-digit code sent to their inbox
 	 */
-	verifyEmail: async (token: string): Promise<any> => {
-		const response = await api.get('/auth/verify-email', {
-			params: { token }
-		});
+	verifyEmail: async (email: string, otp: string): Promise<any> => {
+		const response = await api.post('/auth/verify-email', { email, otp });
 		return response.data;
 	},
 

@@ -17,7 +17,7 @@ router.include_router(onboarding_router)
 # Authentication           →  POST /api/v1/auth/login
 #                             POST /api/v1/auth/refresh
 #                             POST /api/v1/auth/logout
-#                             GET  /api/v1/auth/verify-email
+#                             POST /api/v1/auth/verify-email
 #                             GET  /api/v1/auth/me
 router.include_router(auth_router)
 

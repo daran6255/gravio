@@ -56,6 +56,12 @@ class ResendVerificationRequest(BaseModel):
     email: str = Field(..., description="Email address used at registration")
 
 
+class VerifyEmailRequest(BaseModel):
+    """Confirm the one-time code sent to the user's email to activate their account"""
+    email: str = Field(..., description="Email address used at registration")
+    otp: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$", description="6-digit verification code from the email")
+
+
 class ForgotPasswordRequest(BaseModel):
     """Request a password reset link for a forgotten password"""
     email: str = Field(..., description="Email address associated with the account")

@@ -16,9 +16,10 @@ import { OrganizationStep, AdminStep, SuccessStep } from './steps';
 
 interface RegisterFormProps {
 	onSuccessChange?: (success: boolean) => void;
+	onVerifiedChange?: (verified: boolean) => void;
 }
 
-const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessChange }) => {
+const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessChange, onVerifiedChange }) => {
 	const {
 		loading,
 		activeStep,
@@ -80,6 +81,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessChange }) => {
 				<SuccessStep
 					successMsg={successMsg}
 					email={adminEmail}
+					onVerified={() => onVerifiedChange?.(true)}
 				/>
 			) : (
 				<Box>

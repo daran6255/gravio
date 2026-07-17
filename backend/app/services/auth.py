@@ -191,34 +191,40 @@ async def logout(db: AsyncSession, *, refresh_token: Optional[str]) -> None:
 
 # ── Email Verification ─────────────────────────────────────────────────────────
 
-async def verify_email(db: AsyncSession, *, token: str) -> str:
-    """Activate a user account by consuming a valid email verification token.
+async def verify_email(db: AsyncSession, *, email: str, otp: str) -> str:
+    """Activate a user account by confirming the one-time code sent to their email.
 
     Returns a human-readable message string (used by the endpoint).
 
     Raises:
-        BadRequestError: Token is invalid, expired, or the user no longer exists.
+        BadRequestError: Account not found, no code on file, or the code is
+            incorrect/expired.
     """
-    from app.utils.email import decode_verification_token
+    from datetime import datetime, timezone
 
-    user_id = decode_verification_token(token)
-    if not user_id:
-        raise BadRequestError(
-            "This verification link is invalid or has expired. "
-            "Please request a new one."
-        )
-
-    user = await UserRepository.get_by_id(db, user_id)
+    user = await UserRepository.get_by_email(db, email.strip().lower())
     if not user:
-        raise BadRequestError("Account not found.")
+        raise BadRequestError("Invalid verification code.")
 
     if user.is_verified:
         return "Your account is already verified. You can log in now."
 
-    await UserRepository.mark_verified(db, user_id)
+    stored_otp = (user.others or {}).get("email_verify_otp")
+    expires_at_raw = (user.others or {}).get("email_verify_otp_expires_at")
+
+    if not stored_otp or not expires_at_raw:
+        raise BadRequestError("No verification code found for this account. Please request a new one.")
+
+    if datetime.now(timezone.utc) > datetime.fromisoformat(expires_at_raw):
+        raise BadRequestError("This verification code has expired. Please request a new one.")
+
+    if otp.strip() != stored_otp:
+        raise BadRequestError("Incorrect verification code. Please try again.")
+
+    await UserRepository.consume_verification_otp(db, user)
     await db.commit()
 
-    logger.info(f"User '{user.username}' (id={user_id}) email verified successfully.")
+    logger.info(f"User '{user.username}' (id={user.id}) email verified successfully.")
     return (
         f"Email verified successfully. Welcome to Gravit, {user.full_name or user.username}! "
         "You can now log in."
@@ -229,29 +235,32 @@ async def verify_email(db: AsyncSession, *, token: str) -> str:
 
 _RESEND_GENERIC_MESSAGE = (
     "If an account with that email exists and still needs verification, "
-    "we've sent a new verification link."
+    "we've sent a new verification code."
 )
 
 
 async def resend_verification_email(db: AsyncSession, *, email: str) -> str:
-    """Send a fresh verification email for a not-yet-verified account.
+    """Send a fresh verification code for a not-yet-verified account.
 
     Always returns the same generic message regardless of whether the email
     exists, is already verified, or is inactive — this endpoint is public and
     unauthenticated, so distinguishing those cases would leak account existence.
     """
-    from app.utils.email import send_verification_email, spawn_email_task
+    from app.utils.email import send_verification_email, spawn_email_task, generate_otp, otp_expiry
 
     user = await UserRepository.get_by_email(db, email.strip().lower())
     if user and user.is_active and not user.is_verified:
+        otp = generate_otp()
+        await UserRepository.set_verification_otp(db, user, otp=otp, expires_at=otp_expiry().isoformat())
+        await db.commit()
         spawn_email_task(
             send_verification_email(
                 to_email=user.email,
                 full_name=user.full_name or user.username,
-                user_id=user.id,
+                otp=otp,
             )
         )
-        logger.info(f"Resent verification email to '{user.email}' (id={user.id}).")
+        logger.info(f"Resent verification code to '{user.email}' (id={user.id}).")
 
     return _RESEND_GENERIC_MESSAGE
 

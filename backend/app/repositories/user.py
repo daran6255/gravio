@@ -93,13 +93,30 @@ class UserRepository:
         return user
 
     @staticmethod
-    async def mark_verified(db: AsyncSession, user_id: int) -> Optional[User]:
-        """Set is_verified=True on the user record."""
-        user = await UserRepository.get_by_id(db, user_id)
-        if user:
-            user.is_verified = True
-            await db.flush()
-        return user
+    async def set_verification_otp(db: AsyncSession, user: User, *, otp: str, expires_at: str) -> None:
+        """Attach a one-time email-verification code to the user's `others` JSON blob.
+
+        Does NOT commit — the calling service owns the transaction boundary.
+        """
+        user.others = {
+            **(user.others or {}),
+            "email_verify_otp": otp,
+            "email_verify_otp_expires_at": expires_at,
+        }
+        await db.flush()
+
+    @staticmethod
+    async def consume_verification_otp(db: AsyncSession, user: User) -> None:
+        """Mark the user verified and strip the (now-used) OTP fields.
+
+        Does NOT commit — the calling service owns the transaction boundary.
+        """
+        others = dict(user.others or {})
+        others.pop("email_verify_otp", None)
+        others.pop("email_verify_otp_expires_at", None)
+        user.others = others
+        user.is_verified = True
+        await db.flush()
 
     @staticmethod
     async def activate_with_password(
