@@ -1,5 +1,5 @@
 import { Card, CardContent, Typography, Box, useTheme, Avatar, alpha } from '@mui/material';
-import { Speed, CheckCircle, Block, HourglassEmpty, People } from '@mui/icons-material';
+import { Speed, CheckCircle, Block, HourglassEmpty, People, BusinessOutlined, PersonOutline } from '@mui/icons-material';
 import type { AdminStats } from '../../../../models/admin';
 
 interface TenantDistributionProps {
@@ -16,6 +16,8 @@ export const TenantDistribution: React.FC<TenantDistributionProps> = ({ stats })
 	const inactiveOrgs = stats?.inactive_organizations ?? 0;
 	const paidUsers = stats?.paid_users ?? 0;
 	const paidOrgs = stats?.paid_organizations ?? 0;
+	const teamOrgs = stats?.team_organizations ?? 0;
+	const individualOrgs = stats?.individual_organizations ?? 0;
 
 	// Helper for computing percentage safely
 	const getPercentage = (value: number) => {
@@ -24,6 +26,22 @@ export const TenantDistribution: React.FC<TenantDistributionProps> = ({ stats })
 	};
 
 	const distributionItems = [
+		{
+			label: 'Team Organizations',
+			count: teamOrgs,
+			percentage: getPercentage(teamOrgs),
+			color: theme.palette.info.main,
+			icon: <BusinessOutlined sx={{ color: theme.palette.info.main, fontSize: 16 }} />,
+			desc: 'Multi-user tenants registered as a company'
+		},
+		{
+			label: 'Individual Accounts',
+			count: individualOrgs,
+			percentage: getPercentage(individualOrgs),
+			color: theme.palette.success.main,
+			icon: <PersonOutline sx={{ color: theme.palette.success.main, fontSize: 16 }} />,
+			desc: 'Solo / freelancer workspaces'
+		},
 		{
 			label: 'Paid Organizations',
 			count: paidOrgs,
