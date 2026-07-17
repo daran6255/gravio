@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { TableRow, TableCell, Chip, Typography, useMediaQuery, useTheme, Button, Checkbox } from '@mui/material';
+import { TableRow, TableCell, Chip, Typography, useMediaQuery, useTheme, Button, Checkbox, alpha } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTeamUsers } from '../../../store/slices/userSlice';
@@ -76,7 +76,7 @@ export const OrgUserTable: React.FC<OrgUserTableProps> = ({
 					cursor: 'pointer',
 					transition: 'background-color 0.2s ease',
 					'&:hover': {
-						bgcolor: isDark ? 'rgba(255, 255, 255, 0.02) !important' : 'rgba(139, 124, 246, 0.02) !important',
+						bgcolor: isDark ? alpha(theme.palette.common.white, 0.02) : alpha(theme.palette.primary.main, 0.02),
 					},
 					'&:last-child td': { borderBottom: 0 }
 				}}
@@ -101,8 +101,10 @@ export const OrgUserTable: React.FC<OrgUserTableProps> = ({
 						label={user.is_active ? 'Active' : 'Inactive'} size="small" variant="outlined"
 						sx={{
 							fontWeight: 700, borderRadius: '2px', fontSize: '0.7rem', minWidth: 70, height: 24, textTransform: 'none',
-							bgcolor: user.is_active ? '#f3f9ff' : '#f8f9fa', color: user.is_active ? '#0073bb' : '#5c7080',
-							borderColor: user.is_active ? '#0073bb' : '#d5dbdb', '& .MuiChip-label': { px: 1.5 }
+							bgcolor: user.is_active ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.text.secondary, 0.1), 
+							color: user.is_active ? theme.palette.success.main : theme.palette.text.secondary,
+							borderColor: user.is_active ? alpha(theme.palette.success.main, 0.3) : alpha(theme.palette.text.secondary, 0.3), 
+							'& .MuiChip-label': { px: 1.5 }
 						}}
 					/>
 				</TableCell>

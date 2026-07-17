@@ -43,7 +43,7 @@ export const OrgSummaryCard: React.FC = () => {
 
 	// Premium aesthetic colors
 	const primaryColor = theme.palette.primary.main;
-	const statusColor = subscriptionStatus === 'active' ? '#10B981' : '#F59E0B';
+	const statusColor = subscriptionStatus === 'active' ? theme.palette.success.main : theme.palette.warning.main;
 	const statusBg = alpha(statusColor, 0.15);
 
 	const handleManageBilling = () => {
@@ -53,18 +53,19 @@ export const OrgSummaryCard: React.FC = () => {
 	return (
 		<Card
 			sx={{
-				height: '100%',
+				height: 'auto',
+				minHeight: 'fit-content',
 				position: 'relative',
 				overflow: 'hidden',
 				borderRadius: '16px',
 				background: isDark 
-					? 'linear-gradient(135deg, rgba(20, 24, 34, 0.75) 0%, rgba(11, 13, 18, 0.9) 100%)'
-					: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.95) 100%)',
+					? `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.75)} 0%, ${alpha(theme.palette.background.default, 0.9)} 100%)`
+					: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.85)} 0%, ${alpha(theme.palette.background.default, 0.95)} 100%)`,
 				backdropFilter: 'blur(20px)',
 				border: `1px solid ${theme.palette.divider}`,
 				boxShadow: isDark
 					? '0 8px 32px 0 rgba(0, 0, 0, 0.25), inset 0 1px 0 0 rgba(255, 255, 255, 0.05)'
-					: '0 8px 32px 0 rgba(139, 124, 246, 0.04), inset 0 1px 0 0 rgba(255, 255, 255, 0.8)',
+					: `0 8px 32px 0 ${alpha(primaryColor, 0.04)}, inset 0 1px 0 0 rgba(255, 255, 255, 0.8)`,
 				display: 'flex',
 				flexDirection: 'column',
 				transition: 'transform 0.3s ease, box-shadow 0.3s ease',
@@ -72,7 +73,7 @@ export const OrgSummaryCard: React.FC = () => {
 					transform: 'translateY(-2px)',
 					boxShadow: isDark
 						? '0 12px 40px 0 rgba(0, 0, 0, 0.35)'
-						: '0 12px 40px 0 rgba(139, 124, 246, 0.08)',
+						: `0 12px 40px 0 ${alpha(primaryColor, 0.08)}`,
 				}
 			}}
 		>
@@ -104,7 +105,7 @@ export const OrgSummaryCard: React.FC = () => {
 				</Box>
 
 				{/* Plan and Status row */}
-				<Box display="flex" justifyContent="space-between" alignItems="center" sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)', p: 2, borderRadius: '12px', border: `1px solid ${theme.palette.divider}` }}>
+				<Box display="flex" justifyContent="space-between" alignItems="center" sx={{ bgcolor: isDark ? alpha(theme.palette.common.white, 0.02) : alpha(theme.palette.common.black, 0.015), p: 2, borderRadius: '12px', border: `1px solid ${theme.palette.divider}` }}>
 					<Box display="flex" alignItems="center" gap={1}>
 						<PlanIcon sx={{ color: primaryColor, fontSize: 18 }} />
 						<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
@@ -146,7 +147,7 @@ export const OrgSummaryCard: React.FC = () => {
 								sx={{
 									height: 8,
 									borderRadius: 4,
-									bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+									bgcolor: isDark ? alpha(theme.palette.common.white, 0.05) : alpha(theme.palette.common.black, 0.05),
 									'& .MuiLinearProgress-bar': {
 										borderRadius: 4,
 										background: `linear-gradient(90deg, ${primaryColor} 0%, ${alpha(primaryColor, 0.8)} 100%)`
@@ -198,7 +199,7 @@ export const OrgSummaryCard: React.FC = () => {
 										mb: 2,
 										p: 1.25,
 										borderRadius: '8px',
-										bgcolor: isDark ? 'rgba(2, 136, 209, 0.05)' : 'rgba(2, 136, 209, 0.03)',
+										bgcolor: isDark ? alpha(theme.palette.info.main, 0.05) : alpha(theme.palette.info.main, 0.03),
 										border: `1px solid ${alpha(theme.palette.info.main, 0.15)}`
 									}}
 								>
@@ -233,7 +234,7 @@ export const OrgSummaryCard: React.FC = () => {
 							textTransform: 'none',
 							fontWeight: 700,
 							borderRadius: 2.5,
-							borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+							borderColor: theme.palette.divider,
 							color: 'text.primary',
 							'&:hover': {
 								borderColor: primaryColor,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Grid } from '@mui/material';
+import { Grid, useTheme } from '@mui/material';
 import { Business, CalendarToday, Group, Speed } from '@mui/icons-material';
 import type { AdminStats } from '../../../../models/admin';
 import StatCard from '../../../common/stats/StatCard';
@@ -9,34 +9,35 @@ interface OrgStatsPanelProps {
 }
 
 export const OrgStatsPanel: React.FC<OrgStatsPanelProps> = ({ stats }) => {
+	const theme = useTheme();
 	const statsCards = [
 		{
 			title: 'TOTAL ORGANIZATIONS',
 			value: stats?.total_organizations ?? 0,
 			subtitle: 'Total registered tenants',
-			icon: <Business sx={{ color: '#8B7CF6', fontSize: 26 }} />,
-			color: '#8B7CF6'
+			icon: <Business sx={{ color: theme.palette.primary.main, fontSize: 26 }} />,
+			color: theme.palette.primary.main
 		},
 		{
 			title: 'ACTIVE TRIALS',
 			value: stats?.active_trials ?? 0,
 			subtitle: 'Free / Trial orgs with time left',
-			icon: <CalendarToday sx={{ color: '#F59E0B', fontSize: 24 }} />,
-			color: '#F59E0B'
+			icon: <CalendarToday sx={{ color: theme.palette.warning.main, fontSize: 24 }} />,
+			color: theme.palette.warning.main
 		},
 		{
 			title: 'PLATFORM SEATS',
 			value: stats?.total_users ?? 0,
 			subtitle: 'Total user accounts',
-			icon: <Group sx={{ color: '#10B981', fontSize: 26 }} />,
-			color: '#10B981'
+			icon: <Group sx={{ color: theme.palette.success.main, fontSize: 26 }} />,
+			color: theme.palette.success.main
 		},
 		{
 			title: 'AVG. SEAT DENSITY',
 			value: stats?.avg_users_per_org ?? 0,
 			subtitle: 'Average users per tenant',
-			icon: <Speed sx={{ color: '#4EA8FF', fontSize: 26 }} />,
-			color: '#4EA8FF'
+			icon: <Speed sx={{ color: theme.palette.info.main, fontSize: 26 }} />,
+			color: theme.palette.info.main
 		}
 	];
 

@@ -122,9 +122,9 @@ export const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({
 					fontWeight: 800,
 					fontSize: '0.65rem',
 					height: 22,
-					bgcolor: user.is_active ? alpha('#10B981', 0.15) : alpha('#5c7080', 0.15),
-					color: user.is_active ? '#10B981' : '#a6b5c3',
-					border: `1px solid ${user.is_active ? alpha('#10B981', 0.3) : alpha('#5c7080', 0.3)}`,
+					bgcolor: user.is_active ? alpha(theme.palette.success.main, 0.15) : alpha(theme.palette.text.secondary, 0.15),
+					color: user.is_active ? theme.palette.success.main : theme.palette.text.secondary,
+					border: `1px solid ${user.is_active ? alpha(theme.palette.success.main, 0.3) : alpha(theme.palette.text.secondary, 0.3)}`,
 				}}
 			/>
 		</Box>
@@ -138,13 +138,13 @@ export const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({
 				<Stack direction="row" spacing={2} alignItems="center">
 					<Avatar
 						sx={{
-							background: 'linear-gradient(135deg, #8B7CF6 0%, #4EA8FF 100%)',
+							background: theme.gradients.brand,
 							color: '#ffffff',
 							width: 48,
 							height: 48,
 							fontSize: '1.2rem',
 							fontWeight: 800,
-							boxShadow: '0 4px 12px rgba(139, 124, 246, 0.25)',
+							boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.25)}`,
 						}}
 					>
 						{getInitials(user.full_name, user.username)}
@@ -178,8 +178,8 @@ export const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({
 						mb: 3,
 						borderRadius: '16px',
 						background: isDark
-							? 'linear-gradient(135deg, rgba(20, 24, 34, 0.4) 0%, rgba(11, 13, 18, 0.5) 100%)'
-							: 'linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 250, 252, 0.9) 100%)',
+							? `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.4)} 0%, ${alpha(theme.palette.background.default, 0.5)} 100%)`
+							: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)} 0%, ${alpha(theme.palette.background.default, 0.9)} 100%)`,
 						borderColor: theme.palette.divider,
 						overflow: 'hidden'
 					}}
@@ -265,9 +265,9 @@ export const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({
 								borderRadius: 2.5,
 								boxShadow: 'none',
 								py: 1,
-								background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
+								background: theme.gradients.brand,
 								'&:hover': {
-									boxShadow: '0 4px 12px rgba(139,124,246,0.2)',
+									boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`,
 								}
 							}}
 						>

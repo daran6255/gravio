@@ -1,4 +1,4 @@
-import { Card, CardContent, Typography, Box, useTheme, Avatar } from '@mui/material';
+import { Card, CardContent, Typography, Box, useTheme, Avatar, alpha } from '@mui/material';
 import { Speed, CheckCircle, Block, HourglassEmpty, People } from '@mui/icons-material';
 import type { AdminStats } from '../../../../models/admin';
 
@@ -28,32 +28,32 @@ export const TenantDistribution: React.FC<TenantDistributionProps> = ({ stats })
 			label: 'Paid Organizations',
 			count: paidOrgs,
 			percentage: getPercentage(paidOrgs),
-			color: '#8B7CF6',
-			icon: <CheckCircle sx={{ color: '#8B7CF6', fontSize: 16 }} />,
+			color: theme.palette.primary.main,
+			icon: <CheckCircle sx={{ color: theme.palette.primary.main, fontSize: 16 }} />,
 			desc: 'Tenants active on paid subscription tiers'
 		},
 		{
 			label: 'Active Free Trials',
 			count: activeTrials,
 			percentage: getPercentage(activeTrials),
-			color: '#F59E0B',
-			icon: <HourglassEmpty sx={{ color: '#F59E0B', fontSize: 16 }} />,
+			color: theme.palette.warning.main,
+			icon: <HourglassEmpty sx={{ color: theme.palette.warning.main, fontSize: 16 }} />,
 			desc: 'Free trial instances with time remaining'
 		},
 		{
 			label: 'Trial Completed Orgs',
 			count: expiredTrials,
 			percentage: getPercentage(expiredTrials),
-			color: '#EF4444',
-			icon: <Block sx={{ color: '#EF4444', fontSize: 16 }} />,
+			color: theme.palette.error.main,
+			icon: <Block sx={{ color: theme.palette.error.main, fontSize: 16 }} />,
 			desc: 'Trials expired but not yet subscribed'
 		},
 		{
 			label: 'Inactive Organizations',
 			count: inactiveOrgs,
 			percentage: getPercentage(inactiveOrgs),
-			color: '#64748B',
-			icon: <Block sx={{ color: '#64748B', fontSize: 16 }} />,
+			color: theme.palette.text.secondary,
+			icon: <Block sx={{ color: theme.palette.text.secondary, fontSize: 16 }} />,
 			desc: 'Manually deactivated tenant environments'
 		}
 	];
@@ -63,13 +63,13 @@ export const TenantDistribution: React.FC<TenantDistributionProps> = ({ stats })
 			sx={{
 				borderRadius: '16px',
 				background: isDark 
-					? 'linear-gradient(135deg, rgba(20, 24, 34, 0.75) 0%, rgba(11, 13, 18, 0.9) 100%)'
-					: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.95) 100%)',
+					? `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.75)} 0%, ${alpha(theme.palette.background.default, 0.9)} 100%)`
+					: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.85)} 0%, ${alpha(theme.palette.background.default, 0.95)} 100%)`,
 				backdropFilter: 'blur(20px)',
 				border: `1px solid ${theme.palette.divider}`,
 				boxShadow: isDark
 					? '0 8px 32px 0 rgba(0, 0, 0, 0.2)'
-					: '0 8px 32px 0 rgba(139, 124, 246, 0.04)',
+					: `0 8px 32px 0 ${alpha(theme.palette.primary.main, 0.04)}`,
 				transition: 'transform 0.3s ease',
 				'&:hover': {
 					transform: 'translateY(-2px)'
@@ -92,9 +92,9 @@ export const TenantDistribution: React.FC<TenantDistributionProps> = ({ stats })
 						p: 2, 
 						borderRadius: '12px', 
 						background: isDark 
-							? 'linear-gradient(135deg, rgba(139, 124, 246, 0.12) 0%, rgba(78, 168, 255, 0.03) 100%)'
-							: 'linear-gradient(135deg, rgba(139, 124, 246, 0.06) 0%, rgba(78, 168, 255, 0.02) 100%)',
-						border: `1px solid ${isDark ? 'rgba(139, 124, 246, 0.18)' : 'rgba(139, 124, 246, 0.12)'}`,
+							? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.12)} 0%, ${alpha(theme.palette.info.main, 0.03)} 100%)`
+							: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.06)} 0%, ${alpha(theme.palette.info.main, 0.02)} 100%)`,
+						border: `1px solid ${isDark ? alpha(theme.palette.primary.main, 0.18) : alpha(theme.palette.primary.main, 0.12)}`,
 						display: 'flex',
 						alignItems: 'center',
 						gap: 2
@@ -102,11 +102,11 @@ export const TenantDistribution: React.FC<TenantDistributionProps> = ({ stats })
 				>
 					<Avatar 
 						sx={{ 
-							bgcolor: 'rgba(139, 124, 246, 0.15)', 
-							color: '#8B7CF6', 
+							bgcolor: alpha(theme.palette.primary.main, 0.15), 
+							color: theme.palette.primary.main, 
 							width: 38, 
 							height: 38,
-							boxShadow: '0 4px 10px rgba(139, 124, 246, 0.1)'
+							boxShadow: `0 4px 10px ${alpha(theme.palette.primary.main, 0.1)}`
 						}}
 					>
 						<People sx={{ fontSize: 20 }} />
@@ -150,14 +150,14 @@ export const TenantDistribution: React.FC<TenantDistributionProps> = ({ stats })
 							</Box>
 							
 							{/* Glowing Progress bar */}
-							<Box sx={{ width: '100%', height: 6, bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)', borderRadius: 3, overflow: 'hidden' }}>
+							<Box sx={{ width: '100%', height: 6, bgcolor: isDark ? alpha(theme.palette.common.white, 0.06) : alpha(theme.palette.common.black, 0.03), borderRadius: 3, overflow: 'hidden' }}>
 								<Box 
 									sx={{ 
 										width: `${item.percentage}%`, 
 										height: '100%', 
 										bgcolor: item.color, 
 										borderRadius: 3,
-										boxShadow: `0 0 6px ${item.color}80`,
+										boxShadow: `0 0 6px ${alpha(item.color, 0.5)}`,
 										transition: 'width 0.4s ease-in-out'
 									}} 
 								/>
