@@ -2,7 +2,7 @@
 // extendTrial already lives in authService.ts (built earlier) — left there, not duplicated here.
 import api from './api';
 import type { Organization } from '../models/auth';
-import type { CreateOrganizationRequest, CreateOrganizationResponse, AdminStats } from '../models/admin';
+import type { CreateOrganizationRequest, CreateOrganizationResponse, AdminStats, SystemHealth } from '../models/admin';
 import type { PaginatedResponse } from '../models/common';
 import type { TeamMember } from '../models/user';
 
@@ -36,6 +36,11 @@ const orgAdminService = {
 
 	getAdminStats: async (): Promise<AdminStats> => {
 		const response = await api.get<AdminStats>('/admin/stats');
+		return response.data;
+	},
+
+	getSystemHealth: async (): Promise<SystemHealth> => {
+		const response = await api.get<SystemHealth>('/admin/system-health');
 		return response.data;
 	},
 

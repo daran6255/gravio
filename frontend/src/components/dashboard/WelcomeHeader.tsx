@@ -1,9 +1,18 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { useAppSelector } from '../../store/hooks';
+import { useUserFlow } from '../../hooks/useUserFlow';
+
+const FLOW_SUBTITLE: Record<ReturnType<typeof useUserFlow>, string> = {
+    super_admin: "Here's how the platform is doing today",
+    org_admin: "Here's how your team is doing today",
+    org_team: "Here's what's on your plate today",
+    individual: "Here's your workspace at a glance today",
+};
 
 const WelcomeHeader: React.FC = () => {
     const { user } = useAppSelector((state) => state.auth);
+    const flow = useUserFlow();
 
     const getGreeting = () => {
         const hour = new Date().getHours();
@@ -35,7 +44,7 @@ const WelcomeHeader: React.FC = () => {
                     </Typography>
                 </Box>
                 <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                    Welcome back to Gravit. Here's what's happening today, {formattedDate}.
+                    {FLOW_SUBTITLE[flow]} · {formattedDate}.
                 </Typography>
             </Box>
         </Box>

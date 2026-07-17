@@ -33,3 +33,17 @@ export interface AdminStats {
 	team_organizations: number;
 	individual_organizations: number;
 }
+
+export interface SystemMetric {
+	name: string;
+	status: 'operational' | 'degraded' | 'down';
+	responseTime?: number | null;
+	detail?: string | null;
+}
+
+export interface SystemHealth {
+	status: 'healthy' | 'degraded' | 'critical';
+	version: string;
+	environment: string;
+	metrics: SystemMetric[];
+}

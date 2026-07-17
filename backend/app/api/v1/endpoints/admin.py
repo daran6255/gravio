@@ -1,7 +1,7 @@
 """Admin endpoints — operations restricted to Gravit Super Admins"""
 
 import uuid
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -16,6 +16,8 @@ from app.schemas.admin import (
     TrialExtensionRequest,
     TrialExtensionResponse,
     AdminStatsResponse,
+    SystemMetric,
+    SystemHealthResponse,
 )
 from app.schemas.common import PaginatedResponse
 from app.schemas.onboarding import OrgPublic, UserPublic
@@ -180,6 +182,88 @@ async def get_platform_stats(
 ) -> AdminStatsResponse:
     stats = await get_admin_stats(db)
     return AdminStatsResponse(**stats)
+
+
+@router.get(
+    "/system-health",
+    response_model=SystemHealthResponse,
+    summary="Live infrastructure health for the Super Admin dashboard",
+    description=(
+        "Real (not mocked) status for the services the platform depends on: "
+        "database connectivity + latency, whether outgoing email is configured, "
+        "and whether the in-process background schedulers (memory monitor, CRM "
+        "reminder checker) are still alive."
+    ),
+)
+async def get_system_health(
+    request: Request,
+    current_user: User = Depends(get_current_superuser),
+    db: AsyncSession = Depends(get_db),
+) -> SystemHealthResponse:
+    import time
+    from sqlalchemy import text
+    from app.core.config import settings
+
+    metrics: list[SystemMetric] = []
+    overall = "healthy"
+
+    # 1. Database — actually round-trip a query and time it.
+    start = time.perf_counter()
+    try:
+        await db.execute(text("SELECT 1"))
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        metrics.append(SystemMetric(
+            name="Database",
+            status="operational",
+            responseTime=round(elapsed_ms, 1),
+            detail=f"{round(elapsed_ms, 1)}ms round-trip",
+        ))
+    except Exception as e:
+        overall = "critical"
+        metrics.append(SystemMetric(name="Database", status="down", detail=str(e)))
+
+    # 2. Outgoing email — configuration presence, not a live SMTP handshake
+    # (opening a real connection on every dashboard load isn't worth the latency).
+    if settings.SMTP_HOST and settings.SMTP_PORT:
+        metrics.append(SystemMetric(
+            name="Outgoing Email",
+            status="operational",
+            detail=f"Configured ({settings.SMTP_HOST}:{settings.SMTP_PORT})",
+        ))
+    else:
+        overall = "degraded" if overall == "healthy" else overall
+        metrics.append(SystemMetric(
+            name="Outgoing Email",
+            status="degraded",
+            detail="SMTP not configured — verification/invite emails will not send",
+        ))
+
+    # 3. Background schedulers — are the asyncio tasks started at startup still alive?
+    monitor_task = getattr(request.app.state, "monitor_task", None)
+    reminder_task = getattr(request.app.state, "reminder_task", None)
+    schedulers_alive = bool(
+        monitor_task and not monitor_task.done() and reminder_task and not reminder_task.done()
+    )
+    if schedulers_alive:
+        metrics.append(SystemMetric(
+            name="Background Schedulers",
+            status="operational",
+            detail="Memory monitor + CRM reminder checker running",
+        ))
+    else:
+        overall = "degraded" if overall == "healthy" else overall
+        metrics.append(SystemMetric(
+            name="Background Schedulers",
+            status="degraded",
+            detail="One or more background tasks have stopped — reminders/memory monitoring may be paused",
+        ))
+
+    return SystemHealthResponse(
+        status=overall,
+        version=settings.APP_VERSION,
+        environment=settings.ENVIRONMENT,
+        metrics=metrics,
+    )
 
 
 @router.get(

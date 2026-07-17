@@ -34,6 +34,10 @@ async def lifespan(app: FastAPI):
     # Start the CRM reminder scheduler background task
     reminder_task = asyncio.create_task(reminder_check_task(interval_seconds=60))
 
+    # Stashed on app.state so /health can report whether these are still alive
+    app.state.monitor_task = monitor_task
+    app.state.reminder_task = reminder_task
+
     # You can uncomment this to create tables on startup (not recommended for production)
     # await init_db()
     # logger.info("Database initialized")

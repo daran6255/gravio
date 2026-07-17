@@ -67,6 +67,22 @@ class CreateOrganizationResponse(BaseModel):
     admin_user: UserPublic
 
 
+class SystemMetric(BaseModel):
+    """A single infrastructure service's live status, for the Super Admin dashboard."""
+    name: str
+    status: str  # 'operational' | 'degraded' | 'down'
+    responseTime: Optional[float] = None
+    detail: Optional[str] = None
+
+
+class SystemHealthResponse(BaseModel):
+    """Real (not mocked) infrastructure health for the Super Admin console."""
+    status: str  # 'healthy' | 'degraded' | 'critical'
+    version: str
+    environment: str
+    metrics: list[SystemMetric]
+
+
 class AdminStatsResponse(BaseModel):
     """Platform metrics for Super Admin dashboard"""
     total_organizations: int
