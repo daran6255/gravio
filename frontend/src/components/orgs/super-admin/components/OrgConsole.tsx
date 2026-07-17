@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Container, Button, TableRow, TableCell, Typography, LinearProgress, useTheme, Grid, Tabs, Tab, Chip, Stack, alpha } from '@mui/material';
 import { Add as AddIcon, Block, CheckCircleOutline, CalendarToday, DeleteOutline } from '@mui/icons-material';
+import { responsiveStyles } from '../../../../theme';
 import type { Organization } from '../../../../models/auth';
 import { useOrgConsole } from '../hooks/useOrgConsole';
 import { OrgStatsPanel, TenantDistribution } from '../stats';
@@ -13,10 +14,12 @@ import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuActio
 import { ConfirmationDialog } from '../../../common/dialogbox';
 import StatusBadge from '../../../common/badge/StatusBadge';
 
-const columns: ColumnDefinition<Organization>[] = [
-	{ id: 'name', label: 'Organization', sortable: false },
+const buildColumns = (accountTypeFilter: 'all' | 'organization' | 'individual'): ColumnDefinition<Organization>[] => [
+	{ id: 'name', label: accountTypeFilter === 'individual' ? 'Name' : 'Organization', sortable: false },
 	{ id: 'plan_name', label: 'Plan', sortable: false },
-	{ id: 'user_count', label: 'Seats / Users', sortable: false },
+	...(accountTypeFilter === 'individual'
+		? []
+		: [{ id: 'user_count', label: 'Seats / Users', sortable: false } as ColumnDefinition<Organization>]),
 	{ id: 'trial_expires_at', label: 'Remaining Period', sortable: false },
 	{ id: 'is_active', label: 'Status', sortable: false },
 	{ id: 'actions', label: 'Actions', sortable: false, align: 'right' },
@@ -193,7 +196,9 @@ export const OrgConsole: React.FC = () => {
 					<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>{org.location || '-'}</Typography>
 				</TableCell>
 				<TableCell><StatusBadge label={planDisplayName} status={org.plan_name?.toLowerCase() || 'free'} /></TableCell>
-				<TableCell onClick={(e) => e.stopPropagation()}>{renderSeatUtilization(org)}</TableCell>
+				{accountTypeFilter !== 'individual' && (
+					<TableCell onClick={(e) => e.stopPropagation()}>{renderSeatUtilization(org)}</TableCell>
+				)}
 				<TableCell>{renderRemainingPeriod(org)}</TableCell>
 				<TableCell><StatusBadge label={org.is_active !== false ? 'Active' : 'Inactive'} status={org.is_active !== false ? 'active' : 'inactive'} /></TableCell>
 				<TableCell align="right" onClick={(e) => e.stopPropagation()}><DataTableActions item={org} actions={getRowActions(org)} /></TableCell>
@@ -202,57 +207,28 @@ export const OrgConsole: React.FC = () => {
 	};
 
 	return (
-		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
-			{/* Subtle Aurora Gradient Accents in the background */}
-			<Box
-				sx={{
-					position: 'absolute',
-					top: '5%',
-					right: '-5%',
-					width: '45vw',
-					height: '45vw',
-					borderRadius: '50%',
-					background: 'radial-gradient(circle, rgba(139, 124, 246, 0.08) 0%, rgba(78, 168, 255, 0.02) 60%, rgba(0,0,0,0) 100%)',
-					filter: 'blur(70px)',
-					zIndex: 0,
-					pointerEvents: 'none'
-				}}
-			/>
-			<Box
-				sx={{
-					position: 'absolute',
-					bottom: '10%',
-					left: '-10%',
-					width: '35vw',
-					height: '35vw',
-					borderRadius: '50%',
-					background: 'radial-gradient(circle, rgba(78, 168, 255, 0.06) 0%, rgba(16, 185, 129, 0.02) 60%, rgba(0,0,0,0) 100%)',
-					filter: 'blur(60px)',
-					zIndex: 0,
-					pointerEvents: 'none'
-				}}
-			/>
-
-			<Container maxWidth="xl" sx={{ py: { xs: 2, sm: 4 }, position: 'relative', zIndex: 1 }}>
+		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
+			<Container maxWidth={false} sx={responsiveStyles.pageContainer}>
 				<PageHeader
-					title="Organizations Console" 
+					title="Organizations Console"
 					subtitle="Manage global infrastructure entities and subscription tiers."
 					action={
 						<Button
-							variant="contained" 
-							startIcon={<AddIcon />} 
+							variant="contained"
+							startIcon={<AddIcon />}
 							onClick={() => setCreateDialogOpen(true)}
-							sx={{ 
-								textTransform: 'none', 
-								fontWeight: 700, 
-								px: 3.5, 
-								py: 1.25, 
+							sx={{
+								textTransform: 'none',
+								fontWeight: 700,
+								px: 3.5,
+								py: 1.25,
 								borderRadius: '12px',
-								background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
+								color: '#ffffff',
+								background: theme.gradients.brandDiagonal,
 								boxShadow: '0 4px 14px 0 rgba(139, 124, 246, 0.4)',
 								transition: 'all 0.2s ease',
 								'&:hover': {
-									background: 'linear-gradient(135deg, #9C8FFF 0%, #7062E9 100%)',
+									background: theme.gradients.brandDiagonalHover,
 									boxShadow: '0 6px 20px 0 rgba(139, 124, 246, 0.6)',
 									transform: 'translateY(-1px)'
 								}
@@ -265,7 +241,7 @@ export const OrgConsole: React.FC = () => {
 
 				<OrgStatsPanel stats={stats} />
 
-				<Grid container spacing={3}>
+				<Grid container spacing={responsiveStyles.statsGridSpacing}>
 					{/* Left Sidebar Panel (1:3 ratio, i.e., 3 sizes out of 12) */}
 					<Grid size={{ xs: 12, md: 3 }} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 						<TenantDistribution stats={stats} />
@@ -274,7 +250,7 @@ export const OrgConsole: React.FC = () => {
 					{/* Right Console Table (1:3 ratio, i.e., 9 sizes out of 12) */}
 					<Grid size={{ xs: 12, md: 9 }}>
 						<DataTable<Organization>
-							columns={columns} 
+							columns={buildColumns(accountTypeFilter)} 
 							data={organizations} 
 							loading={loading} 
 							totalCount={total} 

@@ -3,6 +3,7 @@ import { Grid, useTheme } from '@mui/material';
 import { Business, CalendarToday, Group, Speed } from '@mui/icons-material';
 import type { AdminStats } from '../../../../models/admin';
 import StatCard from '../../../common/stats/StatCard';
+import { responsiveStyles } from '../../../../theme';
 
 interface OrgStatsPanelProps {
 	stats: AdminStats | null;
@@ -42,7 +43,7 @@ export const OrgStatsPanel: React.FC<OrgStatsPanelProps> = ({ stats }) => {
 	];
 
 	return (
-		<Grid container spacing={3} sx={{ mb: 4, position: 'relative', zIndex: 1 }}>
+		<Grid container spacing={responsiveStyles.statsGridSpacing} sx={{ mb: 4 }}>
 			{statsCards.map((card, idx) => (
 				<Grid size={{ xs: 12, sm: 6, md: 3 }} key={idx}>
 					<StatCard {...card} />
