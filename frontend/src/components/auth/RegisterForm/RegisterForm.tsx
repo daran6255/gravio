@@ -202,6 +202,13 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccessChange, onVerified
 							onSubmit={handleSubmit}
 							registerDisabled={registerDisabled}
 							hideBack={accountType === 'individual'}
+							showLocation={accountType === 'individual'}
+							location={orgLocation}
+							setLocation={setOrgLocation}
+							locationOptions={locationOptions}
+							locationLoading={locationLoading}
+							locationInputValue={locationInputValue}
+							setLocationInputValue={setLocationInputValue}
 						/>
 					)}
 

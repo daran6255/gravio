@@ -208,7 +208,8 @@ export const useRegisterForm = () => {
 		usernameStatus !== 'available' ||
 		emailStatus !== 'available' ||
 		passwordStrength.score !== 4 ||
-		adminName.trim().length < 2;
+		adminName.trim().length < 2 ||
+		(accountType === 'individual' && !orgLocation.trim());
 
 	const handleNext = () => {
 		if (activeStep === 0) {
@@ -250,8 +251,9 @@ export const useRegisterForm = () => {
 
 		const payload = {
 			organization: accountType === 'individual'
-				? { 
+				? {
 					name: await resolveIndividualOrgName(),
+					location: orgLocation || undefined,
 					metadata: {
 						account_type: 'individual'
 					}

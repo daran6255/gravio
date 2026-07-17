@@ -10,6 +10,7 @@ import {
 	ButtonBase,
 	Popper,
 	Paper,
+	Autocomplete,
 } from '@mui/material';
 import {
 	Visibility,
@@ -19,6 +20,7 @@ import {
 	MailOutline as MailIcon,
 	LockOutlined as LockIcon,
 	AccountCircle as SuggestionIcon,
+	RoomOutlined as RoomIcon,
 } from '@mui/icons-material';
 
 interface PasswordStrengthInfo {
@@ -55,6 +57,14 @@ interface AdminStepProps {
 	onSubmit: (e: React.FormEvent) => void;
 	registerDisabled: boolean;
 	hideBack?: boolean;
+	/** Individual/freelancer accounts skip OrganizationStep, so they collect location here instead. */
+	showLocation?: boolean;
+	location?: string;
+	setLocation?: (val: string) => void;
+	locationOptions?: string[];
+	locationLoading?: boolean;
+	locationInputValue?: string;
+	setLocationInputValue?: (val: string) => void;
 }
 
 const AdminStep: React.FC<AdminStepProps> = ({
@@ -79,6 +89,13 @@ const AdminStep: React.FC<AdminStepProps> = ({
 	onSubmit,
 	registerDisabled,
 	hideBack = false,
+	showLocation = false,
+	location = '',
+	setLocation,
+	locationOptions = [],
+	locationLoading = false,
+	locationInputValue = '',
+	setLocationInputValue,
 }) => {
 	const reqs = [
 		{ key: 'length', label: 'Min. 8 characters' },
@@ -162,6 +179,97 @@ const AdminStep: React.FC<AdminStepProps> = ({
 					}}
 				/>
 			</Box>
+
+			{/* Location (individual/freelancer accounts only — org accounts collect this on OrganizationStep) */}
+			{showLocation && (
+				<Box sx={{ mb: 1.25 }}>
+					<Typography
+						sx={{
+							fontSize: '0.675rem',
+							fontWeight: 700,
+							color: '#94A3B8',
+							textTransform: 'uppercase',
+							letterSpacing: '0.05em',
+							mb: 0.75,
+							display: 'block'
+						}}
+					>
+						Location *
+					</Typography>
+					<Autocomplete
+						id="individualLocation"
+						freeSolo
+						options={locationOptions}
+						loading={locationLoading}
+						value={location}
+						onChange={(_, newValue) => setLocation?.(newValue || '')}
+						inputValue={locationInputValue}
+						onInputChange={(_, newInputValue) => setLocationInputValue?.(newInputValue)}
+						filterOptions={(options) => options}
+						slotProps={{
+							paper: {
+								sx: {
+									bgcolor: '#11141e',
+									color: '#F4F5F7',
+									border: '1px solid rgba(255, 255, 255, 0.08)',
+									'& .MuiAutocomplete-option': {
+										'&:hover': {
+											bgcolor: 'rgba(255, 255, 255, 0.05)',
+										},
+										'&[aria-selected="true"]': {
+											bgcolor: 'rgba(139, 124, 246, 0.2)',
+											'&:hover': {
+												bgcolor: 'rgba(139, 124, 246, 0.3)',
+											}
+										}
+									}
+								}
+							}
+						}}
+						renderInput={(params) => (
+							<TextField
+								{...params}
+								required
+								placeholder="Search location (e.g. Bangalore, Karnataka)"
+								size="small"
+								InputProps={{
+									...params.InputProps,
+									startAdornment: (
+										<InputAdornment position="start">
+											<RoomIcon sx={{ color: '#64748b', fontSize: 18, mr: 0.5 }} />
+										</InputAdornment>
+									),
+									endAdornment: (
+										<>
+											{locationLoading ? <CircularProgress color="inherit" size={16} /> : null}
+											{params.InputProps.endAdornment}
+										</>
+									)
+								}}
+								sx={{
+									'& .MuiOutlinedInput-root': {
+										bgcolor: '#191c28',
+										borderRadius: 1.5,
+										color: '#F4F5F7',
+										border: '1px solid rgba(255, 255, 255, 0.08)',
+										'& fieldset': { border: 'none' },
+										'&:hover': { border: '1px solid rgba(255, 255, 255, 0.15)' },
+										'&.Mui-focused': {
+											border: '1px solid #8B7CF6',
+											boxShadow: '0 0 0 3px rgba(139, 124, 246, 0.15)'
+										}
+									},
+									'& input::placeholder': { color: '#64748b', opacity: 1 },
+									'& input:-webkit-autofill': {
+										WebkitBoxShadow: '0 0 0 1000px #191c28 inset !important',
+										WebkitTextFillColor: '#F4F5F7 !important',
+									}
+								}}
+							/>
+						)}
+					/>
+				</Box>
+			)}
 
 			{/* Username */}
 			<Box sx={{ mb: 1.25, position: 'relative' }}>
