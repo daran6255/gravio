@@ -283,7 +283,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ open, onClos
 			</Tabs>
 
 			{/* Scrollable drawer body */}
-			<Box sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 2.5, overscrollBehavior: 'contain' }}>
+			<Box sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 2.5, overscrollBehavior: 'contain', minHeight: 0 }}>
 				{tab === 0 && <LeadOverviewTab lead={lead} owners={owners} />}
 				{tab === 1 && <LeadTasksTab lead={lead} />}
 				{tab === 2 && <LeadTimelineTab lead={lead} />}

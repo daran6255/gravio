@@ -142,7 +142,7 @@ export const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({
 		>
 			<Divider sx={{ mb: 2, opacity: 0.5 }} />
 
-			<Box sx={{ flexGrow: 1, overflowY: 'auto', pr: 0.5, display: 'flex', flexDirection: 'column' }}>
+			<Box sx={{ flexGrow: 1, overflowY: 'auto', pr: 0.5, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 				{/* User Profile Avatar Card */}
 				<Box display="flex" flexDirection="column" alignItems="center" sx={{ mb: 3, mt: 1 }}>
 					<Avatar

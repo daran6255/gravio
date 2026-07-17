@@ -121,7 +121,7 @@ export const CompanyDetailDrawer: React.FC<CompanyDetailDrawerProps> = ({ open, 
 			</Tabs>
 
 			{/* Scrollable drawer body */}
-			<Box sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 2.5, overscrollBehavior: 'contain' }}>
+			<Box sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 2.5, overscrollBehavior: 'contain', minHeight: 0 }}>
 				{tab === 0 && (
 					<CompanyDetailsTab
 						company={company}

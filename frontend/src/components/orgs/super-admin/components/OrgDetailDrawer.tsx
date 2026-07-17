@@ -103,7 +103,7 @@ export const OrgDetailDrawer: React.FC<OrgDetailDrawerProps> = ({
 			headerExtra={headerExtra}
 		>
 			{selectedOrg && (
-				<>
+				<Box sx={{ flexGrow: 1, overflowY: 'auto', pr: 0.5, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 					<Divider sx={{ mb: 3, opacity: 0.5 }} />
 
 					<Card 
@@ -200,7 +200,7 @@ export const OrgDetailDrawer: React.FC<OrgDetailDrawerProps> = ({
 						<Tab label={`Pending (${pendingUsersCount})`} />
 					</Tabs>
 
-					<Box sx={{ flexGrow: 1, overflowY: 'auto', pr: 0.5 }}>
+					<Box sx={{ pr: 0.5 }}>
 						{selectedOrgUsersLoading ? (
 							<List>
 								{[1, 2, 3].map((n) => (
@@ -418,7 +418,7 @@ export const OrgDetailDrawer: React.FC<OrgDetailDrawerProps> = ({
 							</MenuItem>
 						</Menu>
 					)}
-				</>
+				</Box>
 			)}
 		</DetailDrawer>
 	);

@@ -41,7 +41,7 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 					maxWidth: '100vw',
 					boxSizing: 'border-box',
 					overscrollBehavior: 'contain',
-					p: disablePadding ? 0 : { xs: 2.5, sm: 3.5 },
+					p: 0,
 					borderLeft: '1px solid',
 					borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
 					bgcolor: 'background.default',
@@ -53,13 +53,23 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 				}
 			}}
 		>
-			<Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+			<Box
+				sx={{
+					display: 'flex',
+					flexDirection: 'column',
+					height: '100%',
+					boxSizing: 'border-box',
+					p: disablePadding ? 0 : { xs: 2.5, sm: 3.5 },
+					overflow: 'hidden'
+				}}
+			>
 				{/* Drawer Header */}
 				<Box
 					display="flex"
 					justifyContent="space-between"
 					alignItems="flex-start"
 					sx={{
+						flexShrink: 0,
 						mb: disablePadding ? 1.5 : 2,
 						px: disablePadding ? { xs: 2.5, sm: 3.5 } : 0,
 						pt: disablePadding ? { xs: 2.5, sm: 3.5 } : 0
@@ -100,13 +110,13 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 
 				{/* Header Extra Actions (e.g. badges, status tags) */}
 				{headerExtra && (
-					<Box sx={{ mb: disablePadding ? 2 : 2.5, px: disablePadding ? { xs: 2.5, sm: 3.5 } : 0 }}>
+					<Box sx={{ flexShrink: 0, mb: disablePadding ? 2 : 2.5, px: disablePadding ? { xs: 2.5, sm: 3.5 } : 0 }}>
 						{headerExtra}
 					</Box>
 				)}
 
 				{!hideDivider && (
-					<Divider sx={{ mb: disablePadding ? 0 : 2.5, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
+					<Divider sx={{ flexShrink: 0, mb: disablePadding ? 0 : 2.5, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
 				)}
 
 				{/* Drawer Content */}
