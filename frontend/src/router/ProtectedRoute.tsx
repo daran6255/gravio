@@ -37,6 +37,14 @@ const ProtectedRoute: React.FC = () => {
 			return <Navigate to="/dashboard" replace />;
 		}
 
+		// Timesheets and HR Administration both assume a team of employees to track —
+		// nothing an individual/freelancer account needs, so block direct navigation too.
+		const isIndividualBlockedRoute =
+			normalizedPath === '/timesheets' || normalizedPath.startsWith('/hr/admin/');
+		if (isIndividualBlockedRoute && user?.organization?.others?.account_type === 'individual') {
+			return <Navigate to="/dashboard" replace />;
+		}
+
 		// Gated on Superuser flag
 		if (routeConfig.requiresSuperuser && !user?.is_superuser) {
 			return <Navigate to="/dashboard" replace />;

@@ -283,6 +283,15 @@ const Sidebar: React.FC = () => {
 		// Hide the 'Team' link for individual accounts
 		if (item.path === '/users' && user?.organization?.others?.account_type === 'individual') return false;
 
+		// Hide 'Timesheets' and the entire 'HR Administration' section for individual
+		// accounts — there's no team to log hours against or employees to administer
+		if (
+			user?.organization?.others?.account_type === 'individual' &&
+			(item.path === '/timesheets' || item.label === 'HR Administration')
+		) {
+			return false;
+		}
+
 		// Hide 'Billing' for superuser
 		if (item.path === '/billing' && user?.is_superuser) return false;
 
