@@ -43,8 +43,8 @@ export const AttentionQueuePanel: React.FC = () => {
 				boxShadow: isDark ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : '0 8px 32px 0 rgba(139, 124, 246, 0.04)',
 			}}
 		>
-			<CardContent sx={{ p: 4 }}>
-				<Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
+			<CardContent sx={{ p: 2.5 }}>
+				<Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
 					<Box display="flex" alignItems="center" gap={1.5}>
 						<NotificationsActive color="warning" sx={{ fontSize: 24 }} />
 						<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '0.02em', color: 'text.primary' }}>
@@ -61,9 +61,9 @@ export const AttentionQueuePanel: React.FC = () => {
 						{[1, 2, 3].map((n) => <Skeleton key={n} variant="rounded" height={56} sx={{ borderRadius: '10px' }} />)}
 					</Box>
 				) : expiringSoon.length === 0 ? (
-					<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, gap: 1 }}>
-						<TaskAlt sx={{ fontSize: 32, color: 'success.main' }} />
-						<Typography variant="body2" color="text.secondary">No trials expiring in the next {ATTENTION_WINDOW_DAYS} days.</Typography>
+					<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2, gap: 0.75 }}>
+						<TaskAlt sx={{ fontSize: 26, color: 'success.main' }} />
+						<Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.78rem' }}>No trials expiring in the next {ATTENTION_WINDOW_DAYS} days.</Typography>
 					</Box>
 				) : (
 					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>

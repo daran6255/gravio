@@ -57,7 +57,7 @@ export const PlatformPulsePanel: React.FC = () => {
 			}}
 		>
 			<CardContent sx={{ p: 4 }}>
-				<Box display="flex" alignItems="center" gap={1.5} sx={{ mb: 3 }}>
+				<Box display="flex" alignItems="center" gap={1.5} sx={{ mb: 2 }}>
 					<Insights color="primary" sx={{ fontSize: 24 }} />
 					<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '0.02em', color: 'text.primary' }}>
 						PLATFORM PULSE
