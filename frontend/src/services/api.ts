@@ -41,14 +41,34 @@ api.interceptors.request.use(
 	}
 );
 
+// Endpoints that are hit while the caller has no session yet (or is establishing
+// one) — a 401 from these is a real "wrong credentials / invalid token" answer,
+// not a sign our access token expired. Attempting a token refresh here would
+// either be pointless (no refresh token to use yet) or, worse, mask the actual
+// error behind whatever the refresh attempt fails with.
+const AUTH_ENDPOINTS_EXCLUDED_FROM_REFRESH = [
+	'/auth/login',
+	'/auth/refresh',
+	'/auth/register',
+	'/auth/accept-invite',
+	'/auth/verify-email',
+	'/auth/resend-verification',
+	'/auth/forgot-password',
+	'/auth/reset-password',
+];
+
 // Response interceptor for handling errors and token refresh
 api.interceptors.response.use(
 	(response) => response,
 	async (error) => {
 		const originalRequest = error.config;
+		const isExcludedFromRefresh = AUTH_ENDPOINTS_EXCLUDED_FROM_REFRESH.some((path) =>
+			originalRequest?.url?.includes(path)
+		);
 
-		// If error is not 401 or request already retried, reject immediately
-		if (error.response?.status !== 401 || originalRequest._retry) {
+		// If error is not 401, request already retried, or this is a pre-session
+		// auth endpoint, reject immediately with the original error.
+		if (error.response?.status !== 401 || originalRequest._retry || isExcludedFromRefresh) {
 			return Promise.reject(error);
 		}
 

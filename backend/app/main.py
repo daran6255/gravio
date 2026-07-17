@@ -88,7 +88,23 @@ async def validation_exception_handler(request, exc):
 from fastapi.exception_handlers import request_validation_exception_handler
 
 
-# Add CORS middleware
+# Middleware order matters: Starlette wraps middleware in the *reverse* of the
+# order they're added here, so the middleware added LAST ends up OUTERMOST.
+# ErrorHandlerMiddleware converts raised AppErrors (UnauthorizedError,
+# BadRequestError, etc.) into a fresh JSONResponse — any middleware still
+# INSIDE it (i.e. added before it) never sees that response, since it wasn't
+# produced via a normal call_next() return, it came from ErrorHandler's own
+# except block. Concretely: if CORSMiddleware/LoggingMiddleware were added
+# before ErrorHandlerMiddleware (as they used to be), a request that fails
+# auth (e.g. wrong login password) got a proper 401 body on the wire but with
+# no Access-Control-Allow-Origin header — the browser blocks reading it and
+# axios reports it as a bare "Network Error" instead of the real message.
+# Registering CORS/Logging *after* (i.e. outside) ErrorHandler guarantees they
+# run on every response, success or error alike.
+app.add_middleware(ErrorHandlerMiddleware)
+app.add_middleware(TimezoneMiddleware)
+app.add_middleware(GarbageCollectorMiddleware)
+app.add_middleware(LoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
     #allow_origins=settings.BACKEND_CORS_ORIGINS,
@@ -97,12 +113,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Add custom middleware
-app.add_middleware(LoggingMiddleware)
-app.add_middleware(ErrorHandlerMiddleware)
-app.add_middleware(TimezoneMiddleware)
-app.add_middleware(GarbageCollectorMiddleware)
 
 # Include API routers with versioning
 app.include_router(
