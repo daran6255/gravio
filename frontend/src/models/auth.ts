@@ -16,9 +16,9 @@ export interface Organization {
 	trial_expires_at?: string;
 	plan_id?: number | null;
 	plan?: OrganizationPlan | null;
-	user_count?: number;
 	user_limit?: number | null;
 	plan_name?: string;
+	others?: Record<string, any> | null;
 }
 
 export interface BillingAddress {

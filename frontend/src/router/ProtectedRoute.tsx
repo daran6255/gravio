@@ -27,6 +27,16 @@ const ProtectedRoute: React.FC = () => {
 	// Resolve route permission configuration centrally from navigation.ts
 	const routeConfig = getRouteConfig(location.pathname);
 	if (routeConfig) {
+		// Normalize route to check against individual constraints
+		let normalizedPath = location.pathname;
+		const orgMatch = location.pathname.match(/^\/org\/[^\/]+(\/.*)?$/);
+		if (orgMatch) {
+			normalizedPath = orgMatch[1] || '/';
+		}
+		if (normalizedPath === '/users' && user?.organization?.others?.account_type === 'individual') {
+			return <Navigate to="/dashboard" replace />;
+		}
+
 		// Gated on Superuser flag
 		if (routeConfig.requiresSuperuser && !user?.is_superuser) {
 			return <Navigate to="/dashboard" replace />;

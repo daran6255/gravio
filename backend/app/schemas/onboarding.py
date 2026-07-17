@@ -60,6 +60,7 @@ class OrgPublic(BaseModel):
     plan: Optional[PlanResponse] = None
     user_count: int = 0
     user_limit: Optional[int] = None
+    others: Optional[dict[str, Any]] = None
 
     @model_validator(mode="before")
     @classmethod

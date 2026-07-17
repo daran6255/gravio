@@ -60,6 +60,7 @@ export const useSearchActions = () => {
 	const filteredActions = useMemo(() => {
 		if (!user) return [];
 		return allActions.filter(action => {
+			if (action.id === 'users' && user?.organization?.others?.account_type === 'individual') return false;
 			if (!action.roles) return true;
 			return action.roles.includes(user.role);
 		});

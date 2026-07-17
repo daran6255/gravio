@@ -17,7 +17,7 @@ from app.repositories.crm import CRMLeadRepository
 from app.models.plan import PlanTier
 from app.models.notification import NotificationType
 from app.core.security import get_password_hash
-from app.middleware.exceptions import ConflictError, NotFoundError, BadRequestError
+from app.middleware.exceptions import ConflictError, NotFoundError, BadRequestError, ForbiddenError
 from app.schemas.user_management import InviteUserRequest, UpdateUserRequest, BulkDeleteUsersRequest
 
 
@@ -82,8 +82,9 @@ async def invite_user(
     Raises:
         ConflictError: Email or username already taken.
     """
-    # ── Enforce Plan User Limit ──────────────────────────────────────────────
     org = await OrganizationRepository.get_by_id(db, current_user.organization_id)
+    if org and org.others and org.others.get("account_type") == "individual":
+        raise ForbiddenError("Individual / Freelancer accounts cannot invite teammates.")
     user_limit = 10  # default fallback
     if org:
         if org.plan_id:

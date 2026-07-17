@@ -280,6 +280,9 @@ const Sidebar: React.FC = () => {
 		// Hide the regular non-superuser 'Team' link if user is superuser (they use 'Organizations' point to /users)
 		if (item.path === '/users' && !item.requiresSuperuser && user?.is_superuser) return false;
 
+		// Hide the 'Team' link for individual accounts
+		if (item.path === '/users' && user?.organization?.others?.account_type === 'individual') return false;
+
 		// Hide 'Billing' for superuser
 		if (item.path === '/billing' && user?.is_superuser) return false;
 

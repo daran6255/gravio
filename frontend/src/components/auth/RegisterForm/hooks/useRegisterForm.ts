@@ -306,13 +306,19 @@ export const useRegisterForm = () => {
 
 		const payload = {
 			organization: accountType === 'individual'
-				? { name: await resolveIndividualOrgName() }
+				? { 
+					name: await resolveIndividualOrgName(),
+					metadata: {
+						account_type: 'individual'
+					}
+				}
 				: {
 					name: orgName,
 					location: orgLocation || undefined,
 					metadata: {
 						company_size: companySize,
 						industry: industry,
+						account_type: 'organization'
 					}
 				},
 			admin_user: {
