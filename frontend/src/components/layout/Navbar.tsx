@@ -111,7 +111,7 @@ const Navbar: React.FC = () => {
 				};
 				dotColor = '#F59E0B';
 			} else {
-				badgeText = `${daysLeft}d`;
+				badgeText = `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`;
 				tooltipText = `Free Trial: ${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining (Expires ${new Date(org.trial_expires_at!).toLocaleDateString()}). Click to upgrade.`;
 				icon = <HourglassIcon sx={{ fontSize: '1rem', mr: 0.5, color: '#F59E0B' }} />;
 				badgeStyles = {

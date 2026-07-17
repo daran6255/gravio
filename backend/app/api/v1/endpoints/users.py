@@ -255,7 +255,12 @@ async def update_organization_plan_endpoint(
         flag_modified(org, "others")
 
     org.plan_id = plan.id
-    org.subscription_status = "active"  # mark subscription status active when they choose a plan
+    # Only a *paid* tier counts as an active subscription. Picking the free tier
+    # (e.g. converting to a team org while still within the trial window) must
+    # not overwrite "trial" with "active" — that would kill the trial countdown
+    # and its days-remaining badge even though nothing was actually purchased.
+    if tier_enum != PlanTier.FREE:
+        org.subscription_status = "active"
     await db.commit()
     await db.refresh(org)
 
