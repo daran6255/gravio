@@ -1,7 +1,7 @@
 import React from 'react';
 import {
 	Box, Divider, Card, CardContent, Typography, Avatar, Chip,
-	Button, useTheme, alpha
+	Button, useTheme, alpha, Stack
 } from '@mui/material';
 import {
 	Block as DeactivateIcon,
@@ -134,8 +134,35 @@ export const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({
 		<DetailDrawer
 			open={open}
 			onClose={onClose}
-			title={user.full_name || user.username}
-			subtitle={user.email}
+			title={
+				<Stack direction="row" spacing={2} alignItems="center">
+					<Avatar
+						sx={{
+							background: 'linear-gradient(135deg, #8B7CF6 0%, #4EA8FF 100%)',
+							color: '#ffffff',
+							width: 48,
+							height: 48,
+							fontSize: '1.2rem',
+							fontWeight: 800,
+							boxShadow: '0 4px 12px rgba(139, 124, 246, 0.25)',
+						}}
+					>
+						{getInitials(user.full_name, user.username)}
+					</Avatar>
+					<Box sx={{ minWidth: 0 }}>
+						<Typography
+							variant="h5"
+							noWrap
+							sx={{ fontWeight: 800, letterSpacing: '-0.02em', color: 'text.primary', fontSize: '1.15rem', lineHeight: 1.2 }}
+						>
+							{user.full_name || '-'}
+						</Typography>
+						<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', mt: 0.25, fontSize: '0.78rem' }}>
+							@{user.username} • {user.email}
+						</Typography>
+					</Box>
+				</Stack>
+			}
 			headerExtra={headerExtra}
 			headerActions={<ContextMenu actions={actionMenuItems} />}
 			width={480}
@@ -143,29 +170,6 @@ export const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({
 			<Divider sx={{ mb: 2, opacity: 0.5 }} />
 
 			<Box sx={{ flexGrow: 1, overflowY: 'auto', pr: 0.5, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-				{/* User Profile Avatar Card */}
-				<Box display="flex" flexDirection="column" alignItems="center" sx={{ mb: 3, mt: 1 }}>
-					<Avatar
-						sx={{
-							background: 'linear-gradient(135deg, #8B7CF6 0%, #4EA8FF 100%)',
-							color: '#ffffff',
-							width: 72,
-							height: 72,
-							fontSize: '1.6rem',
-							fontWeight: 800,
-							boxShadow: '0 8px 24px rgba(139, 124, 246, 0.25)',
-							mb: 1.5
-						}}
-					>
-						{getInitials(user.full_name, user.username)}
-					</Avatar>
-					<Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', lineHeight: 1.2 }}>
-						{user.full_name || '-'}
-					</Typography>
-					<Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', mt: 0.25 }}>
-						@{user.username}
-					</Typography>
-				</Box>
 
 				{/* User Info Details Grid */}
 				<Card
