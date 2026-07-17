@@ -55,3 +55,11 @@ class UpdateUserRequest(BaseModel):
 class BulkDeleteUsersRequest(BaseModel):
     """Admin deletes multiple users"""
     public_ids: list[uuid.UUID]
+
+
+class ConvertToOrganizationRequest(BaseModel):
+    """Convert an individual/freelancer account into a full team organization"""
+    name: str = Field(..., min_length=2, max_length=255, description="Your organization's real name")
+    location: Optional[str] = Field(None, max_length=255, description="City / country of the organization")
+    company_size: Optional[str] = Field(None, max_length=50, description="e.g. '1-10', '11-50'")
+    industry: Optional[str] = Field(None, max_length=100, description="e.g. 'Technology', 'Healthcare'")

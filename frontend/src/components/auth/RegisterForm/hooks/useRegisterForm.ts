@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { onboardUser } from '../../../../store/slices/authSlice';
 import useToast from '../../../../hooks/useToast';
+import useLocationSearch from '../../../../hooks/useLocationSearch';
 import api from '../../../../services/api';
 
 export const steps = ['Organization Info', 'Admin Profile'];
@@ -73,9 +74,7 @@ export const useRegisterForm = () => {
 	const [orgNameMessage, setOrgNameMessage] = useState('');
 
 	// Location geocoding state
-	const [locationOptions, setLocationOptions] = useState<string[]>([]);
-	const [locationLoading, setLocationLoading] = useState(false);
-	const [locationInputValue, setLocationInputValue] = useState('');
+	const { locationOptions, locationLoading, locationInputValue, setLocationInputValue } = useLocationSearch();
 
 	// Admin fields
 	const [adminName, setAdminName] = useState('');
@@ -91,61 +90,6 @@ export const useRegisterForm = () => {
 
 	const [emailStatus, setEmailStatus] = useState<'idle' | 'validating' | 'available' | 'error'>('idle');
 	const [emailMessage, setEmailMessage] = useState('');
-
-	// Fetch dynamic locations based on search input
-	useEffect(() => {
-		if (locationInputValue.trim().length < 3) {
-			setLocationOptions([]);
-			return;
-		}
-
-		const fetchLocations = async () => {
-			setLocationLoading(true);
-			try {
-				const response = await fetch(
-					`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-						locationInputValue
-					)}&format=json&addressdetails=1&limit=5&accept-language=en`,
-					{
-						headers: {
-							'User-Agent': 'Gravit-Onboarding-App/1.0',
-						},
-					}
-				);
-				const data = await response.json();
-				if (Array.isArray(data)) {
-					const formattedLocations = data.map((item: any) => {
-						const addr = item.address;
-						const city = addr.city || addr.town || addr.municipality || addr.village || addr.suburb || addr.state_district || '';
-						const state = addr.state || '';
-						const country = addr.country || '';
-
-						if (city && state) {
-							return `${city}, ${state}`;
-						} else if (city && country) {
-							return `${city}, ${country}`;
-						} else if (state && country) {
-							return `${state}, ${country}`;
-						}
-						return item.display_name;
-					});
-
-					const uniqueLocations = Array.from(new Set(formattedLocations.filter(Boolean))) as string[];
-					setLocationOptions(uniqueLocations);
-				}
-			} catch (error) {
-				console.error('Failed to fetch locations:', error);
-			} finally {
-				setLocationLoading(false);
-			}
-		};
-
-		const debounceTimer = setTimeout(() => {
-			fetchLocations();
-		}, 400);
-
-		return () => clearTimeout(debounceTimer);
-	}, [locationInputValue]);
 
 	// Real-Time Organization Name Checker
 	useEffect(() => {

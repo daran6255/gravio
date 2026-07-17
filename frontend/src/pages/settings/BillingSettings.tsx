@@ -41,6 +41,7 @@ import { fetchCurrentUser } from '../../store/slices/authSlice';
 import userService from '../../services/userService';
 import useToast from '../../hooks/useToast';
 import PageHeader from '../../components/common/page-header';
+import ConvertToTeamDialog from '../../components/settings/profile/ConvertToTeamDialog';
 
 interface PlanDetail {
 	tier: 'free' | 'basic' | 'pro' | 'enterprise';
@@ -263,6 +264,7 @@ const BillingSettings: React.FC = () => {
 
 	const [selectedPlan, setSelectedPlan] = useState<PlanDetail | null>(null);
 	const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+	const [convertDialogOpen, setConvertDialogOpen] = useState(false);
 	const [processingPayment, setProcessingPayment] = useState(false);
 	const [cardNumber, setCardNumber] = useState('');
 	const [cardExpiry, setCardExpiry] = useState('');
@@ -288,6 +290,12 @@ const BillingSettings: React.FC = () => {
 	};
 
 	const handleSwitchPlanClick = (plan: PlanDetail) => {
+		// Any Team plan, while still an individual account, requires converting the
+		// account first — collect real org details rather than silently flipping a flag.
+		if (plan.isTeamPlan && accountType === 'individual') {
+			setConvertDialogOpen(true);
+			return;
+		}
 		if (plan.pricePerUser === 0) {
 			// Free plan can be upgraded directly or simple confirmation
 			handleUpgrade(plan.tier);
@@ -314,8 +322,7 @@ const BillingSettings: React.FC = () => {
 		// Simulate payment gateway delay (2 seconds)
 		setTimeout(async () => {
 			try {
-				const isConvertingToTeam = selectedPlan.isTeamPlan && accountType === 'individual';
-				await userService.updatePlan(selectedPlan.tier, isConvertingToTeam ? 'organization' : undefined);
+				await userService.updatePlan(selectedPlan.tier);
 				toast.success(`Payment successful! Switched to the ${selectedPlan.name}.`);
 				dispatch(fetchCurrentUser());
 				setPaymentDialogOpen(false);
@@ -627,12 +634,6 @@ const BillingSettings: React.FC = () => {
 					
 					<form onSubmit={handlePaymentSubmit}>
 						<DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-							{selectedPlan?.isTeamPlan && accountType === 'individual' && (
-								<Alert severity="warning" sx={{ borderRadius: 2 }}>
-									<strong>Account Conversion Upgrade:</strong> This transaction will upgrade and convert your account to a <strong>Team Account</strong>, allowing you to invite and manage team members.
-								</Alert>
-							)}
-
 							<Alert severity="info" sx={{ borderRadius: 2 }}>
 								You are upgrading to the <strong>{selectedPlan?.name}</strong>. {selectedPlan?.isTeamPlan ? `Total price is calculated based on your team size (${userCount} active users).` : 'This plan is for a single user.'}
 							</Alert>
@@ -777,6 +778,12 @@ const BillingSettings: React.FC = () => {
 						</DialogActions>
 					</form>
 				</Dialog>
+
+				<ConvertToTeamDialog
+					open={convertDialogOpen}
+					onClose={() => setConvertDialogOpen(false)}
+					defaultName={organization?.name}
+				/>
 			</Container>
 		</Box>
 	);

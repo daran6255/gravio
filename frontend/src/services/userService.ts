@@ -69,6 +69,17 @@ const userService = {
 		return response.data;
 	},
 
+	// Convert the current individual/freelancer account into a full team organization
+	convertToOrganization: async (payload: {
+		name: string;
+		location?: string;
+		company_size?: string;
+		industry?: string;
+	}): Promise<any> => {
+		const response = await api.post<any>('/users/organization/convert-to-team', payload);
+		return response.data;
+	},
+
 	updatePlan: async (planTier: string, accountType?: string): Promise<any> => {
 		const response = await api.put<any>('/users/organization/plan', null, {
 			params: { plan_tier: planTier, account_type: accountType }

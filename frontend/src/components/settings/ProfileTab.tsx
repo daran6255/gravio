@@ -13,6 +13,7 @@ import type { BillingAddress } from '../../models/auth';
 // Profile Sub-components
 import ProfileCard from './profile/ProfileCard';
 import PaymentCycleCard from './profile/PaymentCycleCard';
+import UpgradeToTeamCard from './profile/UpgradeToTeamCard';
 import PersonalInfoForm from './profile/PersonalInfoForm';
 import BillingAddressForm from './profile/BillingAddressForm';
 
@@ -209,6 +210,7 @@ const ProfileTab: React.FC = () => {
 	const fieldLabelSx = { color: labelColor, fontWeight: 700, display: 'block' as const, mb: 0.75, fontSize: '0.75rem' };
 
 	const org = user?.organization;
+	const isIndividualAccount = org?.others?.account_type === 'individual';
 	const isTrial = (org?.subscription_status || 'trial').toLowerCase() === 'trial';
 	const cycleDate = org?.trial_expires_at;
 	const cycleDaysLeft = cycleDate ? Math.ceil((new Date(cycleDate).getTime() - Date.now()) / 86_400_000) : null;
@@ -278,6 +280,15 @@ const ProfileTab: React.FC = () => {
 						reminderSaving={reminderSaving}
 						handleReminderToggle={handleReminderToggle}
 					/>
+					{isIndividualAccount && (
+						<UpgradeToTeamCard
+							cardBg={cardBg}
+							cardBorder={cardBorder}
+							isDark={isDark}
+							mutedColor={mutedColor}
+							orgName={org?.name}
+						/>
+					)}
 				</Stack>
 
 				{/* Right column — Personal Information + Billing Address */}

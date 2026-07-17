@@ -10,6 +10,7 @@ from loguru import logger
 from typing import Optional
 
 from app.models.user import User, UserRole
+from app.models.organization import Organization
 from app.repositories.user import UserRepository
 from app.repositories.organization import OrganizationRepository
 from app.repositories.plan import PlanRepository
@@ -18,7 +19,7 @@ from app.models.plan import PlanTier
 from app.models.notification import NotificationType
 from app.core.security import get_password_hash
 from app.middleware.exceptions import ConflictError, NotFoundError, BadRequestError, ForbiddenError
-from app.schemas.user_management import InviteUserRequest, UpdateUserRequest, BulkDeleteUsersRequest
+from app.schemas.user_management import InviteUserRequest, UpdateUserRequest, BulkDeleteUsersRequest, ConvertToOrganizationRequest
 
 
 async def _reassign_or_block_owned_leads(
@@ -142,6 +143,57 @@ async def invite_user(
     )
 
     return user
+
+
+async def convert_to_organization(
+    db: AsyncSession,
+    *,
+    current_user: User,
+    payload: ConvertToOrganizationRequest,
+) -> Organization:
+    """Convert the current user's individual/freelancer account into a full team organization.
+
+    Renames the auto-generated solo workspace to a real organization name and
+    records its location/size/industry, then flips account_type so Team,
+    Timesheets, and HR Administration unlock. Plan and trial dates are left
+    untouched — both account types already share the same 30-day free trial.
+
+    Raises:
+        ForbiddenError: Caller isn't the account admin.
+        BadRequestError: Account is already a team organization.
+        ConflictError: The chosen organization name is already taken.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise ForbiddenError("Only the account admin can convert to a team organization.")
+
+    org = await OrganizationRepository.get_by_id(db, current_user.organization_id)
+    if not org:
+        raise NotFoundError("Organization not found.")
+
+    if not org.others or org.others.get("account_type") != "individual":
+        raise BadRequestError("This account is already a team organization.")
+
+    existing = await OrganizationRepository.get_by_name(db, payload.name)
+    if existing and existing.id != org.id:
+        raise ConflictError(f"An organization named '{payload.name}' already exists.")
+
+    org.name = payload.name
+    org.location = payload.location
+    org.others = {
+        **(org.others or {}),
+        "account_type": "organization",
+        "company_size": payload.company_size,
+        "industry": payload.industry,
+    }
+    await db.commit()
+    await db.refresh(org)
+
+    logger.info(
+        f"Organization '{org.name}' (id={org.id}) converted from individual to team "
+        f"account by '{current_user.username}'."
+    )
+
+    return org
 
 
 async def list_org_users(

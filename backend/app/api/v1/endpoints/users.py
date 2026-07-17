@@ -9,8 +9,8 @@ from app.core.database import get_db
 from app.api.deps import require_roles
 from app.models.user import User, UserRole
 from app.schemas.common import PaginatedResponse
-from app.schemas.user_management import InviteUserRequest, UserListItem, UpdateUserRequest, BulkDeleteUsersRequest
-from app.services.user_management import invite_user, list_org_users, set_user_active, delete_org_user, resend_user_invite, update_org_user, bulk_delete_org_users, send_user_password_reset
+from app.schemas.user_management import InviteUserRequest, UserListItem, UpdateUserRequest, BulkDeleteUsersRequest, ConvertToOrganizationRequest
+from app.services.user_management import invite_user, list_org_users, set_user_active, delete_org_user, resend_user_invite, update_org_user, bulk_delete_org_users, send_user_password_reset, convert_to_organization
 
 router = APIRouter(prefix="/users", tags=["User Management"])
 
@@ -167,6 +167,32 @@ async def bulk_delete_users_endpoint(
         public_ids=payload.public_ids,
     )
     return {"message": f"Successfully deleted {deleted_count} users.", "deleted_count": deleted_count}
+
+
+@router.post(
+    "/organization/convert-to-team",
+    summary="Convert your individual/freelancer account into a team organization",
+    description=(
+        "Renames your solo workspace to a real organization and records its "
+        "location, size, and industry, then unlocks Team, Timesheets, and HR "
+        "Administration. Your existing plan and trial period are unaffected."
+    ),
+)
+async def convert_to_organization_endpoint(
+    payload: ConvertToOrganizationRequest,
+    current_user: User = Depends(require_org_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await convert_to_organization(db, current_user=current_user, payload=payload)
+    return {
+        "success": True,
+        "message": f"Your account has been converted to the '{org.name}' team organization.",
+        "organization": {
+            "name": org.name,
+            "location": org.location,
+            "others": org.others,
+        },
+    }
 
 
 @router.put(
