@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Dialog, Box, TextField, MenuItem } from '@mui/material';
+import { Dialog, Box, TextField, MenuItem, InputAdornment } from '@mui/material';
+import { Person, Badge, MailOutline, AssignmentInd } from '@mui/icons-material';
 import { EnterpriseForm, type FormStep } from '../../common/form';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { updateTeamUser } from '../../../store/slices/userSlice';
@@ -87,20 +88,48 @@ export const EditOrgUserDialog: React.FC<EditOrgUserDialogProps> = ({ open, user
 			content: (
 				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 					<TextField
-						required fullWidth label="Full Name" value={formData.full_name}
+						required fullWidth label="Full Name" placeholder="e.g. John Doe" value={formData.full_name}
 						onChange={(e) => handleChange('full_name', e.target.value)} disabled={loading}
+						InputProps={{
+							startAdornment: (
+								<InputAdornment position="start">
+									<Person sx={{ color: 'text.secondary', fontSize: 18, mr: 0.5 }} />
+								</InputAdornment>
+							)
+						}}
 					/>
 					<TextField
-						required fullWidth label="Username" helperText="Lowercase letters, numbers, and underscores only."
+						required fullWidth label="Username" placeholder="e.g. john_doe" helperText="Lowercase letters, numbers, and underscores only."
 						value={formData.username} onChange={(e) => handleChange('username', e.target.value.toLowerCase())} disabled={loading}
+						InputProps={{
+							startAdornment: (
+								<InputAdornment position="start">
+									<Badge sx={{ color: 'text.secondary', fontSize: 18, mr: 0.5 }} />
+								</InputAdornment>
+							)
+						}}
 					/>
 					<TextField
-						required fullWidth type="email" label="Email Address" value={formData.email}
+						required fullWidth type="email" label="Email Address" placeholder="e.g. john.doe@example.com" value={formData.email}
 						onChange={(e) => handleChange('email', e.target.value)} disabled={loading}
+						InputProps={{
+							startAdornment: (
+								<InputAdornment position="start">
+									<MailOutline sx={{ color: 'text.secondary', fontSize: 18, mr: 0.5 }} />
+								</InputAdornment>
+							)
+						}}
 					/>
 					<TextField
 						required select fullWidth label="Role" value={formData.role}
 						onChange={(e) => handleChange('role', e.target.value)} disabled={loading}
+						InputProps={{
+							startAdornment: (
+								<InputAdornment position="start">
+									<AssignmentInd sx={{ color: 'text.secondary', fontSize: 18, mr: 0.5 }} />
+								</InputAdornment>
+							)
+						}}
 					>
 						{USER_ROLES.map((role) => (
 							<MenuItem key={role} value={role}>

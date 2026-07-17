@@ -21,6 +21,45 @@ import {
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { acceptInvite } from '../../../store/slices/authSlice';
 
+interface PasswordStrengthInfo {
+	score: number;
+	label: string;
+	color: string;
+	requirements: {
+		length: boolean;
+		uppercase: boolean;
+		number: boolean;
+		special: boolean;
+	};
+}
+
+const getPasswordStrength = (password: string): PasswordStrengthInfo => {
+	const requirements = {
+		length: password.length >= 8,
+		uppercase: /[A-Z]/.test(password),
+		number: /[0-9]/.test(password),
+		special: /[!@#$%^&*()_+={}\[\]|\\:;"'<>,.?/-]/.test(password),
+	};
+
+	const score = Object.values(requirements).filter(Boolean).length;
+
+	let label = 'Weak';
+	let color = '#ef4444'; // error
+
+	if (score === 2) {
+		label = 'Fair';
+		color = '#f59e0b'; // warning
+	} else if (score === 3) {
+		label = 'Good';
+		color = '#3b82f6'; // info
+	} else if (score === 4) {
+		label = 'Strong';
+		color = '#10b981'; // success
+	}
+
+	return { score, label, color, requirements };
+};
+
 const AcceptInvite: React.FC = () => {
 	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
@@ -41,6 +80,7 @@ const AcceptInvite: React.FC = () => {
 	const hasSpecial = /[!@#$%^&*()_+={}\[\]|\\:;"'<>,.?/-]/.test(password);
 	const isPasswordValid = isMinLength && hasUppercase && hasNumber && hasSpecial;
 	const passwordsMatch = password === confirmPassword;
+	const passwordStrength = getPasswordStrength(password);
 
 	const handleTogglePasswordVisibility = () => {
 		setShowPassword((prev) => !prev);
@@ -93,7 +133,7 @@ const AcceptInvite: React.FC = () => {
 					alignItems: 'center',
 					justifyContent: 'center',
 					position: 'relative',
-					py: { xs: 6, md: 8 },
+					// py: { xs: 6, md: 8 },
 					px: 2,
 					zIndex: 5,
 					overflowY: 'auto',
@@ -252,6 +292,28 @@ const AcceptInvite: React.FC = () => {
 												},
 											}}
 										/>
+
+										{/* Password Strength Indicator */}
+										{password.length > 0 && (
+											<Box sx={{ mt: 1.5 }}>
+												<Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, alignItems: 'center' }}>
+													<Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.7rem' }}>
+														Password Strength:
+													</Typography>
+													<Typography variant="caption" sx={{ color: passwordStrength.color, fontWeight: 700, fontSize: '0.7rem' }}>
+														{passwordStrength.label}
+													</Typography>
+												</Box>
+												<Box sx={{ height: 4, width: '100%', bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 1, overflow: 'hidden', mb: 1.25 }}>
+													<Box sx={{
+														height: '100%',
+														width: `${(passwordStrength.score / 4) * 100}%`,
+														bgcolor: passwordStrength.color,
+														transition: 'width 0.3s ease, background-color 0.3s ease'
+													}} />
+												</Box>
+											</Box>
+										)}
 
 										{/* Interactive Password Requirements Checklist */}
 										<Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 0.75 }}>

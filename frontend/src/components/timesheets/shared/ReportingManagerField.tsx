@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material';
+import { FormControl, InputLabel, Select, MenuItem, FormHelperText, InputAdornment } from '@mui/material';
+import { SupervisorAccount } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchOwners } from '../../../store/slices/crmSlice';
 
@@ -41,6 +42,11 @@ const ReportingManagerField: React.FC<ReportingManagerFieldProps> = ({
 				value={value}
 				label={label}
 				onChange={(e) => onChange(e.target.value as any === '' ? '' : Number(e.target.value))}
+				startAdornment={
+					<InputAdornment position="start">
+						<SupervisorAccount sx={{ color: 'text.secondary', fontSize: 18, mr: 0.5 }} />
+					</InputAdornment>
+				}
 			>
 				<MenuItem value="">
 					<em>None</em>

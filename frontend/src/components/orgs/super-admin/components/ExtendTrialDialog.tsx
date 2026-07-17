@@ -1,5 +1,6 @@
 import React from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Typography, TextField, Button } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Typography, TextField, Button, InputAdornment } from '@mui/material';
+import { CalendarToday } from '@mui/icons-material';
 import type { Organization } from '../../../../models/auth';
 
 interface ExtendTrialDialogProps {
@@ -29,8 +30,15 @@ export const ExtendTrialDialog: React.FC<ExtendTrialDialogProps> = ({
 					Extend the trial or free period for <strong>{targetOrg?.name}</strong>. This resets the status to active/trial.
 				</Typography>
 				<TextField
-					autoFocus margin="dense" id="days" label="Number of Days" type="number" fullWidth variant="outlined"
+					autoFocus margin="dense" id="days" label="Number of Days" placeholder="e.g. 30" type="number" fullWidth variant="outlined"
 					value={extendDays} onChange={(e) => setExtendDays(e.target.value)} inputProps={{ min: 1 }}
+					InputProps={{
+						startAdornment: (
+							<InputAdornment position="start">
+								<CalendarToday sx={{ color: 'text.secondary', fontSize: 18, mr: 0.5 }} />
+							</InputAdornment>
+						)
+					}}
 				/>
 			</DialogContent>
 			<DialogActions sx={{ px: 3, pb: 3 }}>
