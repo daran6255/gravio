@@ -39,25 +39,23 @@ export const OrgSeatUsagePanel: React.FC = () => {
 		.slice(0, 6);
 
 	const cardBg = isDark
-		? 'linear-gradient(135deg, rgba(20,24,34,0.8) 0%, rgba(11,13,18,0.9) 100%)'
-		: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.95) 100%)';
+		? 'linear-gradient(135deg, rgba(20, 24, 34, 0.75) 0%, rgba(11, 13, 18, 0.9) 100%)'
+		: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.95) 100%)';
 
 	return (
 		<Card sx={{
-			borderRadius: 3,
+			borderRadius: '16px',
 			border: `1px solid ${theme.palette.divider}`,
-			boxShadow: 'none',
+			boxShadow: isDark ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : '0 8px 32px 0 rgba(139, 124, 246, 0.04)',
 			height: '100%',
 			background: cardBg,
 			backdropFilter: 'blur(20px)',
-			transition: 'all 0.25s ease',
-			'&:hover': { transform: 'translateY(-2px)' }
 		}}>
-			<CardContent sx={{ p: 3 }}>
-				<Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 2.5 }}>
+			<CardContent sx={{ p: 2.5 }}>
+				<Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
 					<Box display="flex" alignItems="center" gap={1.25}>
-						<PeopleAlt color="primary" sx={{ fontSize: 22 }} />
-						<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+						<PeopleAlt color="primary" sx={{ fontSize: 20 }} />
+						<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.78rem', color: 'text.primary' }}>
 							Seat Usage Monitor
 						</Typography>
 					</Box>
@@ -75,7 +73,7 @@ export const OrgSeatUsagePanel: React.FC = () => {
 				</Box>
 
 				{loading ? (
-					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
 						{[1, 2, 3, 4].map((n) => <Skeleton key={n} variant="rounded" height={52} sx={{ borderRadius: 2 }} />)}
 					</Box>
 				) : atRisk.length === 0 ? (
@@ -84,7 +82,7 @@ export const OrgSeatUsagePanel: React.FC = () => {
 						<Typography variant="body2" color="text.secondary">All orgs are within healthy seat limits.</Typography>
 					</Box>
 				) : (
-					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
 						{atRisk.map(({ org, count, limit, pct }) => {
 							const isCritical = pct >= 90;
 							const isWarning = pct >= 70 && pct < 90;

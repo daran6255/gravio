@@ -40,22 +40,22 @@ export const QuickActionsPanel: React.FC = () => {
 				boxShadow: isDark ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : '0 8px 32px 0 rgba(139, 124, 246, 0.04)',
 			}}
 		>
-			<CardContent sx={{ p: 4 }}>
-				<Box display="flex" alignItems="center" gap={1.5} sx={{ mb: 3 }}>
-					<FlashOnOutlined color="primary" sx={{ fontSize: 24 }} />
-					<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '0.02em', color: 'text.primary' }}>
-						QUICK ACTIONS
+			<CardContent sx={{ p: 2.5 }}>
+				<Box display="flex" alignItems="center" gap={1.25} sx={{ mb: 2 }}>
+					<FlashOnOutlined color="primary" sx={{ fontSize: 20 }} />
+					<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.78rem', color: 'text.primary' }}>
+						Quick Actions
 					</Typography>
 				</Box>
 
-				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
 					{ACTIONS.map((action) => (
 						<ButtonBase
 							key={action.label}
 							component={RouterLink}
 							to={action.to}
 							sx={{
-								display: 'flex', alignItems: 'center', gap: 1.75, p: 1.75, borderRadius: '12px',
+								display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, borderRadius: '12px',
 								justifyContent: 'flex-start', textAlign: 'left', width: '100%',
 								bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.005)',
 								border: `1px solid ${isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'}`,

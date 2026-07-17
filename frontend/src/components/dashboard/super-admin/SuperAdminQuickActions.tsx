@@ -80,22 +80,22 @@ export const SuperAdminQuickActions: React.FC = () => {
 	const isDark = theme.palette.mode === 'dark';
 
 	const cardBg = isDark
-		? 'linear-gradient(135deg, rgba(20,24,34,0.8) 0%, rgba(11,13,18,0.9) 100%)'
-		: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.95) 100%)';
+		? 'linear-gradient(135deg, rgba(20, 24, 34, 0.75) 0%, rgba(11, 13, 18, 0.9) 100%)'
+		: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.95) 100%)';
 
 	return (
 		<Card sx={{
-			borderRadius: 3,
+			borderRadius: '16px',
 			border: `1px solid ${theme.palette.divider}`,
-			boxShadow: 'none',
+			boxShadow: isDark ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : '0 8px 32px 0 rgba(139, 124, 246, 0.04)',
 			height: '100%',
 			background: cardBg,
 			backdropFilter: 'blur(20px)',
 		}}>
-			<CardContent sx={{ p: 3 }}>
-				<Box display="flex" alignItems="center" gap={1.25} sx={{ mb: 3 }}>
-					<Bolt color="primary" sx={{ fontSize: 22 }} />
-					<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+			<CardContent sx={{ p: 2.5 }}>
+				<Box display="flex" alignItems="center" gap={1.25} sx={{ mb: 2 }}>
+					<Bolt color="primary" sx={{ fontSize: 20 }} />
+					<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.78rem', color: 'text.primary' }}>
 						Quick Actions
 					</Typography>
 				</Box>
@@ -103,7 +103,7 @@ export const SuperAdminQuickActions: React.FC = () => {
 				<Box sx={{
 					display: 'grid',
 					gridTemplateColumns: 'repeat(4, 1fr)',
-					gap: 1.5,
+					gap: 1.25,
 				}}>
 					{ACTIONS.map((action) => (
 						<ButtonBase

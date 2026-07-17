@@ -45,10 +45,10 @@ export const AttentionQueuePanel: React.FC = () => {
 		>
 			<CardContent sx={{ p: 2.5 }}>
 				<Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-					<Box display="flex" alignItems="center" gap={1.5}>
-						<NotificationsActive color="warning" sx={{ fontSize: 24 }} />
-						<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '0.02em', color: 'text.primary' }}>
-							NEEDS ATTENTION
+					<Box display="flex" alignItems="center" gap={1.25}>
+						<NotificationsActive color="warning" sx={{ fontSize: 20 }} />
+						<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.78rem', color: 'text.primary' }}>
+							Needs Attention
 						</Typography>
 					</Box>
 					<Link component={RouterLink} to="/organizations" sx={{ display: 'flex', alignItems: 'center', color: 'primary.main', fontWeight: 700, fontSize: '0.8rem', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>

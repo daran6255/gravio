@@ -22,7 +22,7 @@ const Dashboard: React.FC = () => {
 	const flow = useUserFlow();
 
 	return (
-		<Box component="main" sx={{ p: { xs: 1, sm: 0 }, display: 'flex', flexDirection: 'column', gap: 3 }}>
+		<Box component="main" sx={{ p: { xs: 1, sm: 0 }, display: 'flex', flexDirection: 'column', gap: 2 }}>
 			<WelcomeHeader />
 
 			{flow === 'super_admin' && (
@@ -31,7 +31,7 @@ const Dashboard: React.FC = () => {
 					<PlatformKPIPanel />
 
 					{/* Row 2: Platform Pulse (chart) + Attention Queue (trial alerts) */}
-					<Grid container spacing={3} alignItems="stretch">
+					<Grid container spacing={2} alignItems="stretch">
 						<Grid size={{ xs: 12, md: 7 }}>
 							<PlatformPulsePanel />
 						</Grid>
@@ -41,7 +41,7 @@ const Dashboard: React.FC = () => {
 					</Grid>
 
 					{/* Row 3: Plan Distribution (donut) + Recent Registrations (activity feed) */}
-					<Grid container spacing={3} alignItems="stretch">
+					<Grid container spacing={2} alignItems="stretch">
 						<Grid size={{ xs: 12, md: 4 }}>
 							<PlanDistributionPanel />
 						</Grid>
@@ -51,7 +51,7 @@ const Dashboard: React.FC = () => {
 					</Grid>
 
 					{/* Row 4: Seat Usage Monitor + Quick Actions grid */}
-					<Grid container spacing={3} alignItems="stretch">
+					<Grid container spacing={2} alignItems="stretch">
 						<Grid size={{ xs: 12, md: 5 }}>
 							<OrgSeatUsagePanel />
 						</Grid>
@@ -67,7 +67,7 @@ const Dashboard: React.FC = () => {
 
 			{flow === 'org_admin' && (
 				<>
-					<Grid container spacing={3} alignItems="stretch">
+					<Grid container spacing={2} alignItems="stretch">
 						<Grid size={{ xs: 12, md: 6 }}>
 							<TeamSnapshotPanel />
 						</Grid>
@@ -81,7 +81,7 @@ const Dashboard: React.FC = () => {
 
 			{flow === 'org_team' && (
 				<>
-					<Grid container spacing={3} alignItems="stretch">
+					<Grid container spacing={2} alignItems="stretch">
 						<Grid size={{ xs: 12, md: 7 }}>
 							<WeeklyHoursPanel />
 						</Grid>
@@ -95,7 +95,7 @@ const Dashboard: React.FC = () => {
 
 			{flow === 'individual' && (
 				<>
-					<Grid container spacing={3} alignItems="stretch">
+					<Grid container spacing={2} alignItems="stretch">
 						<Grid size={{ xs: 12, md: 5 }}>
 							<TrialStatusCard />
 						</Grid>
@@ -111,4 +111,3 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
-

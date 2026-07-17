@@ -48,12 +48,12 @@ export const TeamSnapshotPanel: React.FC = () => {
 				boxShadow: isDark ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : '0 8px 32px 0 rgba(139, 124, 246, 0.04)',
 			}}
 		>
-			<CardContent sx={{ p: 4 }}>
-				<Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
-					<Box display="flex" alignItems="center" gap={1.5}>
-						<GroupsOutlined color="primary" sx={{ fontSize: 24 }} />
-						<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '0.02em', color: 'text.primary' }}>
-							TEAM SNAPSHOT
+			<CardContent sx={{ p: 2.5 }}>
+				<Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+					<Box display="flex" alignItems="center" gap={1.25}>
+						<GroupsOutlined color="primary" sx={{ fontSize: 20 }} />
+						<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.78rem', color: 'text.primary' }}>
+							Team Snapshot
 						</Typography>
 					</Box>
 					<Link component={RouterLink} to="/team" sx={{ display: 'flex', alignItems: 'center', color: 'primary.main', fontWeight: 700, fontSize: '0.8rem', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
@@ -62,13 +62,13 @@ export const TeamSnapshotPanel: React.FC = () => {
 				</Box>
 
 				{loading ? (
-					<Skeleton variant="rounded" height={180} sx={{ borderRadius: '12px' }} />
+					<Skeleton variant="rounded" height={160} sx={{ borderRadius: '12px' }} />
 				) : (
-					<Box display="flex" alignItems="center" gap={3}>
-						<Box sx={{ width: 130, height: 130, flexShrink: 0 }}>
+					<Box display="flex" alignItems="center" gap={2.5}>
+						<Box sx={{ width: 110, height: 110, flexShrink: 0 }}>
 							<ResponsiveContainer width="100%" height="100%">
 								<PieChart>
-									<Pie data={pieData} dataKey="value" nameKey="name" innerRadius={40} outerRadius={62} paddingAngle={3} stroke="none">
+									<Pie data={pieData} dataKey="value" nameKey="name" innerRadius={34} outerRadius={52} paddingAngle={3} stroke="none">
 										{pieData.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
 									</Pie>
 									<Tooltip contentStyle={{ background: isDark ? '#141822' : '#ffffff', border: `1px solid ${theme.palette.divider}`, borderRadius: 8, fontSize: 12 }} />

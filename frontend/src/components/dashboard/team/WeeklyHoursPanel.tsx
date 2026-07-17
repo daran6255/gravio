@@ -61,26 +61,26 @@ export const WeeklyHoursPanel: React.FC = () => {
 				boxShadow: isDark ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : '0 8px 32px 0 rgba(139, 124, 246, 0.04)',
 			}}
 		>
-			<CardContent sx={{ p: 4 }}>
-				<Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
-					<Box display="flex" alignItems="center" gap={1.5}>
-						<AccessTimeOutlined color="primary" sx={{ fontSize: 24 }} />
-						<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '0.02em', color: 'text.primary' }}>
-							THIS WEEK'S HOURS
+			<CardContent sx={{ p: 2.5 }}>
+				<Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 0.5 }}>
+					<Box display="flex" alignItems="center" gap={1.25}>
+						<AccessTimeOutlined color="primary" sx={{ fontSize: 20 }} />
+						<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.78rem', color: 'text.primary' }}>
+							This Week's Hours
 						</Typography>
 					</Box>
 					<Link component={RouterLink} to="/timesheets" sx={{ display: 'flex', alignItems: 'center', color: 'primary.main', fontWeight: 700, fontSize: '0.8rem', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
 						Log time <ChevronRight sx={{ fontSize: 16 }} />
 					</Link>
 				</Box>
-				<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+				<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
 					{totalHours}h logged of ~{expectedSoFar}h expected so far
 				</Typography>
 
 				{logs === null ? (
-					<Skeleton variant="rounded" height={180} sx={{ borderRadius: '12px' }} />
+					<Skeleton variant="rounded" height={170} sx={{ borderRadius: '12px' }} />
 				) : (
-					<Box sx={{ height: 190 }}>
+					<Box sx={{ height: 175 }}>
 						<ResponsiveContainer width="100%" height="100%">
 							<BarChart data={chartData} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
 								<XAxis dataKey="day" tick={{ fill: theme.palette.text.secondary, fontSize: 12 }} axisLine={false} tickLine={false} />

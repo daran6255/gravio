@@ -84,25 +84,23 @@ export const PlanDistributionPanel: React.FC = () => {
 	const pieData = rows.slice(0, 4).filter(r => r.count > 0);
 
 	const cardBg = isDark
-		? 'linear-gradient(135deg, rgba(20,24,34,0.8) 0%, rgba(11,13,18,0.9) 100%)'
-		: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.95) 100%)';
+		? 'linear-gradient(135deg, rgba(20, 24, 34, 0.75) 0%, rgba(11, 13, 18, 0.9) 100%)'
+		: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.95) 100%)';
 
 	return (
 		<Card sx={{
-			borderRadius: 3,
+			borderRadius: '16px',
 			border: `1px solid ${theme.palette.divider}`,
-			boxShadow: 'none',
+			boxShadow: isDark ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : '0 8px 32px 0 rgba(139, 124, 246, 0.04)',
 			height: '100%',
 			background: cardBg,
 			backdropFilter: 'blur(20px)',
-			transition: 'all 0.25s ease',
-			'&:hover': { transform: 'translateY(-2px)' }
 		}}>
-			<CardContent sx={{ p: 2 }}>
+			<CardContent sx={{ p: 2.5 }}>
 				<Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
 					<Box display="flex" alignItems="center" gap={1.25}>
-						<DonutSmall color="primary" sx={{ fontSize: 22 }} />
-						<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+						<DonutSmall color="primary" sx={{ fontSize: 20 }} />
+						<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.78rem', color: 'text.primary' }}>
 							Tenant Distribution
 						</Typography>
 					</Box>

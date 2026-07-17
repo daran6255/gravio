@@ -30,7 +30,6 @@ const WelcomeHeader: React.FC = () => {
 
     return (
         <Box sx={{
-            mb: 4,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-start',

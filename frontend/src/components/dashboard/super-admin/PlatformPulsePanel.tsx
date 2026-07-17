@@ -56,11 +56,11 @@ export const PlatformPulsePanel: React.FC = () => {
 				boxShadow: isDark ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : '0 8px 32px 0 rgba(139, 124, 246, 0.04)',
 			}}
 		>
-			<CardContent sx={{ p: 4 }}>
-				<Box display="flex" alignItems="center" gap={1.5} sx={{ mb: 2 }}>
-					<Insights color="primary" sx={{ fontSize: 24 }} />
-					<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '0.02em', color: 'text.primary' }}>
-						PLATFORM PULSE
+			<CardContent sx={{ p: 2.5 }}>
+				<Box display="flex" alignItems="center" gap={1.25} sx={{ mb: 2 }}>
+					<Insights color="primary" sx={{ fontSize: 20 }} />
+					<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.78rem', color: 'text.primary' }}>
+						Platform Pulse
 					</Typography>
 				</Box>
 
@@ -69,9 +69,9 @@ export const PlatformPulsePanel: React.FC = () => {
 				) : !stats ? (
 					<Typography variant="body2" color="text.secondary">Couldn't load platform stats.</Typography>
 				) : (
-					<Grid container spacing={3} alignItems="center">
+					<Grid container spacing={2} alignItems="center">
 						<Grid size={{ xs: 12, md: 5 }}>
-							<Box sx={{ position: 'relative', height: 180 }}>
+							<Box sx={{ position: 'relative', height: 160 }}>
 								<ResponsiveContainer width="100%" height="100%">
 									<PieChart>
 										<Pie
@@ -122,7 +122,7 @@ export const PlatformPulsePanel: React.FC = () => {
 						</Grid>
 
 						<Grid size={{ xs: 12, md: 7 }}>
-							<Grid container spacing={2.5}>
+							<Grid container spacing={2}>
 								<Grid size={6}>
 									{miniStat(<HourglassEmpty sx={{ fontSize: 20 }} />, 'Active Trials', stats.active_trials, theme.palette.warning.main)}
 								</Grid>

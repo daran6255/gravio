@@ -36,12 +36,12 @@ export const LeaveBalancePanel: React.FC = () => {
 				boxShadow: isDark ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : '0 8px 32px 0 rgba(139, 124, 246, 0.04)',
 			}}
 		>
-			<CardContent sx={{ p: 4 }}>
-				<Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
-					<Box display="flex" alignItems="center" gap={1.5}>
-						<BeachAccessOutlined color="primary" sx={{ fontSize: 24 }} />
-						<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '0.02em', color: 'text.primary' }}>
-							MY LEAVE BALANCE
+			<CardContent sx={{ p: 2.5 }}>
+				<Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+					<Box display="flex" alignItems="center" gap={1.25}>
+						<BeachAccessOutlined color="primary" sx={{ fontSize: 20 }} />
+						<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.78rem', color: 'text.primary' }}>
+							My Leave Balance
 						</Typography>
 					</Box>
 					<Link component={RouterLink} to="/hr/user/leaves" sx={{ display: 'flex', alignItems: 'center', color: 'primary.main', fontWeight: 700, fontSize: '0.8rem', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
@@ -50,11 +50,11 @@ export const LeaveBalancePanel: React.FC = () => {
 				</Box>
 
 				{balances === null ? (
-					<Skeleton variant="rounded" height={140} sx={{ borderRadius: '12px' }} />
+					<Skeleton variant="rounded" height={130} sx={{ borderRadius: '12px' }} />
 				) : balances.length === 0 ? (
 					<Typography variant="body2" color="text.secondary">No leave types configured yet.</Typography>
 				) : (
-					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
 						{balances.slice(0, 4).map((b, idx) => {
 							const remaining = Math.max(0, b.allocated - b.used - b.pending);
 							const percentUsed = b.allocated > 0 ? Math.min(100, ((b.used + b.pending) / b.allocated) * 100) : 0;

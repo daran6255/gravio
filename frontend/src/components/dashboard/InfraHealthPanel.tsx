@@ -48,12 +48,12 @@ export const InfraHealthPanel: React.FC = () => {
 				}
 			}}
 		>
-			<CardContent sx={{ p: 4 }}>
-				<Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
-					<Box display="flex" alignItems="center" gap={1.5}>
-						<CloudQueue color="primary" sx={{ fontSize: 24 }} />
-						<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '0.02em', color: 'text.primary' }}>
-							INFRASTRUCTURE HEALTH
+			<CardContent sx={{ p: 2.5 }}>
+				<Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+					<Box display="flex" alignItems="center" gap={1.25}>
+						<CloudQueue color="primary" sx={{ fontSize: 20 }} />
+						<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.78rem', color: 'text.primary' }}>
+							Infrastructure Health
 						</Typography>
 					</Box>
 					{health && (
@@ -63,11 +63,11 @@ export const InfraHealthPanel: React.FC = () => {
 					)}
 				</Box>
 
-				<Grid container spacing={{ xs: 2, md: 3 }}>
+				<Grid container spacing={2}>
 					{loading ? (
 						[1, 2, 3].map((n) => (
 							<Grid size={{ xs: 12, sm: 6, md: 4 }} key={n}>
-								<Skeleton variant="rounded" height={120} sx={{ borderRadius: '12px' }} />
+								<Skeleton variant="rounded" height={104} sx={{ borderRadius: '12px' }} />
 							</Grid>
 						))
 					) : !health ? (
@@ -83,7 +83,7 @@ export const InfraHealthPanel: React.FC = () => {
 								<Grid size={{ xs: 12, sm: 6, md: 4 }} key={service.name}>
 									<Box
 										sx={{
-											p: 2.5,
+											p: 2,
 											borderRadius: '12px',
 											bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.005)',
 											border: `1px solid ${isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'}`,

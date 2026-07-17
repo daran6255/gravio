@@ -43,29 +43,29 @@ export const MyWorkPanel: React.FC = () => {
 				boxShadow: isDark ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : '0 8px 32px 0 rgba(139, 124, 246, 0.04)',
 			}}
 		>
-			<CardContent sx={{ p: 4 }}>
-				<Box display="flex" alignItems="center" gap={1.5} sx={{ mb: 3 }}>
-					<ChecklistOutlined color="primary" sx={{ fontSize: 24 }} />
-					<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '0.02em', color: 'text.primary' }}>
-						MY WORK TODAY
+			<CardContent sx={{ p: 2.5 }}>
+				<Box display="flex" alignItems="center" gap={1.25} sx={{ mb: 2 }}>
+					<ChecklistOutlined color="primary" sx={{ fontSize: 20 }} />
+					<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.78rem', color: 'text.primary' }}>
+						My Work Today
 					</Typography>
 				</Box>
 
 				{!loaded ? (
-					<Skeleton variant="rounded" height={160} sx={{ borderRadius: '12px' }} />
+					<Skeleton variant="rounded" height={140} sx={{ borderRadius: '12px' }} />
 				) : nothingToShow ? (
 					<Typography variant="body2" color="text.secondary">No CRM or Projects data available yet.</Typography>
 				) : (
-					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-						<Box sx={{ display: 'flex', gap: 2 }}>
+					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+						<Box sx={{ display: 'flex', gap: 1.5 }}>
 							{crm && (
-								<Box sx={{ flex: 1, p: 2, borderRadius: '12px', bgcolor: alpha(theme.palette.info.main, 0.06), border: `1px solid ${alpha(theme.palette.info.main, 0.15)}` }}>
+								<Box sx={{ flex: 1, p: 1.5, borderRadius: '12px', bgcolor: alpha(theme.palette.info.main, 0.06), border: `1px solid ${alpha(theme.palette.info.main, 0.15)}` }}>
 									<Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary' }}>{crm.my_tasks?.length ?? 0}</Typography>
 									<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>My CRM tasks</Typography>
 								</Box>
 							)}
 							{projects && (
-								<Box sx={{ flex: 1, p: 2, borderRadius: '12px', bgcolor: alpha(theme.palette.error.main, 0.06), border: `1px solid ${alpha(theme.palette.error.main, 0.15)}` }}>
+								<Box sx={{ flex: 1, p: 1.5, borderRadius: '12px', bgcolor: alpha(theme.palette.error.main, 0.06), border: `1px solid ${alpha(theme.palette.error.main, 0.15)}` }}>
 									<Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary' }}>{projects.overdue_count}</Typography>
 									<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Overdue tasks</Typography>
 								</Box>

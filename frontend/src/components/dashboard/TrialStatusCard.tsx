@@ -37,27 +37,27 @@ export const TrialStatusCard: React.FC = () => {
 				boxShadow: isDark ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : '0 8px 32px 0 rgba(139, 124, 246, 0.04)',
 			}}
 		>
-			<CardContent sx={{ p: 4, display: 'flex', flexDirection: 'column', height: '100%' }}>
-				<Box display="flex" alignItems="center" gap={1.5} sx={{ mb: 3 }}>
-					<WorkspacePremiumOutlined sx={{ fontSize: 24, color }} />
-					<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '0.02em', color: 'text.primary' }}>
-						{isTrial ? 'FREE TRIAL' : 'SUBSCRIPTION'}
+			<CardContent sx={{ p: 2.5, display: 'flex', flexDirection: 'column', height: '100%' }}>
+				<Box display="flex" alignItems="center" gap={1.25} sx={{ mb: 2 }}>
+					<WorkspacePremiumOutlined sx={{ fontSize: 20, color }} />
+					<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.78rem', color: 'text.primary' }}>
+						{isTrial ? 'Free Trial' : 'Subscription'}
 					</Typography>
 				</Box>
 
-				<Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 3 }}>
+				<Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2.5 }}>
 					<Box sx={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
 						<CircularProgress
 							variant="determinate"
 							value={100}
-							size={92}
+							size={84}
 							thickness={4}
 							sx={{ color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', position: 'absolute' }}
 						/>
 						<CircularProgress
 							variant="determinate"
 							value={percentLeft}
-							size={92}
+							size={84}
 							thickness={4}
 							sx={{ color, '& .MuiCircularProgress-circle': { strokeLinecap: 'round' } }}
 						/>

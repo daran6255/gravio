@@ -60,25 +60,25 @@ export const ApprovalsQueuePanel: React.FC = () => {
 				boxShadow: isDark ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : '0 8px 32px 0 rgba(139, 124, 246, 0.04)',
 			}}
 		>
-			<CardContent sx={{ p: 4 }}>
-				<Box display="flex" alignItems="center" gap={1.5} sx={{ mb: 3 }}>
-					<FactCheckOutlined color="primary" sx={{ fontSize: 24 }} />
-					<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '0.02em', color: 'text.primary' }}>
-						APPROVALS NEEDED
+			<CardContent sx={{ p: 2.5 }}>
+				<Box display="flex" alignItems="center" gap={1.25} sx={{ mb: 2 }}>
+					<FactCheckOutlined color="primary" sx={{ fontSize: 20 }} />
+					<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.78rem', color: 'text.primary' }}>
+						Approvals Needed
 					</Typography>
 				</Box>
 
 				{rows === null ? (
-					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-						{[1, 2].map((n) => <Skeleton key={n} variant="rounded" height={56} sx={{ borderRadius: '10px' }} />)}
+					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+						{[1, 2].map((n) => <Skeleton key={n} variant="rounded" height={52} sx={{ borderRadius: '10px' }} />)}
 					</Box>
 				) : rows.length === 0 || totalPending === 0 ? (
-					<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, gap: 1 }}>
+					<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2, gap: 0.75 }}>
 						<TaskAlt sx={{ fontSize: 32, color: 'success.main' }} />
 						<Typography variant="body2" color="text.secondary">Nothing pending your approval right now.</Typography>
 					</Box>
 				) : (
-					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
 						{rows.filter((r) => r.count > 0).map((row) => (
 							<Box
 								key={row.label}
@@ -86,7 +86,7 @@ export const ApprovalsQueuePanel: React.FC = () => {
 								to={row.to}
 								sx={{
 									display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-									p: 1.75, borderRadius: '10px', textDecoration: 'none',
+									p: 1.5, borderRadius: '10px', textDecoration: 'none',
 									bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.005)',
 									border: `1px solid ${alpha(row.color, 0.15)}`,
 									transition: 'all 0.2s ease',
