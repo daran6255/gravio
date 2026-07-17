@@ -175,6 +175,7 @@ async def bulk_delete_users_endpoint(
 )
 async def update_organization_plan_endpoint(
     plan_tier: str,
+    account_type: Optional[str] = None,
     current_user: User = Depends(require_org_admin),
     db: AsyncSession = Depends(get_db),
 ):
@@ -183,6 +184,7 @@ async def update_organization_plan_endpoint(
     from app.repositories.organization import OrganizationRepository
     from app.repositories.user import UserRepository
     from app.middleware.exceptions import BadRequestError, NotFoundError
+    from sqlalchemy.orm.attributes import flag_modified
 
     try:
         tier_enum = PlanTier(plan_tier)
@@ -205,7 +207,13 @@ async def update_organization_plan_endpoint(
         PlanTier.ENTERPRISE: 3,
     }
     current_tier = org.plan.tier if org.plan else PlanTier.FREE
-    if tier_ranks.get(tier_enum, 0) < tier_ranks.get(current_tier, 0):
+    current_account_type = org.others.get("account_type") if org.others else "individual"
+    new_account_type = account_type or current_account_type
+
+    is_tier_downgrade = tier_ranks.get(tier_enum, 0) < tier_ranks.get(current_tier, 0)
+    is_type_downgrade = current_account_type == "organization" and new_account_type == "individual"
+
+    if is_tier_downgrade or is_type_downgrade:
         raise BadRequestError("Downgrades are not permitted. You can only upgrade your plan.")
 
     # Validation: enforce seat limits on downgrade (fallback check)
@@ -213,6 +221,12 @@ async def update_organization_plan_endpoint(
         current_users = await UserRepository.count_by_organization(db, current_user.organization_id)
         if current_users > plan.user_limit:
             raise BadRequestError(f"Cannot change plan to '{plan.name}'. Your organization currently has {current_users} users, which exceeds the new limit of {plan.user_limit} seats.")
+
+    if account_type:
+        if not org.others:
+            org.others = {}
+        org.others["account_type"] = account_type
+        flag_modified(org, "others")
 
     org.plan_id = plan.id
     org.subscription_status = "active"  # mark subscription status active when they choose a plan

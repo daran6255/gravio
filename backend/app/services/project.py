@@ -109,6 +109,46 @@ class ProjectService:
 
         return await ProjectTaskStatusRepository.list_all(db)
 
+    @staticmethod
+    async def check_project_limit(db: AsyncSession, organization_id: int) -> None:
+        from app.repositories.organization import OrganizationRepository
+        from app.models.plan import PlanTier
+
+        org = await OrganizationRepository.get_by_id(db, organization_id)
+        if not org:
+            return
+
+        account_type = org.others.get("account_type", "individual") if org.others else "individual"
+        tier = org.plan.tier if org.plan else PlanTier.FREE
+
+        # Define limits:
+        # individual: free=2, basic=5, pro=unlimited, enterprise=unlimited
+        # organization: free=5, basic=20, pro=unlimited, enterprise=unlimited
+        limits = {
+            "individual": {
+                PlanTier.FREE: 2,
+                PlanTier.BASIC: 5,
+            },
+            "organization": {
+                PlanTier.FREE: 5,
+                PlanTier.BASIC: 20,
+            }
+        }
+
+        limit = limits.get(account_type, {}).get(tier)
+        if limit is not None:
+            _, total_active_projects = await ProjectRepository.list_all(db, page=1, page_size=1)
+            if total_active_projects >= limit:
+                plan_names = {
+                    "individual": {PlanTier.FREE: "Solo Trial", PlanTier.BASIC: "Solo Standard"},
+                    "organization": {PlanTier.FREE: "Team Trial", PlanTier.BASIC: "Starter Plan"}
+                }
+                plan_name = plan_names.get(account_type, {}).get(tier, "your plan")
+                raise BadRequestError(
+                    f"You have reached the maximum project limit of {limit} projects on your {plan_name}. "
+                    f"Please upgrade to create more projects."
+                )
+
     # --- Project CRUD ---
     @staticmethod
     async def get_project(db: AsyncSession, public_id: uuid.UUID) -> Project:
@@ -119,6 +159,10 @@ class ProjectService:
 
     @staticmethod
     async def create_project(db: AsyncSession, payload: ProjectCreate) -> Project:
+        org_id = tenant_context.get()
+        if org_id is not None:
+            await ProjectService.check_project_limit(db, org_id)
+
         data = payload.model_dump()
         template_key = data.pop("template_key", None)
         
@@ -409,6 +453,10 @@ class ProjectService:
             conversion.converted_value if conversion.converted else deal.value
         )
         currency = conversion.target_currency if conversion.converted else deal.currency
+
+        org_id = tenant_context.get() or current_user.organization_id
+        if org_id is not None:
+            await ProjectService.check_project_limit(db, org_id)
 
         project = await ProjectRepository.create(
             db,

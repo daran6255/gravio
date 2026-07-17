@@ -69,10 +69,9 @@ const userService = {
 		return response.data;
 	},
 
-	// Update organization plan tier
-	updatePlan: async (planTier: string): Promise<any> => {
+	updatePlan: async (planTier: string, accountType?: string): Promise<any> => {
 		const response = await api.put<any>('/users/organization/plan', null, {
-			params: { plan_tier: planTier }
+			params: { plan_tier: planTier, account_type: accountType }
 		});
 		return response.data;
 	},

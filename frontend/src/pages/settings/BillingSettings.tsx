@@ -23,14 +23,18 @@ import {
 	TextField,
 	Alert,
 	InputAdornment,
-	CircularProgress
+	CircularProgress,
+	Tabs,
+	Tab
 } from '@mui/material';
 import {
 	CheckCircleOutline as CheckIcon,
 	People as SeatsIcon,
 	Star as StarIcon,
 	CreditCard as CardIcon,
-	Lock as LockIcon
+	Lock as LockIcon,
+	CancelOutlined as CloseIcon,
+	SmartToy as RobotIcon
 } from '@mui/icons-material';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { fetchCurrentUser } from '../../store/slices/authSlice';
@@ -41,74 +45,186 @@ import PageHeader from '../../components/common/page-header';
 interface PlanDetail {
 	tier: 'free' | 'basic' | 'pro' | 'enterprise';
 	name: string;
-	/** ₹ per user per month; 0 for the free tier */
+	/** Price per month (for free/solo plans) or per user per month (for team plans) */
 	pricePerUser: number;
 	seats: string;
 	aiLimit: string;
 	features: string[];
+	notCovered?: string[];
 	popular?: boolean;
+	isTeamPlan?: boolean;
 }
 
-// Per-user pricing, undercutting typical competitor per-seat rates in this
-// space (₹300–800+/user/month) — starts at ₹149/user and scales with a
-// straightforward 2x/3x ladder rather than opaque tiered seat blocks.
-const PLAN_CARDS: PlanDetail[] = [
+// Solo / Freelancer pricing options
+const SOLO_PLANS: PlanDetail[] = [
 	{
 		tier: 'free',
-		name: 'Free Plan',
+		name: 'Solo Trial',
 		pricePerUser: 0,
-		seats: 'Up to 10 users',
-		aiLimit: '10 actions/mo',
+		seats: '1 Active User (Trial)',
+		aiLimit: '20 actions/mo',
 		features: [
-			'30-Day Free Trial Included',
-			'Project Management Module',
-			'10 AI Actions Per Month',
-			'Up to 10 Team Members',
+			'Project Management (Max 2 Projects)',
+			'CRM Management (Max 50 Contacts)',
+			'10 CRM Deals & Companies Limit',
+			'1 GB Cloud Storage limit',
+			'Convert to Team / Org Account',
 			'Standard Email Support'
+		],
+		notCovered: [
+			'Timesheet & Billing Module',
+			'Advanced Performance Reports',
+			'Candidate & Placement Modules',
+			'HR & Payroll Modules',
+			'Priority support (Standard Email only)'
 		]
+	},
+	{
+		tier: 'basic',
+		name: 'Solo Standard',
+		pricePerUser: 99,
+		seats: '1 active user',
+		aiLimit: '100 actions/mo',
+		features: [
+			'Project Management (Max 5 Projects)',
+			'CRM Management (Max 200 Contacts)',
+			'50 CRM Deals & Companies Limit',
+			'Timesheet Module Unlocked',
+			'5 GB Cloud Storage limit',
+			'Convert to Team / Org Account',
+			'Standard Email Support'
+		],
+		notCovered: [
+			'Advanced Performance Reports',
+			'Candidate & Placement Modules',
+			'HR & Payroll Modules',
+			'Priority support (Standard Email only)'
+		],
+		popular: true
+	},
+	{
+		tier: 'pro',
+		name: 'Solo Pro',
+		pricePerUser: 199,
+		seats: '1 active user',
+		aiLimit: '1,000 actions/mo',
+		features: [
+			'Unlimited Projects & CRM Contacts',
+			'Unlimited Deals & Companies',
+			'Timesheet & Billing Module',
+			'Advanced Performance Reports',
+			'20 GB Cloud Storage limit',
+			'Convert to Team / Org Account',
+			'Priority Email Support'
+		],
+		notCovered: [
+			'Candidate & Placement Modules',
+			'HR & Payroll Modules',
+			'24/7 Phone Support (Email only)'
+		]
+	},
+	{
+		tier: 'enterprise',
+		name: 'Solo Enterprise',
+		pricePerUser: 399,
+		seats: '1 active user',
+		aiLimit: '5,000 actions/mo',
+		features: [
+			'Unlimited Everything (Solo Use)',
+			'Full Suite Modules Unlocked',
+			'100 GB Cloud Storage limit',
+			'Convert to Team / Org Account',
+			'24/7 Dedicated Support Manager'
+		],
+		notCovered: [
+			'Team Collaboration / User Invitation'
+		]
+	}
+];
+
+// Team / Company pricing options (pay-per-user seat billing)
+const TEAM_PLANS: PlanDetail[] = [
+	{
+		tier: 'free',
+		name: 'Team Trial',
+		pricePerUser: 0,
+		seats: 'Max 5 Active Users',
+		aiLimit: '50 actions/user/mo',
+		features: [
+			'Project Management (Max 5 Projects)',
+			'CRM Management (Max 500 Contacts)',
+			'100 CRM Deals & Companies Limit',
+			'Timesheet Module Unlocked',
+			'5 GB Cloud Storage limit',
+			'Standard Email Support'
+		],
+		notCovered: [
+			'Candidate & Placement Modules',
+			'HR & Payroll Modules',
+			'Priority Support'
+		],
+		isTeamPlan: true
 	},
 	{
 		tier: 'basic',
 		name: 'Starter Plan',
 		pricePerUser: 149,
-		seats: 'No seat limit — pay per user',
-		aiLimit: '200 actions/mo',
+		seats: 'Unlimited Team Members',
+		aiLimit: '200 actions/user/mo',
 		features: [
-			'Project & Timesheet Management',
-			'CRM Management',
-			'200 AI Actions Per Month',
-			'Unlimited Team Members',
+			'Project Management (Max 20 Projects)',
+			'CRM Management (Max 1,000 Contacts)',
+			'500 CRM Deals & Companies Limit',
+			'Timesheet & Billing Module',
+			'20 GB Cloud Storage limit',
 			'Priority Email Support'
-		]
+		],
+		notCovered: [
+			'Candidate & Placement Modules',
+			'HR & Payroll Module',
+			'24/7 Phone Support'
+		],
+		isTeamPlan: true
 	},
 	{
 		tier: 'pro',
 		name: 'Growth Plan',
 		pricePerUser: 299,
-		seats: 'No seat limit — pay per user',
-		aiLimit: '1,000 actions/mo',
+		seats: 'Unlimited Team Members',
+		aiLimit: '1,000 actions/user/mo',
 		features: [
-			'All Starter Features',
+			'All Starter Features Unlocked',
+			'Unlimited Projects & CRM Contacts',
 			'Candidate & Placement Modules',
-			'Advanced Reports',
-			'1,000 AI Actions Per Month',
-			'Priority Chat Support'
+			'HR & Payroll Module Unlocked',
+			'Advanced Performance Reports',
+			'100 GB Cloud Storage limit',
+			'Priority Chat & Email Support'
 		],
-		popular: true
+		notCovered: [
+			'Training & Placement Tracking',
+			'Unlimited Storage',
+			'24/7 Phone Support'
+		],
+		popular: true,
+		isTeamPlan: true
 	},
 	{
 		tier: 'enterprise',
 		name: 'Enterprise Plan',
 		pricePerUser: 499,
-		seats: 'No seat limit — pay per user',
-		aiLimit: '5,000 actions/mo',
+		seats: 'Unlimited Team Members',
+		aiLimit: '5,000 actions/user/mo',
 		features: [
 			'Full Suite Modules Unlocked',
+			'Unlimited Projects & CRM Contacts',
+			'Unlimited Cloud Storage',
 			'Training & Placement Tracking',
-			'5,000 AI Actions Per Month',
 			'24/7 Phone & Email Support',
-			'Dedicated Account Manager'
-		]
+			'Dedicated Account Success Manager'
+		],
+		notCovered: [],
+		isTeamPlan: true
 	}
 ];
 
@@ -132,6 +248,9 @@ const BillingSettings: React.FC = () => {
 	const activePlanTier = organization?.plan?.tier || 'free';
 	const userCount = organization?.user_count || 1;
 	const userLimit = organization?.user_limit || 10;
+	
+	const accountType = organization?.others?.account_type || 'individual';
+	const [activeTab, setActiveTab] = useState(accountType === 'individual' ? 0 : 1);
 
 	// Percentage of seats used
 	const seatPercentage = userLimit ? Math.min((userCount / userLimit) * 100, 100) : 0;
@@ -195,7 +314,8 @@ const BillingSettings: React.FC = () => {
 		// Simulate payment gateway delay (2 seconds)
 		setTimeout(async () => {
 			try {
-				await userService.updatePlan(selectedPlan.tier);
+				const isConvertingToTeam = selectedPlan.isTeamPlan && accountType === 'individual';
+				await userService.updatePlan(selectedPlan.tier, isConvertingToTeam ? 'organization' : undefined);
 				toast.success(`Payment successful! Switched to the ${selectedPlan.name}.`);
 				dispatch(fetchCurrentUser());
 				setPaymentDialogOpen(false);
@@ -278,16 +398,35 @@ const BillingSettings: React.FC = () => {
 				</Card>
 
 				{/* Pricing Cards Grid */}
-				<Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+				<Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
 					Available Pricing Plans
 				</Typography>
 
+				<Tabs
+					value={activeTab}
+					onChange={(_, newValue) => setActiveTab(newValue)}
+					indicatorColor="primary"
+					textColor="primary"
+					sx={{ mb: 4, borderBottom: 1, borderColor: 'divider' }}
+				>
+					<Tab 
+						label="Solo / Individual Plans" 
+						disabled={accountType === 'organization'}
+						sx={{ textTransform: 'none', fontWeight: 700 }}
+					/>
+					<Tab 
+						label="Team / Company Plans" 
+						sx={{ textTransform: 'none', fontWeight: 700 }}
+					/>
+				</Tabs>
+
 				<Grid container spacing={3}>
-					{PLAN_CARDS.map((plan) => {
-						const isActive = plan.tier === activePlanTier;
+					{(activeTab === 0 ? SOLO_PLANS : TEAM_PLANS).map((plan) => {
+						const isActive = plan.tier === activePlanTier && 
+							(plan.isTeamPlan ? accountType === 'organization' : accountType === 'individual');
 						const isDowngrade = TIER_RANKS[plan.tier] < TIER_RANKS[activePlanTier];
 						return (
-							<Grid size={{ xs: 12, sm: 6, md: 3 }} key={plan.tier}>
+							<Grid size={{ xs: 12, sm: 6, md: 3 }} key={plan.tier + (plan.isTeamPlan ? '-team' : '-solo')}>
 								<Card
 									sx={{
 										height: '100%',
@@ -329,39 +468,87 @@ const BillingSettings: React.FC = () => {
 												{formatINR(plan.pricePerUser)}
 											</Typography>
 											<Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
-												{plan.pricePerUser > 0 ? '/ user / month' : '/ month'}
+												{plan.pricePerUser > 0 ? (plan.isTeamPlan ? '/ user / month' : '/ month') : '/ month'}
 											</Typography>
 										</Box>
 
-										{plan.pricePerUser > 0 && (
+										{plan.pricePerUser > 0 && plan.isTeamPlan && (
 											<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
 												≈ {formatINR(plan.pricePerUser * userCount)}/month for your team of {userCount}
 											</Typography>
 										)}
 
-										{plan.tier === 'free' && isTrial && trialDaysLeft !== null && (
-											<Chip
-												label={`${trialDaysLeft} day${trialDaysLeft === 1 ? '' : 's'} left in your trial`}
-												size="small"
-												color="warning"
-												sx={{ mb: 2, fontWeight: 700, fontSize: '0.72rem' }}
-											/>
-										)}
-
-										<Chip label={plan.seats} size="small" variant="outlined" sx={{ mb: 1, fontWeight: 600, fontSize: '0.72rem' }} />
-										<Chip label={plan.aiLimit} size="small" variant="outlined" sx={{ mb: 2, ml: 1, fontWeight: 600, fontSize: '0.72rem' }} />
+										{/* Structured Plan Metadata Box */}
+										<Box sx={{
+											p: 1.5,
+											my: 2,
+											borderRadius: 2.5,
+											bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+											border: `1px solid ${theme.palette.divider}`,
+											display: 'flex',
+											flexDirection: 'column',
+											gap: 1
+										}}>
+											<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+												<SeatsIcon sx={{ fontSize: 16, color: 'primary.main' }} />
+												<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.72rem' }}>
+													{plan.seats}
+												</Typography>
+											</Box>
+											<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+												<RobotIcon sx={{ fontSize: 16, color: 'primary.main' }} />
+												<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.72rem' }}>
+													AI Limit: {plan.aiLimit}
+												</Typography>
+											</Box>
+											{plan.tier === 'free' && isTrial && trialDaysLeft !== null && (
+												<Box sx={{ 
+													mt: 0.5,
+													p: 0.75,
+													borderRadius: 1.5,
+													bgcolor: 'warning.light',
+													color: 'warning.contrastText',
+													textAlign: 'center',
+													display: 'flex',
+													alignItems: 'center',
+													justifyContent: 'center'
+												}}>
+													<Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.7rem', letterSpacing: '0.05em' }}>
+														{trialDaysLeft} DAYS TRIAL LEFT
+													</Typography>
+												</Box>
+											)}
+										</Box>
 										
 										<Divider sx={{ my: 2 }} />
 
 										<List sx={{ p: 0 }}>
+											{/* Covered features */}
 											{plan.features.map((feature, i) => (
-												<ListItem key={i} sx={{ p: 0, mb: 1, alignItems: 'flex-start' }}>
+												<ListItem key={`covered-${i}`} sx={{ p: 0, mb: 1, alignItems: 'flex-start' }}>
 													<ListItemIcon sx={{ minWidth: 24, mt: 0.25 }}>
 														<CheckIcon color="success" sx={{ fontSize: 16 }} />
 													</ListItemIcon>
 													<ListItemText
 														primary={feature}
-														primaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
+														primaryTypographyProps={{ variant: 'caption', color: 'text.primary', sx: { fontWeight: 500 } }}
+													/>
+												</ListItem>
+											))}
+
+											{/* Not covered features */}
+											{plan.notCovered?.map((feature, i) => (
+												<ListItem key={`not-covered-${i}`} sx={{ p: 0, mb: 1, alignItems: 'flex-start', opacity: 0.55 }}>
+													<ListItemIcon sx={{ minWidth: 24, mt: 0.25 }}>
+														<CloseIcon color="error" sx={{ fontSize: 16 }} />
+													</ListItemIcon>
+													<ListItemText
+														primary={feature}
+														primaryTypographyProps={{ 
+															variant: 'caption', 
+															color: 'text.secondary', 
+															sx: { textDecoration: 'line-through' } 
+														}}
 													/>
 												</ListItem>
 											))}
@@ -440,8 +627,14 @@ const BillingSettings: React.FC = () => {
 					
 					<form onSubmit={handlePaymentSubmit}>
 						<DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+							{selectedPlan?.isTeamPlan && accountType === 'individual' && (
+								<Alert severity="warning" sx={{ borderRadius: 2 }}>
+									<strong>Account Conversion Upgrade:</strong> This transaction will upgrade and convert your account to a <strong>Team Account</strong>, allowing you to invite and manage team members.
+								</Alert>
+							)}
+
 							<Alert severity="info" sx={{ borderRadius: 2 }}>
-								You are upgrading to the <strong>{selectedPlan?.name}</strong>. Total price is calculated based on your team size ({userCount} active users).
+								You are upgrading to the <strong>{selectedPlan?.name}</strong>. {selectedPlan?.isTeamPlan ? `Total price is calculated based on your team size (${userCount} active users).` : 'This plan is for a single user.'}
 							</Alert>
 
 							{/* Order Summary box */}
@@ -456,23 +649,23 @@ const BillingSettings: React.FC = () => {
 								</Typography>
 								<Box display="flex" justifyContent="space-between" mb={1}>
 									<Typography variant="body2" color="text.secondary">
-										{selectedPlan?.name} ({userCount} users @ {formatINR(selectedPlan?.pricePerUser || 0)}/mo)
+										{selectedPlan?.name} {selectedPlan?.isTeamPlan ? `(${userCount} users @ ${formatINR(selectedPlan?.pricePerUser || 0)}/mo)` : `(${formatINR(selectedPlan?.pricePerUser || 0)}/mo)`}
 									</Typography>
 									<Typography variant="body2" sx={{ fontWeight: 700 }}>
-										{formatINR((selectedPlan?.pricePerUser || 0) * userCount)}
+										{formatINR((selectedPlan?.pricePerUser || 0) * (selectedPlan?.isTeamPlan ? userCount : 1))}
 									</Typography>
 								</Box>
 								<Box display="flex" justifyContent="space-between" mb={1}>
 									<Typography variant="body2" color="text.secondary">GST (18%)</Typography>
 									<Typography variant="body2" sx={{ fontWeight: 700 }}>
-										{formatINR(Math.round((selectedPlan?.pricePerUser || 0) * userCount * 0.18))}
+										{formatINR(Math.round((selectedPlan?.pricePerUser || 0) * (selectedPlan?.isTeamPlan ? userCount : 1) * 0.18))}
 									</Typography>
 								</Box>
 								<Divider sx={{ my: 1.5 }} />
 								<Box display="flex" justifyContent="space-between">
 									<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Total Monthly Cost</Typography>
 									<Typography variant="subtitle1" color="primary" sx={{ fontWeight: 800 }}>
-										{formatINR(Math.round((selectedPlan?.pricePerUser || 0) * userCount * 1.18))}
+										{formatINR(Math.round((selectedPlan?.pricePerUser || 0) * (selectedPlan?.isTeamPlan ? userCount : 1) * 1.18))}
 									</Typography>
 								</Box>
 							</Box>
