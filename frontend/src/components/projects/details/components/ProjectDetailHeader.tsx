@@ -32,6 +32,13 @@ interface ProjectDetailHeaderProps {
 const AVATAR_PALETTE = ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 const avatarColorFor = (id: number) => AVATAR_PALETTE[id % AVATAR_PALETTE.length];
 
+/** Strips HTML tags and decodes entities (e.g. `&nbsp;`) for a plain-text preview. */
+const htmlToPlainText = (html: string): string => {
+	const temp = document.createElement('div');
+	temp.innerHTML = html;
+	return (temp.textContent || temp.innerText || '').trim();
+};
+
 /** A single fact in the header's metadata strip — icon, label, value. */
 const FactItem: React.FC<{ icon: React.ReactNode; label: string; value: React.ReactNode; color: string }> = ({
 	icon,
@@ -183,7 +190,7 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 										maxWidth: 720,
 									}}
 								>
-									{project.description.replace(/<[^>]*>/g, '')}
+									{htmlToPlainText(project.description)}
 								</Typography>
 							)}
 						</Box>
