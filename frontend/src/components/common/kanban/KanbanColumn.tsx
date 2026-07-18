@@ -35,12 +35,15 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, label, color, co
 				overflow: 'hidden',
 				border: '1px solid',
 				borderTop: `4px solid ${accentColor}`,
-				borderColor: isOver 
-					? alpha(theme.palette.primary.main, 0.4) 
+				borderColor: isOver
+					? alpha(theme.palette.primary.main, 0.4)
 					: (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'),
+				// Plain surface color — the task cards inside get their own tint +
+				// border so they stand out against this, rather than the column
+				// trying to differ from the page itself.
 				bgcolor: isOver
 					? alpha(theme.palette.primary.main, 0.04)
-					: (isDark ? 'rgba(20, 24, 33, 0.45)' : 'rgba(255, 255, 255, 0.75)'),
+					: theme.palette.background.paper,
 				boxShadow: isDark
 					? '0 4px 20px 0 rgba(0,0,0,0.15)'
 					: '0 4px 20px 0 rgba(139,124,246,0.02)',

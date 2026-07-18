@@ -27,24 +27,25 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ id, data, onClick, disab
 				mb: 1.5,
 				borderRadius: '14px',
 				border: '1px solid',
-				borderColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
-				bgcolor: isDark ? '#141822' : '#ffffff',
-				boxShadow: isDark 
-					? '0 4px 12px rgba(0, 0, 0, 0.3)' 
-					: '0 4px 12px rgba(139, 124, 246, 0.02)',
+				// A visible border plus a bg tint distinct from the column's own
+				// surface color (theme.palette.background.paper) in both themes,
+				// so cards read as clearly separate objects sitting on the column.
+				borderColor: isDark ? 'rgba(255,255,255,0.12)' : '#E2E8F0',
+				bgcolor: isDark ? '#1B2130' : '#F8FAFC',
+				boxShadow: isDark
+					? '0 4px 12px rgba(0, 0, 0, 0.3)'
+					: '0 4px 12px rgba(15, 23, 42, 0.04)',
 				cursor: disabled ? 'default' : 'grab',
 				touchAction: 'none',
 				opacity: isDragging ? 0.4 : 1,
 				transform: transform ? CSS.Translate.toString(transform) : undefined,
-				transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+				transition: 'none',
 				backdropFilter: 'blur(8px)',
 				'&:hover': disabled ? undefined : {
 					borderColor: theme.palette.primary.main,
-					bgcolor: isDark ? '#1C212E' : '#ffffff',
-					boxShadow: isDark 
-						? '0 8px 24px rgba(139, 124, 246, 0.25)' 
+					boxShadow: isDark
+						? '0 8px 24px rgba(139, 124, 246, 0.25)'
 						: '0 8px 24px rgba(139, 124, 246, 0.08)',
-					transform: 'translateY(-2px)'
 				},
 			}}
 		>
