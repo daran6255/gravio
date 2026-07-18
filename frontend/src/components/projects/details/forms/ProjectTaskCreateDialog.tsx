@@ -68,6 +68,7 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 	const [priority, setPriority] = useState<LeadPriority>('medium');
 	const [assigneeId, setAssigneeId] = useState<number | null>(null);
 	const [taskType, setTaskType] = useState<{ name: string; color: string }>({ name: 'Task', color: theme.palette.warning.main });
+	const [milestone, setMilestone] = useState<{ name: string; color: string } | undefined>(undefined);
 	const [selectedTags, setSelectedTags] = useState<ProjectTaskTag[]>([]);
 	const [dueDate, setDueDate] = useState<string | undefined>(undefined);
 	const [estimatedHours, setEstimatedHours] = useState<number | undefined>(undefined);
@@ -78,11 +79,13 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 	const [editTab, setEditTab] = useState(0);
 	const [isDescFocused, setIsDescFocused] = useState(false);
 	const [newTypeName, setNewTypeName] = useState('');
+	const [newMilestoneName, setNewMilestoneName] = useState('');
 
 	// Popover anchors
 	const [assigneeAnchor, setAssigneeAnchor] = useState<HTMLElement | null>(null);
 	const [labelsAnchor, setLabelsAnchor] = useState<HTMLElement | null>(null);
 	const [typeAnchor, setTypeAnchor] = useState<HTMLElement | null>(null);
+	const [milestoneAnchor, setMilestoneAnchor] = useState<HTMLElement | null>(null);
 	const [priorityAnchor, setPriorityAnchor] = useState<HTMLElement | null>(null);
 	const [dueDateAnchor, setDueDateAnchor] = useState<HTMLElement | null>(null);
 	const [estimateAnchor, setEstimateAnchor] = useState<HTMLElement | null>(null);
@@ -108,6 +111,22 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 		}));
 	}, [tasks, theme]);
 
+	const milestones = React.useMemo(() => {
+		const mset = new Set<string>();
+		tasks.forEach((t) => {
+			if (t.custom_fields?.milestone?.name) {
+				mset.add(t.custom_fields.milestone.name);
+			}
+		});
+		return Array.from(mset).map((name) => {
+			const t = tasks.find((tk) => tk.custom_fields?.milestone?.name === name);
+			return {
+				name,
+				color: t?.custom_fields?.milestone?.color || theme.palette.primary.main,
+			};
+		});
+	}, [tasks, theme]);
+
 	useEffect(() => {
 		if (open) {
 			setTitle('');
@@ -116,6 +135,8 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 			setPriority('medium');
 			setAssigneeId(null);
 			setTaskType({ name: 'Task', color: theme.palette.warning.main });
+			setMilestone(undefined);
+			setNewMilestoneName('');
 			setSelectedTags([]);
 			setDueDate(undefined);
 			setEstimatedHours(undefined);
@@ -143,7 +164,8 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 			estimated_hours: estimatedHours,
 			tags: selectedTags,
 			custom_fields: {
-				task_type: taskType
+				task_type: taskType,
+				...(milestone ? { milestone } : {}),
 			}
 		};
 
@@ -224,6 +246,7 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 					selectedAssignee={selectedAssignee}
 					selectedTags={selectedTags}
 					taskType={taskType}
+					milestone={milestone}
 					priority={priority}
 					dueDate={dueDate}
 					estimatedHours={estimatedHours}
@@ -234,6 +257,7 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 					setAssigneeAnchor={setAssigneeAnchor}
 					setLabelsAnchor={setLabelsAnchor}
 					setTypeAnchor={setTypeAnchor}
+					setMilestoneAnchor={setMilestoneAnchor}
 					setPriorityAnchor={setPriorityAnchor}
 					setDueDateAnchor={setDueDateAnchor}
 					setEstimateAnchor={setEstimateAnchor}
@@ -274,6 +298,13 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 				newTypeName={newTypeName}
 				setNewTypeName={setNewTypeName}
 				presetColors={PRESET_COLORS}
+				milestoneAnchor={milestoneAnchor}
+				setMilestoneAnchor={setMilestoneAnchor}
+				milestone={milestone}
+				setMilestone={setMilestone}
+				milestones={milestones}
+				newMilestoneName={newMilestoneName}
+				setNewMilestoneName={setNewMilestoneName}
 				labelsAnchor={labelsAnchor}
 				setLabelsAnchor={setLabelsAnchor}
 				selectedTags={selectedTags}

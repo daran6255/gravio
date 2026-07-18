@@ -220,7 +220,7 @@ export const TaskCreateDescription: React.FC<TaskCreateDescriptionProps> = ({
 					<Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: 'text.secondary', cursor: 'pointer', '&:hover': { color: 'primary.main' } }}>
 						<AutoAwesomeOutlined sx={{ fontSize: 14 }} />
 						<Typography variant="caption" sx={{ fontWeight: 600 }}>
-							Write with Copilot
+							Write with Gravit
 						</Typography>
 					</Stack>
 				</Box>

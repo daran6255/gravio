@@ -35,6 +35,14 @@ interface TaskCreatePopoversProps {
 	setNewTypeName: (val: string) => void;
 	presetColors: string[];
 
+	milestoneAnchor: HTMLElement | null;
+	setMilestoneAnchor: (el: HTMLElement | null) => void;
+	milestone?: { name: string; color: string };
+	setMilestone: (val: { name: string; color: string } | undefined) => void;
+	milestones: { name: string; color: string }[];
+	newMilestoneName: string;
+	setNewMilestoneName: (val: string) => void;
+
 	labelsAnchor: HTMLElement | null;
 	setLabelsAnchor: (el: HTMLElement | null) => void;
 	selectedTags: ProjectTaskTag[];
@@ -76,6 +84,13 @@ export const TaskCreatePopovers: React.FC<TaskCreatePopoversProps> = ({
 	newTypeName,
 	setNewTypeName,
 	presetColors,
+	milestoneAnchor,
+	setMilestoneAnchor,
+	milestone,
+	setMilestone,
+	milestones,
+	newMilestoneName,
+	setNewMilestoneName,
 	labelsAnchor,
 	setLabelsAnchor,
 	selectedTags,
@@ -287,6 +302,104 @@ export const TaskCreatePopovers: React.FC<TaskCreatePopoversProps> = ({
 										setTaskType({ name: newTypeName.trim(), color });
 										setNewTypeName('');
 										setTypeAnchor(null);
+									}
+								}}
+								sx={{ textTransform: 'none', fontWeight: 700, px: 2, height: '32px' }}
+							>
+								Add
+							</Button>
+						</Stack>
+					</Stack>
+				</Stack>
+			</Popover>
+
+			{/* Milestone Popover */}
+			<Popover
+				open={Boolean(milestoneAnchor)}
+				anchorEl={milestoneAnchor}
+				onClose={() => setMilestoneAnchor(null)}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+				PaperProps={{ sx: { borderRadius: '8px', mt: 0.5, bgcolor: theme.palette.background.paper, border: '1px solid', borderColor: theme.palette.divider, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', p: 1.5 } }}
+			>
+				<Stack sx={{ minWidth: 220, gap: 1.5 }}>
+					<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.7rem' }}>
+						Select Milestone
+					</Typography>
+					<Stack spacing={0.5}>
+						{milestones.map((m) => {
+							const isSelected = (milestone?.name || '').toLowerCase() === m.name.toLowerCase();
+							return (
+								<Box
+									key={m.name}
+									onClick={() => {
+										setMilestone({ name: m.name, color: m.color });
+										setMilestoneAnchor(null);
+									}}
+									sx={{
+										display: 'flex',
+										alignItems: 'center',
+										justifyContent: 'space-between',
+										px: 1.5,
+										py: 1,
+										borderRadius: '6px',
+										cursor: 'pointer',
+										bgcolor: isSelected ? alpha(m.color, 0.1) : 'transparent',
+										'&:hover': { bgcolor: theme.palette.action.hover },
+									}}
+								>
+									<Box
+										sx={{
+											bgcolor: alpha(m.color, 0.12),
+											border: '1px solid',
+											borderColor: m.color,
+											color: m.color,
+											px: 1.25,
+											py: 0.25,
+											borderRadius: '100px',
+											fontSize: '0.7rem',
+											fontWeight: 800,
+											letterSpacing: '0.03em',
+										}}
+									>
+										{m.name.toUpperCase()}
+									</Box>
+									{isSelected && <CheckOutlined sx={{ fontSize: 16, color: 'primary.main' }} />}
+								</Box>
+							);
+						})}
+						{milestones.length === 0 && (
+							<Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', px: 1.5, py: 1 }}>
+								No milestones yet
+							</Typography>
+						)}
+					</Stack>
+
+					<Divider />
+
+					{/* Custom Milestone Creator */}
+					<Stack spacing={1}>
+						<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.7rem' }}>
+							Create Custom Milestone
+						</Typography>
+						<Stack direction="row" spacing={1} alignItems="center">
+							<TextField
+								size="small"
+								placeholder="e.g. Release v1.0"
+								value={newMilestoneName}
+								onChange={(e) => setNewMilestoneName(e.target.value)}
+								sx={{
+									'& .MuiInputBase-input': { py: 0.75, fontSize: '0.8rem' }
+								}}
+							/>
+							<Button
+								variant="contained"
+								size="small"
+								onClick={() => {
+									if (newMilestoneName.trim()) {
+										const color = presetColors[Math.floor(Math.random() * presetColors.length)];
+										setMilestone({ name: newMilestoneName.trim(), color });
+										setNewMilestoneName('');
+										setMilestoneAnchor(null);
 									}
 								}}
 								sx={{ textTransform: 'none', fontWeight: 700, px: 2, height: '32px' }}

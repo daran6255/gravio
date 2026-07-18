@@ -7,6 +7,7 @@ import {
 	FlagOutlined,
 	CalendarTodayOutlined,
 	ScheduleOutlined,
+	WorkspacePremiumOutlined,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import type { ProjectTaskStatus, ProjectTaskTag } from '../../../../../models/projects/projectTask';
@@ -18,17 +19,19 @@ interface TaskCreatePillsProps {
 	selectedAssignee: CRMOwnerOption | null;
 	selectedTags: ProjectTaskTag[];
 	taskType: { name: string; color: string };
+	milestone?: { name: string; color: string };
 	priority: LeadPriority;
 	dueDate?: string;
 	estimatedHours?: number;
 	projectName: string;
 	assigneeId: number | null;
 	priorities: { value: LeadPriority; label: string; color: string }[];
-	
+
 	setStatusAnchor: (el: HTMLElement | null) => void;
 	setAssigneeAnchor: (el: HTMLElement | null) => void;
 	setLabelsAnchor: (el: HTMLElement | null) => void;
 	setTypeAnchor: (el: HTMLElement | null) => void;
+	setMilestoneAnchor: (el: HTMLElement | null) => void;
 	setPriorityAnchor: (el: HTMLElement | null) => void;
 	setDueDateAnchor: (el: HTMLElement | null) => void;
 	setEstimateAnchor: (el: HTMLElement | null) => void;
@@ -39,6 +42,7 @@ export const TaskCreatePills: React.FC<TaskCreatePillsProps> = ({
 	selectedAssignee,
 	selectedTags,
 	taskType,
+	milestone,
 	priority,
 	dueDate,
 	estimatedHours,
@@ -49,6 +53,7 @@ export const TaskCreatePills: React.FC<TaskCreatePillsProps> = ({
 	setAssigneeAnchor,
 	setLabelsAnchor,
 	setTypeAnchor,
+	setMilestoneAnchor,
 	setPriorityAnchor,
 	setDueDateAnchor,
 	setEstimateAnchor,
@@ -215,30 +220,16 @@ export const TaskCreatePills: React.FC<TaskCreatePillsProps> = ({
 				</Box>
 			</Tooltip>
 
-			{/* Milestone Pill (Static badge style from mockup) */}
-			<Tooltip title="The milestone this task is associated with" arrow>
-				<Box
-					sx={{
-						display: 'inline-flex',
-						alignItems: 'center',
-						px: 1.5,
-						py: 0.5,
-						bgcolor: theme.palette.action.selected,
-						border: '1px solid',
-						borderColor: theme.palette.divider,
-						borderRadius: '6px',
-						fontSize: '0.75rem',
-						fontWeight: 500,
-						color: 'text.secondary',
-						minHeight: '30px',
-					}}
-				>
-					Milestone&nbsp;
-					<Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
-						General
-					</Box>
-				</Box>
-			</Tooltip>
+			{/* Milestone Pill */}
+			{renderMetadataPill({
+				icon: <WorkspacePremiumOutlined style={{ fontSize: 15 }} />,
+				label: 'Milestone',
+				activeLabel: milestone?.name.toUpperCase(),
+				isActive: !!milestone,
+				onClick: (e) => setMilestoneAnchor(e.currentTarget),
+				color: milestone?.color,
+				tooltip: 'The milestone this task is associated with'
+			})}
 		</Stack>
 	);
 };
