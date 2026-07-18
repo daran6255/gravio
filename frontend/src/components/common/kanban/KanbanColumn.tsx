@@ -38,9 +38,9 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, label, color, co
 				borderColor: isOver 
 					? alpha(theme.palette.primary.main, 0.4) 
 					: (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'),
-				bgcolor: isOver 
-					? alpha(theme.palette.primary.main, 0.04) 
-					: (isDark ? 'rgba(20, 24, 33, 0.45)' : 'rgba(241, 245, 249, 0.55)'),
+				bgcolor: isOver
+					? alpha(theme.palette.primary.main, 0.04)
+					: (isDark ? 'rgba(20, 24, 33, 0.45)' : 'rgba(255, 255, 255, 0.75)'),
 				boxShadow: isDark
 					? '0 4px 20px 0 rgba(0,0,0,0.15)'
 					: '0 4px 20px 0 rgba(139,124,246,0.02)',
