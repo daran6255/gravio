@@ -22,9 +22,7 @@ export const AiUsageChartPanel: React.FC = () => {
 	const aiLimit = org?.plan?.ai_monthly_limit ?? 100;
 	const totalUsedThisWeek = MOCK_DATA.reduce((sum, d) => sum + d.usage, 0);
 
-	const cardBg = isDark
-		? 'linear-gradient(135deg, rgba(20, 24, 34, 0.75) 0%, rgba(11, 13, 18, 0.9) 100%)'
-		: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.95) 100%)';
+	const cardBg = theme.gradients.card;
 
 	return (
 		<Card sx={{
@@ -82,7 +80,7 @@ export const AiUsageChartPanel: React.FC = () => {
 							<CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'} />
 							<XAxis dataKey="date" tickLine={false} axisLine={false} style={{ fontSize: '0.62rem', fontWeight: 600, fill: theme.palette.text.secondary }} />
 							<YAxis tickLine={false} axisLine={false} style={{ fontSize: '0.62rem', fontWeight: 600, fill: theme.palette.text.secondary }} />
-							<Tooltip contentStyle={{ background: isDark ? '#141822' : '#ffffff', border: `1px solid ${theme.palette.divider}`, borderRadius: 8, fontSize: 11 }} />
+							<Tooltip contentStyle={{ background: theme.palette.background.paper, border: `1px solid ${theme.palette.divider}`, borderRadius: 8, fontSize: 11 }} />
 							<Area type="monotone" dataKey="usage" stroke={theme.palette.primary.main} strokeWidth={2.5} fillOpacity={1} fill="url(#aiUsageGradient)" />
 						</AreaChart>
 					</ResponsiveContainer>

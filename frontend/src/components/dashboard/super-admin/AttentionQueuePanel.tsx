@@ -35,9 +35,7 @@ export const AttentionQueuePanel: React.FC = () => {
 			sx={{
 				borderRadius: '16px',
 				height: '100%',
-				background: isDark
-					? 'linear-gradient(135deg, rgba(20, 24, 34, 0.75) 0%, rgba(11, 13, 18, 0.9) 100%)'
-					: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.95) 100%)',
+				background: theme.gradients.card,
 				backdropFilter: 'blur(20px)',
 				border: `1px solid ${theme.palette.divider}`,
 				boxShadow: isDark ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : '0 8px 32px 0 rgba(139, 124, 246, 0.04)',

@@ -25,7 +25,7 @@ export const ClientProjectsDonutPanel: React.FC = () => {
 
 		const loadData = async () => {
 			try {
-				const projectsRes = await projectService.listProjects(1, 200).catch(() => ({ items: [], total: 0 }));
+				const projectsRes = await projectService.listProjects({ page: 1, pageSize: 200 }).catch(() => ({ items: [], total: 0 }));
 				if (cancelled) return;
 
 				const group: Record<string, number> = {};
@@ -76,9 +76,7 @@ export const ClientProjectsDonutPanel: React.FC = () => {
 		return () => { cancelled = true; };
 	}, []);
 
-	const cardBg = isDark
-		? 'linear-gradient(135deg, rgba(20, 24, 34, 0.75) 0%, rgba(11, 13, 18, 0.9) 100%)'
-		: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.95) 100%)';
+	const cardBg = theme.gradients.card;
 
 	return (
 		<Card sx={{

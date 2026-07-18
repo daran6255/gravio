@@ -53,7 +53,7 @@ export const IndividualTabbedGridPanel: React.FC = () => {
 				const [leadsRes, dealsRes, projectsRes] = await Promise.all([
 					crmService.listLeads({ pageSize: 500 }).catch(() => ({ items: [], total: 0 })),
 					crmService.listDeals({ pageSize: 500 }).catch(() => ({ items: [], total: 0 })),
-					projectService.listProjects(1, 200).catch(() => ({ items: [], total: 0 })),
+					projectService.listProjects({ page: 1, pageSize: 200 }).catch(() => ({ items: [], total: 0 })),
 				]);
 
 				if (cancelled) return;
@@ -87,9 +87,7 @@ export const IndividualTabbedGridPanel: React.FC = () => {
 		maximumFractionDigits: 0,
 	});
 
-	const cardBg = isDark
-		? 'linear-gradient(135deg, rgba(20, 24, 34, 0.75) 0%, rgba(11, 13, 18, 0.9) 100%)'
-		: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.95) 100%)';
+	const cardBg = theme.gradients.card;
 
 	return (
 		<Card sx={{

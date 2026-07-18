@@ -28,7 +28,7 @@ export const IndividualStatsPanel: React.FC = () => {
 				const [leadsRes, dealsRes, projectsRes] = await Promise.all([
 					crmService.listLeads({ pageSize: 500 }).catch(() => ({ items: [], total: 0 })),
 					crmService.listDeals({ pageSize: 500 }).catch(() => ({ items: [], total: 0 })),
-					projectService.listProjects(1, 200).catch(() => ({ items: [], total: 0 })),
+					projectService.listProjects({ page: 1, pageSize: 200 }).catch(() => ({ items: [], total: 0 })),
 				]);
 
 				if (cancelled) return;

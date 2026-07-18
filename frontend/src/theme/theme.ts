@@ -31,6 +31,8 @@ declare module '@mui/material/styles' {
 			brandDiagonal: string;
 			/** Hover state of the diagonal brand gradient */
 			brandDiagonalHover: string;
+			/** Frost glass gradient for cards */
+			card: string;
 		};
 	}
 	interface ThemeOptions {
@@ -59,6 +61,9 @@ export const getThemeByMode = (mode: 'light' | 'dark'): Theme => {
 			brand: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
 			brandDiagonal: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
 			brandDiagonalHover: 'linear-gradient(135deg, #9C8FFF 0%, #7062E9 100%)',
+			card: isDark 
+				? 'linear-gradient(135deg, rgba(20, 24, 34, 0.75) 0%, rgba(11, 13, 18, 0.9) 100%)' 
+				: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.95) 100%)',
 		},
 		palette: {
 			mode,

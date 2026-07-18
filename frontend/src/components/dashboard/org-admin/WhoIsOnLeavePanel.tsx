@@ -51,9 +51,7 @@ export const WhoIsOnLeavePanel: React.FC = () => {
 		.sort((a, b) => new Date(a.from_date).getTime() - new Date(b.from_date).getTime())
 		.slice(0, 3);
 
-	const cardBg = isDark
-		? 'linear-gradient(135deg, rgba(20, 24, 34, 0.75) 0%, rgba(11, 13, 18, 0.9) 100%)'
-		: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.95) 100%)';
+	const cardBg = theme.gradients.card;
 
 	const renderLeaveRow = (req: HRLeaveRequestResponse, type: 'today' | 'upcoming') => {
 		const name = req.employee_name || 'Employee';

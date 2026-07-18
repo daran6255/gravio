@@ -83,9 +83,7 @@ export const PlanDistributionPanel: React.FC = () => {
 
 	const pieData = rows.slice(0, 4).filter(r => r.count > 0);
 
-	const cardBg = isDark
-		? 'linear-gradient(135deg, rgba(20, 24, 34, 0.75) 0%, rgba(11, 13, 18, 0.9) 100%)'
-		: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.95) 100%)';
+	const cardBg = theme.gradients.card;
 
 	return (
 		<Card sx={{
@@ -132,7 +130,7 @@ export const PlanDistributionPanel: React.FC = () => {
 									</Pie>
 									<Tooltip
 										contentStyle={{
-											background: isDark ? '#141822' : '#fff',
+											background: theme.palette.background.paper,
 											border: `1px solid ${theme.palette.divider}`,
 											borderRadius: 8,
 											fontSize: 12
