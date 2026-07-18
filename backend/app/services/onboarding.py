@@ -83,9 +83,8 @@ async def onboard_organization(
     from app.services.crm import CRMService
     await CRMService.seed_default_pipeline(db, org.id)
 
-    # Seed default Project Management task statuses (To Do/In Progress/In Review/Done)
-    from app.services.project import ProjectService
-    await ProjectService.seed_default_task_statuses(db, org.id)
+    # Project Management task statuses are no longer org-level: each project seeds
+    # its own board (from its template, or the generic default set) when created.
 
     # Seed default timesheet categories (Meetings/Training/Administrative/Leave/Other)
     from app.repositories.timesheet import TimesheetCategoryRepository

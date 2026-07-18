@@ -67,8 +67,8 @@ export const useProjectDetail = () => {
 
 	useEffect(() => {
 		dispatch(fetchOwners());
-		dispatch(fetchTaskStatuses());
-	}, [dispatch]);
+		if (publicId) dispatch(fetchTaskStatuses(publicId));
+	}, [dispatch, publicId]);
 
 	// Deep-link support: a `?task=<public_id>` query param (written by the drawer's
 	// "Copy link" / "Open in new tab" actions) auto-opens that task's detail drawer

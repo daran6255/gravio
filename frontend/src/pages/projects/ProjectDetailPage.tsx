@@ -1,6 +1,5 @@
 import React from 'react';
-import { Box, Container, Stack, Button, Typography, CircularProgress } from '@mui/material';
-import { TuneOutlined } from '@mui/icons-material';
+import { Box, Container, Typography, CircularProgress } from '@mui/material';
 import { responsiveStyles } from '../../theme';
 import { ConfirmationDialog } from '../../components/common/dialogbox';
 import {
@@ -60,7 +59,15 @@ const ProjectDetailPage: React.FC = () => {
 					</Box>
 				) : project ? (
 					<>
-						<ProjectDetailHeader project={project} tasks={tasks} owners={owners} onBack={handleBack} onEdit={handleEditClick} onAddTask={handleCreateTaskClick} />
+						<ProjectDetailHeader
+							project={project}
+							tasks={tasks}
+							owners={owners}
+							onBack={handleBack}
+							onEdit={handleEditClick}
+							onAddTask={handleCreateTaskClick}
+							onManageStages={() => setStatusDialogOpen(true)}
+						/>
 
 						<ProjectEditDrawer
 							open={editOpen}
@@ -70,22 +77,6 @@ const ProjectDetailPage: React.FC = () => {
 							submitting={projectMutating}
 							onSubmit={handleEditSubmit}
 						/>
-
-						<Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={1.5} sx={{ mb: 1.5 }}>
-							<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.01em' }}>
-								Task Board
-							</Typography>
-							<Box sx={responsiveStyles.headerActionRow}>
-								<Button
-									variant="outlined"
-									startIcon={<TuneOutlined />}
-									onClick={() => setStatusDialogOpen(true)}
-									sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px' }}
-								>
-									Manage Stages
-								</Button>
-							</Box>
-						</Stack>
 
 						<ProjectTaskKanbanBoard
 							tasks={tasks}
@@ -130,6 +121,7 @@ const ProjectDetailPage: React.FC = () => {
 						<ProjectTaskStatusManagementDialog
 							open={statusDialogOpen}
 							onClose={() => setStatusDialogOpen(false)}
+							project={project}
 						/>
 
 						<ConfirmationDialog

@@ -276,12 +276,12 @@ export const deleteProjectTask = createAsyncThunk(
 	}
 );
 
-// --- Task Statuses (tenant-configurable) ---
+// --- Task Statuses (per-project) ---
 export const fetchTaskStatuses = createAsyncThunk(
 	'projects/fetchTaskStatuses',
-	async (_: void | undefined, { rejectWithValue }) => {
+	async (projectPublicId: string, { rejectWithValue }) => {
 		try {
-			return await projectService.listTaskStatuses();
+			return await projectService.listTaskStatuses(projectPublicId);
 		} catch (error: any) {
 			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch task statuses'));
 		}
@@ -290,9 +290,9 @@ export const fetchTaskStatuses = createAsyncThunk(
 
 export const updateTaskStatuses = createAsyncThunk(
 	'projects/updateTaskStatuses',
-	async (statuses: ProjectTaskStatusUpsert[], { rejectWithValue }) => {
+	async ({ projectPublicId, statuses }: { projectPublicId: string; statuses: ProjectTaskStatusUpsert[] }, { rejectWithValue }) => {
 		try {
-			return await projectService.updateTaskStatuses(statuses);
+			return await projectService.updateTaskStatuses(projectPublicId, statuses);
 		} catch (error: any) {
 			return rejectWithValue(extractErrorMessage(error, 'Failed to update task statuses'));
 		}

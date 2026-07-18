@@ -102,14 +102,14 @@ const projectService = {
 		await api.delete(`/project-tasks/${taskPublicId}`);
 	},
 
-	// --- Task Statuses (tenant-configurable) ---
-	listTaskStatuses: async (): Promise<ProjectTaskStatus[]> => {
-		const response = await api.get<ProjectTaskStatus[]>('/project-task-statuses');
+	// --- Task Statuses (per-project — scoped to /projects/{id}/task-statuses) ---
+	listTaskStatuses: async (projectPublicId: string): Promise<ProjectTaskStatus[]> => {
+		const response = await api.get<ProjectTaskStatus[]>(`/projects/${projectPublicId}/task-statuses`);
 		return response.data;
 	},
 
-	updateTaskStatuses: async (statuses: ProjectTaskStatusUpsert[]): Promise<ProjectTaskStatus[]> => {
-		const response = await api.patch<ProjectTaskStatus[]>('/project-task-statuses', { statuses });
+	updateTaskStatuses: async (projectPublicId: string, statuses: ProjectTaskStatusUpsert[]): Promise<ProjectTaskStatus[]> => {
+		const response = await api.patch<ProjectTaskStatus[]>(`/projects/${projectPublicId}/task-statuses`, { statuses });
 		return response.data;
 	},
 

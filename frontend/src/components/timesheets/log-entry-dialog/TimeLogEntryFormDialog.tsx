@@ -35,7 +35,6 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 		error,
 		setError,
 		visibleProjects,
-		doneStatusIds,
 		getVisibleTasks,
 		isRowTasksLoading,
 		updateRow,
@@ -146,7 +145,7 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 							visibleProjects={visibleProjects}
 							getVisibleTasks={getVisibleTasks}
 							tasksLoading={isRowTasksLoading(row)}
-							doneStatusIds={doneStatusIds}
+							doneStatusIds={new Set<number>()}
 							categories={categories}
 							myCategories={myCategories}
 							submitting={submitting}

@@ -54,6 +54,8 @@ export interface Project {
 	owner_name?: string;
 	company_name?: string;
 	deal_title?: string;
+	/** Key of the PROJECT_TEMPLATES entry this project was created from, if any. */
+	template_key?: string;
 }
 
 /** Matches backend's ProjectCreate. */

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
-import { fetchProjects, fetchTaskStatuses, fetchProjectTaskOptions } from '../../../../store/slices/projectsSlice';
+import { fetchProjects, fetchProjectTaskOptions } from '../../../../store/slices/projectsSlice';
 import type { ProjectTimeLog } from '../../../../models/timesheet';
 import type { ProjectTask } from '../../../../models/projects/projectTask';
 import type { Project } from '../../../../models/projects/project';
@@ -20,7 +20,7 @@ interface UseTimeLogRowsArgs {
 // selection, task list loading, add/remove row).
 export const useTimeLogRows = ({ open, log, defaultDate, hasProjectModule, currentUserId }: UseTimeLogRowsArgs) => {
 	const dispatch = useAppDispatch();
-	const { projects, taskStatuses, projectTaskOptions, projectTaskOptionsLoading } = useAppSelector((state) => state.projects);
+	const { projects, projectTaskOptions, projectTaskOptionsLoading } = useAppSelector((state) => state.projects);
 
 	const [rows, setRows] = useState<RowDraft[]>([makeEmptyRow(defaultDate, hasProjectModule ? 'project_task' : 'general')]);
 	const [error, setError] = useState<string | null>(null);
@@ -35,7 +35,6 @@ export const useTimeLogRows = ({ open, log, defaultDate, hasProjectModule, curre
 			// Only projects the current user actually works on -- owns, or has a task
 			// assigned in -- and not ones that have already wrapped up.
 			dispatch(fetchProjects({ pageSize: 100, assignedToMe: true, excludeCompleted: true }));
-			dispatch(fetchTaskStatuses());
 		}
 	}, [open, dispatch, hasProjectModule]);
 
@@ -49,10 +48,8 @@ export const useTimeLogRows = ({ open, log, defaultDate, hasProjectModule, curre
 		return projects;
 	}, [projects, log]);
 
-	const doneStatusIds = useMemo(
-		() => new Set(taskStatuses.filter((s) => s.is_done_status).map((s) => s.id)),
-		[taskStatuses]
-	);
+	// Tasks are considered "done" if they have a completed_at timestamp.
+	// (Status IDs are now per-project and can't be resolved without a project context here.)
 
 	const projectPublicIdFor = useCallback(
 		(projectId: number | '') => visibleProjects.find((p) => p.id === projectId)?.public_id,
@@ -79,9 +76,9 @@ export const useTimeLogRows = ({ open, log, defaultDate, hasProjectModule, curre
 	const getVisibleTasks = useCallback(
 		(row: RowDraft): ProjectTask[] =>
 			getRowTasks(row).filter(
-				(t) => (t.assignee_id === currentUserId && !doneStatusIds.has(t.status_id)) || t.id === row.taskId
+				(t) => (t.assignee_id === currentUserId && !t.completed_at) || t.id === row.taskId
 			),
-		[getRowTasks, currentUserId, doneStatusIds]
+		[getRowTasks, currentUserId]
 	);
 
 	// Initialize rows whenever the dialog is opened (edit a single log, or start a fresh add-row flow)
@@ -155,7 +152,6 @@ export const useTimeLogRows = ({ open, log, defaultDate, hasProjectModule, curre
 		error,
 		setError,
 		visibleProjects,
-		doneStatusIds,
 		getVisibleTasks,
 		isRowTasksLoading,
 		updateRow,

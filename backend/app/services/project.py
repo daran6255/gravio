@@ -34,64 +34,72 @@ from app.services.currency import CurrencyConversionService
 from app.middleware.exceptions import NotFoundError, BadRequestError, ConflictError
 from app.core.context import tenant_context
 from app.services.project_templates import PROJECT_TEMPLATES
+from app.services.project_stage_presets import get_stage_preset_for_template
 
 
 class ProjectService:
     # --- Task status seeding & configuration ---
     @staticmethod
-    async def seed_default_task_statuses(db: AsyncSession, org_id: int) -> list[ProjectTaskStatus]:
-        """Seed a default task-status workflow for a new organization.
-        Mirrors CRMService.seed_default_pipeline exactly."""
-        prev_context = tenant_context.get()
-        tenant_context.set(org_id)
+    async def seed_project_task_statuses(
+        db: AsyncSession, project: Project, template_key: Optional[str] = None
+    ) -> list[ProjectTaskStatus]:
+        """Seed a new project's own task-status board — the category preset matching
+        its template, or the generic default set if it has none (or an unmatched one)."""
+        existing = await ProjectTaskStatusRepository.list_by_project(db, project_id=project.id)
+        if existing:
+            return existing
 
-        try:
-            existing = await ProjectTaskStatusRepository.list_all(db)
-            if existing:
-                return existing
-
-            statuses_data = [
-                {"name": "Planning", "order": 0, "color": "#9E9E9E", "is_initial_status": True},
-                {"name": "Active", "order": 1, "color": "#2196F3"},
-                {"name": "In Progress", "order": 2, "color": "#FF9800"},
-                {"name": "Delayed", "order": 3, "color": "#F44336"},
-                {"name": "In Testing", "order": 4, "color": "#00BCD4"},
-                {"name": "On Hold", "order": 5, "color": "#E91E63"},
-                {"name": "Completed", "order": 6, "color": "#4CAF50", "is_done_status": True},
-                {"name": "Approved", "order": 7, "color": "#009688", "is_done_status": True},
-                {"name": "Invoiced", "order": 8, "color": "#3F51B5", "is_done_status": True},
-                {"name": "Canceled", "order": 9, "color": "#757575", "is_done_status": True},
-            ]
-
-            created = []
-            for s in statuses_data:
-                created.append(
-                    await ProjectTaskStatusRepository.create(
-                        db,
-                        name=s["name"],
-                        order=s["order"],
-                        color=s["color"],
-                        is_initial_status=s.get("is_initial_status", False),
-                        is_done_status=s.get("is_done_status", False),
-                        organization_id=org_id,
-                    )
+        preset = get_stage_preset_for_template(template_key)
+        created = []
+        for s in preset:
+            created.append(
+                await ProjectTaskStatusRepository.create(
+                    db,
+                    name=s["name"],
+                    order=s["order"],
+                    color=s["color"],
+                    is_initial_status=s.get("is_initial_status", False),
+                    is_done_status=s.get("is_done_status", False),
+                    project_id=project.id,
                 )
-            return created
-        finally:
-            tenant_context.set(prev_context)
+            )
+        return created
 
     @staticmethod
-    async def update_task_statuses(db: AsyncSession, statuses: list[ProjectTaskStatusUpsert]) -> list[ProjectTaskStatus]:
-        """Create, update, reorder, and delete an org's task statuses in one call.
-        Any existing status whose id is not present in `statuses` is deleted.
-        Mirrors CRMService.update_pipeline_stages exactly."""
-        existing = await ProjectTaskStatusRepository.list_all(db)
+    async def update_task_statuses(
+        db: AsyncSession, project_id: int, statuses: list[ProjectTaskStatusUpsert]
+    ) -> list[ProjectTaskStatus]:
+        """Create, update, reorder, and delete a single project's task statuses in one call.
+
+        Any existing status whose id is not present in `statuses` is deleted. Resetting to
+        the linked template's defaults replaces the whole list wholesale (every incoming row
+        is brand-new, with no id) — so any status that already has tasks on it would otherwise
+        always hit the FK constraint. Rather than reject the save outright, tasks on a
+        removed status are moved to the incoming list's initial status (or its first row)
+        before that status is deleted.
+        """
+        existing = await ProjectTaskStatusRepository.list_by_project(db, project_id=project_id)
         existing_by_id = {status.id: status for status in existing}
         keep_ids = {s.id for s in statuses if s.id is not None}
+
+        # Create/update first so a reassignment target exists before any deletion.
+        saved: list[ProjectTaskStatus] = []
+        for s in statuses:
+            data = s.model_dump(exclude={"id"})
+            if s.id is not None and s.id in existing_by_id:
+                saved.append(await ProjectTaskStatusRepository.update(db, existing_by_id[s.id], **data))
+            else:
+                saved.append(await ProjectTaskStatusRepository.create(db, project_id=project_id, **data))
+
+        fallback_status = next((s for s in saved if s.is_initial_status), saved[0] if saved else None)
 
         for status_id, status in existing_by_id.items():
             if status_id not in keep_ids:
                 status_name = status.name
+                if fallback_status is not None:
+                    await ProjectTaskRepository.reassign_status(
+                        db, from_status_id=status_id, to_status_id=fallback_status.id
+                    )
                 try:
                     await ProjectTaskStatusRepository.delete(db, status)
                 except IntegrityError:
@@ -100,14 +108,7 @@ class ProjectService:
                         f"Cannot delete status '{status_name}' — it still has tasks assigned to it."
                     )
 
-        for s in statuses:
-            data = s.model_dump(exclude={"id"})
-            if s.id is not None and s.id in existing_by_id:
-                await ProjectTaskStatusRepository.update(db, existing_by_id[s.id], **data)
-            else:
-                await ProjectTaskStatusRepository.create(db, **data)
-
-        return await ProjectTaskStatusRepository.list_all(db)
+        return await ProjectTaskStatusRepository.list_by_project(db, project_id=project_id)
 
     @staticmethod
     async def check_project_limit(db: AsyncSession, organization_id: int) -> None:
@@ -164,11 +165,12 @@ class ProjectService:
             await ProjectService.check_project_limit(db, org_id)
 
         data = payload.model_dump()
-        template_key = data.pop("template_key", None)
+        template_key = data.get("template_key")
         custom_tasks = data.pop("custom_tasks", None)
         
         project = await ProjectRepository.create(db, **data)
-        
+        await ProjectService.seed_project_task_statuses(db, project, template_key)
+
         if custom_tasks:
             await ProjectService.seed_project_tasks_custom(db, project, custom_tasks)
         elif template_key:
@@ -259,15 +261,15 @@ class ProjectService:
         )
 
     @staticmethod
-    async def _resolve_status_id(db: AsyncSession, status_id: Optional[int]) -> int:
+    async def _resolve_status_id(db: AsyncSession, project_id: int, status_id: Optional[int]) -> int:
         if status_id is not None:
             status = await ProjectTaskStatusRepository.get_by_id(db, status_id)
-            if not status or status.is_deleted:
+            if not status or status.is_deleted or status.project_id != project_id:
                 raise NotFoundError("Task status not found")
             return status.id
-        initial = await ProjectTaskStatusRepository.get_initial(db)
+        initial = await ProjectTaskStatusRepository.get_initial(db, project_id=project_id)
         if not initial:
-            raise BadRequestError("This organization has no task statuses configured yet.")
+            raise BadRequestError("This project has no task statuses configured yet.")
         return initial.id
 
     @staticmethod
@@ -275,7 +277,7 @@ class ProjectService:
         """Creates a top-level task (parent_task_id is always None here)."""
         project = await ProjectService.get_project(db, project_public_id)
         data = payload.model_dump()
-        data["status_id"] = await ProjectService._resolve_status_id(db, data.pop("status_id"))
+        data["status_id"] = await ProjectService._resolve_status_id(db, project.id, data.pop("status_id"))
         return await ProjectTaskRepository.create(db, project_id=project.id, parent_task_id=None, **data)
 
     @staticmethod
@@ -284,7 +286,7 @@ class ProjectService:
         from the parent regardless of what's in the payload."""
         parent = await ProjectService.get_task(db, parent_public_id)
         data = payload.model_dump()
-        data["status_id"] = await ProjectService._resolve_status_id(db, data.pop("status_id"))
+        data["status_id"] = await ProjectService._resolve_status_id(db, parent.project_id, data.pop("status_id"))
         return await ProjectTaskRepository.create(
             db, project_id=parent.project_id, parent_task_id=parent.id, **data
         )
@@ -298,7 +300,7 @@ class ProjectService:
         # mirroring CRMService.update_deal_task's status/completed_at handling.
         if "status_id" in data and data["status_id"] != task.status_id:
             new_status = await ProjectTaskStatusRepository.get_by_id(db, data["status_id"])
-            if not new_status:
+            if not new_status or new_status.project_id != task.project_id:
                 raise NotFoundError("Task status not found")
             if new_status.is_done_status:
                 data["completed_at"] = datetime.now(timezone.utc)
@@ -459,7 +461,9 @@ class ProjectService:
             end_date=payload.end_date,
             budget=budget,
             currency=currency,
+            template_key=payload.template_key,
         )
+        await ProjectService.seed_project_task_statuses(db, project, payload.template_key)
 
         # Seed tasks if template selected
         template_key = payload.template_key
@@ -485,7 +489,7 @@ class ProjectService:
             return
 
         template = PROJECT_TEMPLATES[template_key]
-        initial_status = await ProjectTaskStatusRepository.get_initial(db)
+        initial_status = await ProjectTaskStatusRepository.get_initial(db, project_id=project.id)
         if not initial_status:
             return
 
@@ -544,7 +548,7 @@ class ProjectService:
 
     @staticmethod
     async def seed_project_tasks_custom(db: AsyncSession, project: Project, custom_tasks: list[dict[str, Any]]) -> None:
-        initial_status = await ProjectTaskStatusRepository.get_initial(db)
+        initial_status = await ProjectTaskStatusRepository.get_initial(db, project_id=project.id)
         if not initial_status:
             return
 

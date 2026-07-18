@@ -41,13 +41,12 @@ router.include_router(crm_router)
 from app.api.v1.endpoints.notifications import router as notifications_router
 router.include_router(notifications_router)
 
-# Project Management          →  /api/v1/projects/...
+# Project Management          →  /api/v1/projects/...  (task statuses nested at
+#                                 /api/v1/projects/{public_id}/task-statuses)
 #                             /api/v1/project-tasks/...
-#                             /api/v1/project-task-statuses
-from app.api.v1.endpoints.projects import router as projects_router, router_tasks as project_tasks_router, router_statuses as project_task_statuses_router
+from app.api.v1.endpoints.projects import router as projects_router, router_tasks as project_tasks_router
 router.include_router(projects_router)
 router.include_router(project_tasks_router)
-router.include_router(project_task_statuses_router)
 
 # Timesheets & Holidays        →  /api/v1/timesheets/...
 #                             /api/v1/holidays/...

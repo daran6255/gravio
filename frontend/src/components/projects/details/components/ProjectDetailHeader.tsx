@@ -13,6 +13,7 @@ import {
 	GroupsOutlined,
 	ExpandMoreOutlined,
 	AddOutlined,
+	SettingsOutlined,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import StatusBadge, { getStatusTone } from '../../../common/badge/StatusBadge';
@@ -29,6 +30,7 @@ interface ProjectDetailHeaderProps {
 	onBack: () => void;
 	onEdit: () => void;
 	onAddTask: () => void;
+	onManageStages: () => void;
 }
 
 const AVATAR_PALETTE = ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -75,7 +77,7 @@ const FactItem: React.FC<{ icon: React.ReactNode; label: string; value: React.Re
 	</Stack>
 );
 
-export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ project, tasks, owners, onBack, onEdit, onAddTask }) => {
+export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ project, tasks, owners, onBack, onEdit, onAddTask, onManageStages }) => {
 	const theme = useTheme();
 	const { formatDate } = useDateTime();
 	const [expanded, setExpanded] = useState(false);
@@ -219,6 +221,16 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 						>
 							Add Task
 						</Button>
+						<Tooltip title="Manage task stages">
+							<IconButton
+								onClick={onManageStages}
+								size="small"
+								aria-label="Manage task stages"
+								sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.08) } }}
+							>
+								<SettingsOutlined fontSize="small" />
+							</IconButton>
+						</Tooltip>
 						<Tooltip title={expanded ? 'Hide details' : 'Show details'}>
 							<IconButton
 								onClick={() => setExpanded((v) => !v)}

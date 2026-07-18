@@ -47,14 +47,17 @@ class BillingType(str, enum.Enum):
 
 
 class ProjectTaskStatus(BaseModel, TenantAwareMixin):
-    """A tenant-configurable task workflow column (e.g. "To Do", "In Progress").
+    """A project-configurable task workflow column (e.g. "To Do", "In Progress").
 
-    Mirrors CRMPipelineStage exactly: an ordered, admin-editable, tenant-scoped
-    list rather than a fixed Python enum, so each organization can customize its
-    own task board columns.
+    Scoped to a single Project (project_id), not shared org-wide — each project's
+    board is seeded from its own template (or the generic default set) at creation
+    time, and can only be edited within that project from then on.
     """
     __tablename__ = "project_task_statuses"
 
+    project_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     color: Mapped[str] = mapped_column(String(20), nullable=False, default="#808080")
@@ -63,6 +66,7 @@ class ProjectTaskStatus(BaseModel, TenantAwareMixin):
     custom_fields: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     # Relationships
+    project: Mapped["Project"] = relationship("Project", back_populates="task_statuses", foreign_keys=[project_id])
     tasks: Mapped[list["ProjectTask"]] = relationship("ProjectTask", back_populates="status")
 
     def __repr__(self) -> str:
@@ -100,6 +104,9 @@ class Project(BaseModel, TenantAwareMixin):
     issues: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     tags: Mapped[Optional[list[str]]] = mapped_column(JSON, nullable=True)
     custom_fields: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    # Key of the PROJECT_TEMPLATES entry this project was created from (if any) —
+    # kept after creation so the UI can recommend a matching task-status preset.
+    template_key: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
     # Relationships
     owner: Mapped[Optional[User]] = relationship("User", foreign_keys=[owner_id])
@@ -107,6 +114,10 @@ class Project(BaseModel, TenantAwareMixin):
     deal: Mapped[Optional[CRMDeal]] = relationship("CRMDeal", foreign_keys=[deal_id])
     tasks: Mapped[list["ProjectTask"]] = relationship(
         "ProjectTask", back_populates="project", cascade="all, delete-orphan"
+    )
+    task_statuses: Mapped[list["ProjectTaskStatus"]] = relationship(
+        "ProjectTaskStatus", back_populates="project", cascade="all, delete-orphan",
+        foreign_keys="ProjectTaskStatus.project_id",
     )
 
     def __repr__(self) -> str:

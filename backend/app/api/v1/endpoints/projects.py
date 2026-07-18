@@ -44,46 +44,48 @@ require_project_access = require_roles([UserRole.ADMIN, UserRole.MANAGER, UserRo
 require_project_admin = require_roles([UserRole.ADMIN, UserRole.MANAGER, UserRole.PROJECT_COORDINATOR])
 require_pm_module = require_module(Module.PROJECT_MANAGEMENT)
 
-# Separate routers (not nested under /projects) since "project-task-statuses" and
-# an individual task/sub-task are each their own top-level resource.
-router_statuses = APIRouter(prefix="/project-task-statuses", tags=["Project Management"])
+# "project-tasks" is its own top-level resource (not nested under /projects) since
+# an individual task/sub-task is addressed directly by its own public_id.
 router_tasks = APIRouter(prefix="/project-tasks", tags=["Project Management"])
 
 
-# --- Task Statuses (tenant-configurable) ---
-@router_statuses.get(
-    "",
+# --- Task Statuses (project-configurable, nested under the owning project) ---
+@router.get(
+    "/{public_id}/task-statuses",
     response_model=list[ProjectTaskStatusResponse],
-    summary="List this organization's configurable task statuses",
+    summary="List a project's configurable task statuses",
 )
 async def list_project_task_statuses_endpoint(
+    public_id: uuid.UUID,
     current_user: User = Depends(require_project_access),
     _pm: User = Depends(require_pm_module),
     db: AsyncSession = Depends(get_db),
 ) -> list[ProjectTaskStatusResponse]:
     from app.repositories.project import ProjectTaskStatusRepository
-    statuses = await ProjectTaskStatusRepository.list_all(db)
-    # Orgs created before task-status seeding existed (or where onboarding was
-    # skipped) would otherwise see an empty board with no columns to drop tasks
-    # into -- lazily seed the same defaults new orgs get so there's always a
-    # usable starting workflow.
-    if not statuses and current_user.organization_id:
-        statuses = await ProjectService.seed_default_task_statuses(db, current_user.organization_id)
+    project = await ProjectService.get_project(db, public_id)
+    statuses = await ProjectTaskStatusRepository.list_by_project(db, project_id=project.id)
+    # Projects created before this project's board was seeded (edge case / data
+    # repair) would otherwise show an empty board with no columns to drop tasks
+    # into -- lazily seed the same defaults a new project gets.
+    if not statuses:
+        statuses = await ProjectService.seed_project_task_statuses(db, project, project.template_key)
     return [ProjectTaskStatusResponse.model_validate(s) for s in statuses]
 
 
-@router_statuses.patch(
-    "",
+@router.patch(
+    "/{public_id}/task-statuses",
     response_model=list[ProjectTaskStatusResponse],
-    summary="Create, update, reorder, and delete this organization's task statuses",
+    summary="Create, update, reorder, and delete this project's task statuses",
 )
 async def update_project_task_statuses_endpoint(
+    public_id: uuid.UUID,
     payload: ProjectTaskStatusesUpdateRequest,
     current_user: User = Depends(require_project_admin),
     _pm: User = Depends(require_pm_module),
     db: AsyncSession = Depends(get_db),
 ) -> list[ProjectTaskStatusResponse]:
-    statuses = await ProjectService.update_task_statuses(db, payload.statuses)
+    project = await ProjectService.get_project(db, public_id)
+    statuses = await ProjectService.update_task_statuses(db, project.id, payload.statuses)
     return [ProjectTaskStatusResponse.model_validate(s) for s in statuses]
 
 

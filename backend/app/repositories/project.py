@@ -17,10 +17,14 @@ class ProjectTaskStatusRepository:
         return await db.get(ProjectTaskStatus, status_id)
 
     @staticmethod
-    async def get_initial(db: AsyncSession) -> Optional[ProjectTaskStatus]:
+    async def get_initial(db: AsyncSession, *, project_id: int) -> Optional[ProjectTaskStatus]:
         result = await db.execute(
             select(ProjectTaskStatus)
-            .where(ProjectTaskStatus.is_initial_status.is_(True), ProjectTaskStatus.is_deleted.is_(False))
+            .where(
+                ProjectTaskStatus.project_id == project_id,
+                ProjectTaskStatus.is_initial_status.is_(True),
+                ProjectTaskStatus.is_deleted.is_(False),
+            )
             .order_by(ProjectTaskStatus.order.asc())
         )
         return result.scalars().first()
@@ -45,10 +49,10 @@ class ProjectTaskStatusRepository:
         await db.flush()
 
     @staticmethod
-    async def list_all(db: AsyncSession) -> list[ProjectTaskStatus]:
+    async def list_by_project(db: AsyncSession, *, project_id: int) -> list[ProjectTaskStatus]:
         result = await db.execute(
             select(ProjectTaskStatus)
-            .where(ProjectTaskStatus.is_deleted.is_(False))
+            .where(ProjectTaskStatus.project_id == project_id, ProjectTaskStatus.is_deleted.is_(False))
             .order_by(ProjectTaskStatus.order.asc())
         )
         return list(result.scalars().all())
@@ -313,6 +317,19 @@ class ProjectTaskRepository:
         await db.flush()
         await db.refresh(task)
         return task
+
+    @staticmethod
+    async def reassign_status(db: AsyncSession, *, from_status_id: int, to_status_id: int) -> int:
+        """Move every task off a status that's about to be deleted, onto a fallback
+        status. Returns the number of tasks moved."""
+        result = await db.execute(
+            select(ProjectTask).where(ProjectTask.status_id == from_status_id, ProjectTask.is_deleted.is_(False))
+        )
+        tasks = list(result.scalars().all())
+        for task in tasks:
+            task.status_id = to_status_id
+        await db.flush()
+        return len(tasks)
 
     @staticmethod
     async def _list_descendants(db: AsyncSession, task_id: int) -> list[ProjectTask]:

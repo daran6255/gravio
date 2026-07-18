@@ -130,7 +130,7 @@ export const TimeLogRowFields: React.FC<TimeLogRowFieldsProps> = ({
 									{t.billing_type === 'billable' ? 'Billable' : 'Non-Billable'}
 									{t.priority ? ` · ${t.priority.charAt(0).toUpperCase()}${t.priority.slice(1)} priority` : ''}
 									{t.due_date ? ` · Due ${t.due_date}` : ''}
-									{doneStatusIds.has(t.status_id) ? ' · Completed' : ''}
+									{t.completed_at ? ' · Completed' : ''}
 								</Typography>
 							</MenuItem>
 						))}

@@ -1515,3 +1515,19 @@ export const TEMPLATE_CATEGORIES: Category[] = [
 		]
 	}
 ];
+
+/** Finds the category a given PROJECT_TEMPLATES template key belongs to (e.g. 'software_development' -> 'Software'). */
+export const getCategoryForTemplateKey = (templateKey?: string): string | undefined => {
+	if (!templateKey) return undefined;
+	return TEMPLATE_CATEGORIES.find((cat) => cat.templates.some((t) => t.key === templateKey))?.name;
+};
+
+/** Finds the full template definition for a given key, across all categories. */
+export const getTemplateByKey = (templateKey?: string): ProjectTemplate | undefined => {
+	if (!templateKey) return undefined;
+	for (const cat of TEMPLATE_CATEGORIES) {
+		const found = cat.templates.find((t) => t.key === templateKey);
+		if (found) return found;
+	}
+	return undefined;
+};

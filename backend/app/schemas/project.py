@@ -92,6 +92,7 @@ class ProjectResponse(ProjectBase):
     display_budget: Optional[float] = None
     display_currency: Optional[str] = None
     display_rate: Optional[float] = None
+    template_key: Optional[str] = None
 
     @model_validator(mode="before")
     @classmethod
