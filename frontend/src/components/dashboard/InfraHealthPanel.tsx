@@ -63,11 +63,11 @@ export const InfraHealthPanel: React.FC = () => {
 					)}
 				</Box>
 
-				<Grid container spacing={2}>
+				<Grid container spacing={1.5}>
 					{loading ? (
 						[1, 2, 3].map((n) => (
-							<Grid size={{ xs: 12, sm: 6, md: 4 }} key={n}>
-								<Skeleton variant="rounded" height={104} sx={{ borderRadius: '12px' }} />
+							<Grid size={12} key={n}>
+								<Skeleton variant="rounded" height={52} sx={{ borderRadius: '12px' }} />
 							</Grid>
 						))
 					) : !health ? (
@@ -80,16 +80,15 @@ export const InfraHealthPanel: React.FC = () => {
 						health.metrics.map((service) => {
 							const meta = statusMeta[service.status];
 							return (
-								<Grid size={{ xs: 12, sm: 6, md: 4 }} key={service.name}>
+								<Grid size={12} key={service.name}>
 									<Box
 										sx={{
-											p: 2,
+											p: 1.5,
 											borderRadius: '12px',
 											bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.005)',
-											border: `1px solid ${isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'}`,
-											height: '100%',
+											border: `1px solid ${theme.palette.divider}`,
 											display: 'flex',
-											flexDirection: 'column',
+											alignItems: 'center',
 											justifyContent: 'space-between',
 											transition: 'all 0.2s ease',
 											'&:hover': {
@@ -98,32 +97,32 @@ export const InfraHealthPanel: React.FC = () => {
 											}
 										}}
 									>
-										<Box>
-											<Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-												<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
-													{service.name}
-												</Typography>
-												<Box
-													sx={{
-														display: 'inline-flex',
-														alignItems: 'center',
-														gap: 0.75,
-														px: 1,
-														py: 0.25,
-														borderRadius: '4px',
-														bgcolor: alpha(meta.color, 0.1),
-														border: `1px solid ${alpha(meta.color, 0.2)}`,
-														color: meta.color,
-													}}
-												>
-													{meta.icon}
-													<Typography variant="caption" sx={{ fontWeight: 800, color: meta.color, fontSize: '0.62rem' }}>
-														{meta.label.toUpperCase()}
-													</Typography>
-												</Box>
-											</Box>
-											<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+										<Box sx={{ minWidth: 0, mr: 1.5 }}>
+											<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.78rem' }} noWrap>
+												{service.name}
+											</Typography>
+											<Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.66rem', display: 'block' }} noWrap>
 												{service.detail || '—'}
+											</Typography>
+										</Box>
+										
+										<Box
+											sx={{
+												display: 'inline-flex',
+												alignItems: 'center',
+												gap: 0.5,
+												px: 1,
+												py: 0.25,
+												borderRadius: '4px',
+												bgcolor: alpha(meta.color, 0.1),
+												border: `1px solid ${alpha(meta.color, 0.2)}`,
+												color: meta.color,
+												flexShrink: 0
+											}}
+										>
+											{meta.icon}
+											<Typography variant="caption" sx={{ fontWeight: 800, color: meta.color, fontSize: '0.58rem' }}>
+												{meta.label.toUpperCase()}
 											</Typography>
 										</Box>
 									</Box>

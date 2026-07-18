@@ -48,21 +48,21 @@ const Dashboard: React.FC = () => {
 						</Grid>
 					</Grid>
 
-					{/* Row 3: Plan Distribution + Recent Registrations + Seat Usage Monitor */}
+					{/* Row 3: Plan Distribution + Recent Registrations + Seat Usage Monitor + Infrastructure Health */}
 					<Grid container spacing={2} alignItems="stretch">
 						<Grid size={{ xs: 12, md: 3 }}>
 							<PlanDistributionPanel />
 						</Grid>
-						<Grid size={{ xs: 12, md: 4 }}>
+						<Grid size={{ xs: 12, md: 3 }}>
 							<RecentActivityPanel />
 						</Grid>
-						<Grid size={{ xs: 12, md: 5 }}>
+						<Grid size={{ xs: 12, md: 3 }}>
 							<OrgSeatUsagePanel />
 						</Grid>
+						<Grid size={{ xs: 12, md: 3 }}>
+							<InfraHealthPanel />
+						</Grid>
 					</Grid>
-
-					{/* Row 4: Infrastructure Health (Full Width) */}
-					<InfraHealthPanel />
 				</>
 			)}
 
