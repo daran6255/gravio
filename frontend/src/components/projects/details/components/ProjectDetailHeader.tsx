@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Typography, Stack, IconButton, Avatar, LinearProgress, Chip, Divider, Tooltip, Collapse, useTheme, alpha } from '@mui/material';
+import { Box, Typography, Stack, IconButton, Button, Avatar, LinearProgress, Chip, Divider, Tooltip, Collapse, useTheme, alpha } from '@mui/material';
 import {
 	ArrowBackOutlined,
 	PersonOutline,
@@ -12,6 +12,7 @@ import {
 	WarningAmberOutlined,
 	GroupsOutlined,
 	ExpandMoreOutlined,
+	AddOutlined,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import StatusBadge, { getStatusTone } from '../../../common/badge/StatusBadge';
@@ -27,6 +28,7 @@ interface ProjectDetailHeaderProps {
 	owners: CRMOwnerOption[];
 	onBack: () => void;
 	onEdit: () => void;
+	onAddTask: () => void;
 }
 
 const AVATAR_PALETTE = ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -73,7 +75,7 @@ const FactItem: React.FC<{ icon: React.ReactNode; label: string; value: React.Re
 	</Stack>
 );
 
-export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ project, tasks, owners, onBack, onEdit }) => {
+export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ project, tasks, owners, onBack, onEdit, onAddTask }) => {
 	const theme = useTheme();
 	const { formatDate } = useDateTime();
 	const [expanded, setExpanded] = useState(false);
@@ -196,7 +198,27 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 						</Box>
 					</Stack>
 
-					<Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
+					<Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+						<Button
+							variant="contained"
+							size="small"
+							startIcon={<AddOutlined />}
+							onClick={onAddTask}
+							sx={(theme) => ({
+								color: '#ffffff', textTransform: 'none', fontWeight: 700, borderRadius: '10px', px: 2.25, py: 0.75,
+								background: theme.gradients.brandDiagonal,
+								boxShadow: '0 4px 14px 0 rgba(139, 124, 246, 0.4)',
+								border: 'none',
+								transition: 'all 0.2s ease',
+								'&:hover': {
+									background: theme.gradients.brandDiagonalHover,
+									boxShadow: '0 6px 20px 0 rgba(139, 124, 246, 0.6)',
+									transform: 'translateY(-1px)',
+								},
+							})}
+						>
+							Add Task
+						</Button>
 						<Tooltip title={expanded ? 'Hide details' : 'Show details'}>
 							<IconButton
 								onClick={() => setExpanded((v) => !v)}

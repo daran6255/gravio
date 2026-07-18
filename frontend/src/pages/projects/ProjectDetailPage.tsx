@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Container, Stack, Button, Typography, CircularProgress } from '@mui/material';
-import { AddOutlined, TuneOutlined } from '@mui/icons-material';
+import { TuneOutlined } from '@mui/icons-material';
 import { responsiveStyles } from '../../theme';
 import { ConfirmationDialog } from '../../components/common/dialogbox';
 import {
@@ -60,7 +60,7 @@ const ProjectDetailPage: React.FC = () => {
 					</Box>
 				) : project ? (
 					<>
-						<ProjectDetailHeader project={project} tasks={tasks} owners={owners} onBack={handleBack} onEdit={handleEditClick} />
+						<ProjectDetailHeader project={project} tasks={tasks} owners={owners} onBack={handleBack} onEdit={handleEditClick} onAddTask={handleCreateTaskClick} />
 
 						<ProjectEditDrawer
 							open={editOpen}
@@ -83,25 +83,6 @@ const ProjectDetailPage: React.FC = () => {
 									sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px' }}
 								>
 									Manage Stages
-								</Button>
-								<Button
-									variant="contained"
-									startIcon={<AddOutlined />}
-									onClick={handleCreateTaskClick}
-									sx={(theme) => ({
-										color: '#ffffff', textTransform: 'none', fontWeight: 700, borderRadius: '10px', px: 3, py: 1,
-										background: theme.gradients.brandDiagonal,
-										boxShadow: '0 4px 14px 0 rgba(139, 124, 246, 0.4)',
-										border: 'none',
-										transition: 'all 0.2s ease',
-										'&:hover': {
-											background: theme.gradients.brandDiagonalHover,
-											boxShadow: '0 6px 20px 0 rgba(139, 124, 246, 0.6)',
-											transform: 'translateY(-1px)',
-										},
-									})}
-								>
-									Add Task
 								</Button>
 							</Box>
 						</Stack>

@@ -143,21 +143,23 @@ export const useProjectDetail = () => {
 		}
 	};
 
-	const handleTaskFormSubmit = async (payload: ProjectTaskCreate | ProjectTaskUpdate, keepOpen?: boolean) => {
+	const handleTaskFormSubmit = async (payload: ProjectTaskCreate | ProjectTaskUpdate, keepOpen?: boolean): Promise<ProjectTask | void> => {
 		if (!publicId) return;
+		let createdTask: ProjectTask | undefined;
 		if (editingTask) {
 			await dispatch(updateProjectTask({ taskPublicId: editingTask.public_id, payload })).unwrap();
 			toast.success('Task updated');
 		} else if (subtaskParent) {
-			await dispatch(createSubtask({ parentTaskPublicId: subtaskParent.public_id, payload: payload as ProjectTaskCreate })).unwrap();
+			createdTask = await dispatch(createSubtask({ parentTaskPublicId: subtaskParent.public_id, payload: payload as ProjectTaskCreate })).unwrap();
 			toast.success('Sub-task created');
 		} else {
-			await dispatch(createProjectTask({ projectPublicId: publicId, payload: payload as ProjectTaskCreate })).unwrap();
+			createdTask = await dispatch(createProjectTask({ projectPublicId: publicId, payload: payload as ProjectTaskCreate })).unwrap();
 			toast.success('Task created');
 		}
 		if (!keepOpen) {
 			handleCloseTaskForm();
 		}
+		return createdTask;
 	};
 
 	const handleMoveTask = async (task: ProjectTask, targetStatus: ProjectTaskStatus) => {

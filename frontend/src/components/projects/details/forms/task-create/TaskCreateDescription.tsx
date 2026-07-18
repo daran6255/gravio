@@ -1,5 +1,5 @@
-import React from 'react';
-import { Box, Stack, Typography, IconButton, Tab, Tabs, Divider, useTheme } from '@mui/material';
+import React, { useRef, useState } from 'react';
+import { Box, Stack, Typography, IconButton, Tab, Tabs, Divider, useTheme, alpha, Tooltip, CircularProgress } from '@mui/material';
 import {
 	FormatBold,
 	FormatItalic,
@@ -11,8 +11,14 @@ import {
 	FormatListBulleted,
 	PlaylistAddCheck,
 	AutoAwesomeOutlined,
+	InsertDriveFileOutlined,
+	ImageOutlined,
+	PictureAsPdfOutlined,
+	TableChartOutlined,
+	CloseOutlined,
 } from '@mui/icons-material';
-import { RichTextViewer } from '../../../../common/form';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface TaskCreateDescriptionProps {
 	description: string;
@@ -21,7 +27,24 @@ interface TaskCreateDescriptionProps {
 	setEditTab: (val: number) => void;
 	isDescFocused: boolean;
 	setIsDescFocused: (val: boolean) => void;
+	pendingFiles: File[];
+	onFilesSelected: (files: FileList | File[]) => void;
+	onRemoveFile: (index: number) => void;
+	uploading?: boolean;
 }
+
+const fileIconFor = (mimeType: string) => {
+	if (mimeType.startsWith('image/')) return ImageOutlined;
+	if (mimeType === 'application/pdf') return PictureAsPdfOutlined;
+	if (mimeType.includes('spreadsheet') || mimeType === 'text/csv') return TableChartOutlined;
+	return InsertDriveFileOutlined;
+};
+
+const formatFileSize = (bytes: number) => {
+	if (bytes < 1024) return `${bytes} B`;
+	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
 
 export const TaskCreateDescription: React.FC<TaskCreateDescriptionProps> = ({
 	description,
@@ -30,8 +53,14 @@ export const TaskCreateDescription: React.FC<TaskCreateDescriptionProps> = ({
 	setEditTab,
 	isDescFocused,
 	setIsDescFocused,
+	pendingFiles,
+	onFilesSelected,
+	onRemoveFile,
+	uploading = false,
 }) => {
 	const theme = useTheme();
+	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [isDragging, setIsDragging] = useState(false);
 
 	const insertMarkdown = (syntax: string) => {
 		const textarea = document.getElementById('create-task-desc-textarea') as HTMLTextAreaElement;
@@ -60,19 +89,52 @@ export const TaskCreateDescription: React.FC<TaskCreateDescriptionProps> = ({
 		}, 0);
 	};
 
+	const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+		const files = Array.from(e.clipboardData.files || []);
+		if (files.length > 0) {
+			e.preventDefault();
+			onFilesSelected(files);
+		}
+	};
+
+	const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+		e.preventDefault();
+		if (!uploading) setIsDragging(true);
+	};
+
+	const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+		e.preventDefault();
+		setIsDragging(false);
+	};
+
+	const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+		e.preventDefault();
+		setIsDragging(false);
+		if (uploading || !e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
+		onFilesSelected(e.dataTransfer.files);
+	};
+
+	const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		if (e.target.files && e.target.files.length > 0) onFilesSelected(e.target.files);
+		e.target.value = '';
+	};
+
 	return (
 		<Stack spacing={1}>
 			<Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem', color: 'text.primary' }}>
 				Add a description
 			</Typography>
 			<Box
+				onDragOver={handleDragOver}
+				onDragLeave={handleDragLeave}
+				onDrop={handleDrop}
 				sx={{
 					border: '1px solid',
-					borderColor: isDescFocused ? theme.palette.primary.main : theme.palette.divider,
+					borderColor: isDragging ? theme.palette.primary.main : (isDescFocused ? theme.palette.primary.main : theme.palette.divider),
 					borderRadius: '6px',
 					overflow: 'hidden',
-					bgcolor: 'transparent',
-					transition: 'border-color 0.15s ease-in-out',
+					bgcolor: isDragging ? alpha(theme.palette.primary.main, 0.04) : 'transparent',
+					transition: 'border-color 0.15s ease-in-out, background-color 0.15s ease-in-out',
 				}}
 			>
 				{/* Editor Header: Tabs + Formatting Toolbar */}
@@ -171,6 +233,7 @@ export const TaskCreateDescription: React.FC<TaskCreateDescriptionProps> = ({
 						onChange={(e) => setDescription(e.target.value)}
 						onFocus={() => setIsDescFocused(true)}
 						onBlur={() => setIsDescFocused(false)}
+						onPaste={handlePaste}
 						style={{
 							width: '100%',
 							minHeight: '130px',
@@ -188,7 +251,40 @@ export const TaskCreateDescription: React.FC<TaskCreateDescriptionProps> = ({
 				) : (
 					<Box sx={{ p: 2, minHeight: 130, overflowY: 'auto' }}>
 						{description.trim() ? (
-							<RichTextViewer html={description} />
+							<Box
+								sx={{
+									color: 'text.secondary',
+									fontSize: '0.875rem',
+									lineHeight: 1.57,
+									wordBreak: 'break-word',
+									overflowWrap: 'break-word',
+									'& p': { m: 0, mb: 1 },
+									'& p:last-child': { mb: 0 },
+									'& ul, & ol': { pl: 3, mb: 1 },
+									'& li': { mb: 0.25 },
+									'& a': { color: theme.palette.primary.main },
+									'& h1, & h2, & h3': { color: 'text.primary', fontWeight: 700, mt: 0, mb: 1 },
+									'& h3': { fontSize: '1rem' },
+									'& code': {
+										bgcolor: theme.palette.action.hover,
+										px: 0.5,
+										py: 0.125,
+										borderRadius: '4px',
+										fontSize: '0.85em',
+										fontFamily: 'monospace',
+									},
+									'& blockquote': {
+										borderLeft: '3px solid',
+										borderColor: 'divider',
+										pl: 1.5,
+										ml: 0,
+										color: 'text.secondary',
+									},
+									'& input[type="checkbox"]': { mr: 0.75 },
+								}}
+							>
+								<ReactMarkdown remarkPlugins={[remarkGfm]}>{description}</ReactMarkdown>
+							</Box>
 						) : (
 							<Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic', textAlign: 'center', py: 4 }}>
 								Nothing to preview. Type description in the "Write" tab.
@@ -197,8 +293,59 @@ export const TaskCreateDescription: React.FC<TaskCreateDescriptionProps> = ({
 					</Box>
 				)}
 
+				{/* Pending attachments */}
+				{pendingFiles.length > 0 && (
+					<Stack
+						spacing={0.5}
+						sx={{
+							px: 2,
+							py: 1.25,
+							borderTop: '1px dashed',
+							borderColor: theme.palette.divider,
+							bgcolor: theme.palette.background.default,
+						}}
+					>
+						{pendingFiles.map((file, index) => {
+							const FileIcon = fileIconFor(file.type);
+							return (
+								<Stack
+									key={`${file.name}-${index}`}
+									direction="row"
+									alignItems="center"
+									spacing={1}
+									sx={{
+										px: 1,
+										py: 0.5,
+										borderRadius: '6px',
+										bgcolor: theme.palette.action.hover,
+									}}
+								>
+									<FileIcon sx={{ fontSize: 16, color: 'text.secondary', flexShrink: 0 }} />
+									<Typography noWrap sx={{ flex: 1, fontSize: '0.78rem', fontWeight: 600, color: 'text.primary' }}>
+										{file.name}
+									</Typography>
+									<Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', flexShrink: 0 }}>
+										{formatFileSize(file.size)}
+									</Typography>
+									<IconButton
+										size="small"
+										disabled={uploading}
+										onClick={() => onRemoveFile(index)}
+										sx={{ p: 0.25, color: 'text.secondary', '&:hover': { color: 'error.main' } }}
+									>
+										<CloseOutlined sx={{ fontSize: 14 }} />
+									</IconButton>
+								</Stack>
+							);
+						})}
+					</Stack>
+				)}
+
 				{/* Editor Footer */}
 				<Box
+					onDragOver={handleDragOver}
+					onDragLeave={handleDragLeave}
+					onDrop={handleDrop}
 					sx={{
 						px: 2,
 						py: 1.25,
@@ -207,15 +354,30 @@ export const TaskCreateDescription: React.FC<TaskCreateDescriptionProps> = ({
 						display: 'flex',
 						justifyContent: 'space-between',
 						alignItems: 'center',
-						bgcolor: theme.palette.background.default,
+						bgcolor: isDragging ? alpha(theme.palette.primary.main, 0.04) : theme.palette.background.default,
 					}}
 				>
-					<Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: 'text.secondary', cursor: 'pointer', '&:hover': { color: 'text.primary' } }}>
-						<AttachFile sx={{ fontSize: 16 }} />
-						<Typography variant="caption" sx={{ fontWeight: 500 }}>
-							Paste, drop, or click to add files
-						</Typography>
-					</Stack>
+					<Tooltip title="Up to 10MB per file — PDF, images, Office docs, CSV, text, zip">
+						<Stack
+							direction="row"
+							spacing={0.5}
+							alignItems="center"
+							onClick={() => !uploading && fileInputRef.current?.click()}
+							sx={{ color: uploading ? 'text.disabled' : 'text.secondary', cursor: uploading ? 'default' : 'pointer', '&:hover': uploading ? undefined : { color: 'text.primary' } }}
+						>
+							{uploading ? <CircularProgress size={14} /> : <AttachFile sx={{ fontSize: 16 }} />}
+							<Typography variant="caption" sx={{ fontWeight: 500 }}>
+								{uploading ? 'Uploading…' : 'Paste, drop, or click to add files'}
+							</Typography>
+						</Stack>
+					</Tooltip>
+					<input
+						type="file"
+						multiple
+						ref={fileInputRef}
+						onChange={handleFileInputChange}
+						style={{ display: 'none' }}
+					/>
 
 					<Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: 'text.secondary', cursor: 'pointer', '&:hover': { color: 'primary.main' } }}>
 						<AutoAwesomeOutlined sx={{ fontSize: 14 }} />

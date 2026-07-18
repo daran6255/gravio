@@ -28,7 +28,7 @@ interface ProjectTaskDetailDrawerProps {
 	statuses: ProjectTaskStatus[];
 	owners: CRMOwnerOption[];
 	existingTags: ProjectTaskTag[];
-	onSubmit: (payload: ProjectTaskUpdate, keepOpen?: boolean) => Promise<void>;
+	onSubmit: (payload: ProjectTaskUpdate, keepOpen?: boolean) => Promise<ProjectTask | void>;
 	onDelete: () => void;
 	onAddSubtask: (parent: ProjectTask) => void;
 }

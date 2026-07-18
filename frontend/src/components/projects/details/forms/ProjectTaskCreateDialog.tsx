@@ -11,6 +11,10 @@ import {
 import type { ProjectTask, ProjectTaskCreate, ProjectTaskStatus, ProjectTaskTag } from '../../../../models/projects/projectTask';
 import type { LeadPriority } from '../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
+import { useAppDispatch } from '../../../../store/hooks';
+import { uploadTaskFile } from '../../../../store/slices/projectsSlice';
+import { MAX_FILE_SIZE_BYTES, ALLOWED_UPLOAD_MIME_TYPES } from '../../../../constants/fileUpload';
+import useToast from '../../../../hooks/useToast';
 
 // Import subcomponents
 import { TaskCreateHeader } from './task-create/TaskCreateHeader';
@@ -29,7 +33,7 @@ interface ProjectTaskCreateDialogProps {
 	owners: CRMOwnerOption[];
 	existingTags: ProjectTaskTag[];
 	submitting: boolean;
-	onSubmit: (payload: ProjectTaskCreate, keepOpen?: boolean) => Promise<void>;
+	onSubmit: (payload: ProjectTaskCreate, keepOpen?: boolean) => Promise<ProjectTask | void>;
 }
 
 export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = ({
@@ -45,6 +49,8 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 	onSubmit,
 }) => {
 	const theme = useTheme();
+	const dispatch = useAppDispatch();
+	const toast = useToast();
 
 	const PRIORITIES: { value: LeadPriority; label: string; color: string }[] = [
 		{ value: 'low', label: 'Low', color: theme.palette.success.main },
@@ -74,6 +80,8 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 	const [estimatedHours, setEstimatedHours] = useState<number | undefined>(undefined);
 	const [createMore, setCreateMore] = useState(false);
 	const [touched, setTouched] = useState(false);
+	const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+	const [attachmentsUploading, setAttachmentsUploading] = useState(false);
 
 	// Tabbed editor states
 	const [editTab, setEditTab] = useState(0);
@@ -142,6 +150,7 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 			setEstimatedHours(undefined);
 			setTouched(false);
 			setEditTab(0);
+			setPendingFiles([]);
 		}
 	}, [open, statuses, theme]);
 
@@ -150,10 +159,31 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 	const selectedAssignee = owners.find((o) => o.id === assigneeId) || null;
 	const selectedStatus = statuses.find((s) => s.id === statusId) || statuses[0];
 
+	const handleFilesSelected = (files: FileList | File[]) => {
+		const incoming = Array.from(files);
+		const accepted: File[] = [];
+		for (const file of incoming) {
+			if (file.size > MAX_FILE_SIZE_BYTES) {
+				toast.error(`"${file.name}" exceeds the ${MAX_FILE_SIZE_BYTES / (1024 * 1024)}MB limit`);
+				continue;
+			}
+			if (file.type && !ALLOWED_UPLOAD_MIME_TYPES.includes(file.type)) {
+				toast.error(`"${file.name}" has an unsupported file type`);
+				continue;
+			}
+			accepted.push(file);
+		}
+		if (accepted.length > 0) setPendingFiles((prev) => [...prev, ...accepted]);
+	};
+
+	const handleRemovePendingFile = (index: number) => {
+		setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+	};
+
 	const handleCreate = async () => {
 		setTouched(true);
 		if (!isValid) return;
-		
+
 		const payload: ProjectTaskCreate = {
 			title: title.trim(),
 			description: description.trim() || undefined,
@@ -169,13 +199,27 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 			}
 		};
 
-		await onSubmit(payload, createMore);
+		const createdTask = await onSubmit(payload, createMore);
+
+		if (createdTask && pendingFiles.length > 0) {
+			setAttachmentsUploading(true);
+			try {
+				for (const file of pendingFiles) {
+					await dispatch(uploadTaskFile({ taskPublicId: createdTask.public_id, file })).unwrap();
+				}
+			} catch (err) {
+				toast.error(typeof err === 'string' ? err : 'Failed to upload one or more files');
+			} finally {
+				setAttachmentsUploading(false);
+			}
+		}
 
 		if (createMore) {
 			setTitle('');
 			setDescription('');
 			setTouched(false);
 			setEditTab(0);
+			setPendingFiles([]);
 		}
 	};
 
@@ -239,6 +283,10 @@ export const ProjectTaskCreateDialog: React.FC<ProjectTaskCreateDialogProps> = (
 					setEditTab={setEditTab}
 					isDescFocused={isDescFocused}
 					setIsDescFocused={setIsDescFocused}
+					pendingFiles={pendingFiles}
+					onFilesSelected={handleFilesSelected}
+					onRemoveFile={handleRemovePendingFile}
+					uploading={attachmentsUploading}
 				/>
 
 				<TaskCreatePills
