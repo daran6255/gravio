@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { IconButton, Badge, Menu, MenuItem, Box, Typography, Stack, Divider, Button, CircularProgress } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { Notifications as NotificationsIcon, CircleNotifications } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -16,6 +17,7 @@ const POLL_INTERVAL_MS = 60_000;
 const NotificationBell: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
+	const theme = useTheme();
 	const { notifications, notificationsLoading, unreadCount } = useAppSelector((state) => state.notifications);
 	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -67,12 +69,12 @@ const NotificationBell: React.FC = () => {
 				onClose={handleClose}
 				anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
 				transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-				PaperProps={{ sx: { width: 360, maxHeight: 480, borderRadius: '12px', mt: 1 } }}
+				PaperProps={{ sx: { width: 360, maxHeight: 480, borderRadius: theme.layout.radius.card, mt: 1 } }}
 			>
 				<Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2, py: 1.25 }}>
 					<Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Notifications</Typography>
 					{unreadCount > 0 && (
-						<Button size="small" onClick={handleMarkAllRead} sx={{ textTransform: 'none', fontWeight: 600 }}>
+						<Button size="small" onClick={handleMarkAllRead}>
 							Mark all read
 						</Button>
 					)}

@@ -23,12 +23,11 @@ const Footer: React.FC = () => {
 		>
 			<Typography
 				variant="body2"
-				sx={{
+				sx={(theme) => ({
 					color: 'text.secondary',
-					fontWeight: 500,
+					...theme.typography.footerLink,
 					letterSpacing: '0.01em',
-					fontSize: '0.75rem',
-				}}
+				})}
 			>
 				Copyright © {new Date().getFullYear()}{' '}
 				<Link
@@ -57,13 +56,12 @@ const Footer: React.FC = () => {
 						to={item === 'Terms of Service' ? '/terms' : item === 'Privacy Policy' ? '/privacy-policy' : undefined}
 						href={item !== 'Terms of Service' && item !== 'Privacy Policy' ? '#' : undefined}
 						underline="none"
-						sx={{
+						sx={(theme) => ({
 							color: 'text.secondary',
-							fontSize: '0.75rem',
-							fontWeight: 500,
-							'&:hover': { color: (theme) => theme.palette.primary.main },
+							...theme.typography.footerLink,
+							'&:hover': { color: theme.palette.primary.main },
 							transition: 'color 0.2s',
-						}}
+						})}
 					>
 						{item}
 					</Link>

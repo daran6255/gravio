@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Box, CssBaseline } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
@@ -7,6 +8,8 @@ import Footer from './Footer';
 
 const MainLayout: React.FC = () => {
 	const location = useLocation();
+	const theme = useTheme();
+	const navbarHeight = `${theme.layout.navbarHeight}px`;
 
 	// Detect settings routes — they use their own SettingsLayout with a dedicated sidebar
 	const isSettingsRoute =
@@ -49,8 +52,8 @@ const MainLayout: React.FC = () => {
 						width: '100%',
 						display: 'flex',
 						flexDirection: 'column',
-						mt: '64px',
-						height: 'calc(100vh - 64px)',
+						mt: navbarHeight,
+						height: `calc(100vh - ${navbarHeight})`,
 						overflowY: 'auto',
 						overflowX: 'hidden'
 					}}
@@ -71,8 +74,8 @@ const MainLayout: React.FC = () => {
 					flexGrow: 1,
 					display: 'flex',
 					flexDirection: 'column',
-					height: 'calc(100vh - 64px)',
-					mt: '64px',
+					height: `calc(100vh - ${navbarHeight})`,
+					mt: navbarHeight,
 					overflow: 'hidden'
 				}}
 			>

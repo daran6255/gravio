@@ -9,6 +9,10 @@ declare module '@mui/material/styles' {
 		navLogo: React.CSSProperties;
 		sidebarItem: React.CSSProperties;
 		sidebarActive: React.CSSProperties;
+		sidebarSectionLabel: React.CSSProperties;
+		navBadge: React.CSSProperties;
+		footerLink: React.CSSProperties;
+		chipLabel: React.CSSProperties;
 	}
 	interface TypographyVariantsOptions {
 		awsSectionTitle?: React.CSSProperties;
@@ -16,6 +20,10 @@ declare module '@mui/material/styles' {
 		navLogo?: React.CSSProperties;
 		sidebarItem?: React.CSSProperties;
 		sidebarActive?: React.CSSProperties;
+		sidebarSectionLabel?: React.CSSProperties;
+		navBadge?: React.CSSProperties;
+		footerLink?: React.CSSProperties;
+		chipLabel?: React.CSSProperties;
 	}
 	interface Palette {
 		accent: Palette['primary'];
@@ -33,10 +41,58 @@ declare module '@mui/material/styles' {
 			brandDiagonalHover: string;
 			/** Frost glass gradient for cards */
 			card: string;
+			/** Fixed dark backdrop for the auth brand panel (mode-independent by design) */
+			authPanel: string;
+		};
+		layout: {
+			/** Height of the fixed top Navbar/Toolbar, in px */
+			navbarHeight: number;
+			/** Expanded Sidebar drawer width, in px */
+			drawerWidth: number;
+			/** Collapsed (icon-only) Sidebar drawer width, in px */
+			drawerWidthCollapsed: number;
+			/** Shared corner radii for pill badges/buttons and cards */
+			radius: {
+				pill: string;
+				badge: string;
+				card: string;
+				button: string;
+			};
+			navbar: {
+				background: string;
+			};
+			/** The Sidebar deliberately inverts against the app mode (light mode -> dark
+			 *  sidebar, dark mode -> light sidebar), so these can't be derived from `palette`. */
+			sidebar: {
+				background: string;
+				text: string;
+				textHover: string;
+				textMuted: string;
+				divider: string;
+				hoverBg: string;
+			};
+			/** The Settings "unsaved changes" action bar is a fixed dark surface in both
+			 *  app modes (for emphasis), so its text/background can't come from `palette` either. */
+			unsavedBar: {
+				background: string;
+				text: string;
+				textHover: string;
+				hoverBg: string;
+			};
+			/** The auth pages (login/register/forgot-password) use a fixed dark brand
+			 *  aesthetic by design, independent of the app's light/dark mode toggle. */
+			authPanel: {
+				border: string;
+				divider: string;
+				text: string;
+				textMuted: string;
+				textSubtle: string;
+			};
 		};
 	}
 	interface ThemeOptions {
 		gradients?: Theme['gradients'];
+		layout?: Theme['layout'];
 	}
 }
 
@@ -47,6 +103,10 @@ declare module '@mui/material/Typography' {
 		navLogo: true;
 		sidebarItem: true;
 		sidebarActive: true;
+		sidebarSectionLabel: true;
+		navBadge: true;
+		footerLink: true;
+		chipLabel: true;
 	}
 }
 
@@ -61,9 +121,45 @@ export const getThemeByMode = (mode: 'light' | 'dark'): Theme => {
 			brand: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
 			brandDiagonal: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
 			brandDiagonalHover: 'linear-gradient(135deg, #9C8FFF 0%, #7062E9 100%)',
-			card: isDark 
-				? 'linear-gradient(135deg, rgba(20, 24, 34, 0.75) 0%, rgba(11, 13, 18, 0.9) 100%)' 
+			card: isDark
+				? 'linear-gradient(135deg, rgba(20, 24, 34, 0.75) 0%, rgba(11, 13, 18, 0.9) 100%)'
 				: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.95) 100%)',
+			authPanel: 'linear-gradient(160deg, #141622 0%, #0c0e17 55%, #0a0b12 100%)',
+		},
+		layout: {
+			navbarHeight: 64,
+			drawerWidth: 260,
+			drawerWidthCollapsed: 64,
+			radius: {
+				pill: '10px',
+				badge: '5px',
+				card: '12px',
+				button: '8px',
+			},
+			navbar: {
+				background: isDark ? '#0B0D12' : '#ffffff',
+			},
+			sidebar: {
+				background: isDark ? '#ffffff' : '#0B0D12',
+				text: isDark ? '#1e293b' : '#F4F5F7',
+				textHover: isDark ? '#0B0D12' : '#ffffff',
+				textMuted: isDark ? '#64748b' : '#94A3B8',
+				divider: isDark ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)',
+				hoverBg: isDark ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.06)',
+			},
+			unsavedBar: {
+				background: isDark ? '#0B0D12' : '#1e293b',
+				text: '#94A3B8',
+				textHover: '#F4F5F7',
+				hoverBg: 'rgba(255, 255, 255, 0.06)',
+			},
+			authPanel: {
+				border: 'rgba(255, 255, 255, 0.07)',
+				divider: 'rgba(255, 255, 255, 0.06)',
+				text: '#F4F5F7',
+				textMuted: '#94A3B8',
+				textSubtle: '#64748b',
+			},
 		},
 		palette: {
 			mode,
@@ -185,7 +281,26 @@ export const getThemeByMode = (mode: 'light' | 'dark'): Theme => {
 			sidebarActive: {
 				fontSize: '0.85rem',
 				fontWeight: 800
-			}
+			},
+			sidebarSectionLabel: {
+				fontSize: '0.6875rem',
+				fontWeight: 700,
+				letterSpacing: '0.12em',
+				textTransform: 'uppercase',
+			},
+			navBadge: {
+				fontSize: '0.8125rem',
+				fontWeight: 700,
+				[media.down('sm')]: { fontSize: '0.75rem' },
+			},
+			footerLink: {
+				fontSize: '0.75rem',
+				fontWeight: 500,
+			},
+			chipLabel: {
+				fontSize: '0.75rem',
+				fontWeight: 700,
+			},
 		},
 		spacing: 8,
 		shape: {

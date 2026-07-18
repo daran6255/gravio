@@ -25,16 +25,14 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
-import { useTheme, useMediaQuery } from '@mui/material';
+import { useTheme, alpha } from '@mui/material/styles';
+import { useMediaQuery } from '@mui/material';
 import { toggleSidebar } from '../../store/slices/uiSlice';
 import { topNavigation, settingsNavigation } from '../../config/navigation';
 import type { NavigationItem } from '../../config/navigation';
 import { useColorMode } from '../../theme/ThemeContext';
 import { logoutUser } from '../../store/slices/authSlice';
 import ActionMenu from '../common/action-menu/ActionMenu';
-
-const DRAWER_WIDTH = 260;
-const COLLAPSED_WIDTH = 64; // Standardized slightly wider for icon centering
 
 /**
  * Enterprise Sidebar - Modern Console Navigation
@@ -53,11 +51,14 @@ const Sidebar: React.FC = () => {
 
 	const isDarkSidebar = mode === 'light'; // Light Mode -> Dark Sidebar; Dark Mode -> Light Sidebar
 
-	const sidebarBg = isDarkSidebar ? '#0B0D12' : '#ffffff';
-	const sidebarText = isDarkSidebar ? '#F4F5F7' : '#1e293b';
-	const sidebarTextMuted = isDarkSidebar ? '#94A3B8' : '#64748b';
-	const sidebarDivider = isDarkSidebar ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)';
-	const sidebarHoverBg = isDarkSidebar ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)';
+	const DRAWER_WIDTH = theme.layout.drawerWidth;
+	const COLLAPSED_WIDTH = theme.layout.drawerWidthCollapsed; // Standardized slightly wider for icon centering
+
+	const sidebarBg = theme.layout.sidebar.background;
+	const sidebarText = theme.layout.sidebar.text;
+	const sidebarTextMuted = theme.layout.sidebar.textMuted;
+	const sidebarDivider = theme.layout.sidebar.divider;
+	const sidebarHoverBg = theme.layout.sidebar.hoverBg;
 	const drawerExpanded = open;
 
 	const handleLogout = () => {
@@ -82,12 +83,12 @@ const Sidebar: React.FC = () => {
 				<Box sx={{
 					display: 'flex', alignItems: 'center', gap: 1,
 					px: 1.5, py: 1,
-					borderRadius: '10px',
-					background: isDarkSidebar ? 'rgba(139,124,246,0.15)' : 'rgba(139,124,246,0.1)',
-					border: '1px solid rgba(139,124,246,0.3)',
+					borderRadius: theme.layout.radius.pill,
+					background: alpha(theme.palette.primary.main, isDarkSidebar ? 0.15 : 0.1),
+					border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
 				}}>
-					<PremiumIcon sx={{ fontSize: '1rem', color: '#8B7CF6' }} />
-					<Typography variant="caption" sx={{ fontWeight: 700, color: '#A78BFA' }}>Super Admin</Typography>
+					<PremiumIcon sx={{ fontSize: '1rem', color: theme.palette.primary.main }} />
+					<Typography variant="caption" sx={{ fontWeight: 700, color: theme.palette.primary.light }}>Super Admin</Typography>
 				</Box>
 			);
 		}
@@ -102,44 +103,48 @@ const Sidebar: React.FC = () => {
 		let badgeBorder = '';
 		let badgeColor = '';
 
+		const tintBg = (color: string) => alpha(color, isDarkSidebar ? 0.12 : 0.08);
+		const tintBorder = (color: string) => alpha(color, 0.3);
+		const onTintPurple = isDarkSidebar ? theme.palette.primary.light : theme.palette.primary.dark;
+
 		if (status === 'trial') {
 			if (daysLeft < 0) {
-				icon = <WarningIcon sx={{ fontSize: '1.1rem', color: '#EF4444' }} />;
+				icon = <WarningIcon sx={{ fontSize: '1.1rem', color: theme.palette.error.main }} />;
 				label = 'Trial Expired';
 				sublabel = 'Upgrade to restore access';
-				badgeBg = isDarkSidebar ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.08)';
-				badgeBorder = 'rgba(239,68,68,0.3)';
-				badgeColor = '#EF4444';
+				badgeBg = tintBg(theme.palette.error.main);
+				badgeBorder = tintBorder(theme.palette.error.main);
+				badgeColor = theme.palette.error.main;
 			} else if (daysLeft === 0) {
-				icon = <WarningIcon sx={{ fontSize: '1.1rem', color: '#F59E0B' }} />;
+				icon = <WarningIcon sx={{ fontSize: '1.1rem', color: theme.palette.warning.main }} />;
 				label = 'Expires Today';
 				sublabel = 'Upgrade now to keep access';
-				badgeBg = isDarkSidebar ? 'rgba(245,158,11,0.12)' : 'rgba(245,158,11,0.08)';
-				badgeBorder = 'rgba(245,158,11,0.3)';
-				badgeColor = '#F59E0B';
+				badgeBg = tintBg(theme.palette.warning.main);
+				badgeBorder = tintBorder(theme.palette.warning.main);
+				badgeColor = theme.palette.warning.main;
 			} else {
-				icon = <HourglassIcon sx={{ fontSize: '1.1rem', color: '#F59E0B' }} />;
+				icon = <HourglassIcon sx={{ fontSize: '1.1rem', color: theme.palette.warning.main }} />;
 				label = `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`;
 				sublabel = `Free trial · Expires ${new Date(org.trial_expires_at!).toLocaleDateString()}`;
-				badgeBg = isDarkSidebar ? 'rgba(245,158,11,0.12)' : 'rgba(245,158,11,0.08)';
-				badgeBorder = 'rgba(245,158,11,0.3)';
-				badgeColor = '#F59E0B';
+				badgeBg = tintBg(theme.palette.warning.main);
+				badgeBorder = tintBorder(theme.palette.warning.main);
+				badgeColor = theme.palette.warning.main;
 			}
 		} else if (status === 'active' || status === 'paid') {
 			const planName = org.plan_name || org.plan?.name || 'Pro';
-			icon = <PremiumIcon sx={{ fontSize: '1.1rem', color: '#8B7CF6' }} />;
+			icon = <PremiumIcon sx={{ fontSize: '1.1rem', color: theme.palette.primary.main }} />;
 			label = planName;
 			sublabel = 'Active plan';
-			badgeBg = isDarkSidebar ? 'rgba(139,124,246,0.15)' : 'rgba(139,124,246,0.1)';
-			badgeBorder = 'rgba(139,124,246,0.3)';
-			badgeColor = isDarkSidebar ? '#A78BFA' : '#7C3AED';
+			badgeBg = alpha(theme.palette.primary.main, isDarkSidebar ? 0.15 : 0.1);
+			badgeBorder = tintBorder(theme.palette.primary.main);
+			badgeColor = onTintPurple;
 		} else if (status === 'expired') {
-			icon = <WarningIcon sx={{ fontSize: '1.1rem', color: '#EF4444' }} />;
+			icon = <WarningIcon sx={{ fontSize: '1.1rem', color: theme.palette.error.main }} />;
 			label = 'Subscription Expired';
 			sublabel = 'Renew to restore access';
-			badgeBg = isDarkSidebar ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.08)';
-			badgeBorder = 'rgba(239,68,68,0.3)';
-			badgeColor = '#EF4444';
+			badgeBg = tintBg(theme.palette.error.main);
+			badgeBorder = tintBorder(theme.palette.error.main);
+			badgeColor = theme.palette.error.main;
 		} else {
 			return null;
 		}
@@ -150,7 +155,7 @@ const Sidebar: React.FC = () => {
 				sx={{
 					display: 'flex', alignItems: 'center', gap: 1.5,
 					px: 1.5, py: 1.25,
-					borderRadius: '10px',
+					borderRadius: theme.layout.radius.pill,
 					background: badgeBg,
 					border: `1px solid ${badgeBorder}`,
 					cursor: 'pointer',
@@ -343,27 +348,27 @@ const Sidebar: React.FC = () => {
 						'&:hover': {
 							bgcolor: 'primary.dark',
 							'& .MuiListItemText-primary': {
-								color: '#ffffff',
+								color: theme.palette.primary.contrastText,
 							},
 							'& .MuiListItemIcon-root': {
-								color: '#ffffff',
+								color: theme.palette.primary.contrastText,
 							},
 						},
 						'& .MuiListItemText-primary': {
-							color: '#ffffff',
-							fontWeight: 800,
+							color: theme.palette.primary.contrastText,
+							fontWeight: theme.typography.sidebarActive.fontWeight,
 						},
 						'& .MuiListItemIcon-root': {
-							color: '#ffffff',
+							color: theme.palette.primary.contrastText,
 						},
 					},
 					'&:hover': {
 						bgcolor: sidebarHoverBg,
 						'& .MuiListItemText-primary': {
-							color: isDarkSidebar ? '#ffffff' : '#0B0D12',
+							color: theme.layout.sidebar.textHover,
 						},
 						'& .MuiListItemIcon-root': {
-							color: isDarkSidebar ? '#ffffff' : '#0B0D12',
+							color: theme.layout.sidebar.textHover,
 						},
 					},
 				}}
@@ -374,7 +379,7 @@ const Sidebar: React.FC = () => {
 							minWidth: 0,
 							mr: drawerExpanded ? 1.25 : 0,
 							justifyContent: 'center',
-							color: active ? '#ffffff' : sidebarTextMuted,
+							color: active ? theme.palette.primary.contrastText : sidebarTextMuted,
 							transition: theme.transitions.create(['color', 'margin']),
 						}}
 					>
@@ -389,7 +394,7 @@ const Sidebar: React.FC = () => {
 						m: 0,
 						'& .MuiListItemText-primary': {
 							...theme.typography[active ? 'sidebarActive' : 'sidebarItem'],
-							color: active ? '#ffffff' : sidebarTextMuted,
+							color: active ? theme.palette.primary.contrastText : sidebarTextMuted,
 							whiteSpace: 'nowrap',
 							overflow: 'hidden',
 							textOverflow: 'ellipsis',
@@ -493,7 +498,7 @@ const Sidebar: React.FC = () => {
 				{/* Brand Logo Header */}
 				<Box
 					sx={{
-						height: 64,
+						height: theme.layout.navbarHeight,
 						display: 'flex',
 						alignItems: 'center',
 						justifyContent: drawerExpanded ? 'flex-start' : 'center',
@@ -518,19 +523,19 @@ const Sidebar: React.FC = () => {
 							sx={{
 								width: 36,
 								height: 36,
-								borderRadius: '8px',
-								background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
+								borderRadius: theme.layout.radius.button,
+								background: theme.gradients.brandDiagonal,
 								display: 'flex',
 								alignItems: 'center',
 								justifyContent: 'center',
 								cursor: 'pointer',
-								boxShadow: '0 2px 8px rgba(139, 124, 246, 0.3)',
+								boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.3)}`,
 							}}
 						>
 							<svg width="22" height="22" viewBox="-75 -80 150 155" xmlns="http://www.w3.org/2000/svg">
 								<g>
-									<path d="M 36 -54 A 65 65 0 1 0 65 12 L 18 12" fill="none" stroke="#ffffff" strokeWidth="13" strokeLinecap="round"/>
-									<circle cx="58" cy="-66" r="10" fill="#ffffff"/>
+									<path d="M 36 -54 A 65 65 0 1 0 65 12 L 18 12" fill="none" stroke={theme.palette.primary.contrastText} strokeWidth="13" strokeLinecap="round"/>
+									<circle cx="58" cy="-66" r="10" fill={theme.palette.primary.contrastText}/>
 								</g>
 							</svg>
 						</Box>
@@ -623,21 +628,20 @@ const Sidebar: React.FC = () => {
 						variant="contained"
 						startIcon={<SupportIcon sx={{ fontSize: '1rem' }} />}
 						onClick={() => { navigate('/support'); dispatch(toggleSidebar()); }}
-						sx={(muiTheme) => ({
+						sx={{
 							textTransform: 'none',
-							fontWeight: 700,
-							fontSize: '0.825rem',
-							borderRadius: '10px',
+							...theme.typography.navBadge,
+							borderRadius: theme.layout.radius.pill,
 							py: 1,
 							justifyContent: 'flex-start',
-							background: muiTheme.gradients?.brandDiagonal ?? 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
-							boxShadow: '0 2px 10px rgba(139, 124, 246, 0.3)',
-							color: '#ffffff',
+							background: theme.gradients.brandDiagonal,
+							boxShadow: `0 2px 10px ${alpha(theme.palette.primary.main, 0.3)}`,
+							color: theme.palette.primary.contrastText,
 							'&:hover': {
-								background: muiTheme.gradients?.brandDiagonalHover ?? 'linear-gradient(135deg, #9C8FFF 0%, #7062E9 100%)',
-								boxShadow: '0 4px 14px rgba(139, 124, 246, 0.5)',
+								background: theme.gradients.brandDiagonalHover,
+								boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.5)}`,
 							},
-						})}
+						}}
 					>
 						Help & Support
 					</Button>
@@ -669,12 +673,12 @@ const Sidebar: React.FC = () => {
 										textTransform: 'none',
 										fontWeight: 700,
 										fontSize: '0.8rem',
-										borderRadius: '8px',
+										borderRadius: theme.layout.radius.button,
 										py: 1,
-										background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
-										boxShadow: '0 2px 8px rgba(139, 124, 246, 0.3)',
+										background: theme.gradients.brandDiagonal,
+										boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.3)}`,
 										'&:hover': {
-											background: 'linear-gradient(135deg, #9C8FFF 0%, #7062E9 100%)',
+											background: theme.gradients.brandDiagonalHover,
 										},
 									}}
 								>
@@ -758,7 +762,7 @@ const Sidebar: React.FC = () => {
 												width: 36,
 												height: 36,
 												bgcolor: 'primary.main',
-												color: '#ffffff',
+												color: (theme) => theme.palette.primary.contrastText,
 												fontSize: '0.875rem',
 												fontWeight: 700
 											}}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
+import { useTheme, alpha } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import {
 	CheckCircle as CheckCircleIcon,
@@ -15,6 +16,7 @@ interface AuthBrandPanelProps {
 
 const AuthBrandPanel: React.FC<AuthBrandPanelProps> = ({ variant = 'register', activeStepIndex }) => {
 	const navigate = useNavigate();
+	const theme = useTheme();
 	const { title, description, features, steps } = authPanelContent[variant];
 
 	return (
@@ -28,10 +30,10 @@ const AuthBrandPanel: React.FC<AuthBrandPanelProps> = ({ variant = 'register', a
 				px: { md: 6, lg: 8 },
 				py: 8,
 				overflow: 'hidden',
-				borderRight: '1px solid rgba(255, 255, 255, 0.07)',
-				background: 'linear-gradient(160deg, #141622 0%, #0c0e17 55%, #0a0b12 100%)',
+				borderRight: `1px solid ${theme.layout.authPanel.border}`,
+				background: theme.gradients.authPanel,
 				backgroundImage:
-					'radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(160deg, #141622 0%, #0c0e17 55%, #0a0b12 100%)',
+					`radial-gradient(${alpha(theme.palette.common.white, 0.05)} 1px, transparent 1px), ${theme.gradients.authPanel}`,
 				backgroundSize: '22px 22px, 100% 100%',
 			}}
 		>
@@ -44,7 +46,7 @@ const AuthBrandPanel: React.FC<AuthBrandPanelProps> = ({ variant = 'register', a
 					width: 360,
 					height: 360,
 					borderRadius: '50%',
-					background: 'radial-gradient(circle, rgba(139, 124, 246, 0.22) 0%, rgba(139, 124, 246, 0) 70%)',
+					background: `radial-gradient(circle, ${alpha(theme.palette.primary.main, 0.22)} 0%, ${alpha(theme.palette.primary.main, 0)} 70%)`,
 					pointerEvents: 'none',
 				}}
 			/>
@@ -56,7 +58,7 @@ const AuthBrandPanel: React.FC<AuthBrandPanelProps> = ({ variant = 'register', a
 					width: 420,
 					height: 420,
 					borderRadius: '50%',
-					background: 'radial-gradient(circle, rgba(78, 168, 255, 0.18) 0%, rgba(78, 168, 255, 0) 70%)',
+					background: `radial-gradient(circle, ${alpha(theme.palette.accent.main, 0.18)} 0%, ${alpha(theme.palette.accent.main, 0)} 70%)`,
 					pointerEvents: 'none',
 				}}
 			/>
@@ -70,10 +72,10 @@ const AuthBrandPanel: React.FC<AuthBrandPanelProps> = ({ variant = 'register', a
 					onClick={() => navigate('/')}
 				/>
 
-				<Typography component="h2" variant="h4" sx={{ fontWeight: 800, color: '#F4F5F7', mb: 2, lineHeight: 1.25 }}>
+				<Typography component="h2" variant="h4" sx={{ fontWeight: 800, color: theme.layout.authPanel.text, mb: 2, lineHeight: 1.25 }}>
 					{title}
 				</Typography>
-				<Typography variant="body1" sx={{ color: '#94A3B8', mb: 6, lineHeight: 1.6 }}>
+				<Typography variant="body1" sx={{ color: theme.layout.authPanel.textMuted, mb: 6, lineHeight: 1.6 }}>
 					{description}
 				</Typography>
 
@@ -92,19 +94,19 @@ const AuthBrandPanel: React.FC<AuthBrandPanelProps> = ({ variant = 'register', a
 								<Box key={step.label} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
 									<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
 										{status === 'done' ? (
-											<CheckCircleIcon sx={{ color: '#10b981', fontSize: 24 }} />
+											<CheckCircleIcon sx={{ color: theme.palette.success.main, fontSize: 24 }} />
 										) : status === 'current' ? (
 											<Box
 												sx={{
 													width: 24,
 													height: 24,
 													borderRadius: '50%',
-													border: '2px solid #8B7CF6',
-													bgcolor: 'rgba(139, 124, 246, 0.15)',
+													border: `2px solid ${theme.palette.primary.main}`,
+													bgcolor: alpha(theme.palette.primary.main, 0.15),
 												}}
 											/>
 										) : (
-											<PendingIcon sx={{ color: 'rgba(255, 255, 255, 0.25)', fontSize: 24 }} />
+											<PendingIcon sx={{ color: alpha(theme.palette.common.white, 0.25), fontSize: 24 }} />
 										)}
 										{index < steps.length - 1 && (
 											<Box
@@ -114,7 +116,7 @@ const AuthBrandPanel: React.FC<AuthBrandPanelProps> = ({ variant = 'register', a
 													minHeight: 28,
 													my: 0.5,
 													bgcolor:
-														status === 'upcoming' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(139, 124, 246, 0.4)',
+														status === 'upcoming' ? alpha(theme.palette.common.white, 0.1) : alpha(theme.palette.primary.main, 0.4),
 												}}
 											/>
 										)}
@@ -124,13 +126,13 @@ const AuthBrandPanel: React.FC<AuthBrandPanelProps> = ({ variant = 'register', a
 											variant="subtitle2"
 											sx={{
 												fontWeight: 700,
-												color: status === 'upcoming' ? '#64748b' : '#F4F5F7',
+												color: status === 'upcoming' ? theme.layout.authPanel.textSubtle : theme.layout.authPanel.text,
 												mb: 0.25,
 											}}
 										>
 											{step.label}
 										</Typography>
-										<Typography variant="body2" sx={{ color: '#94A3B8', lineHeight: 1.5 }}>
+										<Typography variant="body2" sx={{ color: theme.layout.authPanel.textMuted, lineHeight: 1.5 }}>
 											{step.description}
 										</Typography>
 									</Box>
@@ -151,17 +153,17 @@ const AuthBrandPanel: React.FC<AuthBrandPanelProps> = ({ variant = 'register', a
 										width: 40,
 										height: 40,
 										borderRadius: 1.5,
-										bgcolor: 'rgba(139, 124, 246, 0.1)',
-										border: '1px solid rgba(139, 124, 246, 0.15)',
+										bgcolor: alpha(theme.palette.primary.main, 0.1),
+										border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
 									}}
 								>
-									<Icon sx={{ color: '#8B7CF6', fontSize: 20 }} />
+									<Icon sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
 								</Box>
 								<Box>
-									<Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#F4F5F7', mb: 0.25 }}>
+									<Typography variant="subtitle2" sx={{ fontWeight: 700, color: theme.layout.authPanel.text, mb: 0.25 }}>
 										{itemTitle}
 									</Typography>
-									<Typography variant="body2" sx={{ color: '#94A3B8', lineHeight: 1.5 }}>
+									<Typography variant="body2" sx={{ color: theme.layout.authPanel.textMuted, lineHeight: 1.5 }}>
 										{itemDescription}
 									</Typography>
 								</Box>

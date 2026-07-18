@@ -11,8 +11,8 @@ const items = [
 const AuthRightFooter: React.FC = () => {
 	return (
 		<Box
-			sx={{
-				borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+			sx={(theme) => ({
+				borderTop: `1px solid ${theme.layout.authPanel.divider}`,
 				px: { xs: 4, sm: 6, md: 7 },
 				py: 2.5,
 				display: 'flex',
@@ -20,7 +20,7 @@ const AuthRightFooter: React.FC = () => {
 				alignItems: 'center',
 				justifyContent: 'center',
 				gap: { xs: 2, sm: 3 },
-			}}
+			})}
 		>
 			{items.map((item) => (
 				<Link
@@ -29,13 +29,12 @@ const AuthRightFooter: React.FC = () => {
 					to={item.to}
 					href={item.href}
 					underline="none"
-					sx={{
-						color: '#64748b',
-						fontSize: '0.75rem',
-						fontWeight: 500,
-						'&:hover': { color: '#94A3B8' },
+					sx={(theme) => ({
+						color: theme.layout.authPanel.textSubtle,
+						...theme.typography.footerLink,
+						'&:hover': { color: theme.layout.authPanel.textMuted },
 						transition: 'color 0.2s',
-					}}
+					})}
 				>
 					{item.label}
 				</Link>

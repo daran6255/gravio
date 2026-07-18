@@ -4,7 +4,7 @@ import {
 	Typography,
 	Button,
 } from '@mui/material';
-import { useTheme } from '@mui/material';
+import { useTheme, alpha } from '@mui/material/styles';
 import { SettingsProvider, useSettingsContext } from '../../context/SettingsContext';
 import { ProfileTab, PreferencesTab, SecurityTab, NotificationsTab } from '../settings';
 
@@ -15,7 +15,6 @@ import { ProfileTab, PreferencesTab, SecurityTab, NotificationsTab } from '../se
 const SettingsLayoutInner: React.FC = () => {
 	const theme = useTheme();
 	const { hasChanges, unsavedCount, handleSave, handleDiscard, saving } = useSettingsContext();
-	const isDark = theme.palette.mode === 'dark';
 
 	return (
 		<Box sx={{ display: 'flex', minHeight: '100vh', width: '100%', flexGrow: 1 }}>
@@ -27,7 +26,7 @@ const SettingsLayoutInner: React.FC = () => {
 					width: '100%',
 					display: 'flex',
 					flexDirection: 'column',
-					bgcolor: isDark ? '#0e1117' : '#F4F5F7',
+					bgcolor: theme.palette.background.default,
 				}}
 			>
 				{/* Scrollable content — all sections stacked */}
@@ -73,14 +72,14 @@ const SettingsLayoutInner: React.FC = () => {
 						sx={{
 							position: 'fixed',
 							bottom: 0,
-							left: { xs: 0, md: 260 },
+							left: { xs: 0, md: theme.layout.drawerWidth },
 							right: 0,
 							px: { xs: 2, sm: 4 },
 							py: 1.5,
 							flexWrap: 'wrap',
 							gap: 1,
-							bgcolor: isDark ? '#0B0D12' : '#1e293b',
-							borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+							bgcolor: theme.layout.unsavedBar.background,
+							borderTop: `1px solid ${theme.palette.divider}`,
 							display: 'flex',
 							alignItems: 'center',
 							justifyContent: 'space-between',
@@ -90,7 +89,7 @@ const SettingsLayoutInner: React.FC = () => {
 						<Typography
 							variant="body2"
 							sx={{
-								color: '#94A3B8',
+								color: theme.layout.unsavedBar.text,
 								fontStyle: 'italic',
 								fontWeight: 500,
 							}}
@@ -102,10 +101,10 @@ const SettingsLayoutInner: React.FC = () => {
 								onClick={handleDiscard}
 								sx={{
 									textTransform: 'none',
-									color: '#94A3B8',
+									color: theme.layout.unsavedBar.text,
 									fontWeight: 600,
 									fontSize: '0.85rem',
-									'&:hover': { color: '#F4F5F7', bgcolor: 'rgba(255,255,255,0.06)' },
+									'&:hover': { color: theme.layout.unsavedBar.textHover, bgcolor: theme.layout.unsavedBar.hoverBg },
 								}}
 							>
 								Discard
@@ -118,12 +117,12 @@ const SettingsLayoutInner: React.FC = () => {
 									textTransform: 'none',
 									fontWeight: 700,
 									fontSize: '0.85rem',
-									borderRadius: '8px',
+									borderRadius: theme.layout.radius.button,
 									px: 3,
-									background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
-									boxShadow: '0 2px 8px rgba(139, 124, 246, 0.25)',
+									background: theme.gradients.brandDiagonal,
+									boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.25)}`,
 									'&:hover': {
-										background: 'linear-gradient(135deg, #9C8FFF 0%, #7062E9 100%)',
+										background: theme.gradients.brandDiagonalHover,
 									},
 								}}
 							>
