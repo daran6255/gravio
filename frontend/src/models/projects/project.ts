@@ -38,6 +38,9 @@ export interface Project {
 	end_date?: string;
 	budget?: number;
 	currency: string;
+	display_budget?: number;
+	display_currency?: string;
+	display_rate?: number;
 	phase?: string;
 	issues?: string;
 	tags?: string[];
@@ -121,5 +124,7 @@ export interface ProjectStats {
 	budget_by_currency: ProjectBudgetByCurrency[];
 	upcoming_deadlines: ProjectDeadlineItem[];
 	overdue_projects: ProjectDeadlineItem[];
+	display_total_budget?: number;
+	display_currency?: string;
 }
 

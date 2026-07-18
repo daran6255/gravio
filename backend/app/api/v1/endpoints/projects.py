@@ -35,6 +35,7 @@ from app.schemas.project import (
 )
 from app.utils.file_validation import validate_upload
 from app.middleware.exceptions import NotFoundError
+from app.services.currency import CurrencyConversionService
 
 router = APIRouter(prefix="/projects", tags=["Project Management"])
 
@@ -100,6 +101,9 @@ async def create_project_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
     project = await ProjectService.create_project(db, payload)
+    await CurrencyConversionService.attach_display_value(
+        db, project, value_field="budget", currency_field="currency", user_currency=current_user.currency,
+    )
     return ProjectResponse.model_validate(project)
 
 
@@ -132,6 +136,9 @@ async def list_projects_endpoint(
         assigned_to_me_user_id=current_user.id if assigned_to_me else None,
         exclude_completed=exclude_completed,
     )
+    await CurrencyConversionService.attach_display_values(
+        db, items, value_field="budget", currency_field="currency", user_currency=current_user.currency,
+    )
     return PaginatedResponse[ProjectResponse](
         items=[ProjectResponse.model_validate(i) for i in items],
         total=total,
@@ -151,6 +158,23 @@ async def get_project_stats_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> ProjectStatsResponse:
     stats = await ProjectService.get_stats(db)
+    user_currency = current_user.currency
+    display_total_budget = None
+    if user_currency:
+        from datetime import date
+        total_in_user_currency = 0.0
+        has_conversion = False
+        for item in stats.get("budget_by_currency", []):
+            rate = await CurrencyConversionService.get_rate(
+                db, from_currency=item["currency"], to_currency=user_currency, on_date=date.today()
+            )
+            if rate is not None:
+                total_in_user_currency += item["total"] * float(rate)
+                has_conversion = True
+        if has_conversion:
+            display_total_budget = round(total_in_user_currency, 2)
+    stats["display_total_budget"] = display_total_budget
+    stats["display_currency"] = user_currency
     return ProjectStatsResponse(**stats)
 
 
@@ -166,6 +190,9 @@ async def bulk_update_projects_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> list[ProjectResponse]:
     projects = await ProjectService.bulk_update_projects(db, payload.public_ids, payload.owner_id, payload.status)
+    await CurrencyConversionService.attach_display_values(
+        db, projects, value_field="budget", currency_field="currency", user_currency=current_user.currency,
+    )
     return [ProjectResponse.model_validate(p) for p in projects]
 
 
@@ -181,6 +208,9 @@ async def get_project_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
     project = await ProjectService.get_project(db, public_id)
+    await CurrencyConversionService.attach_display_value(
+        db, project, value_field="budget", currency_field="currency", user_currency=current_user.currency,
+    )
     return ProjectResponse.model_validate(project)
 
 
@@ -197,6 +227,9 @@ async def update_project_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
     project = await ProjectService.update_project(db, public_id, payload)
+    await CurrencyConversionService.attach_display_value(
+        db, project, value_field="budget", currency_field="currency", user_currency=current_user.currency,
+    )
     return ProjectResponse.model_validate(project)
 
 

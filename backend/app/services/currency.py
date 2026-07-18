@@ -102,8 +102,12 @@ class CurrencyConversionService:
         elif obj.__class__.__name__ == "CRMLead":
             entity_type = "lead"
             field_name = "estimated_value"
+        elif obj.__class__.__name__ == "Project":
+            entity_type = "project"
+            field_name = "budget"
+            on_date = date.today()
 
-        if entity_type and field_name and hasattr(obj, "id"):
+        if entity_type and field_name and hasattr(obj, "id") and on_date is None:
             from app.repositories.audit import AuditLogRepository
             latest_change = await AuditLogRepository.get_latest_field_change(
                 db, entity_type=entity_type, entity_id=obj.id, field_name=field_name,

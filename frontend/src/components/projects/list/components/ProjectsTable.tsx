@@ -1,5 +1,5 @@
 import React from 'react';
-import { TableRow, TableCell, Typography, Stack, Avatar, TextField, MenuItem, alpha, LinearProgress, Box, Checkbox } from '@mui/material';
+import { TableRow, TableCell, Typography, Stack, Avatar, TextField, MenuItem, alpha, LinearProgress, Box, Checkbox, Tooltip } from '@mui/material';
 import { Visibility, DeleteOutline } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../../common/table';
@@ -31,14 +31,38 @@ interface ProjectsTableProps {
 	onSelectAll?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-const formatBudget = (project: Project): string => {
+const renderBudgetCell = (project: Project) => {
 	if (project.budget == null) return '—';
-	return new Intl.NumberFormat(undefined, {
+
+	const originalFormatted = new Intl.NumberFormat(undefined, {
 		style: 'currency',
 		currency: project.currency,
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2,
 	}).format(project.budget);
+
+	if (project.display_budget != null && project.display_currency) {
+		const displayFormatted = new Intl.NumberFormat(undefined, {
+			style: 'currency',
+			currency: project.display_currency,
+		}).format(project.display_budget);
+
+		const rateInfo = project.display_rate 
+			? ` (1 ${project.currency} = ${project.display_rate.toFixed(4)} ${project.display_currency})` 
+			: '';
+
+		return (
+			<Tooltip title={`Original: ${originalFormatted}${rateInfo}`} arrow>
+				<Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', cursor: 'help' }}>
+					{displayFormatted}
+				</Typography>
+			</Tooltip>
+		);
+	}
+
+	return (
+		<Typography variant="body2" sx={{ color: 'text.secondary' }}>
+			{originalFormatted}
+		</Typography>
+	);
 };
 
 const CLOSED_STATUSES: ProjectStatus[] = ['completed', 'approved', 'invoiced', 'canceled'];
@@ -163,7 +187,7 @@ export const ProjectsTable: React.FC<ProjectsTableProps> = ({
 						);
 					})()}
 				</TableCell>
-				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{formatBudget(project)}</TableCell>
+				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{renderBudgetCell(project)}</TableCell>
 				<TableCell align="right" onClick={(e) => e.stopPropagation()}>
 					<Stack direction="row" justifyContent="flex-end">
 						<DataTableActions item={project} actions={actions} tooltipTitle="Project Actions" />

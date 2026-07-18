@@ -13,16 +13,41 @@ export const ProjectsStatsPanel: React.FC<ProjectsStatsPanelProps> = ({ stats })
 	const activeCount = countFor('active');
 	const onHoldCount = countFor('on_hold');
 
+	const hasConversion = stats?.display_total_budget != null && stats?.display_currency;
 	const primaryBudget = stats?.budget_by_currency[0];
 	const otherCurrencyCount = (stats?.budget_by_currency.length ?? 0) - 1;
-	const budgetValue = primaryBudget
+
+	const budgetValue = hasConversion
 		? new Intl.NumberFormat(undefined, {
 			style: 'currency',
-			currency: primaryBudget.currency,
+			currency: stats.display_currency,
 			minimumFractionDigits: 2,
 			maximumFractionDigits: 2,
-		}).format(primaryBudget.total)
-		: '—';
+		}).format(stats.display_total_budget!)
+		: primaryBudget
+			? new Intl.NumberFormat(undefined, {
+				style: 'currency',
+				currency: primaryBudget.currency,
+				minimumFractionDigits: 2,
+				maximumFractionDigits: 2,
+			}).format(primaryBudget.total)
+			: '—';
+
+	let budgetSubtitle = 'Across all projects';
+	if (hasConversion) {
+		if (primaryBudget) {
+			const originalFormatted = new Intl.NumberFormat(undefined, {
+				style: 'currency',
+				currency: primaryBudget.currency,
+				notation: 'compact',
+			}).format(primaryBudget.total);
+
+			budgetSubtitle = `Original: ${originalFormatted}${otherCurrencyCount > 0 ? ` (+${otherCurrencyCount} cur)` : ''}`;
+		}
+	} else if (otherCurrencyCount > 0) {
+		budgetSubtitle = `+${otherCurrencyCount} other currenc${otherCurrencyCount === 1 ? 'y' : 'ies'}`;
+	}
+
 	const taskCompletionPct = stats && stats.total_tasks > 0
 		? Math.round((stats.completed_tasks / stats.total_tasks) * 100)
 		: null;
@@ -55,10 +80,12 @@ export const ProjectsStatsPanel: React.FC<ProjectsStatsPanelProps> = ({ stats })
 		{
 			title: 'TOTAL BUDGET',
 			value: budgetValue,
-			subtitle: otherCurrencyCount > 0 ? `+${otherCurrencyCount} other currenc${otherCurrencyCount === 1 ? 'y' : 'ies'}` : 'Across all projects',
+			subtitle: budgetSubtitle,
 			icon: <AccountBalanceWalletOutlined sx={{ color: '#4EA8FF', fontSize: 26 }} />,
 			color: '#4EA8FF',
-			tooltip: 'The combined budget of all projects, shown in the most common project currency.',
+			tooltip: hasConversion
+				? 'The combined budget of all projects, converted to your preferred display currency.'
+				: 'The combined budget of all projects, shown in the most common project currency.',
 		},
 	];
 

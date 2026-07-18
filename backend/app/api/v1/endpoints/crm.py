@@ -778,6 +778,9 @@ async def convert_deal_to_project_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
     project = await ProjectService.convert_deal_to_project(db, public_id, payload, current_user)
+    await CurrencyConversionService.attach_display_value(
+        db, project, value_field="budget", currency_field="currency", user_currency=current_user.currency,
+    )
     return ProjectResponse.model_validate(project)
 
 

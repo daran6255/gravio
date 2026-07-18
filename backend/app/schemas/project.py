@@ -89,6 +89,20 @@ class ProjectResponse(ProjectBase):
     owner_name: Optional[str] = None
     company_name: Optional[str] = None
     deal_title: Optional[str] = None
+    display_budget: Optional[float] = None
+    display_currency: Optional[str] = None
+    display_rate: Optional[float] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _map_display_budget(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            if hasattr(data, "display_value"):
+                data.display_budget = data.display_value
+        else:
+            if "display_value" in data:
+                data["display_budget"] = data["display_value"]
+        return data
 
     @model_validator(mode="before")
     @classmethod
@@ -154,6 +168,8 @@ class ProjectStatsResponse(BaseModel):
     budget_by_currency: list[ProjectBudgetByCurrency]
     upcoming_deadlines: list[ProjectDeadlineItem]
     overdue_projects: list[ProjectDeadlineItem]
+    display_total_budget: Optional[float] = None
+    display_currency: Optional[str] = None
 
 
 # --- Deal -> Project conversion ---

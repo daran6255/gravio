@@ -247,7 +247,19 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 							icon={<AccountBalanceWalletOutlined fontSize="small" />}
 							label="Budget"
 							color={theme.palette.success.main}
-							value={project.budget != null ? formatMoney(project.budget, project.currency) : 'Not set'}
+							value={
+								project.budget == null ? (
+									'Not set'
+								) : project.display_budget != null && project.display_currency ? (
+									<Tooltip title={`Original: ${formatMoney(project.budget, project.currency)}${project.display_rate ? ` (1 ${project.currency} = ${project.display_rate.toFixed(4)} ${project.display_currency})` : ''}`} arrow>
+										<span style={{ cursor: 'help' }}>
+											{formatMoney(project.display_budget, project.display_currency)}
+										</span>
+									</Tooltip>
+								) : (
+									formatMoney(project.budget, project.currency)
+								)
+							}
 						/>
 
 						<FactItem
