@@ -26,7 +26,8 @@ import {
 	PictureAsPdfOutlined,
 	TableChartOutlined,
 } from '@mui/icons-material';
-import projectService from '../../../../../services/projectService';
+import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
+import { fetchTaskFiles, uploadTaskFile, deleteTaskFile, viewTaskFile, downloadTaskFile } from '../../../../../store/slices/projectsSlice';
 import useToast from '../../../../../hooks/useToast';
 import useDateTime from '../../../../../hooks/useDateTime';
 import { MAX_FILE_SIZE_BYTES, ALLOWED_UPLOAD_MIME_TYPES } from '../../../../../constants/fileUpload';
@@ -55,10 +56,11 @@ export const TaskAttachmentsCard: React.FC<TaskAttachmentsCardProps> = ({ task }
 	const toast = useToast();
 	const { formatDate, formatDateTime } = useDateTime();
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const dispatch = useAppDispatch();
 
-	const [files, setFiles] = useState<ProjectTaskFile[]>([]);
-	const [filesLoading, setFilesLoading] = useState(false);
-	const [uploading, setUploading] = useState(false);
+	const files = useAppSelector((state) => state.projects.taskFiles);
+	const filesLoading = useAppSelector((state) => state.projects.taskFilesLoading);
+	const uploading = useAppSelector((state) => state.projects.fileUploading);
 	const [isDragging, setIsDragging] = useState(false);
 	const [menuState, setMenuState] = useState<{ anchorEl: HTMLElement; file: ProjectTaskFile } | null>(null);
 
@@ -68,26 +70,18 @@ export const TaskAttachmentsCard: React.FC<TaskAttachmentsCardProps> = ({ task }
 	};
 	const closeFileMenu = () => setMenuState(null);
 
-	const borderColor = isDark ? '#30363d' : '#d0d7de';
-	const cardBg = isDark ? '#161b22' : '#ffffff';
-	const hoverBg = isDark ? '#21262d' : '#f3f4f6';
+	const borderColor = theme.palette.divider;
+	const cardBg = theme.palette.background.paper;
+	const hoverBg = theme.palette.action.hover;
 
-	const loadFiles = async () => {
-		setFilesLoading(true);
-		try {
-			const res = await projectService.listTaskFiles(task.public_id);
-			setFiles(res);
-		} catch {
-			toast.error('Failed to load attachments');
-		} finally {
-			setFilesLoading(false);
-		}
+	const loadFiles = () => {
+		dispatch(fetchTaskFiles(task.public_id));
 	};
 
 	useEffect(() => {
 		loadFiles();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [task.public_id]);
+	}, [task.public_id, dispatch]);
 
 	const uploadFile = async (file: File) => {
 		if (file.size > MAX_FILE_SIZE_BYTES) {
@@ -99,15 +93,11 @@ export const TaskAttachmentsCard: React.FC<TaskAttachmentsCardProps> = ({ task }
 			return;
 		}
 
-		setUploading(true);
 		try {
-			const uploaded = await projectService.uploadTaskFile(task.public_id, file);
-			setFiles((prev) => [uploaded, ...prev]);
+			await dispatch(uploadTaskFile({ taskPublicId: task.public_id, file })).unwrap();
 			toast.success('File uploaded successfully');
 		} catch (err: any) {
-			toast.error(err.response?.data?.error?.message || 'Failed to upload file');
-		} finally {
-			setUploading(false);
+			toast.error(err || 'Failed to upload file');
 		}
 	};
 
@@ -136,11 +126,10 @@ export const TaskAttachmentsCard: React.FC<TaskAttachmentsCardProps> = ({ task }
 
 	const handleDelete = async (filePublicId: string) => {
 		try {
-			await projectService.deleteTaskFile(task.public_id, filePublicId);
-			setFiles((prev) => prev.filter((f) => f.public_id !== filePublicId));
+			await dispatch(deleteTaskFile({ taskPublicId: task.public_id, filePublicId })).unwrap();
 			toast.success('File deleted');
-		} catch {
-			toast.error('Failed to delete file');
+		} catch (err: any) {
+			toast.error(err || 'Failed to delete file');
 		}
 	};
 
@@ -151,7 +140,7 @@ export const TaskAttachmentsCard: React.FC<TaskAttachmentsCardProps> = ({ task }
 			onDrop={handleDrop}
 			sx={{
 				border: '1px solid',
-				borderColor: isDragging ? 'primary.main' : borderColor,
+				borderColor: isDragging ? theme.palette.primary.main : borderColor,
 				borderRadius: '12px',
 				bgcolor: cardBg,
 				overflow: 'hidden',
@@ -169,7 +158,7 @@ export const TaskAttachmentsCard: React.FC<TaskAttachmentsCardProps> = ({ task }
 					py: 1.1,
 					borderBottom: '1px solid',
 					borderColor,
-					bgcolor: isDark ? '#161b22' : '#f6f8fa',
+					bgcolor: theme.palette.action.hover,
 				}}
 			>
 				<Stack direction="row" alignItems="center" spacing={1}>
@@ -182,37 +171,46 @@ export const TaskAttachmentsCard: React.FC<TaskAttachmentsCardProps> = ({ task }
 						</Box>
 					)}
 				</Stack>
+
 				<IconButton
 					size="small"
-					onClick={() => fileInputRef.current?.click()}
 					disabled={uploading}
-					sx={{ color: 'text.secondary', '&:hover': { bgcolor: hoverBg } }}
-					title="Upload a file"
+					onClick={() => fileInputRef.current?.click()}
+					sx={{ color: 'primary.main', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08) } }}
 				>
-					{uploading ? <CircularProgress size={16} /> : <AddOutlined fontSize="small" />}
+					{uploading ? <CircularProgress size={16} color="inherit" /> : <AddOutlined fontSize="small" />}
 				</IconButton>
-				<input ref={fileInputRef} type="file" hidden onChange={handleFileInputChange} />
+				<input
+					type="file"
+					ref={fileInputRef}
+					onChange={handleFileInputChange}
+					style={{ display: 'none' }}
+				/>
 			</Stack>
 
-			{/* Card body */}
-			<Box sx={{ p: filesLoading || files.length === 0 ? 0 : 1 }}>
+			{/* Content / Drop zone */}
+			<Box sx={{ p: 2, maxHeight: 300, overflowY: 'auto' }}>
 				{filesLoading ? (
 					<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-						<CircularProgress size={22} />
+						<CircularProgress size={24} />
 					</Box>
 				) : files.length === 0 ? (
-					// Meaningful empty state: explains what this section is for and doubles
-					// as the drop target, instead of a bare "no files" line.
 					<Box
 						sx={{
 							display: 'flex',
 							flexDirection: 'column',
 							alignItems: 'center',
-							textAlign: 'center',
-							px: 3,
+							justifyContent: 'center',
 							py: 4,
+							px: 2,
+							border: '1px dashed',
+							borderColor: isDragging ? theme.palette.primary.main : theme.palette.divider,
+							borderRadius: '8px',
+							bgcolor: isDragging ? alpha(theme.palette.primary.main, 0.04) : theme.palette.background.default,
+							textAlign: 'center',
 							gap: 1,
-							cursor: uploading ? 'default' : 'pointer',
+							cursor: 'pointer',
+							userSelect: 'none',
 						}}
 						onClick={() => !uploading && fileInputRef.current?.click()}
 					>
@@ -224,7 +222,7 @@ export const TaskAttachmentsCard: React.FC<TaskAttachmentsCardProps> = ({ task }
 								display: 'flex',
 								alignItems: 'center',
 								justifyContent: 'center',
-								bgcolor: isDragging ? alpha(theme.palette.primary.main, 0.12) : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'),
+								bgcolor: isDragging ? alpha(theme.palette.primary.main, 0.12) : theme.palette.action.selected,
 								color: isDragging ? 'primary.main' : 'text.secondary',
 								transition: 'background-color 0.15s ease',
 							}}
@@ -271,7 +269,7 @@ export const TaskAttachmentsCard: React.FC<TaskAttachmentsCardProps> = ({ task }
 												width: 32,
 												height: 32,
 												borderRadius: '8px',
-												bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+												bgcolor: theme.palette.action.selected,
 												color: 'text.secondary',
 												flexShrink: 0,
 											}}
@@ -280,7 +278,7 @@ export const TaskAttachmentsCard: React.FC<TaskAttachmentsCardProps> = ({ task }
 										</Box>
 										<Box
 											sx={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
-											onClick={() => projectService.viewTaskFile(task.public_id, file.public_id)}
+											onClick={() => dispatch(viewTaskFile({ taskPublicId: task.public_id, filePublicId: file.public_id }))}
 										>
 											<Typography noWrap sx={{ fontWeight: 600, fontSize: '0.8rem', color: 'text.primary', '&:hover': { color: 'primary.main' } }}>
 												{file.file_name}
@@ -312,7 +310,7 @@ export const TaskAttachmentsCard: React.FC<TaskAttachmentsCardProps> = ({ task }
 			>
 				<MenuItem
 					onClick={() => {
-						if (menuState) projectService.viewTaskFile(task.public_id, menuState.file.public_id);
+						if (menuState) dispatch(viewTaskFile({ taskPublicId: task.public_id, filePublicId: menuState.file.public_id }));
 						closeFileMenu();
 					}}
 					sx={{ py: 0.6, minHeight: 'auto' }}
@@ -322,7 +320,7 @@ export const TaskAttachmentsCard: React.FC<TaskAttachmentsCardProps> = ({ task }
 				</MenuItem>
 				<MenuItem
 					onClick={() => {
-						if (menuState) projectService.downloadTaskFile(task.public_id, menuState.file.public_id, menuState.file.file_name);
+						if (menuState) dispatch(downloadTaskFile({ taskPublicId: task.public_id, filePublicId: menuState.file.public_id, fileName: menuState.file.file_name }));
 						closeFileMenu();
 					}}
 					sx={{ py: 0.6, minHeight: 'auto' }}

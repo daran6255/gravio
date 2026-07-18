@@ -50,8 +50,7 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 
 	const dispatch = useAppDispatch();
 	const theme = useTheme();
-	const isDark = theme.palette.mode === 'dark';
-	const bgColor = isDark ? '#0d1117' : '#ffffff';
+	const bgColor = theme.palette.background.paper;
 
 	const [commentText, setCommentText] = useState('');
 

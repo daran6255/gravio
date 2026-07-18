@@ -3,11 +3,10 @@ import { Dialog, TextField, Stack, InputAdornment, Typography, Grid, Card, CardC
 import { WorkOutline, ReceiptLong, Flag, CalendarToday, Check } from '@mui/icons-material';
 import { EnterpriseForm, type FormStep, DatePicker } from '../../common/form';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { convertDealToProject } from '../../../store/slices/projectsSlice';
+import { convertDealToProject, fetchDealProjectConversionPreview } from '../../../store/slices/projectsSlice';
 import type { Deal } from '../../../models/crm/deal';
-import type { Project, DealProjectConversionPreview } from '../../../models/projects/project';
+import type { Project } from '../../../models/projects/project';
 import useToast from '../../../hooks/useToast';
-import crmService from '../../../services/crmService';
 import { getCurrencySymbol, formatMoney } from '../../../utils/currency';
 import { TEMPLATE_CATEGORIES } from '../../../data/projectTemplates';
 import type { ProjectTemplate } from '../../../data/projectTemplates';
@@ -25,7 +24,7 @@ export const ConvertDealToProjectDialog: React.FC<ConvertDealToProjectDialogProp
 	const toast = useToast();
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
-	const { convertLoading, convertError } = useAppSelector((state) => state.projects);
+	const { convertLoading, convertError, conversionPreview: preview, conversionPreviewLoading: loadingPreview } = useAppSelector((state) => state.projects);
 
 	const [name, setName] = useState('');
 	const [budget, setBudget] = useState('');
@@ -36,9 +35,6 @@ export const ConvertDealToProjectDialog: React.FC<ConvertDealToProjectDialogProp
 	const [selectedCategory, setSelectedCategory] = useState<string>('Software');
 	const [selectedTemplate, setSelectedTemplate] = useState<ProjectTemplate | null>(null);
 
-	const [preview, setPreview] = useState<DealProjectConversionPreview | null>(null);
-	const [loadingPreview, setLoadingPreview] = useState(false);
-
 	useEffect(() => {
 		if (open && deal) {
 			setName(deal.title);
@@ -46,32 +42,25 @@ export const ConvertDealToProjectDialog: React.FC<ConvertDealToProjectDialogProp
 			setEndDate(null);
 			setSelectedCategory('Software');
 			setSelectedTemplate(null);
-			setPreview(null);
-			setLoadingPreview(true);
-
-			crmService.getDealProjectConversionPreview(deal.public_id)
-				.then((p) => {
-					setPreview(p);
-					if (p.converted && p.converted_value != null) {
-						setBudget(String(p.converted_value));
-					} else {
-						setBudget(deal.value != null ? String(deal.value) : '');
-					}
-				})
-				.catch((err) => {
-					console.error('Failed to load project conversion preview', err);
-					setBudget(deal.value != null ? String(deal.value) : '');
-				})
-				.finally(() => {
-					setLoadingPreview(false);
-				});
+			dispatch(fetchDealProjectConversionPreview(deal.public_id));
 		} else {
-			setPreview(null);
 			setBudget('');
 			setSelectedCategory('Software');
 			setSelectedTemplate(null);
 		}
-	}, [open, deal]);
+	}, [open, deal, dispatch]);
+
+	useEffect(() => {
+		if (open && deal && preview) {
+			if (preview.converted && preview.converted_value != null) {
+				setBudget(String(preview.converted_value));
+			} else {
+				setBudget(deal.value != null ? String(deal.value) : '');
+			}
+		} else if (open && deal) {
+			setBudget(deal.value != null ? String(deal.value) : '');
+		}
+	}, [open, deal, preview]);
 
 	const handleTemplateSelect = (template: ProjectTemplate | null) => {
 		setSelectedTemplate(template);

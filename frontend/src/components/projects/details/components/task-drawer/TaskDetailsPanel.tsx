@@ -33,21 +33,12 @@ import dayjs from 'dayjs';
 import type { ProjectTask, ProjectTaskUpdate, ProjectTaskStatus, ProjectTaskTag } from '../../../../../models/projects/projectTask';
 import type { LeadPriority } from '../../../../../models/crm/lead';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
-import type { Reminder } from '../../../../../models/crm/reminder';
 import { DatePicker } from '../../../../common/form';
 import { TaskTagsInput } from '../../forms/TaskTagsInput';
 import { SetReminderDialog } from '../../../../crm/shared/SetReminderDialog';
-import crmService from '../../../../../services/crmService';
 import { formatReminderTime, isReminderOverdue } from '../../../../../utils/reminders';
-
-const PRIORITIES: { value: LeadPriority; label: string; color: string }[] = [
-	{ value: 'low', label: 'Low', color: '#4CAF50' },
-	{ value: 'medium', label: 'Medium', color: '#2196F3' },
-	{ value: 'high', label: 'High', color: '#FF9800' },
-	{ value: 'urgent', label: 'Urgent', color: '#F44336' },
-];
-
-const PRESET_COLORS = ['#FF9800', '#F44336', '#4CAF50', '#2196F3', '#9C27B0', '#E91E63', '#00BCD4', '#009688', '#3F51B5'];
+import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
+import { fetchReminders } from '../../../../../store/slices/crmSlice';
 
 interface TaskDetailsPanelProps {
 	task: ProjectTask;
@@ -70,6 +61,23 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const dispatch = useAppDispatch();
+
+	const PRIORITIES: { value: LeadPriority; label: string; color: string }[] = [
+		{ value: 'low', label: 'Low', color: theme.palette.success.main },
+		{ value: 'medium', label: 'Medium', color: theme.palette.info.main },
+		{ value: 'high', label: 'High', color: theme.palette.warning.main },
+		{ value: 'urgent', label: 'Urgent', color: theme.palette.error.main },
+	];
+
+	const PRESET_COLORS = [
+		theme.palette.primary.main,
+		theme.palette.secondary.main,
+		theme.palette.success.main,
+		theme.palette.error.main,
+		theme.palette.warning.main,
+		theme.palette.info.main,
+	];
 
 	const [newTypeName, setNewTypeName] = useState('');
 	const [newMilestoneName, setNewMilestoneName] = useState('');
@@ -79,13 +87,11 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 
 	const taskTypes = React.useMemo(() => {
 		const typesMap = new Map<string, string>();
-		// Seed with defaults
-		typesMap.set('task', '#FF9800');
-		typesMap.set('bug', '#F44336');
-		typesMap.set('feature', '#4CAF50');
-		typesMap.set('story', '#2196F3');
+		typesMap.set('task', theme.palette.warning.main);
+		typesMap.set('bug', theme.palette.error.main);
+		typesMap.set('feature', theme.palette.success.main);
+		typesMap.set('story', theme.palette.info.main);
 
-		// Scan all tasks in project for custom task types
 		tasks.forEach((t) => {
 			const tt = t.custom_fields?.task_type;
 			if (tt && tt.name && tt.color) {
@@ -93,37 +99,39 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 			}
 		});
 
-		return Array.from(typesMap.entries()).map(([name, color]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), color }));
-	}, [tasks]);
+		return Array.from(typesMap.entries()).map(([name, color]) => ({
+			name: name.charAt(0).toUpperCase() + name.slice(1),
+			color,
+		}));
+	}, [tasks, theme]);
 
 	const milestones = React.useMemo(() => {
-		const milestonesMap = new Map<string, string>();
-		milestonesMap.set('general', '#9C27B0');
-		milestonesMap.set('v1.0-release', '#E91E63');
-		milestonesMap.set('q3-milestone', '#00BCD4');
-
+		const mset = new Set<string>();
 		tasks.forEach((t) => {
-			const m = t.custom_fields?.milestone;
-			if (m && m.name && m.color) {
-				milestonesMap.set(m.name.toLowerCase(), m.color);
+			if (t.custom_fields?.milestone?.name) {
+				mset.add(t.custom_fields.milestone.name);
 			}
 		});
-
-		return Array.from(milestonesMap.entries()).map(([name, color]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), color }));
-	}, [tasks]);
+		return Array.from(mset).map((name) => {
+			const t = tasks.find((tk) => tk.custom_fields?.milestone?.name === name);
+			return {
+				name,
+				color: t?.custom_fields?.milestone?.color || theme.palette.primary.main,
+			};
+		});
+	}, [tasks, theme]);
 
 	const userCustomFields = React.useMemo(() => {
 		if (!task.custom_fields) return [];
-		const systemKeys = ['task_type', 'reminder_date', 'last_edited_by', 'milestone'];
 		return Object.entries(task.custom_fields)
-			.filter(([key]) => !systemKeys.includes(key))
+			.filter(([key]) => key !== 'task_type' && key !== 'milestone')
 			.map(([key, val]) => ({ name: key, value: String(val) }));
 	}, [task.custom_fields]);
 
-	const hoverBg = isDark ? '#21262d' : '#f3f4f6';
-	const borderColor = isDark ? '#30363d' : '#d0d7de';
-	const cardBg = isDark ? '#161b22' : '#ffffff';
-	const iconChipBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.045)';
+	const hoverBg = theme.palette.action.hover;
+	const borderColor = theme.palette.divider;
+	const cardBg = theme.palette.background.paper;
+	const iconChipBg = theme.palette.action.selected;
 
 	const [popover, setPopover] = useState<{ key: string; anchorEl: HTMLElement; data?: any } | null>(null);
 
@@ -135,26 +143,17 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 	};
 	const closePopover = () => setPopover(null);
 
-	// Real reminders: a scheduler already delivers these via in-app notification +
-	// email (see backend's reminder_scheduler.py) -- fetched locally here (rather
-	// than through crm slice) so this summary row doesn't fight over shared redux
-	// state with SetReminderDialog's own fetch/clear lifecycle while it's open.
-	const [taskReminders, setTaskReminders] = useState<Reminder[]>([]);
+	const taskReminders = useAppSelector((state) => state.crm.reminders);
 	const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
 
-	const loadTaskReminders = async () => {
-		try {
-			const res = await crmService.listReminders('project_task', task.id);
-			setTaskReminders(res);
-		} catch {
-			// Non-critical for this summary row -- SetReminderDialog surfaces its own errors.
-		}
+	const loadTaskReminders = () => {
+		dispatch(fetchReminders({ entityType: 'project_task', entityId: task.id }));
 	};
 
 	useEffect(() => {
 		loadTaskReminders();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [task.id]);
+	}, [task.id, dispatch]);
 
 	const nextReminder = taskReminders
 		.filter((r) => r.status === 'pending')
@@ -163,7 +162,7 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 	const selectedAssignee = owners.find((o) => o.id === task.assignee_id) || null;
 	const selectedStatus = statuses.find((s) => s.id === task.status_id) || statuses[0];
 	const selectedPriority = PRIORITIES.find((p) => p.value === task.priority) || PRIORITIES[1];
-	const currentType = task.custom_fields?.task_type || { name: 'Task', color: '#FF9800' };
+	const currentType = task.custom_fields?.task_type || { name: 'Task', color: theme.palette.warning.main };
 
 	const dotIcon = (color: string) => (
 		<Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: color, flexShrink: 0 }} />

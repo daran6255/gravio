@@ -3,8 +3,6 @@ import { Box, Stack, TextField, IconButton, Popover, Typography, Autocomplete, a
 import { Add, Close } from '@mui/icons-material';
 import type { ProjectTaskTag } from '../../../../models/projects/projectTask';
 
-const PRESET_COLORS = ['#8B7CF6', '#4EA8FF', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#14B8A6', '#F97316'];
-
 interface TaskTagsInputProps {
 	value: ProjectTaskTag[];
 	onChange: (tags: ProjectTaskTag[]) => void;
@@ -16,6 +14,16 @@ interface TaskTagsInputProps {
 export const TaskTagsInput: React.FC<TaskTagsInputProps> = ({ value, onChange, existingTags }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+
+	const PRESET_COLORS = [
+		theme.palette.primary.main,
+		theme.palette.secondary.main,
+		theme.palette.success.main,
+		theme.palette.warning.main,
+		theme.palette.error.main,
+		theme.palette.info.main,
+	];
+
 	const [inputValue, setInputValue] = useState('');
 	const [colorPicker, setColorPicker] = useState<{ anchorEl: HTMLElement; index: number } | null>(null);
 

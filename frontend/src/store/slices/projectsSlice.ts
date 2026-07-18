@@ -1,13 +1,14 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import projectService from '../../services/projectService';
 import crmService from '../../services/crmService';
-import type { Project, ProjectCreate, ProjectUpdate, ProjectStatus, DealConvertToProjectRequest, ProjectStats } from '../../models/projects/project';
+import type { Project, ProjectCreate, ProjectUpdate, ProjectStatus, DealConvertToProjectRequest, ProjectStats, DealProjectConversionPreview } from '../../models/projects/project';
 import type {
 	ProjectTask,
 	ProjectTaskCreate,
 	ProjectTaskUpdate,
 	ProjectTaskStatus,
 	ProjectTaskStatusUpsert,
+	ProjectTaskFile,
 } from '../../models/projects/projectTask';
 import type { PaginatedResponse } from '../../models/common';
 
@@ -56,6 +57,14 @@ interface ProjectsState {
 
 	convertLoading: boolean;
 	convertError: string | null;
+	conversionPreview: DealProjectConversionPreview | null;
+	conversionPreviewLoading: boolean;
+	conversionPreviewError: string | null;
+	taskFiles: ProjectTaskFile[];
+	taskFilesLoading: boolean;
+	taskFilesError: string | null;
+	fileUploading: boolean;
+	fileUploadError: string | null;
 }
 
 const initialState: ProjectsState = {
@@ -95,6 +104,14 @@ const initialState: ProjectsState = {
 
 	convertLoading: false,
 	convertError: null,
+	conversionPreview: null,
+	conversionPreviewLoading: false,
+	conversionPreviewError: null,
+	taskFiles: [],
+	taskFilesLoading: false,
+	taskFilesError: null,
+	fileUploading: false,
+	fileUploadError: null,
 };
 
 // --- Projects ---
@@ -278,6 +295,73 @@ export const updateTaskStatuses = createAsyncThunk(
 			return await projectService.updateTaskStatuses(statuses);
 		} catch (error: any) {
 			return rejectWithValue(extractErrorMessage(error, 'Failed to update task statuses'));
+		}
+	}
+);
+
+export const fetchDealProjectConversionPreview = createAsyncThunk(
+	'projects/fetchDealProjectConversionPreview',
+	async (dealPublicId: string, { rejectWithValue }) => {
+		try {
+			return await crmService.getDealProjectConversionPreview(dealPublicId);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch project conversion preview'));
+		}
+	}
+);
+
+export const fetchTaskFiles = createAsyncThunk(
+	'projects/fetchTaskFiles',
+	async (taskPublicId: string, { rejectWithValue }) => {
+		try {
+			return await projectService.listTaskFiles(taskPublicId);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch task files'));
+		}
+	}
+);
+
+export const uploadTaskFile = createAsyncThunk(
+	'projects/uploadTaskFile',
+	async ({ taskPublicId, file }: { taskPublicId: string; file: File }, { rejectWithValue }) => {
+		try {
+			return await projectService.uploadTaskFile(taskPublicId, file);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to upload file'));
+		}
+	}
+);
+
+export const deleteTaskFile = createAsyncThunk(
+	'projects/deleteTaskFile',
+	async ({ taskPublicId, filePublicId }: { taskPublicId: string; filePublicId: string }, { rejectWithValue }) => {
+		try {
+			await projectService.deleteTaskFile(taskPublicId, filePublicId);
+			return filePublicId;
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to delete file'));
+		}
+	}
+);
+
+export const viewTaskFile = createAsyncThunk(
+	'projects/viewTaskFile',
+	async ({ taskPublicId, filePublicId }: { taskPublicId: string; filePublicId: string }, { rejectWithValue }) => {
+		try {
+			await projectService.viewTaskFile(taskPublicId, filePublicId);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to view file'));
+		}
+	}
+);
+
+export const downloadTaskFile = createAsyncThunk(
+	'projects/downloadTaskFile',
+	async ({ taskPublicId, filePublicId, fileName }: { taskPublicId: string; filePublicId: string; fileName: string }, { rejectWithValue }) => {
+		try {
+			await projectService.downloadTaskFile(taskPublicId, filePublicId, fileName);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to download file'));
 		}
 	}
 );
@@ -504,6 +588,47 @@ const projectsSlice = createSlice({
 			.addCase(convertDealToProject.rejected, (state, action: PayloadAction<any>) => {
 				state.convertLoading = false;
 				state.convertError = action.payload;
+			})
+			// Deal -> Project conversion preview
+			.addCase(fetchDealProjectConversionPreview.pending, (state) => {
+				state.conversionPreviewLoading = true;
+				state.conversionPreviewError = null;
+			})
+			.addCase(fetchDealProjectConversionPreview.fulfilled, (state, action: PayloadAction<DealProjectConversionPreview>) => {
+				state.conversionPreviewLoading = false;
+				state.conversionPreview = action.payload;
+			})
+			.addCase(fetchDealProjectConversionPreview.rejected, (state, action: PayloadAction<any>) => {
+				state.conversionPreviewLoading = false;
+				state.conversionPreviewError = action.payload;
+			})
+			// Task files
+			.addCase(fetchTaskFiles.pending, (state) => {
+				state.taskFilesLoading = true;
+				state.taskFilesError = null;
+			})
+			.addCase(fetchTaskFiles.fulfilled, (state, action: PayloadAction<ProjectTaskFile[]>) => {
+				state.taskFilesLoading = false;
+				state.taskFiles = action.payload;
+			})
+			.addCase(fetchTaskFiles.rejected, (state, action: PayloadAction<any>) => {
+				state.taskFilesLoading = false;
+				state.taskFilesError = action.payload;
+			})
+			.addCase(uploadTaskFile.pending, (state) => {
+				state.fileUploading = true;
+				state.fileUploadError = null;
+			})
+			.addCase(uploadTaskFile.fulfilled, (state, action: PayloadAction<ProjectTaskFile>) => {
+				state.fileUploading = false;
+				state.taskFiles = [...state.taskFiles, action.payload];
+			})
+			.addCase(uploadTaskFile.rejected, (state, action: PayloadAction<any>) => {
+				state.fileUploading = false;
+				state.fileUploadError = action.payload;
+			})
+			.addCase(deleteTaskFile.fulfilled, (state, action: PayloadAction<string>) => {
+				state.taskFiles = state.taskFiles.filter((f) => f.public_id !== action.payload);
 			});
 	},
 });

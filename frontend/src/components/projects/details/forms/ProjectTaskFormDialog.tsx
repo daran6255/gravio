@@ -34,13 +34,6 @@ import type { CRMOwnerOption } from '../../../../models/crm/owner';
 import { MetaPill } from './MetaPill';
 import { TaskTagsInput } from './TaskTagsInput';
 
-const PRIORITIES: { value: LeadPriority; label: string; color: string }[] = [
-	{ value: 'low', label: 'Low', color: '#4CAF50' },
-	{ value: 'medium', label: 'Medium', color: '#2196F3' },
-	{ value: 'high', label: 'High', color: '#FF9800' },
-	{ value: 'urgent', label: 'Urgent', color: '#F44336' },
-];
-
 type PopoverKey = 'status' | 'priority' | 'assignee' | 'startDate' | 'dueDate' | 'estimatedHours' | 'billingType' | 'tags';
 
 interface ProjectTaskFormDialogProps {
@@ -63,6 +56,13 @@ export const ProjectTaskFormDialog: React.FC<ProjectTaskFormDialogProps> = ({
 	const isDark = theme.palette.mode === 'dark';
 	const toast = useToast();
 	const isEdit = !!task;
+
+	const PRIORITIES: { value: LeadPriority; label: string; color: string }[] = [
+		{ value: 'low', label: 'Low', color: theme.palette.success.main },
+		{ value: 'medium', label: 'Medium', color: theme.palette.info.main },
+		{ value: 'high', label: 'High', color: theme.palette.warning.main },
+		{ value: 'urgent', label: 'Urgent', color: theme.palette.error.main },
+	];
 
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');
@@ -167,9 +167,9 @@ export const ProjectTaskFormDialog: React.FC<ProjectTaskFormDialogProps> = ({
 							onClick={handleSave}
 							disabled={submitting}
 							sx={{
-								color: 'white', textTransform: 'none', fontWeight: 700, px: 4, minWidth: 140, borderRadius: '10px', boxShadow: 'none',
-								background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
-								'&:hover': { boxShadow: '0 4px 12px rgba(139,124,246,0.3)' },
+								color: theme.palette.primary.contrastText, textTransform: 'none', fontWeight: 700, px: 4, minWidth: 140, borderRadius: '10px', boxShadow: 'none',
+								background: theme.gradients.brand,
+								'&:hover': { boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}` },
 								'&.Mui-disabled': { background: theme.palette.action.disabledBackground },
 							}}
 						>

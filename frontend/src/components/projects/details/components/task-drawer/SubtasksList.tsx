@@ -26,10 +26,10 @@ import {
 import dayjs from 'dayjs';
 import type { ProjectTask, ProjectTaskStatus, ProjectTaskUpdate } from '../../../../../models/projects/projectTask';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
-import type { Reminder } from '../../../../../models/crm/reminder';
 import { SetReminderDialog } from '../../../../crm/shared/SetReminderDialog';
-import crmService from '../../../../../services/crmService';
 import { formatReminderTime, getNextReminderByEntityId } from '../../../../../utils/reminders';
+import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
+import { fetchActiveReminders } from '../../../../../store/slices/crmSlice';
 
 const PRESET_COLORS = ['#FF9800', '#F44336', '#4CAF50', '#2196F3', '#9C27B0', '#E91E63', '#00BCD4', '#009688', '#3F51B5'];
 
@@ -52,33 +52,25 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const dispatch = useAppDispatch();
 
 	const [expanded, setExpanded] = useState(true);
 	const [statusMenuAnchor, setStatusMenuAnchor] = useState<{ anchorEl: HTMLElement, task: ProjectTask } | null>(null);
 	const [typePopoverAnchor, setTypePopoverAnchor] = useState<{ anchorEl: HTMLElement, task: ProjectTask } | null>(null);
 	const [reminderDialogTask, setReminderDialogTask] = useState<ProjectTask | null>(null);
-	const [subtaskReminders, setSubtaskReminders] = useState<Reminder[]>([]);
 	const [newTypeName, setNewTypeName] = useState('');
 
 	// Filter Subtasks
 	const subtasks = tasks.filter((t) => t.parent_task_id === task.id);
 
-	// Real reminders (delivered via in-app notification + email by the backend
-	// scheduler) for every subtask at once, powering each row's bell icon.
-	const loadSubtaskReminders = async () => {
-		if (subtasks.length === 0) { setSubtaskReminders([]); return; }
-		try {
-			const res = await crmService.listRemindersForEntities('project_task', subtasks.map((s) => s.id));
-			setSubtaskReminders(res);
-		} catch {
-			// Non-critical for the bell icon indicator.
-		}
-	};
+	// Select reminders from Redux store
+	const subtaskReminders = useAppSelector((state) => state.crm.activeReminders);
 
 	useEffect(() => {
-		loadSubtaskReminders();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [subtasks.map((s) => s.id).join(',')]);
+		if (subtasks.length > 0) {
+			dispatch(fetchActiveReminders({ entityType: 'project_task', entityIds: subtasks.map((s) => s.id) }));
+		}
+	}, [subtasks.map((s) => s.id).join(','), dispatch]);
 
 	const nextReminderBySubtaskId = getNextReminderByEntityId(subtaskReminders);
 
@@ -610,7 +602,7 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 					open={Boolean(reminderDialogTask)}
 					onClose={() => {
 						setReminderDialogTask(null);
-						loadSubtaskReminders();
+						dispatch(fetchActiveReminders({ entityType: 'project_task', entityIds: subtasks.map((s) => s.id) }));
 					}}
 					entityType="project_task"
 					entityId={reminderDialogTask.id}
