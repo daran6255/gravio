@@ -83,7 +83,11 @@ const Navbar: React.FC = () => {
 		}
 
 		if (!org) return null;
+		// The Navbar only ever surfaces the free-trial countdown — the current
+		// plan (active/paid) and an expired subscription are shown as the
+		// "current plan" badge at the bottom of the Sidebar instead.
 		const status = org.subscription_status || 'trial';
+		if (status !== 'trial') return null;
 		const daysLeft = getTrialDaysLeft(org.trial_expires_at);
 
 		let badgeText = '';
@@ -94,60 +98,36 @@ const Navbar: React.FC = () => {
 
 		const tintBg = (color: string) => alpha(color, mode === 'light' ? 0.1 : 0.15);
 		const tintBorder = (color: string) => `1px solid ${alpha(color, 0.3)}`;
-		const onTintPurple = mode === 'light' ? theme.palette.primary.dark : theme.palette.primary.light;
 
-		if (status === 'trial') {
-			if (daysLeft < 0) {
-				badgeText = 'Trial Expired';
-				tooltipText = 'Your free trial has expired. Click to upgrade and resume access.';
-				icon = <WarningIcon sx={{ fontSize: '1rem', mr: 0.5, color: theme.palette.error.main }} />;
-				badgeStyles = {
-					background: tintBg(theme.palette.error.main),
-					border: tintBorder(theme.palette.error.main),
-					color: theme.palette.error.main,
-				};
-			} else if (daysLeft === 0) {
-				badgeText = 'Expires Today';
-				tooltipText = 'Your free trial expires today! Click here to upgrade.';
-				icon = <WarningIcon sx={{ fontSize: '1rem', mr: 0.5, color: theme.palette.warning.main }} />;
-				badgeStyles = {
-					background: tintBg(theme.palette.warning.main),
-					border: tintBorder(theme.palette.warning.main),
-					color: theme.palette.warning.main,
-				};
-				dotColor = theme.palette.warning.main;
-			} else {
-				badgeText = `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`;
-				tooltipText = `Free Trial: ${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining (Expires ${new Date(org.trial_expires_at!).toLocaleDateString()}). Click to upgrade.`;
-				icon = <HourglassIcon sx={{ fontSize: '1rem', mr: 0.5, color: theme.palette.warning.main }} />;
-				badgeStyles = {
-					background: tintBg(theme.palette.warning.main),
-					border: tintBorder(theme.palette.warning.main),
-					color: theme.palette.warning.main,
-				};
-				dotColor = theme.palette.warning.main;
-			}
-		} else if (status === 'active' || status === 'paid') {
-			const planName = org.plan_name || (org.plan?.name) || 'Pro';
-			badgeText = planName;
-			tooltipText = `Active ${planName} Plan. Click to view billing options.`;
-			icon = <PremiumIcon sx={{ fontSize: '1rem', mr: 0.5, color: theme.palette.primary.main }} />;
-			badgeStyles = {
-				background: tintBg(theme.palette.primary.main),
-				border: tintBorder(theme.palette.primary.main),
-				color: onTintPurple,
-			};
-		} else if (status === 'expired') {
-			badgeText = 'Expired';
-			tooltipText = 'Your subscription has expired. Click here to renew.';
+		if (daysLeft < 0) {
+			badgeText = 'Trial Expired';
+			tooltipText = 'Your free trial has expired. Click to upgrade and resume access.';
 			icon = <WarningIcon sx={{ fontSize: '1rem', mr: 0.5, color: theme.palette.error.main }} />;
 			badgeStyles = {
 				background: tintBg(theme.palette.error.main),
 				border: tintBorder(theme.palette.error.main),
 				color: theme.palette.error.main,
 			};
+		} else if (daysLeft === 0) {
+			badgeText = 'Expires Today';
+			tooltipText = 'Your free trial expires today! Click here to upgrade.';
+			icon = <WarningIcon sx={{ fontSize: '1rem', mr: 0.5, color: theme.palette.warning.main }} />;
+			badgeStyles = {
+				background: tintBg(theme.palette.warning.main),
+				border: tintBorder(theme.palette.warning.main),
+				color: theme.palette.warning.main,
+			};
+			dotColor = theme.palette.warning.main;
 		} else {
-			return null;
+			badgeText = `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`;
+			tooltipText = `Free Trial: ${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining (Expires ${new Date(org.trial_expires_at!).toLocaleDateString()}). Click to upgrade.`;
+			icon = <HourglassIcon sx={{ fontSize: '1rem', mr: 0.5, color: theme.palette.warning.main }} />;
+			badgeStyles = {
+				background: tintBg(theme.palette.warning.main),
+				border: tintBorder(theme.palette.warning.main),
+				color: theme.palette.warning.main,
+			};
+			dotColor = theme.palette.warning.main;
 		}
 
 		return (

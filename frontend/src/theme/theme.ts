@@ -134,7 +134,7 @@ export const getThemeByMode = (mode: 'light' | 'dark'): Theme => {
 			drawerWidth: 260,
 			drawerWidthCollapsed: 64,
 			radius: {
-				pill: '10px',
+				pill: '5px',
 				badge: '5px',
 				card: '12px',
 				button: '8px',

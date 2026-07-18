@@ -75,10 +75,20 @@ const Sidebar: React.FC = () => {
 		return Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 	};
 
-	const renderMobileSubscriptionBadge = () => {
-		if (!user || !isMobile) return null;
+	/**
+	 * Plan/subscription status badge shown at the bottom of the Sidebar.
+	 * - On mobile, the Navbar's own badge is hidden (no room), so this shows
+	 *   everything: Super Admin, trial countdown, active plan, expired.
+	 * - On desktop, the Navbar already shows the trial countdown (and the
+	 *   Super Admin badge), so this only covers the "current plan" cases
+	 *   (active/paid plan name, expired subscription) to avoid showing the
+	 *   same status in two places at once.
+	 */
+	const renderPlanBadge = ({ includeSuperAdmin, includeTrial }: { includeSuperAdmin: boolean; includeTrial: boolean }) => {
+		if (!user) return null;
 		const org = user.organization;
 		if (!org && user.is_superuser) {
+			if (!includeSuperAdmin) return null;
 			return (
 				<Box sx={{
 					display: 'flex', alignItems: 'center', gap: 1,
@@ -94,6 +104,7 @@ const Sidebar: React.FC = () => {
 		}
 		if (!org) return null;
 		const status = org.subscription_status || 'trial';
+		if (status === 'trial' && !includeTrial) return null;
 		const daysLeft = getTrialDaysLeft(org.trial_expires_at);
 
 		let icon = null;
@@ -460,7 +471,10 @@ const Sidebar: React.FC = () => {
 		);
 	};
 
-
+	// Desktop "current plan" badge shown above the profile menu — Navbar owns the
+	// trial countdown and Super Admin badge on desktop, so this only covers the
+	// remaining statuses (active/paid plan, expired subscription).
+	const planBadge = renderPlanBadge({ includeSuperAdmin: false, includeTrial: false });
 
 	return (
 		<Drawer
@@ -622,7 +636,7 @@ const Sidebar: React.FC = () => {
 					flexDirection: 'column',
 					gap: 1,
 				}}>
-					{renderMobileSubscriptionBadge()}
+					{renderPlanBadge({ includeSuperAdmin: true, includeTrial: true })}
 					<Button
 						fullWidth
 						variant="contained"
@@ -728,6 +742,11 @@ const Sidebar: React.FC = () => {
 							bgcolor: 'transparent',
 							p: 1
 						}}>
+							{!isMobile && drawerExpanded && planBadge && (
+								<Box sx={{ px: 0.5, pb: 1 }}>
+									{planBadge}
+								</Box>
+							)}
 							<ActionMenu
 								minWidth={240}
 								header={
