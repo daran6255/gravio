@@ -44,10 +44,10 @@ const Dashboard: React.FC = () => {
 						<Grid size={{ xs: 12, md: 3 }}>
 							<PlatformPulsePanel />
 						</Grid>
-						<Grid size={{ xs: 12, md: 4 }}>
+						<Grid size={{ xs: 12, md: 3.5 }}>
 							<AttentionQueuePanel />
 						</Grid>
-						<Grid size={{ xs: 12, md: 5 }}>
+						<Grid size={{ xs: 12, md: 5.5 }}>
 							<SuperAdminQuickActions />
 						</Grid>
 					</Grid>
