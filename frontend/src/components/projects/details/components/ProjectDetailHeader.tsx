@@ -1,5 +1,5 @@
-import React from 'react';
-import { Box, Typography, Stack, IconButton, Avatar, LinearProgress, Chip, useTheme, alpha } from '@mui/material';
+import React, { useMemo, useState } from 'react';
+import { Box, Typography, Stack, IconButton, Avatar, LinearProgress, Chip, Divider, Button, Tooltip, Collapse, useTheme, alpha } from '@mui/material';
 import {
 	ArrowBackOutlined,
 	PersonOutline,
@@ -9,299 +9,321 @@ import {
 	TaskAltOutlined,
 	TransformOutlined,
 	EditOutlined,
+	WarningAmberOutlined,
+	GroupsOutlined,
+	ExpandMoreOutlined,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
-import StatusBadge from '../../../common/badge/StatusBadge';
-import type { Project, ProjectStatus } from '../../../../models/projects/project';
+import StatusBadge, { getStatusTone } from '../../../common/badge/StatusBadge';
+import useDateTime from '../../../../hooks/useDateTime';
+import { formatMoney } from '../../../../utils/currency';
+import type { Project } from '../../../../models/projects/project';
+import type { ProjectTask } from '../../../../models/projects/projectTask';
+import type { CRMOwnerOption } from '../../../../models/crm/owner';
 
 interface ProjectDetailHeaderProps {
 	project: Project;
+	tasks: ProjectTask[];
+	owners: CRMOwnerOption[];
 	onBack: () => void;
 	onEdit: () => void;
 }
 
-const CLOSED_STATUSES: ProjectStatus[] = ['completed', 'approved', 'invoiced', 'canceled'];
+const AVATAR_PALETTE = ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+const avatarColorFor = (id: number) => AVATAR_PALETTE[id % AVATAR_PALETTE.length];
 
-type Tone = 'success' | 'error' | 'default';
-
-const getTrackInfo = (project: Project): { label: string; tone: Tone } => {
-	if (project.status === 'canceled') return { label: 'Canceled', tone: 'default' };
-	if (CLOSED_STATUSES.includes(project.status)) return { label: 'Completed', tone: 'success' };
-	if (project.status === 'delayed') return { label: 'Delayed', tone: 'error' };
-	if (project.end_date && dayjs(project.end_date).isBefore(dayjs(), 'day')) {
-		return { label: 'Delayed', tone: 'error' };
-	}
-	return { label: 'On Track', tone: 'success' };
-};
-
-const formatBudget = (project: Project): string => {
-	if (project.budget == null) return '—';
-	return new Intl.NumberFormat(undefined, {
-		style: 'currency',
-		currency: project.currency,
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2,
-	}).format(project.budget);
-};
-
-const formatDate = (dateStr?: string): string => (dateStr ? dayjs(dateStr).format('MMM DD, YYYY') : '—');
-
-/** A small metadata tile used in the header's detail strip. */
-const DetailTile: React.FC<{ icon: React.ReactNode; label: string; value: React.ReactNode; color: string }> = ({
+/** A single fact in the header's metadata strip — icon, label, value. */
+const FactItem: React.FC<{ icon: React.ReactNode; label: string; value: React.ReactNode; color: string }> = ({
 	icon,
 	label,
 	value,
 	color,
-}) => {
-	const theme = useTheme();
-	const isDark = theme.palette.mode === 'dark';
-
-	return (
-		<Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
-			<Box
-				sx={{
-					width: 32,
-					height: 32,
-					borderRadius: '8px',
-					display: 'flex',
-					alignItems: 'center',
-					justifyContent: 'center',
-					flexShrink: 0,
-					background: isDark
-						? `linear-gradient(135deg, ${alpha(color, 0.2)} 0%, ${alpha(color, 0.05)} 100%)`
-						: `linear-gradient(135deg, ${alpha(color, 0.12)} 0%, ${alpha(color, 0.03)} 100%)`,
-					color,
-				}}
-			>
-				{icon}
+}) => (
+	<Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+		<Box
+			sx={{
+				width: 30,
+				height: 30,
+				borderRadius: '9px',
+				display: 'flex',
+				alignItems: 'center',
+				justifyContent: 'center',
+				flexShrink: 0,
+				bgcolor: alpha(color, 0.1),
+				color,
+			}}
+		>
+			{icon}
+		</Box>
+		<Box sx={{ minWidth: 0 }}>
+			<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem', display: 'block' }}>
+				{label}
+			</Typography>
+			<Box sx={{ fontWeight: 700, fontSize: '0.85rem', color: 'text.primary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+				{value}
 			</Box>
-			<Box sx={{ minWidth: 0 }}>
-				<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.65rem', display: 'block' }}>
-					{label}
-				</Typography>
-				<Box sx={{ fontWeight: 700, fontSize: '0.825rem', color: 'text.primary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-					{value}
-				</Box>
-			</Box>
-		</Stack>
-	);
-};
+		</Box>
+	</Stack>
+);
 
-export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ project, onBack, onEdit }) => {
+export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ project, tasks, owners, onBack, onEdit }) => {
 	const theme = useTheme();
-	const isDark = theme.palette.mode === 'dark';
-	const track = getTrackInfo(project);
+	const { formatDate } = useDateTime();
+	const [expanded, setExpanded] = useState(false);
+
+	// Everyone with at least one task assigned to them in this project — deduped,
+	// resolved against the owner options list already loaded for the assignee pickers.
+	const contributors = useMemo(() => {
+		const ownerMap = new Map(owners.map((o) => [o.id, o]));
+		const ids = new Set<number>();
+		for (const t of tasks) {
+			if (t.assignee_id) ids.add(t.assignee_id);
+		}
+		return Array.from(ids)
+			.map((id) => ownerMap.get(id))
+			.filter((o): o is CRMOwnerOption => !!o);
+	}, [tasks, owners]);
+	const contributorNames = contributors.map((c) => c.full_name || c.email).join(', ');
+	const statusTone = getStatusTone(project.status, 'project');
+	const accentColor = {
+		success: theme.palette.success.main,
+		info: theme.palette.primary.main,
+		warning: theme.palette.warning.main,
+		error: theme.palette.error.main,
+		default: theme.palette.text.disabled,
+	}[statusTone];
 
 	const taskCount = project.task_count ?? 0;
 	const completedCount = project.completed_task_count ?? 0;
 	const taskPct = taskCount > 0 ? Math.round((completedCount / taskCount) * 100) : 0;
 
+	const isOverdue = !!project.end_date
+		&& dayjs(project.end_date).isBefore(dayjs(), 'day')
+		&& !['completed', 'approved', 'invoiced', 'canceled'].includes(project.status);
 	const daysRemaining = project.end_date ? dayjs(project.end_date).diff(dayjs(), 'day') : null;
+
 	const timelineValue = project.start_date || project.end_date
 		? `${formatDate(project.start_date)} → ${formatDate(project.end_date)}`
-		: '—';
+		: 'No dates set';
 
 	return (
 		<Box
 			sx={{
 				position: 'relative',
 				overflow: 'hidden',
-				borderRadius: '16px',
+				borderRadius: '12px',
 				border: '1px solid',
-				borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-				background: isDark
-					? 'linear-gradient(135deg, rgba(139,124,246,0.12) 0%, rgba(20,24,34,0.6) 55%)'
-					: 'linear-gradient(135deg, rgba(139,124,246,0.08) 0%, #ffffff 55%)',
-				boxShadow: isDark
-					? '0 12px 32px -12px rgba(0,0,0,0.4)'
-					: '0 12px 32px -16px rgba(24,28,48,0.08)',
-				p: { xs: 1.5, sm: 2 },
-				mb: 1.5,
+				borderColor: 'divider',
+				bgcolor: 'background.paper',
+				mb: 2,
 			}}
 		>
-			{/* Decorative glow */}
-			<Box
-				sx={{
-					position: 'absolute',
-					top: -60,
-					right: -60,
-					width: 220,
-					height: 220,
-					borderRadius: '50%',
-					background: 'radial-gradient(circle, rgba(139,124,246,0.25) 0%, rgba(255,255,255,0) 70%)',
-					pointerEvents: 'none',
-				}}
-			/>
+			{/* Status accent bar — quick at-a-glance health signal */}
+			<Box sx={{ height: 4, width: '100%', bgcolor: accentColor }} />
 
-			<Stack direction="row" alignItems="flex-start" spacing={1.5} sx={{ position: 'relative', mb: 1.5 }}>
-				<IconButton
-					onClick={onBack}
-					size="small"
-					sx={{
-						mt: 0.25,
-						bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-						'&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' },
-					}}
-				>
-					<ArrowBackOutlined fontSize="small" />
-				</IconButton>
-
-				<Box sx={{ minWidth: 0, flex: 1 }}>
-					<Stack direction="row" spacing={1.25} alignItems="center" flexWrap="wrap" sx={{ mb: 0.75, rowGap: 1 }}>
-						<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }} noWrap>
-							{project.name}
-						</Typography>
-						<StatusBadge label={project.status.replace('_', ' ')} status={project.status} type="project" />
-						<Chip
+			<Box sx={{ p: { xs: 1.5, sm: 2 } }}>
+				{/* Title row */}
+				<Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'flex-start' }} spacing={1.5}>
+					<Stack direction="row" spacing={1} alignItems="flex-start" sx={{ minWidth: 0, flex: 1 }}>
+						<IconButton
+							onClick={onBack}
 							size="small"
-							label={track.label}
-							color={track.tone === 'default' ? undefined : track.tone}
-							variant="outlined"
-							sx={{ fontWeight: 700, fontSize: '0.7rem' }}
-						/>
-						{project.deal_title && (
-							<Chip
-								size="small"
-								icon={<TransformOutlined sx={{ fontSize: '14px !important' }} />}
-								label={`Converted from "${project.deal_title}"`}
-								variant="outlined"
-								sx={{ fontWeight: 600, fontSize: '0.7rem' }}
-							/>
-						)}
-					</Stack>
-
-					{project.description && (
-						<Typography
-							variant="body2"
-							color="text.secondary"
-							sx={{
-								display: '-webkit-box',
-								WebkitLineClamp: 2,
-								WebkitBoxOrient: 'vertical',
-								overflow: 'hidden',
-								maxWidth: 720,
-							}}
+							sx={{ mt: 0.25, color: 'text.secondary', '&:hover': { color: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.08) } }}
+							aria-label="Back to projects"
 						>
-							{project.description.replace(/<[^>]*>/g, '')}
-						</Typography>
-					)}
-				</Box>
-
-				<IconButton
-					onClick={onEdit}
-					size="small"
-					sx={{
-						mt: 0.25,
-						bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-						'&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' },
-					}}
-				>
-					<EditOutlined fontSize="small" />
-				</IconButton>
-			</Stack>
-
-			<Box
-				sx={{
-					display: 'grid',
-					gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', md: 'repeat(5, 1fr)' },
-					gap: { xs: 1.5, sm: 2 },
-					position: 'relative',
-					pt: 1.5,
-					borderTop: '1px solid',
-					borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-				}}
-			>
-				<DetailTile
-					icon={<PersonOutline fontSize="small" />}
-					label="Owner"
-					color="#8B7CF6"
-					value={
-						project.owner_name ? (
-							<Stack direction="row" spacing={0.75} alignItems="center">
-								<Avatar sx={{ width: 18, height: 18, fontSize: '0.6rem', fontWeight: 700 }}>
-									{project.owner_name[0]?.toUpperCase()}
-								</Avatar>
-								<Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.owner_name}</Box>
+							<ArrowBackOutlined fontSize="small" />
+						</IconButton>
+						<Box sx={{ minWidth: 0, flex: 1 }}>
+							<Stack direction="row" spacing={1.25} alignItems="center" flexWrap="wrap" sx={{ rowGap: 1 }}>
+								<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
+									{project.name}
+								</Typography>
+								<StatusBadge label={project.status.replace('_', ' ')} status={project.status} type="project" />
+								{isOverdue && (
+									<Stack direction="row" spacing={0.5} alignItems="center">
+										<WarningAmberOutlined sx={{ fontSize: '1rem', color: 'error.main' }} />
+										<Typography variant="caption" sx={{ fontWeight: 700, color: 'error.main' }}>
+											{Math.abs(daysRemaining ?? 0)}d overdue
+										</Typography>
+									</Stack>
+								)}
+								{project.deal_title && (
+									<Tooltip title={`Converted from CRM deal "${project.deal_title}"`}>
+										<Chip
+											size="small"
+											icon={<TransformOutlined sx={{ fontSize: '14px !important' }} />}
+											label="From deal"
+											variant="outlined"
+											sx={{ fontWeight: 600, fontSize: '0.7rem' }}
+										/>
+									</Tooltip>
+								)}
 							</Stack>
-						) : 'Unassigned'
-					}
-				/>
 
-				<DetailTile
-					icon={<BusinessOutlined fontSize="small" />}
-					label="Client"
-					color="#4EA8FF"
-					value={project.company_name || '—'}
-				/>
-
-				<DetailTile
-					icon={<AccountBalanceWalletOutlined fontSize="small" />}
-					label="Budget"
-					color="#10B981"
-					value={formatBudget(project)}
-				/>
-
-				<DetailTile
-					icon={<CalendarMonthOutlined fontSize="small" />}
-					label="Timeline"
-					color="#F59E0B"
-					value={
-						<Stack spacing={0}>
-							<Box component="span">{timelineValue}</Box>
-							{daysRemaining !== null && (
-								<Typography component="span" variant="caption" sx={{ color: daysRemaining < 0 ? 'error.main' : 'text.secondary', fontWeight: 700 }}>
-									{daysRemaining < 0 ? `${Math.abs(daysRemaining)}d overdue` : `${daysRemaining}d left`}
+							{project.description && (
+								<Typography
+									variant="body2"
+									color="text.secondary"
+									sx={{
+										mt: 0.75,
+										display: '-webkit-box',
+										WebkitLineClamp: 2,
+										WebkitBoxOrient: 'vertical',
+										overflow: 'hidden',
+										maxWidth: 720,
+									}}
+								>
+									{project.description.replace(/<[^>]*>/g, '')}
 								</Typography>
 							)}
-						</Stack>
-					}
-				/>
-
-				<Box sx={{ gridColumn: { xs: '1 / -1', sm: 'auto' } }}>
-					<Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
-						<Box
-							sx={{
-								width: 32,
-								height: 32,
-								borderRadius: '8px',
-								display: 'flex',
-								alignItems: 'center',
-								justifyContent: 'center',
-								flexShrink: 0,
-								background: isDark
-									? 'linear-gradient(135deg, rgba(236,72,153,0.2) 0%, rgba(236,72,153,0.05) 100%)'
-									: 'linear-gradient(135deg, rgba(236,72,153,0.12) 0%, rgba(236,72,153,0.03) 100%)',
-								color: '#EC4899',
-							}}
-						>
-							<TaskAltOutlined fontSize="small" />
-						</Box>
-						<Box sx={{ minWidth: 0, flex: 1 }}>
-							<Stack direction="row" justifyContent="space-between" alignItems="baseline">
-								<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.68rem' }}>
-									Tasks
-								</Typography>
-								<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary' }}>
-									{completedCount}/{taskCount}
-								</Typography>
-							</Stack>
-							<LinearProgress
-								variant="determinate"
-								value={taskPct}
-								sx={{
-									height: 6,
-									borderRadius: 3,
-									mt: 0.5,
-									bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-									'& .MuiLinearProgress-bar': {
-										borderRadius: 3,
-										background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
-									},
-								}}
-							/>
 						</Box>
 					</Stack>
+
+					<Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
+						<Button
+							variant="outlined"
+							size="small"
+							startIcon={<EditOutlined fontSize="small" />}
+							onClick={onEdit}
+							sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px' }}
+						>
+							Edit Project
+						</Button>
+						<Tooltip title={expanded ? 'Hide details' : 'Show details'}>
+							<IconButton
+								onClick={() => setExpanded((v) => !v)}
+								size="small"
+								aria-label={expanded ? 'Hide project details' : 'Show project details'}
+								aria-expanded={expanded}
+								sx={{
+									color: 'text.secondary',
+									transition: theme.transitions.create('transform'),
+									transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+									'&:hover': { color: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.08) },
+								}}
+							>
+								<ExpandMoreOutlined fontSize="small" />
+							</IconButton>
+						</Tooltip>
+					</Stack>
+				</Stack>
+
+				<Collapse in={expanded} timeout="auto" unmountOnExit>
+				<Divider sx={{ my: 1.5 }} />
+
+				{/* Facts */}
+				<Box
+					sx={{
+						display: 'grid',
+						gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)' },
+						gap: { xs: 1.5, sm: 2 },
+					}}
+				>
+					<FactItem
+						icon={<PersonOutline fontSize="small" />}
+						label="Owner"
+						color={theme.palette.primary.main}
+						value={
+							project.owner_name ? (
+								<Stack direction="row" spacing={0.75} alignItems="center">
+									<Avatar sx={{ width: 18, height: 18, fontSize: '0.6rem', fontWeight: 700, bgcolor: project.owner_id ? avatarColorFor(project.owner_id) : undefined }}>
+										{project.owner_name[0]?.toUpperCase()}
+									</Avatar>
+									<Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.owner_name}</Box>
+								</Stack>
+							) : 'Unassigned'
+						}
+					/>
+
+					<FactItem
+						icon={<BusinessOutlined fontSize="small" />}
+						label="Client"
+						color={theme.palette.accent.main}
+						value={project.company_name || 'Internal'}
+					/>
+
+					<FactItem
+						icon={<AccountBalanceWalletOutlined fontSize="small" />}
+						label="Budget"
+						color={theme.palette.success.main}
+						value={project.budget != null ? formatMoney(project.budget, project.currency) : 'Not set'}
+					/>
+
+					<FactItem
+						icon={<CalendarMonthOutlined fontSize="small" />}
+						label="Timeline"
+						color={theme.palette.warning.main}
+						value={
+							<Stack spacing={0}>
+								<Box component="span">{timelineValue}</Box>
+								{daysRemaining !== null && !isOverdue && (
+									<Typography component="span" variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
+										{daysRemaining >= 0 ? `${daysRemaining}d left` : ''}
+									</Typography>
+								)}
+							</Stack>
+						}
+					/>
+
+					<FactItem
+						icon={<GroupsOutlined fontSize="small" />}
+						label="Contributors"
+						color={theme.palette.secondary.light}
+						value={
+							contributors.length > 0 ? (
+								<Tooltip title={contributorNames}>
+									<Box component="span">{contributorNames}</Box>
+								</Tooltip>
+							) : 'Unassigned'
+						}
+					/>
 				</Box>
+
+				{/* Task progress */}
+				<Box sx={{ mt: 2 }}>
+					<Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 0.75 }}>
+						<Stack direction="row" spacing={0.75} alignItems="center">
+							<TaskAltOutlined sx={{ fontSize: '1rem', color: 'text.secondary' }} />
+							<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+								Task Progress
+							</Typography>
+						</Stack>
+						<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary' }}>
+							{completedCount} of {taskCount} completed &middot; {taskPct}%
+						</Typography>
+					</Stack>
+					<LinearProgress
+						variant="determinate"
+						value={taskPct}
+						sx={{
+							height: 6,
+							borderRadius: 3,
+							bgcolor: alpha(theme.palette.text.secondary, 0.12),
+							'& .MuiLinearProgress-bar': {
+								borderRadius: 3,
+								background: theme.gradients.brand,
+							},
+						}}
+					/>
+				</Box>
+
+				{/* Tags */}
+				{!!project.tags?.length && (
+					<>
+						<Divider sx={{ my: 1.5 }} />
+						<Stack direction="row" spacing={1} flexWrap="wrap" sx={{ rowGap: 1 }}>
+							{project.tags.map((tag) => (
+								<Chip key={tag} size="small" label={tag} variant="outlined" sx={{ fontWeight: 600, fontSize: '0.7rem' }} />
+							))}
+						</Stack>
+					</>
+				)}
+
+				{/* Lifecycle footer */}
+				<Typography variant="caption" sx={{ display: 'block', color: 'text.disabled', mt: 1.5 }}>
+					Created {formatDate(project.created_at)} &middot; Last updated {formatDate(project.updated_at)}
+				</Typography>
+				</Collapse>
 			</Box>
 		</Box>
 	);

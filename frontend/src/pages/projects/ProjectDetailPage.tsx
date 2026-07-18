@@ -60,7 +60,7 @@ const ProjectDetailPage: React.FC = () => {
 					</Box>
 				) : project ? (
 					<>
-						<ProjectDetailHeader project={project} onBack={handleBack} onEdit={handleEditClick} />
+						<ProjectDetailHeader project={project} tasks={tasks} owners={owners} onBack={handleBack} onEdit={handleEditClick} />
 
 						<ProjectEditDrawer
 							open={editOpen}
