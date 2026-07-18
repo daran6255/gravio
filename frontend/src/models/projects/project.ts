@@ -69,6 +69,7 @@ export interface ProjectCreate {
 	template_key?: string;
 	tags?: string[];
 	custom_fields?: Record<string, any>;
+	custom_tasks?: any[];
 }
 
 export interface ProjectUpdate extends Partial<ProjectCreate> { }
@@ -81,6 +82,7 @@ export interface DealConvertToProjectRequest {
 	end_date?: string;
 	budget?: number;
 	template_key?: string;
+	custom_tasks?: any[];
 }
 
 export interface DealProjectConversionPreview {

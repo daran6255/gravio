@@ -21,7 +21,8 @@ import {
 	alpha,
 	InputAdornment,
 	Chip,
-	Avatar
+	Avatar,
+	Checkbox
 } from '@mui/material';
 import {
 	Close,
@@ -67,6 +68,7 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 	// Template Selection State
 	const [selectedCategory, setSelectedCategory] = useState<string>('Software');
 	const [selectedTemplate, setSelectedTemplate] = useState<ProjectTemplate | null>(null);
+	const [tasksState, setTasksState] = useState<any[]>([]);
 
 	// Project Details Form State
 	const [name, setName] = useState('');
@@ -87,6 +89,7 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 			setActiveStep(0);
 			setSelectedCategory('Software');
 			setSelectedTemplate(null);
+			setTasksState([]);
 			setName('');
 			setDescription('');
 			setStatus('planning');
@@ -102,15 +105,69 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 	const handleCategoryClick = (categoryName: string) => {
 		setSelectedCategory(categoryName);
 		setSelectedTemplate(null);
+		setTasksState([]);
 	};
 
 	const handleTemplateSelect = (template: ProjectTemplate | null) => {
 		setSelectedTemplate(template);
 		if (template) {
 			setName(`${template.name} - `);
+			const copiedTasks = template.tasks.map((t, idx) => ({
+				...t,
+				included: true,
+				id: `task-${idx}`,
+				subtasks: t.subtasks?.map((s, sIdx) => ({
+					...s,
+					included: true,
+					id: `subtask-${idx}-${sIdx}`
+				}))
+			}));
+			setTasksState(copiedTasks);
 		} else {
 			setName('');
+			setTasksState([]);
 		}
+	};
+
+	const toggleTask = (taskId: string) => {
+		setTasksState((prev) =>
+			prev.map((t) => {
+				if (t.id === taskId) {
+					const nextIncluded = !t.included;
+					return {
+						...t,
+						included: nextIncluded,
+						subtasks: t.subtasks?.map((s: any) => ({
+							...s,
+							included: nextIncluded
+						}))
+					};
+				}
+				return t;
+			})
+		);
+	};
+
+	const toggleSubtask = (taskId: string, subtaskId: string) => {
+		setTasksState((prev) =>
+			prev.map((t) => {
+				if (t.id === taskId) {
+					const updatedSubtasks = t.subtasks?.map((s: any) => {
+						if (s.id === subtaskId) {
+							return { ...s, included: !s.included };
+						}
+						return s;
+					});
+					const anySubtaskIncluded = updatedSubtasks?.some((s: any) => s.included);
+					return {
+						...t,
+						subtasks: updatedSubtasks,
+						included: anySubtaskIncluded ? true : t.included
+					};
+				}
+				return t;
+			})
+		);
 	};
 
 	const handleNext = () => {
@@ -139,7 +196,8 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 				currency,
 				phase: undefined,
 				issues: undefined,
-				template_key: selectedTemplate?.key || undefined
+				template_key: selectedTemplate?.key || undefined,
+				custom_tasks: selectedTemplate ? tasksState : undefined
 			});
 			onClose();
 		} catch (err: any) {
@@ -487,196 +545,171 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 							</Box>
 
 							{selectedTemplate ? (
-								<Box sx={{ position: 'relative', pl: 4, ml: 1.5, '&::before': { content: '""', position: 'absolute', left: 14, top: 20, bottom: 20, width: '2px', background: `linear-gradient(to bottom, ${theme.palette.primary.main} 0%, ${alpha(theme.palette.primary.main, 0.1)} 100%)` } }}>
-									{selectedTemplate.tasks.map((task, idx) => {
-										return (
-											<Box
-												key={task.title}
-												sx={{
-													mb: 3.5,
-													position: 'relative',
-													p: 2.5,
-													borderRadius: '18px',
-													border: '1px solid',
-													borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0',
-													background: isDark ? 'rgba(20, 24, 34, 0.6)' : '#ffffff',
-													boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 4px 16px rgba(139, 124, 246, 0.03)',
-													transition: 'all 0.3s',
-													'&:hover': {
-														borderColor: 'primary.main',
-														boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.3)' : '0 8px 24px rgba(139, 124, 246, 0.06)',
-														transform: 'translateY(-2px)'
-													}
-												}}
-											>
-												{/* Pipeline Node Indicator */}
-												<Avatar
+								<Box>
+									<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+										<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+											{tasksState.filter((t: any) => t.included).length} of {tasksState.length} tasks selected
+										</Typography>
+										<Stack direction="row" spacing={1}>
+											<Button size="small" variant="text" sx={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'none', minWidth: 0, px: 1 }} onClick={() => setTasksState((p: any[]) => p.map((t: any) => ({ ...t, included: true, subtasks: t.subtasks?.map((s: any) => ({ ...s, included: true })) })))}>
+												Select All
+											</Button>
+											<Button size="small" variant="text" color="inherit" sx={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'none', minWidth: 0, px: 1, color: 'text.secondary' }} onClick={() => setTasksState((p: any[]) => p.map((t: any) => ({ ...t, included: false, subtasks: t.subtasks?.map((s: any) => ({ ...s, included: false })) })))}>
+												Clear All
+											</Button>
+										</Stack>
+									</Box>
+									<Box sx={{ position: 'relative', pl: 4, ml: 1.5, '&::before': { content: '""', position: 'absolute', left: 14, top: 20, bottom: 20, width: '2px', background: `linear-gradient(to bottom, ${theme.palette.primary.main} 0%, ${alpha(theme.palette.primary.main, 0.1)} 100%)` } }}>
+										{tasksState.map((task: any, idx: number) => {
+											const isTaskIncluded = task.included;
+											return (
+												<Box
+													key={task.id || task.title}
 													sx={{
-														position: 'absolute',
-														left: -44,
-														top: 18,
-														width: 28,
-														height: 28,
-														fontSize: '0.8rem',
-														fontWeight: 800,
-														bgcolor: 'background.paper',
-														color: 'primary.main',
-														border: '2px solid',
-														borderColor: 'primary.main',
-														boxShadow: `0 0 10px ${alpha(theme.palette.primary.main, 0.25)}`
+														mb: 3.5,
+														position: 'relative',
+														p: 2.5,
+														borderRadius: '18px',
+														border: '1.5px solid',
+														borderColor: isTaskIncluded ? 'primary.main' : 'divider',
+														background: isDark ? 'rgba(20, 24, 34, 0.6)' : '#ffffff',
+														boxShadow: isTaskIncluded
+															? isDark ? '0 4px 20px rgba(0,0,0,0.2)' : `0 4px 16px ${alpha(theme.palette.primary.main, 0.08)}`
+															: 'none',
+														opacity: isTaskIncluded ? 1 : 0.45,
+														transition: 'all 0.25s ease',
 													}}
 												>
-													{idx + 1}
-												</Avatar>
+													{/* Pipeline Node Indicator */}
+													<Avatar
+														sx={{
+															position: 'absolute',
+															left: -44,
+															top: 18,
+															width: 28,
+															height: 28,
+															fontSize: '0.8rem',
+															fontWeight: 800,
+															bgcolor: isTaskIncluded ? 'primary.main' : 'action.disabledBackground',
+															color: isTaskIncluded ? 'primary.contrastText' : 'text.disabled',
+															border: '2px solid',
+															borderColor: isTaskIncluded ? 'primary.main' : 'divider',
+															transition: 'all 0.25s',
+														}}
+													>
+														{idx + 1}
+													</Avatar>
 
-												{/* Task Header Info */}
-												<Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1.5, mb: 1.5 }}>
-													<Box sx={{ minWidth: 0, flex: 1 }}>
-														<Typography variant="body1" sx={{ fontWeight: 800, color: 'text.primary' }}>
-															{task.title}
-														</Typography>
-														<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-															{task.description}
-														</Typography>
-													</Box>
-
-													{/* Metadata Chips */}
-													<Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
-														<Chip
-															icon={<CalendarToday sx={{ fontSize: '0.65rem !important' }} />}
-															label={`Day ${task.start_offset_days ?? 0} - ${task.due_offset_days ?? 5}`}
+													{/* Task Header: Checkbox + Title row */}
+													<Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1.5 }}>
+														<Checkbox
+															checked={isTaskIncluded}
+															onChange={() => toggleTask(task.id)}
 															size="small"
-															variant="outlined"
-															sx={{ fontSize: '0.65rem', fontWeight: 700, height: 22, borderRadius: '6px' }}
+															sx={{ p: 0, mt: 0.25, color: 'primary.main', flexShrink: 0 }}
 														/>
-														{task.priority && (
+														<Box sx={{ flex: 1, minWidth: 0 }}>
+															<Typography variant="body1" sx={{ fontWeight: 800, color: 'text.primary', textDecoration: isTaskIncluded ? 'none' : 'line-through' }}>
+																{task.title}
+															</Typography>
+															<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+																{task.description}
+															</Typography>
+														</Box>
+														{/* Metadata Chips */}
+														<Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ flexShrink: 0, mt: 0.25 }}>
 															<Chip
-																label={task.priority.toUpperCase()}
+																icon={<CalendarToday sx={{ fontSize: '0.65rem !important' }} />}
+																label={`Day ${task.start_offset_days ?? 0}–${task.due_offset_days ?? 5}`}
 																size="small"
-																sx={{
-																	fontSize: '0.65rem',
-																	fontWeight: 700,
-																	height: 22,
-																	borderRadius: '6px',
-																	bgcolor:
-																		task.priority === 'high'
-																			? alpha(theme.palette.error.main, 0.1)
-																			: task.priority === 'medium'
-																			? alpha(theme.palette.warning.main, 0.1)
-																			: alpha(theme.palette.success.main, 0.1),
-																	color:
-																		task.priority === 'high'
-																			? 'error.main'
-																			: task.priority === 'medium'
-																			? 'warning.main'
-																			: 'success.main'
-																}}
+																variant="outlined"
+																sx={{ fontSize: '0.65rem', fontWeight: 700, height: 22, borderRadius: '6px' }}
 															/>
-														)}
-														{task.milestone && (
-															<Chip
-																icon={<Flag sx={{ fontSize: '0.65rem !important' }} />}
-																label={task.milestone.name}
-																size="small"
-																sx={{
-																	fontSize: '0.65rem',
-																	fontWeight: 700,
-																	height: 22,
-																	borderRadius: '6px',
-																	bgcolor: alpha(task.milestone.color || '#9C27B0', 0.1),
-																	color: task.milestone.color || '#9C27B0',
-																	border: `1px solid ${alpha(task.milestone.color || '#9C27B0', 0.25)}`
-																}}
-															/>
-														)}
-													</Stack>
-												</Box>
-
-												{/* Tags */}
-												{task.tags && task.tags.length > 0 && (
-													<Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 2 }}>
-														{task.tags.map((tg) => (
-															<Chip
-																key={tg.name}
-																label={tg.name}
-																size="small"
-																sx={{
-																	height: 18,
-																	fontSize: '0.62rem',
-																	fontWeight: 700,
-																	bgcolor: alpha(tg.color, 0.12),
-																	color: tg.color,
-																	border: `1px solid ${alpha(tg.color, 0.2)}`,
-																	borderRadius: '4px'
-																}}
-															/>
-														))}
-													</Box>
-												)}
-
-												{/* Nested Subtasks */}
-												{task.subtasks && task.subtasks.length > 0 && (
-													<Box sx={{ mt: 2, pl: 2, borderLeft: `2.5px solid ${theme.palette.divider}` }}>
-														<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', mb: 1.25, display: 'block', letterSpacing: '0.05em' }}>
-															Subtasks ({task.subtasks.length})
-														</Typography>
-														<Stack spacing={1}>
-															{task.subtasks.map((sub) => (
-																<Box
-																	key={sub.title}
+															{task.priority && (
+																<Chip
+																	label={task.priority.toUpperCase()}
+																	size="small"
 																	sx={{
-																		p: 1.75,
-																		borderRadius: '12px',
-																		bgcolor: isDark ? 'rgba(255,255,255,0.015)' : '#f8fafc',
-																		border: '1px solid',
-																		borderColor: isDark ? 'rgba(255,255,255,0.05)' : '#e2e8f0',
-																		display: 'flex',
-																		flexDirection: { xs: 'column', sm: 'row' },
-																		alignItems: { xs: 'flex-start', sm: 'center' },
-																		justifyContent: 'space-between',
-																		gap: 1.5
+																		fontSize: '0.65rem', fontWeight: 700, height: 22, borderRadius: '6px',
+																		bgcolor: task.priority === 'high' ? alpha(theme.palette.error.main, 0.1) : task.priority === 'medium' ? alpha(theme.palette.warning.main, 0.1) : alpha(theme.palette.success.main, 0.1),
+																		color: task.priority === 'high' ? 'error.main' : task.priority === 'medium' ? 'warning.main' : 'success.main',
 																	}}
-																>
-																	<Box sx={{ minWidth: 0, flex: 1 }}>
-																		<Typography variant="body2" sx={{ fontWeight: 700 }}>
-																			{sub.title}
-																		</Typography>
-																		<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-																			{sub.description}
-																		</Typography>
-																	</Box>
-																	<Stack direction="row" spacing={0.75} sx={{ mt: { xs: 0.5, sm: 0 }, flexShrink: 0 }}>
-																		<Chip
-																			label={`Day ${sub.start_offset_days ?? 0} - ${sub.due_offset_days ?? 5}`}
-																			size="small"
-																			variant="outlined"
-																			sx={{ height: 20, fontSize: '0.62rem', fontWeight: 700, borderRadius: '4px' }}
-																		/>
-																		{sub.tags && sub.tags.map((stg) => (
-																			<Chip
-																				key={stg.name}
-																				label={stg.name}
-																				size="small"
-																				sx={{
-																					height: 20,
-																					fontSize: '0.62rem',
-																					fontWeight: 700,
-																					bgcolor: alpha(stg.color, 0.1),
-																					color: stg.color,
-																					border: `1px solid ${alpha(stg.color, 0.18)}`,
-																					borderRadius: '4px'
-																				}}
-																			/>
-																		))}
-																	</Stack>
-																</Box>
-															))}
+																/>
+															)}
+															{task.milestone && (
+																<Chip
+																	icon={<Flag sx={{ fontSize: '0.65rem !important' }} />}
+																	label={task.milestone.name}
+																	size="small"
+																	sx={{ fontSize: '0.65rem', fontWeight: 700, height: 22, borderRadius: '6px', bgcolor: alpha(task.milestone.color || '#9C27B0', 0.1), color: task.milestone.color || '#9C27B0', border: `1px solid ${alpha(task.milestone.color || '#9C27B0', 0.25)}` }}
+																/>
+															)}
 														</Stack>
 													</Box>
-												)}
-											</Box>
-										);
-									})}
+
+													{/* Tags */}
+													{task.tags && task.tags.length > 0 && (
+														<Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 2, pl: 3.5 }}>
+															{task.tags.map((tg: any) => (
+																<Chip key={tg.name} label={tg.name} size="small" sx={{ height: 18, fontSize: '0.62rem', fontWeight: 700, bgcolor: alpha(tg.color, 0.12), color: tg.color, border: `1px solid ${alpha(tg.color, 0.2)}`, borderRadius: '4px' }} />
+															))}
+														</Box>
+													)}
+
+													{/* Nested Subtasks with Checkboxes */}
+													{task.subtasks && task.subtasks.length > 0 && (
+														<Box sx={{ mt: 2, pl: 3.5, borderLeft: `2px solid ${alpha(theme.palette.primary.main, 0.15)}` }}>
+															<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', mb: 1.25, display: 'block', letterSpacing: '0.05em' }}>
+																Subtasks ({task.subtasks.filter((s: any) => s.included).length}/{task.subtasks.length})
+															</Typography>
+															<Stack spacing={0.75}>
+																{task.subtasks.map((sub: any) => (
+																	<Box
+																		key={sub.id || sub.title}
+																		sx={{
+																			p: 1.5,
+																			borderRadius: '10px',
+																			bgcolor: isDark ? 'rgba(255,255,255,0.015)' : 'grey.50',
+																			border: '1px solid',
+																			borderColor: sub.included ? alpha(theme.palette.primary.main, 0.3) : 'divider',
+																			display: 'flex',
+																			alignItems: 'flex-start',
+																			gap: 1,
+																			opacity: sub.included ? 1 : 0.4,
+																			transition: 'all 0.2s',
+																			cursor: isTaskIncluded ? 'default' : 'not-allowed',
+																		}}
+																	>
+																		<Checkbox
+																			checked={sub.included}
+																			onChange={() => isTaskIncluded && toggleSubtask(task.id, sub.id)}
+																			disabled={!isTaskIncluded}
+																			size="small"
+																			sx={{ p: 0, color: 'primary.main', flexShrink: 0 }}
+																		/>
+																		<Box sx={{ flex: 1, minWidth: 0 }}>
+																			<Typography variant="body2" sx={{ fontWeight: 700, textDecoration: sub.included ? 'none' : 'line-through' }}>
+																				{sub.title}
+																			</Typography>
+																			<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+																				{sub.description}
+																			</Typography>
+																		</Box>
+																		<Stack direction="row" spacing={0.5} sx={{ flexShrink: 0, mt: 0.25 }}>
+																			<Chip label={`Day ${sub.start_offset_days ?? 0}–${sub.due_offset_days ?? 5}`} size="small" variant="outlined" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, borderRadius: '4px' }} />
+																			{sub.tags && sub.tags.map((stg: any) => (
+																				<Chip key={stg.name} label={stg.name} size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, bgcolor: alpha(stg.color, 0.1), color: stg.color, border: `1px solid ${alpha(stg.color, 0.18)}`, borderRadius: '4px' }} />
+																			))}
+																		</Stack>
+																	</Box>
+																))}
+															</Stack>
+														</Box>
+													)}
+												</Box>
+											);
+										})}
+									</Box>
 								</Box>
 							) : (
 								<Box sx={{ textAlign: 'center', py: 4 }}>

@@ -58,6 +58,7 @@ class ProjectBase(BaseModel):
 
 class ProjectCreate(ProjectBase):
     template_key: Optional[str] = None
+    custom_tasks: Optional[list[dict[str, Any]]] = None
 
 
 class ProjectUpdate(BaseModel):
@@ -163,6 +164,7 @@ class DealConvertToProjectRequest(BaseModel):
     end_date: Optional[date] = None
     budget: Optional[float] = None   # defaults to deal.value, converted into the target currency
     template_key: Optional[str] = None
+    custom_tasks: Optional[list[dict[str, Any]]] = None
 
 
 class DealProjectConversionPreview(BaseModel):

@@ -165,10 +165,13 @@ class ProjectService:
 
         data = payload.model_dump()
         template_key = data.pop("template_key", None)
+        custom_tasks = data.pop("custom_tasks", None)
         
         project = await ProjectRepository.create(db, **data)
         
-        if template_key:
+        if custom_tasks:
+            await ProjectService.seed_project_tasks_custom(db, project, custom_tasks)
+        elif template_key:
             await ProjectService.seed_project_tasks_from_template(db, project, template_key)
         return project
 
@@ -460,7 +463,10 @@ class ProjectService:
 
         # Seed tasks if template selected
         template_key = payload.template_key
-        if template_key:
+        custom_tasks = payload.custom_tasks
+        if custom_tasks:
+            await ProjectService.seed_project_tasks_custom(db, project, custom_tasks)
+        elif template_key:
             await ProjectService.seed_project_tasks_from_template(db, project, template_key)
 
         await CRMDealRepository.update(db, deal, project_id=project.id)
@@ -528,6 +534,71 @@ class ProjectService:
                         parent_task_id=parent_task.id,
                         title=s["title"],
                         description=s["description"],
+                        status_id=initial_status.id,
+                        order=s_idx,
+                        start_date=s_start,
+                        due_date=s_due,
+                        priority=s_priority_val,
+                        tags=s.get("tags", []),
+                    )
+
+    @staticmethod
+    async def seed_project_tasks_custom(db: AsyncSession, project: Project, custom_tasks: list[dict[str, Any]]) -> None:
+        initial_status = await ProjectTaskStatusRepository.get_initial(db)
+        if not initial_status:
+            return
+
+        from datetime import date, timedelta
+        ref_date = project.start_date or date.today()
+
+        for idx, t in enumerate(custom_tasks):
+            if not t.get("included", True):
+                continue
+
+            start_offset = t.get("start_offset_days", 0)
+            due_offset = t.get("due_offset_days", 5)
+            task_start = ref_date + timedelta(days=start_offset)
+            task_due = ref_date + timedelta(days=due_offset)
+
+            custom_fields = {}
+            if "milestone" in t and t["milestone"]:
+                custom_fields["milestone"] = t["milestone"]
+
+            priority_val = t.get("priority", "medium")
+
+            parent_task = await ProjectTaskRepository.create(
+                db,
+                project_id=project.id,
+                parent_task_id=None,
+                title=t["title"],
+                description=t.get("description") or "",
+                status_id=initial_status.id,
+                order=idx,
+                start_date=task_start,
+                due_date=task_due,
+                priority=priority_val,
+                tags=t.get("tags", []),
+                custom_fields=custom_fields,
+            )
+
+            if "subtasks" in t and t["subtasks"]:
+                for s_idx, s in enumerate(t["subtasks"]):
+                    if not s.get("included", True):
+                        continue
+
+                    s_start_offset = s.get("start_offset_days", start_offset)
+                    s_due_offset = s.get("due_offset_days", due_offset)
+                    s_start = ref_date + timedelta(days=s_start_offset)
+                    s_due = ref_date + timedelta(days=s_due_offset)
+
+                    s_priority_val = s.get("priority", "medium")
+
+                    await ProjectTaskRepository.create(
+                        db,
+                        project_id=project.id,
+                        parent_task_id=parent_task.id,
+                        title=s["title"],
+                        description=s.get("description") or "",
                         status_id=initial_status.id,
                         order=s_idx,
                         start_date=s_start,
