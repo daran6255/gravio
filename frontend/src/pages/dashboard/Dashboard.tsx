@@ -10,8 +10,13 @@ import { PlanDistributionPanel } from '../../components/dashboard/super-admin/Pl
 import { RecentActivityPanel } from '../../components/dashboard/super-admin/RecentActivityPanel';
 import { OrgSeatUsagePanel } from '../../components/dashboard/super-admin/OrgSeatUsagePanel';
 import { SuperAdminQuickActions } from '../../components/dashboard/super-admin/SuperAdminQuickActions';
-import { TeamSnapshotPanel } from '../../components/dashboard/org-admin/TeamSnapshotPanel';
-import { ApprovalsQueuePanel } from '../../components/dashboard/org-admin/ApprovalsQueuePanel';
+import { OrgAdminQuickActions } from '../../components/dashboard/org-admin/OrgAdminQuickActions';
+import { WhoIsOnLeavePanel } from '../../components/dashboard/org-admin/WhoIsOnLeavePanel';
+import { OrgAdminStatsPanel } from '../../components/dashboard/org-admin/OrgAdminStatsPanel';
+import { TeamRoleDistributionPanel } from '../../components/dashboard/org-admin/TeamRoleDistributionPanel';
+import { OrgAdminTabbedGridPanel } from '../../components/dashboard/org-admin/OrgAdminTabbedGridPanel';
+import { AiUsageChartPanel } from '../../components/dashboard/org-admin/AiUsageChartPanel';
+import { BillingHistoryPanel } from '../../components/dashboard/org-admin/BillingHistoryPanel';
 import { WeeklyHoursPanel } from '../../components/dashboard/team/WeeklyHoursPanel';
 import { LeaveBalancePanel } from '../../components/dashboard/team/LeaveBalancePanel';
 import { MyWorkPanel } from '../../components/dashboard/team/MyWorkPanel';
@@ -63,15 +68,34 @@ const Dashboard: React.FC = () => {
 
 			{flow === 'org_admin' && (
 				<>
-					<Grid container spacing={2} alignItems="stretch">
-						<Grid size={{ xs: 12, md: 6 }}>
-							<TeamSnapshotPanel />
+					{/* Row 1: KPI Stats Panel */}
+					<OrgAdminStatsPanel />
+
+					{/* Row 2: Team Role Distribution + AI Usage + Quick Actions */}
+					<Grid container spacing={2} alignItems="stretch" sx={{ mt: 0.5 }}>
+						<Grid size={{ xs: 12, md: 4 }}>
+							<TeamRoleDistributionPanel />
 						</Grid>
-						<Grid size={{ xs: 12, md: 6 }}>
-							<TrialStatusCard />
+						<Grid size={{ xs: 12, md: 4 }}>
+							<AiUsageChartPanel />
+						</Grid>
+						<Grid size={{ xs: 12, md: 4 }}>
+							<OrgAdminQuickActions />
 						</Grid>
 					</Grid>
-					<ApprovalsQueuePanel />
+
+					{/* Row 3: Tabbed Active Grid + Who is on Leave + Billing Status */}
+					<Grid container spacing={2} alignItems="stretch" sx={{ mt: 0.5 }}>
+						<Grid size={{ xs: 12, md: 6 }}>
+							<OrgAdminTabbedGridPanel />
+						</Grid>
+						<Grid size={{ xs: 12, md: 3 }}>
+							<WhoIsOnLeavePanel />
+						</Grid>
+						<Grid size={{ xs: 12, md: 3 }}>
+							<BillingHistoryPanel />
+						</Grid>
+					</Grid>
 				</>
 			)}
 
