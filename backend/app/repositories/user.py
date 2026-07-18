@@ -73,9 +73,6 @@ class UserRepository:
 
         - is_active is set to True (they can try to log in after verification)
         - is_verified is set to False (blocks login until email link is clicked)
-        - onboarding_completed defaults to False so first login prompts them to
-          set a timezone/currency (see User.onboarding_completed); pass it inside
-          `others` to override.
 
         Does NOT commit — the calling service owns the transaction boundary.
         """
@@ -89,7 +86,7 @@ class UserRepository:
             is_superuser=is_superuser,
             is_active=True,
             is_verified=False,  # must click verification email
-            others={"onboarding_completed": False, **(others or {})},
+            others=others or {},
         )
         db.add(user)
         await db.flush()  # populate user.id without committing

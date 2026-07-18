@@ -388,7 +388,7 @@ async def reset_password_with_token(
 
 # Fields that aren't real User columns — they live inside the `others` JSON
 # column instead (see User.dob/phone/avatar properties).
-_OTHERS_BACKED_PROFILE_FIELDS = {"dob", "phone", "avatar", "job_title", "billing_address", "billing_reminder", "onboarding_completed"}
+_OTHERS_BACKED_PROFILE_FIELDS = {"dob", "phone", "avatar", "job_title", "billing_address", "billing_reminder"}
 
 
 async def update_own_profile(

@@ -122,7 +122,6 @@ class UserProfileResponse(BaseModel):
     job_title: Optional[str] = None
     billing_address: Optional[BillingAddress] = None
     billing_reminder: bool = False
-    onboarding_completed: bool = True
     created_at: datetime
     updated_at: datetime
 
@@ -147,4 +146,3 @@ class UpdateProfileRequest(BaseModel):
     )
     billing_address: Optional[BillingAddress] = None
     billing_reminder: Optional[bool] = Field(None, description="Remind me before my organization's plan renews/trial ends")
-    onboarding_completed: Optional[bool] = Field(None, description="Marks the first-login profile setup prompt as done")

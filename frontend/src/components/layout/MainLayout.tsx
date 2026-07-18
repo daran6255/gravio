@@ -13,7 +13,9 @@ const MainLayout: React.FC = () => {
 	const theme = useTheme();
 	const navbarHeight = `${theme.layout.navbarHeight}px`;
 	const user = useAppSelector((state) => state.auth.user);
-	const needsProfileSetup = !!user && user.onboarding_completed === false;
+	// Applies to every account — new or pre-existing, any role (individual, org
+	// admin, super admin) — every login, until both are actually set.
+	const needsProfileSetup = !!user && (!user.timezone || !user.currency);
 
 	// Detect settings routes — they use their own SettingsLayout with a dedicated sidebar
 	const isSettingsRoute =

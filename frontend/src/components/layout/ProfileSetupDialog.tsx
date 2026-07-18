@@ -29,10 +29,10 @@ interface ProfileSetupDialogProps {
 }
 
 /**
- * Blocking first-login prompt: a brand-new account has no timezone/currency
- * set yet, so this collects both before the rest of the app becomes usable.
- * There is deliberately no skip/close affordance — see User.onboarding_completed
- * on the backend for how this is gated.
+ * Blocking profile-setup prompt: shown on every login, for any account (new or
+ * pre-existing, regardless of role), whenever timezone or currency isn't set
+ * yet — see MainLayout's `needsProfileSetup` for the gating check. There is
+ * deliberately no skip/close affordance; it re-closes itself once both are saved.
  */
 const ProfileSetupDialog: React.FC<ProfileSetupDialogProps> = ({ open }) => {
 	const theme = useTheme();
@@ -61,7 +61,7 @@ const ProfileSetupDialog: React.FC<ProfileSetupDialogProps> = ({ open }) => {
 		if (!canSubmit || saving) return;
 		setSaving(true);
 		try {
-			await dispatch(updateProfile({ timezone, currency, onboarding_completed: true })).unwrap();
+			await dispatch(updateProfile({ timezone, currency })).unwrap();
 			toast.success('Workspace set up — welcome aboard!');
 		} catch (err: any) {
 			toast.error(err || 'Failed to save your preferences');
