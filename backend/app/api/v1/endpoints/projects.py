@@ -113,7 +113,7 @@ async def list_projects_endpoint(
     owner_id: Optional[int] = Query(None),
     company_id: Optional[int] = Query(None),
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=500),
     search: Optional[str] = Query(None),
     assigned_to_me: bool = Query(False, description="Only projects the current user owns or has a task assigned in"),
     exclude_completed: bool = Query(False, description="Exclude projects in a terminal status (completed/approved/invoiced/canceled)"),
