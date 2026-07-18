@@ -89,9 +89,16 @@ const ProjectDetailPage: React.FC = () => {
 									startIcon={<AddOutlined />}
 									onClick={handleCreateTaskClick}
 									sx={(theme) => ({
-										color: 'white', textTransform: 'none', fontWeight: 700, borderRadius: '8px', boxShadow: 'none',
-										background: theme.gradients.brand,
-										'&:hover': { boxShadow: '0 4px 12px rgba(139,124,246,0.3)' },
+										color: '#ffffff', textTransform: 'none', fontWeight: 700, borderRadius: '10px', px: 3, py: 1,
+										background: theme.gradients.brandDiagonal,
+										boxShadow: '0 4px 14px 0 rgba(139, 124, 246, 0.4)',
+										border: 'none',
+										transition: 'all 0.2s ease',
+										'&:hover': {
+											background: theme.gradients.brandDiagonalHover,
+											boxShadow: '0 6px 20px 0 rgba(139, 124, 246, 0.6)',
+											transform: 'translateY(-1px)',
+										},
 									})}
 								>
 									Add Task

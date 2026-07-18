@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Typography, Stack, IconButton, Avatar, LinearProgress, Chip, Divider, Button, Tooltip, Collapse, useTheme, alpha } from '@mui/material';
+import { Box, Typography, Stack, IconButton, Avatar, LinearProgress, Chip, Divider, Tooltip, Collapse, useTheme, alpha } from '@mui/material';
 import {
 	ArrowBackOutlined,
 	PersonOutline,
@@ -138,6 +138,16 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 								<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
 									{project.name}
 								</Typography>
+								<Tooltip title="Edit project">
+									<IconButton
+										onClick={onEdit}
+										size="small"
+										aria-label="Edit project"
+										sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.08) } }}
+									>
+										<EditOutlined fontSize="small" />
+									</IconButton>
+								</Tooltip>
 								<StatusBadge label={project.status.replace('_', ' ')} status={project.status} type="project" />
 								{isOverdue && (
 									<Stack direction="row" spacing={0.5} alignItems="center">
@@ -180,15 +190,6 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 					</Stack>
 
 					<Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
-						<Button
-							variant="outlined"
-							size="small"
-							startIcon={<EditOutlined fontSize="small" />}
-							onClick={onEdit}
-							sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px' }}
-						>
-							Edit Project
-						</Button>
 						<Tooltip title={expanded ? 'Hide details' : 'Show details'}>
 							<IconButton
 								onClick={() => setExpanded((v) => !v)}
@@ -209,120 +210,120 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 				</Stack>
 
 				<Collapse in={expanded} timeout="auto" unmountOnExit>
-				<Divider sx={{ my: 1.5 }} />
+					<Divider sx={{ my: 1.5 }} />
 
-				{/* Facts */}
-				<Box
-					sx={{
-						display: 'grid',
-						gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)' },
-						gap: { xs: 1.5, sm: 2 },
-					}}
-				>
-					<FactItem
-						icon={<PersonOutline fontSize="small" />}
-						label="Owner"
-						color={theme.palette.primary.main}
-						value={
-							project.owner_name ? (
-								<Stack direction="row" spacing={0.75} alignItems="center">
-									<Avatar sx={{ width: 18, height: 18, fontSize: '0.6rem', fontWeight: 700, bgcolor: project.owner_id ? avatarColorFor(project.owner_id) : undefined }}>
-										{project.owner_name[0]?.toUpperCase()}
-									</Avatar>
-									<Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.owner_name}</Box>
+					{/* Facts */}
+					<Box
+						sx={{
+							display: 'grid',
+							gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)' },
+							gap: { xs: 1.5, sm: 2 },
+						}}
+					>
+						<FactItem
+							icon={<PersonOutline fontSize="small" />}
+							label="Owner"
+							color={theme.palette.primary.main}
+							value={
+								project.owner_name ? (
+									<Stack direction="row" spacing={0.75} alignItems="center">
+										<Avatar sx={{ width: 18, height: 18, fontSize: '0.6rem', fontWeight: 700, bgcolor: project.owner_id ? avatarColorFor(project.owner_id) : undefined }}>
+											{project.owner_name[0]?.toUpperCase()}
+										</Avatar>
+										<Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.owner_name}</Box>
+									</Stack>
+								) : 'Unassigned'
+							}
+						/>
+
+						<FactItem
+							icon={<BusinessOutlined fontSize="small" />}
+							label="Client"
+							color={theme.palette.accent.main}
+							value={project.company_name || 'Internal'}
+						/>
+
+						<FactItem
+							icon={<AccountBalanceWalletOutlined fontSize="small" />}
+							label="Budget"
+							color={theme.palette.success.main}
+							value={project.budget != null ? formatMoney(project.budget, project.currency) : 'Not set'}
+						/>
+
+						<FactItem
+							icon={<CalendarMonthOutlined fontSize="small" />}
+							label="Timeline"
+							color={theme.palette.warning.main}
+							value={
+								<Stack spacing={0}>
+									<Box component="span">{timelineValue}</Box>
+									{daysRemaining !== null && !isOverdue && (
+										<Typography component="span" variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
+											{daysRemaining >= 0 ? `${daysRemaining}d left` : ''}
+										</Typography>
+									)}
 								</Stack>
-							) : 'Unassigned'
-						}
-					/>
+							}
+						/>
 
-					<FactItem
-						icon={<BusinessOutlined fontSize="small" />}
-						label="Client"
-						color={theme.palette.accent.main}
-						value={project.company_name || 'Internal'}
-					/>
+						<FactItem
+							icon={<GroupsOutlined fontSize="small" />}
+							label="Contributors"
+							color={theme.palette.secondary.light}
+							value={
+								contributors.length > 0 ? (
+									<Tooltip title={contributorNames}>
+										<Box component="span">{contributorNames}</Box>
+									</Tooltip>
+								) : 'Unassigned'
+							}
+						/>
+					</Box>
 
-					<FactItem
-						icon={<AccountBalanceWalletOutlined fontSize="small" />}
-						label="Budget"
-						color={theme.palette.success.main}
-						value={project.budget != null ? formatMoney(project.budget, project.currency) : 'Not set'}
-					/>
-
-					<FactItem
-						icon={<CalendarMonthOutlined fontSize="small" />}
-						label="Timeline"
-						color={theme.palette.warning.main}
-						value={
-							<Stack spacing={0}>
-								<Box component="span">{timelineValue}</Box>
-								{daysRemaining !== null && !isOverdue && (
-									<Typography component="span" variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
-										{daysRemaining >= 0 ? `${daysRemaining}d left` : ''}
-									</Typography>
-								)}
+					{/* Task progress */}
+					<Box sx={{ mt: 2 }}>
+						<Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 0.75 }}>
+							<Stack direction="row" spacing={0.75} alignItems="center">
+								<TaskAltOutlined sx={{ fontSize: '1rem', color: 'text.secondary' }} />
+								<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+									Task Progress
+								</Typography>
 							</Stack>
-						}
-					/>
-
-					<FactItem
-						icon={<GroupsOutlined fontSize="small" />}
-						label="Contributors"
-						color={theme.palette.secondary.light}
-						value={
-							contributors.length > 0 ? (
-								<Tooltip title={contributorNames}>
-									<Box component="span">{contributorNames}</Box>
-								</Tooltip>
-							) : 'Unassigned'
-						}
-					/>
-				</Box>
-
-				{/* Task progress */}
-				<Box sx={{ mt: 2 }}>
-					<Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 0.75 }}>
-						<Stack direction="row" spacing={0.75} alignItems="center">
-							<TaskAltOutlined sx={{ fontSize: '1rem', color: 'text.secondary' }} />
-							<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-								Task Progress
+							<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary' }}>
+								{completedCount} of {taskCount} completed &middot; {taskPct}%
 							</Typography>
 						</Stack>
-						<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary' }}>
-							{completedCount} of {taskCount} completed &middot; {taskPct}%
-						</Typography>
-					</Stack>
-					<LinearProgress
-						variant="determinate"
-						value={taskPct}
-						sx={{
-							height: 6,
-							borderRadius: 3,
-							bgcolor: alpha(theme.palette.text.secondary, 0.12),
-							'& .MuiLinearProgress-bar': {
+						<LinearProgress
+							variant="determinate"
+							value={taskPct}
+							sx={{
+								height: 6,
 								borderRadius: 3,
-								background: theme.gradients.brand,
-							},
-						}}
-					/>
-				</Box>
+								bgcolor: alpha(theme.palette.text.secondary, 0.12),
+								'& .MuiLinearProgress-bar': {
+									borderRadius: 3,
+									background: theme.gradients.brand,
+								},
+							}}
+						/>
+					</Box>
 
-				{/* Tags */}
-				{!!project.tags?.length && (
-					<>
-						<Divider sx={{ my: 1.5 }} />
-						<Stack direction="row" spacing={1} flexWrap="wrap" sx={{ rowGap: 1 }}>
-							{project.tags.map((tag) => (
-								<Chip key={tag} size="small" label={tag} variant="outlined" sx={{ fontWeight: 600, fontSize: '0.7rem' }} />
-							))}
-						</Stack>
-					</>
-				)}
+					{/* Tags */}
+					{!!project.tags?.length && (
+						<>
+							<Divider sx={{ my: 1.5 }} />
+							<Stack direction="row" spacing={1} flexWrap="wrap" sx={{ rowGap: 1 }}>
+								{project.tags.map((tag) => (
+									<Chip key={tag} size="small" label={tag} variant="outlined" sx={{ fontWeight: 600, fontSize: '0.7rem' }} />
+								))}
+							</Stack>
+						</>
+					)}
 
-				{/* Lifecycle footer */}
-				<Typography variant="caption" sx={{ display: 'block', color: 'text.disabled', mt: 1.5 }}>
-					Created {formatDate(project.created_at)} &middot; Last updated {formatDate(project.updated_at)}
-				</Typography>
+					{/* Lifecycle footer */}
+					<Typography variant="caption" sx={{ display: 'block', color: 'text.disabled', mt: 1.5 }}>
+						Created {formatDate(project.created_at)} &middot; Last updated {formatDate(project.updated_at)}
+					</Typography>
 				</Collapse>
 			</Box>
 		</Box>

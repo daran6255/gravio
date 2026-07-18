@@ -7,7 +7,9 @@ import {
 	Badge,
 	useTheme,
 	Tooltip,
-	alpha
+	alpha,
+	type SxProps,
+	type Theme
 } from '@mui/material';
 import { Search, FilterList, Refresh, Add } from '@mui/icons-material';
 
@@ -20,6 +22,9 @@ export interface DataTableHeaderProps {
 	onRefresh?: () => void;
 	onCreateClick?: () => void;
 	createButtonText?: string;
+	/** Overrides the create button's default styling (background/shadow/hover) for
+	 *  call sites that want to match a different button elsewhere, e.g. "Invite Teammate". */
+	createButtonSx?: SxProps<Theme>;
 	canCreate?: boolean;
 	loading?: boolean;
 	headerActions?: React.ReactNode;
@@ -34,6 +39,7 @@ const DataTableHeader: React.FC<DataTableHeaderProps> = memo(({
 	onRefresh,
 	onCreateClick,
 	createButtonText = 'Create',
+	createButtonSx,
 	canCreate = false,
 	loading = false,
 	headerActions
@@ -145,17 +151,20 @@ const DataTableHeader: React.FC<DataTableHeaderProps> = memo(({
 						variant="contained"
 						startIcon={<Add />}
 						onClick={onCreateClick}
-						sx={{
-							color: 'white',
-							textTransform: 'none',
-							fontWeight: 700,
-							borderRadius: '10px',
-							boxShadow: 'none',
-							background: theme.gradients.brand,
-							'&:hover': {
-								boxShadow: '0 4px 12px rgba(139,124,246,0.3)',
-							}
-						}}
+						sx={[
+							{
+								color: 'white',
+								textTransform: 'none',
+								fontWeight: 700,
+								borderRadius: '10px',
+								boxShadow: 'none',
+								background: theme.gradients.brand,
+								'&:hover': {
+									boxShadow: '0 4px 12px rgba(139,124,246,0.3)',
+								}
+							},
+							...(Array.isArray(createButtonSx) ? createButtonSx : [createButtonSx ?? {}]),
+						]}
 					>
 						{createButtonText}
 					</Button>

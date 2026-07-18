@@ -219,6 +219,20 @@ export const ProjectsTable: React.FC<ProjectsTableProps> = ({
 			onRefresh={onRefresh}
 			onCreateClick={onCreateClick}
 			createButtonText="New Project"
+			createButtonSx={(theme) => ({
+				borderRadius: '10px',
+				px: 3,
+				py: 1,
+				background: theme.gradients.brandDiagonal,
+				boxShadow: '0 4px 14px 0 rgba(139, 124, 246, 0.4)',
+				border: 'none',
+				transition: 'all 0.2s ease',
+				'&:hover': {
+					background: theme.gradients.brandDiagonalHover,
+					boxShadow: '0 6px 20px 0 rgba(139, 124, 246, 0.6)',
+					transform: 'translateY(-1px)',
+				},
+			})}
 			canCreate
 			renderRow={renderRow}
 			emptyMessage="No projects yet. Convert a Won deal or create one directly to get started."

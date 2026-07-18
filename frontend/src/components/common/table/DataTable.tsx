@@ -55,6 +55,7 @@ const DataTable = <T,>({
 	activeFilterCount,
 	onCreateClick,
 	createButtonText,
+	createButtonSx,
 	canCreate,
 	headerActions,
 	emptyMessage = 'No records found',
@@ -87,6 +88,7 @@ const DataTable = <T,>({
 				onRefresh={onRefresh}
 				onCreateClick={onCreateClick}
 				createButtonText={createButtonText}
+				createButtonSx={createButtonSx}
 				canCreate={canCreate}
 				loading={loading}
 				headerActions={headerActions}
