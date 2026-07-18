@@ -1,24 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, Typography, Box, useTheme, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, alpha } from '@mui/material';
 import { Business } from '@mui/icons-material';
-import orgAdminService from '../../../services/orgAdminService';
-import type { Organization } from '../../../models/auth';
+import crmService from '../../../services/crmService';
+import type { Company } from '../../../models/crm/company';
+
+const STATUS_LABEL: Record<Company['status'], string> = {
+	customer: 'Customer',
+	partner: 'Partner',
+	prospect: 'Prospect',
+	churned: 'Churned',
+};
 
 export const ActiveClientsPanel: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
-	const [clients, setClients] = useState<Organization[]>([]);
+	const [clients, setClients] = useState<Company[]>([]);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		let cancelled = false;
-		orgAdminService.listOrganizations(1, 20)
+		crmService.listCompanies({ page: 1, pageSize: 20 })
 			.then((res) => {
-				if (!cancelled) {
-					// Filter out 'Taydens' (the main tenant) to list client companies
-					const clientList = res.items.filter(org => org.name !== 'Taydens');
-					setClients(clientList);
-				}
+				if (!cancelled) setClients(res.items);
 			})
 			.catch(() => {
 				if (!cancelled) setClients([]);
@@ -63,43 +66,51 @@ export const ActiveClientsPanel: React.FC = () => {
 								<TableRow sx={{ '& th': { bgcolor: 'transparent', fontWeight: 800, fontSize: '0.68rem', color: 'text.secondary', borderBottom: `1px solid ${theme.palette.divider}` } }}>
 									<TableCell>Company Name</TableCell>
 									<TableCell>Location</TableCell>
-									<TableCell>Account Tier</TableCell>
+									<TableCell>Size</TableCell>
 									<TableCell align="right">Status</TableCell>
 								</TableRow>
 							</TableHead>
 							<TableBody>
-								{clients.map((c) => (
-									<TableRow key={c.public_id} hover sx={{ '& td': { borderBottom: `1px solid ${alpha(theme.palette.divider, 0.5)}`, py: 1.25 } }}>
-										<TableCell sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.78rem' }}>{c.name}</TableCell>
-										<TableCell sx={{ fontSize: '0.74rem', color: 'text.secondary' }}>{c.location || '—'}</TableCell>
-										<TableCell>
-											<Chip
-												label={c.plan?.name || 'Pro'}
-												size="small"
-												sx={{
-													height: 18,
-													fontSize: '0.6rem',
-													fontWeight: 800,
-													bgcolor: alpha(theme.palette.primary.main, 0.1),
-													color: theme.palette.primary.main
-												}}
-											/>
-										</TableCell>
-										<TableCell align="right">
-											<Chip
-												label={c.is_active ? 'ACTIVE' : 'INACTIVE'}
-												size="small"
-												sx={{
-													height: 18,
-													fontSize: '0.6rem',
-													fontWeight: 800,
-													bgcolor: c.is_active ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.error.main, 0.1),
-													color: c.is_active ? theme.palette.success.main : theme.palette.error.main
-												}}
-											/>
-										</TableCell>
-									</TableRow>
-								))}
+								{clients.map((c) => {
+									const statusColor =
+										c.status === 'customer' || c.status === 'partner'
+											? theme.palette.success.main
+											: c.status === 'churned'
+												? theme.palette.error.main
+												: theme.palette.warning.main;
+									return (
+										<TableRow key={c.public_id} hover sx={{ '& td': { borderBottom: `1px solid ${alpha(theme.palette.divider, 0.5)}`, py: 1.25 } }}>
+											<TableCell sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.78rem' }}>{c.name}</TableCell>
+											<TableCell sx={{ fontSize: '0.74rem', color: 'text.secondary' }}>{c.address?.city || c.address?.country || c.address?.location || '—'}</TableCell>
+											<TableCell>
+												<Chip
+													label={c.size ? c.size.charAt(0).toUpperCase() + c.size.slice(1) : '—'}
+													size="small"
+													sx={{
+														height: 18,
+														fontSize: '0.6rem',
+														fontWeight: 800,
+														bgcolor: alpha(theme.palette.primary.main, 0.1),
+														color: theme.palette.primary.main
+													}}
+												/>
+											</TableCell>
+											<TableCell align="right">
+												<Chip
+													label={STATUS_LABEL[c.status]}
+													size="small"
+													sx={{
+														height: 18,
+														fontSize: '0.6rem',
+														fontWeight: 800,
+														bgcolor: alpha(statusColor, 0.1),
+														color: statusColor
+													}}
+												/>
+											</TableCell>
+										</TableRow>
+									);
+								})}
 							</TableBody>
 						</Table>
 					</TableContainer>
