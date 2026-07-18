@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { Card, CardContent, Typography, Box, useTheme, Skeleton, Link, LinearProgress} from '@mui/material';
+import { Card, CardContent, Typography, Box, useTheme, Skeleton, Link, LinearProgress } from '@mui/material';
 import { GroupsOutlined, ChevronRight } from '@mui/icons-material';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import userService from '../../../services/userService';
@@ -94,23 +94,23 @@ export const TeamRoleDistributionPanel: React.FC = () => {
 				</Box>
 
 				{loading ? (
-					<Skeleton variant="rounded" height={160} sx={{ borderRadius: '12px', flexGrow: 1 }} />
+					<Skeleton variant="rounded" height={220} sx={{ borderRadius: '12px', flexGrow: 1 }} />
 				) : total === 0 ? (
 					<Box display="flex" alignItems="center" justifyContent="center" sx={{ py: 4, flexGrow: 1 }}>
 						<Typography variant="body2" color="text.secondary">No team members registered.</Typography>
 					</Box>
 				) : (
-					<Box display="flex" alignItems="center" gap={2.5} sx={{ flexGrow: 1 }}>
+					<Box display="flex" flexDirection="column" alignItems="center" sx={{ flexGrow: 1 }}>
 						{/* Donut Chart with Centered Metric */}
-						<Box sx={{ position: 'relative', width: 104, height: 104, flexShrink: 0 }}>
+						<Box sx={{ position: 'relative', width: 130, height: 130, mb: 2.5, flexShrink: 0 }}>
 							<ResponsiveContainer width="100%" height="100%">
 								<PieChart>
 									<Pie
 										data={pieData}
 										dataKey="value"
 										nameKey="name"
-										innerRadius={36}
-										outerRadius={48}
+										innerRadius={45}
+										outerRadius={58}
 										paddingAngle={4}
 										cornerRadius={3}
 										stroke="none"
@@ -126,10 +126,10 @@ export const TeamRoleDistributionPanel: React.FC = () => {
 								display: 'flex', flexDirection: 'column',
 								alignItems: 'center', justifyContent: 'center',
 							}}>
-								<Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', lineHeight: 1 }}>
+								<Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', lineHeight: 1 }}>
 									{total}
 								</Typography>
-								<Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.52rem', fontWeight: 700, letterSpacing: '0.04em' }}>
+								<Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.52rem', fontWeight: 800, letterSpacing: '0.04em' }}>
 									TOTAL
 								</Typography>
 							</Box>
@@ -137,9 +137,8 @@ export const TeamRoleDistributionPanel: React.FC = () => {
 
 						{/* Proportional Role Distribution Indicators */}
 						<Box sx={{
-							flex: 1,
-							minWidth: 0,
-							maxHeight: '125px',
+							width: '100%',
+							maxHeight: '110px',
 							overflowY: 'auto',
 							pr: 0.5,
 							display: 'flex',

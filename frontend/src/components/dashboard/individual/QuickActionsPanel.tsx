@@ -1,76 +1,136 @@
 import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { Card, CardContent, Typography, Box, useTheme, ButtonBase, alpha } from '@mui/material';
-import {
-	FlashOnOutlined,
-	FolderOpenOutlined,
-	AccessTimeOutlined,
-	GroupsOutlined,
-	ChevronRight,
-} from '@mui/icons-material';
+import { Card, CardContent, Typography, Box, useTheme, alpha, ButtonBase } from '@mui/material';
+import { PersonAdd, Assignment, Person, HourglassEmpty, Event, Settings, Bolt } from '@mui/icons-material';
 
 interface QuickAction {
 	label: string;
-	desc: string;
-	to: string;
+	description: string;
 	icon: React.ReactElement;
+	to: string;
 	color: string;
 }
 
 const ACTIONS: QuickAction[] = [
-	{ label: 'Start a Project', desc: 'Spin up a new project to track work', to: '/projects', icon: <FolderOpenOutlined sx={{ fontSize: 20 }} />, color: '#8B7CF6' },
-	{ label: 'Log Time', desc: "Record today's hours", to: '/timesheets', icon: <AccessTimeOutlined sx={{ fontSize: 20 }} />, color: '#4EA8FF' },
-	{ label: 'Convert to Team', desc: 'Bring collaborators onto your workspace', to: '/settings', icon: <GroupsOutlined sx={{ fontSize: 20 }} />, color: '#10B981' },
+	{
+		label: 'Add Lead',
+		description: 'Add CRM sales lead',
+		icon: <Person sx={{ fontSize: 22 }} />,
+		to: '/leads',
+		color: '#10b981',
+	},
+	{
+		label: 'Create Project',
+		description: 'Start a new project',
+		icon: <Assignment sx={{ fontSize: 22 }} />,
+		to: '/projects',
+		color: '#06b6d4',
+	},
+	{
+		label: 'Log Time',
+		description: 'Record daily hours',
+		icon: <HourglassEmpty sx={{ fontSize: 22 }} />,
+		to: '/timesheets',
+		color: '#f59e0b',
+	},
+	{
+		label: 'Request Leave',
+		description: 'Apply for time off',
+		icon: <Event sx={{ fontSize: 22 }} />,
+		to: '/hr/user/leaves',
+		color: '#8b5cf6',
+	},
+	{
+		label: 'Add Deal',
+		description: 'Add CRM sales deal',
+		icon: <PersonAdd sx={{ fontSize: 22 }} />,
+		to: '/crm',
+		color: '#ec4899',
+	},
+	{
+		label: 'Settings',
+		description: 'Profile settings',
+		icon: <Settings sx={{ fontSize: 22 }} />,
+		to: '/settings',
+		color: '#64748b',
+	},
 ];
 
 export const QuickActionsPanel: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 
+	const cardBg = isDark
+		? 'linear-gradient(135deg, rgba(20, 24, 34, 0.75) 0%, rgba(11, 13, 18, 0.9) 100%)'
+		: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.95) 100%)';
+
 	return (
-		<Card
-			sx={{
-				borderRadius: '16px',
-				height: '100%',
-				background: isDark
-					? 'linear-gradient(135deg, rgba(20, 24, 34, 0.75) 0%, rgba(11, 13, 18, 0.9) 100%)'
-					: 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.95) 100%)',
-				backdropFilter: 'blur(20px)',
-				border: `1px solid ${theme.palette.divider}`,
-				boxShadow: isDark ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : '0 8px 32px 0 rgba(139, 124, 246, 0.04)',
-			}}
-		>
+		<Card sx={{
+			borderRadius: '16px',
+			border: `1px solid ${theme.palette.divider}`,
+			boxShadow: isDark ? '0 8px 32px 0 rgba(0, 0, 0, 0.2)' : '0 8px 32px 0 rgba(139, 124, 246, 0.04)',
+			height: '100%',
+			background: cardBg,
+			backdropFilter: 'blur(20px)',
+		}}>
 			<CardContent sx={{ p: 2.5 }}>
 				<Box display="flex" alignItems="center" gap={1.25} sx={{ mb: 2 }}>
-					<FlashOnOutlined color="primary" sx={{ fontSize: 20 }} />
+					<Bolt color="primary" sx={{ fontSize: 20 }} />
 					<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.78rem', color: 'text.primary' }}>
 						Quick Actions
 					</Typography>
 				</Box>
 
-				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+				<Box sx={{
+					display: 'grid',
+					gridTemplateColumns: 'repeat(3, 1fr)',
+					gap: 1.25,
+				}}>
 					{ACTIONS.map((action) => (
 						<ButtonBase
 							key={action.label}
 							component={RouterLink}
 							to={action.to}
 							sx={{
-								display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, borderRadius: '12px',
-								justifyContent: 'flex-start', textAlign: 'left', width: '100%',
-								bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.005)',
-								border: `1px solid ${isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'}`,
+								flexDirection: 'column',
+								alignItems: 'center',
+								gap: 1,
+								p: 1.5,
+								borderRadius: 2,
+								border: `1px solid ${theme.palette.divider}`,
+								bgcolor: isDark ? alpha('#fff', 0.02) : alpha(action.color, 0.03),
 								transition: 'all 0.2s ease',
-								'&:hover': { bgcolor: alpha(action.color, 0.06), borderColor: alpha(action.color, 0.3) },
+								textDecoration: 'none',
+								'&:hover': {
+									bgcolor: alpha(action.color, isDark ? 0.1 : 0.07),
+									borderColor: alpha(action.color, 0.3),
+									transform: 'translateY(-2px)',
+									boxShadow: `0 4px 12px ${alpha(action.color, 0.15)}`
+								},
 							}}
 						>
-							<Box sx={{ width: 38, height: 38, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha(action.color, 0.12), color: action.color, flexShrink: 0 }}>
+							<Box sx={{
+								width: 40, height: 40, borderRadius: 2,
+								display: 'flex', alignItems: 'center', justifyContent: 'center',
+								bgcolor: alpha(action.color, isDark ? 0.15 : 0.1),
+								color: action.color,
+								mb: 0.25,
+							}}>
 								{action.icon}
 							</Box>
-							<Box sx={{ flex: 1, minWidth: 0 }}>
-								<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>{action.label}</Typography>
-								<Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>{action.desc}</Typography>
-							</Box>
-							<ChevronRight sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0 }} />
+							<Typography variant="caption" sx={{
+								fontWeight: 700, color: 'text.primary',
+								fontSize: '0.72rem', textAlign: 'center', lineHeight: 1.2
+							}}>
+								{action.label}
+							</Typography>
+							<Typography variant="caption" sx={{
+								color: 'text.secondary', fontSize: '0.62rem',
+								textAlign: 'center', lineHeight: 1.2,
+								display: { xs: 'none', sm: 'block' }
+							}}>
+								{action.description}
+							</Typography>
 						</ButtonBase>
 					))}
 				</Box>

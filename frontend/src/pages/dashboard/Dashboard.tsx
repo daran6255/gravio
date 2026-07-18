@@ -2,7 +2,6 @@ import React from 'react';
 import { Box, Grid } from '@mui/material';
 import WelcomeHeader from '../../components/dashboard/WelcomeHeader';
 import { InfraHealthPanel } from '../../components/dashboard/InfraHealthPanel';
-import { TrialStatusCard } from '../../components/dashboard/TrialStatusCard';
 import { PlatformPulsePanel } from '../../components/dashboard/super-admin/PlatformPulsePanel';
 import { AttentionQueuePanel } from '../../components/dashboard/super-admin/AttentionQueuePanel';
 import { PlatformKPIPanel } from '../../components/dashboard/super-admin/PlatformKPIPanel';
@@ -21,6 +20,12 @@ import { WeeklyHoursPanel } from '../../components/dashboard/team/WeeklyHoursPan
 import { LeaveBalancePanel } from '../../components/dashboard/team/LeaveBalancePanel';
 import { MyWorkPanel } from '../../components/dashboard/team/MyWorkPanel';
 import { QuickActionsPanel } from '../../components/dashboard/individual/QuickActionsPanel';
+import { IndividualStatsPanel } from '../../components/dashboard/individual/IndividualStatsPanel';
+import { ClientProjectsDonutPanel } from '../../components/dashboard/individual/ClientProjectsDonutPanel';
+import { LeadCategoryDonutPanel } from '../../components/dashboard/individual/LeadCategoryDonutPanel';
+import { IndividualTabbedGridPanel } from '../../components/dashboard/individual/IndividualTabbedGridPanel';
+import { LeadGenerationChartPanel } from '../../components/dashboard/individual/LeadGenerationChartPanel';
+import { ActiveClientsPanel } from '../../components/dashboard/individual/ActiveClientsPanel';
 import { useUserFlow } from '../../hooks/useUserFlow';
 
 const Dashboard: React.FC = () => {
@@ -115,15 +120,44 @@ const Dashboard: React.FC = () => {
 
 			{flow === 'individual' && (
 				<>
-					<Grid container spacing={2} alignItems="stretch">
-						<Grid size={{ xs: 12, md: 5 }}>
-							<TrialStatusCard />
+					{/* Row 1: KPI Stats Panel */}
+					<IndividualStatsPanel />
+
+					{/* Row 2: Client Projects Donut + Lead Sources Donut + Quick Actions */}
+					<Grid container spacing={2} alignItems="stretch" sx={{ mt: 0.5 }}>
+						<Grid size={{ xs: 12, md: 3 }}>
+							<ClientProjectsDonutPanel />
 						</Grid>
-						<Grid size={{ xs: 12, md: 7 }}>
+						<Grid size={{ xs: 12, md: 3 }}>
+							<LeadCategoryDonutPanel />
+						</Grid>
+						<Grid size={{ xs: 12, md: 6 }}>
 							<QuickActionsPanel />
 						</Grid>
 					</Grid>
-					<MyWorkPanel />
+
+					{/* Row 3: AI Usage + Lead Generation + Billing Status */}
+					<Grid container spacing={2} alignItems="stretch" sx={{ mt: 0.5 }}>
+						<Grid size={{ xs: 12, md: 4.5 }}>
+							<AiUsageChartPanel />
+						</Grid>
+						<Grid size={{ xs: 12, md: 4.5 }}>
+							<LeadGenerationChartPanel />
+						</Grid>
+						<Grid size={{ xs: 12, md: 3 }}>
+							<BillingHistoryPanel />
+						</Grid>
+					</Grid>
+
+					{/* Row 4: Tabbed Active Grid + Active Clients */}
+					<Grid container spacing={2} alignItems="stretch" sx={{ mt: 0.5 }}>
+						<Grid size={{ xs: 12, md: 6 }}>
+							<IndividualTabbedGridPanel />
+						</Grid>
+						<Grid size={{ xs: 12, md: 6 }}>
+							<ActiveClientsPanel />
+						</Grid>
+					</Grid>
 				</>
 			)}
 		</Box>
