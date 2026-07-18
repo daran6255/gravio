@@ -48,7 +48,6 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, label, color, co
 					? '0 4px 20px 0 rgba(0,0,0,0.15)'
 					: '0 4px 20px 0 rgba(139,124,246,0.02)',
 				backdropFilter: 'blur(10px)',
-				transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
 			}}
 		>
 			<Box sx={{ p: 2, borderBottom: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 1 }}>

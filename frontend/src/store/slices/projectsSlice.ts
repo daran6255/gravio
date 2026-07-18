@@ -430,7 +430,17 @@ const projectsSlice = createSlice({
 				state.taskMutating = false;
 				state.taskMutationError = action.payload;
 			})
-			.addCase(updateProjectTask.pending, (state) => { state.taskMutating = true; })
+			.addCase(updateProjectTask.pending, (state, action) => {
+				state.taskMutating = true;
+				// Optimistic update: immediately reflect payload changes so the card
+				// moves to the new column without waiting for the API round-trip.
+				const { taskPublicId, payload } = action.meta.arg;
+				const idx = state.projectTasks.findIndex((t) => t.public_id === taskPublicId);
+				if (idx !== -1) {
+					if (payload.status_id !== undefined) state.projectTasks[idx].status_id = payload.status_id;
+					if (payload.assignee_id !== undefined) state.projectTasks[idx].assignee_id = payload.assignee_id;
+				}
+			})
 			.addCase(updateProjectTask.fulfilled, (state, action: PayloadAction<ProjectTask>) => {
 				state.taskMutating = false;
 				state.projectTasks = state.projectTasks.map((t) =>

@@ -110,7 +110,7 @@ export function KanbanBoard<T>({
 				})}
 			</Box>
 
-			<DragOverlay>{activeItem ? renderCard(activeItem) : null}</DragOverlay>
+			<DragOverlay dropAnimation={null}>{activeItem ? renderCard(activeItem) : null}</DragOverlay>
 		</DndContext>
 	);
 }

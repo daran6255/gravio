@@ -230,7 +230,6 @@ export const ProjectTaskKanbanBoard: React.FC<ProjectTaskKanbanBoardProps> = ({
 										height: '100%', 
 										bgcolor: subtasksPercent === 100 ? '#2da44e' : 'primary.main', 
 										borderRadius: 3, 
-										transition: 'width 0.2s ease-in-out' 
 									}} 
 								/>
 							</Box>
