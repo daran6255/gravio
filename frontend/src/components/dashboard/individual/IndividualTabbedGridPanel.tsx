@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, Typography, Box, useTheme, Skeleton, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, alpha } from '@mui/material';
+import { Card, CardContent, Typography, Box, useTheme, Skeleton, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, alpha, Tooltip } from '@mui/material';
 import { Leaderboard, BusinessCenter, Assignment } from '@mui/icons-material';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { fetchLeads, fetchDeals } from '../../../store/slices/crmSlice';
@@ -78,11 +78,13 @@ export const IndividualTabbedGridPanel: React.FC = () => {
 		setActiveTab(newValue);
 	};
 
-	const formatter = new Intl.NumberFormat('en-US', {
-		style: 'currency',
-		currency: 'USD',
-		maximumFractionDigits: 0,
-	});
+	const formatValue = (val: number, cur: string) => {
+		return new Intl.NumberFormat(undefined, {
+			style: 'currency',
+			currency: cur,
+			maximumFractionDigits: 0,
+		}).format(val);
+	};
 
 	const cardBg = theme.gradients.card;
 
@@ -157,7 +159,19 @@ export const IndividualTabbedGridPanel: React.FC = () => {
  														/>
 													</TableCell>
 													<TableCell sx={{ fontSize: '0.74rem', textTransform: 'capitalize', color: 'text.secondary' }}>{l.status}</TableCell>
-													<TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.78rem' }}>{l.estimated_value ? formatter.format(l.estimated_value) : '-'}</TableCell>
+													<TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.78rem' }}>
+														{l.estimated_value == null ? (
+															'-'
+														) : l.display_value != null && l.display_currency ? (
+															<Tooltip title={`Original: ${formatValue(l.estimated_value, l.currency)}`} arrow>
+																<span style={{ cursor: 'help' }}>
+																	{formatValue(l.display_value, l.display_currency)}
+																</span>
+															</Tooltip>
+														) : (
+															formatValue(l.estimated_value, l.currency)
+														)}
+													</TableCell>
 												</TableRow>
 											))}
 										</TableBody>
@@ -189,7 +203,19 @@ export const IndividualTabbedGridPanel: React.FC = () => {
 													<TableCell sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.78rem' }}>{d.title}</TableCell>
 													<TableCell sx={{ fontSize: '0.74rem', fontWeight: 700, color: theme.palette.success.main }}>{d.probability}%</TableCell>
 													<TableCell sx={{ fontSize: '0.74rem', textTransform: 'capitalize', color: 'text.secondary' }}>{d.status}</TableCell>
-													<TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.78rem' }}>{d.value ? formatter.format(d.value) : '-'}</TableCell>
+													<TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.78rem' }}>
+														{d.value == null ? (
+															'-'
+														) : d.display_value != null && d.display_currency ? (
+															<Tooltip title={`Original: ${formatValue(d.value, d.currency)}`} arrow>
+																<span style={{ cursor: 'help' }}>
+																	{formatValue(d.display_value, d.display_currency)}
+																</span>
+															</Tooltip>
+														) : (
+															formatValue(d.value, d.currency)
+														)}
+													</TableCell>
 												</TableRow>
 											))}
 										</TableBody>

@@ -12,10 +12,10 @@ interface DealsStatsPanelProps {
 export const DealsStatsPanel: React.FC<DealsStatsPanelProps> = ({ deals }) => {
 	const displayCurrency = useAppSelector((state) => state.auth.user?.currency) || 'USD';
 
-	const totalValue = deals.reduce((sum, d) => sum + (d.value || 0), 0);
+	const totalValue = deals.reduce((sum, d) => sum + (d.display_value ?? d.value ?? 0), 0);
 	const weightedValue = deals.reduce((sum, d) => {
 		const prob = d.probability || 0;
-		return sum + (d.value || 0) * (prob / 100);
+		return sum + (d.display_value ?? d.value ?? 0) * (prob / 100);
 	}, 0);
 	const activeDeals = deals.filter((d) => d.status === 'open' || d.status === 'on_hold').length;
 

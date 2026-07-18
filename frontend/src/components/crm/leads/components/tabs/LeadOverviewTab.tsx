@@ -14,7 +14,10 @@ interface LeadOverviewTabProps {
 	owners: CRMOwnerOption[];
 }
 
-const formatValue = (value: number, currency: string) => formatMoney(value, currency);
+const formatValue = (value?: number, currency?: string) => {
+	if (value == null) return '';
+	return formatMoney(value, currency);
+};
 
 export const LeadOverviewTab: React.FC<LeadOverviewTabProps> = ({ lead, owners }) => {
 	const theme = useTheme();
@@ -79,23 +82,24 @@ export const LeadOverviewTab: React.FC<LeadOverviewTabProps> = ({ lead, owners }
 							<Typography variant="caption" sx={labelSx}>Est. Value</Typography>
 							<Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ mt: 0.5 }}>
 								<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
-									{lead.estimated_value != null ? formatValue(lead.estimated_value, lead.currency) : '—'}
+									{lead.display_value != null && lead.display_currency
+										? formatValue(lead.display_value, lead.display_currency)
+										: lead.estimated_value != null
+											? formatValue(lead.estimated_value, lead.currency)
+											: '—'}
 								</Typography>
 								<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-									{lead.currency}
+									{lead.display_value != null && lead.display_currency
+										? lead.display_currency
+										: lead.currency}
 								</Typography>
 							</Stack>
 							{lead.display_value != null && lead.display_currency && (
-								<Tooltip title={`Converted using the exchange rate on ${formatDate(lead.created_at)}`} arrow>
-									<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-										≈ {formatMoney(lead.display_value, lead.display_currency)}
+								<Tooltip title={`Original: ${formatValue(lead.estimated_value, lead.currency)}${lead.display_rate ? ` (${formatRate(lead.currency, lead.display_currency!, lead.display_rate!)})` : ''} — converted using the exchange rate on ${formatDate(lead.created_at)}`} arrow>
+									<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25, cursor: 'help' }}>
+										Original: {formatValue(lead.estimated_value, lead.currency)}
 									</Typography>
 								</Tooltip>
-							)}
-							{lead.display_rate != null && lead.display_currency && (
-								<Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.25, fontSize: '0.68rem' }}>
-									{formatRate(lead.currency, lead.display_currency, lead.display_rate)}
-								</Typography>
 							)}
 						</Box>
 						<Box sx={{ bgcolor: alpha(theme.palette.primary.main, 0.08), p: 1, borderRadius: '50%', color: 'primary.main', display: 'flex' }}>

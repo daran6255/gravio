@@ -23,7 +23,10 @@ interface DealDetailsTabProps {
 	owners: CRMOwnerOption[];
 }
 
-const formatValue = (value: number, currency: string) => formatMoney(value, currency);
+const formatValue = (value?: number, currency?: string) => {
+	if (value == null) return '';
+	return formatMoney(value, currency);
+};
 
 export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) => {
 	const dispatch = useAppDispatch();
@@ -114,8 +117,8 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 							<Typography variant="caption" sx={labelSx}>Deal Value</Typography>
 							{deal.display_value != null && deal.display_currency ? (
 								<>
-									<Tooltip title={`Converted using the exchange rate on ${formatDate(deal.created_at)}`} arrow>
-										<Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ mt: 0.5 }}>
+									<Tooltip title={`Original: ${formatValue(deal.value, deal.currency)}${deal.display_rate != null ? ` (${formatRate(deal.currency, deal.display_currency!, deal.display_rate!)})` : ''} — converted using the exchange rate on ${formatDate(deal.created_at)}`} arrow>
+										<Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ mt: 0.5, cursor: 'help' }}>
 											<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
 												{formatMoney(deal.display_value, deal.display_currency)}
 											</Typography>
@@ -124,11 +127,9 @@ export const DealDetailsTab: React.FC<DealDetailsTabProps> = ({ deal, owners }) 
 											</Typography>
 										</Stack>
 									</Tooltip>
-									{deal.display_rate != null && (
-										<Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.25, fontSize: '0.68rem' }}>
-											{formatRate(deal.currency, deal.display_currency, deal.display_rate)}
-										</Typography>
-									)}
+									<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+										Original: {formatValue(deal.value, deal.currency)}
+									</Typography>
 								</>
 							) : (
 								<Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ mt: 0.5 }}>

@@ -49,11 +49,12 @@ export const IndividualStatsPanel: React.FC = () => {
 				const activeProjects = myProjects.filter(p => p.status === 'active' || p.status === 'in_progress').length;
 
 				// Total Projects Value: sum of budget/value
-				const totalVal = myProjects.reduce((sum, p) => sum + (p.budget || 0), 0);
+				const totalVal = myProjects.reduce((sum, p) => sum + (p.display_budget ?? p.budget ?? 0), 0);
 
+				const displayCurrency = user?.currency || 'USD';
 				const formatter = new Intl.NumberFormat('en-US', {
 					style: 'currency',
-					currency: 'USD',
+					currency: displayCurrency,
 					maximumFractionDigits: 0,
 				});
 

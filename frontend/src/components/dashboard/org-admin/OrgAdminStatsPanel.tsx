@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Grid, Skeleton } from '@mui/material';
 import { People, CheckCircle, TrendingUp, MonetizationOn } from '@mui/icons-material';
-import { useAppDispatch } from '../../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTeamUsers } from '../../../store/slices/userSlice';
 import { fetchLeads, fetchDeals } from '../../../store/slices/crmSlice';
 import StatCard from '../../common/stats/StatCard';
@@ -16,6 +16,7 @@ interface StatItem {
 
 export const OrgAdminStatsPanel: React.FC = () => {
 	const dispatch = useAppDispatch();
+	const displayCurrency = useAppSelector((state) => state.auth.user?.currency) || 'USD';
 	const [stats, setStats] = useState<StatItem[] | null>(null);
 	const [loading, setLoading] = useState(true);
 
@@ -40,11 +41,11 @@ export const OrgAdminStatsPanel: React.FC = () => {
 
 				// Total amount value of deals converted to projects (deal has a project_id)
 				const convertedDeals = dealsRes.items.filter(d => d.project_id);
-				const totalConvertedValue = convertedDeals.reduce((sum, d) => sum + (d.value || 0), 0);
+				const totalConvertedValue = convertedDeals.reduce((sum, d) => sum + (d.display_value ?? d.value ?? 0), 0);
 
 				const formatter = new Intl.NumberFormat('en-US', {
 					style: 'currency',
-					currency: 'USD',
+					currency: displayCurrency,
 					maximumFractionDigits: 0,
 				});
 
@@ -87,7 +88,7 @@ export const OrgAdminStatsPanel: React.FC = () => {
 
 		loadData();
 		return () => { cancelled = true; };
-	}, [dispatch]);
+	}, [dispatch, displayCurrency]);
 
 	if (loading) {
 		return (

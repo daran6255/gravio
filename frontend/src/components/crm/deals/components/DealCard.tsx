@@ -173,20 +173,26 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, companyName, onView, o
 
 			<Stack direction="row" justifyContent="space-between" alignItems="flex-end" sx={{ mt: 1 }}>
 				<Box sx={{ minWidth: 0 }}>
-					{formatValue(deal.value, deal.currency) && (
-						<Typography variant="body2" sx={{ fontWeight: 800, color: '#10B981', display: 'block', fontSize: '0.9rem' }}>
-							{formatValue(deal.value, deal.currency)}
-						</Typography>
-					)}
-					{deal.display_value != null && deal.display_currency && (
-						<Tooltip
-							title={`Converted using the exchange rate on ${formatDate(deal.created_at)}${deal.display_rate != null ? ` (${formatRate(deal.currency, deal.display_currency, deal.display_rate)})` : ''}`}
-							arrow
-						>
-							<Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', display: 'block', mt: 0.25 }}>
-								≈ {formatMoney(deal.display_value, deal.display_currency)}
+					{deal.display_value != null && deal.display_currency ? (
+						<>
+							<Typography variant="body2" sx={{ fontWeight: 800, color: '#10B981', display: 'block', fontSize: '0.9rem' }}>
+								{formatMoney(deal.display_value, deal.display_currency)}
 							</Typography>
-						</Tooltip>
+							<Tooltip
+								title={`Original: ${formatValue(deal.value, deal.currency)}${deal.display_rate != null ? ` — converted using the exchange rate on ${formatDate(deal.created_at)} (${formatRate(deal.currency, deal.display_currency!, deal.display_rate!)})` : ''}`}
+								arrow
+							>
+								<Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', display: 'block', mt: 0.25, cursor: 'help' }}>
+									Original: {formatValue(deal.value, deal.currency)}
+								</Typography>
+							</Tooltip>
+						</>
+					) : (
+						formatValue(deal.value, deal.currency) && (
+							<Typography variant="body2" sx={{ fontWeight: 800, color: '#10B981', display: 'block', fontSize: '0.9rem' }}>
+								{formatValue(deal.value, deal.currency)}
+							</Typography>
+						)
 					)}
 				</Box>
 				

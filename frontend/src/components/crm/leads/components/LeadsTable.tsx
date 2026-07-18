@@ -235,10 +235,12 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
 				<TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>
 					{lead.display_value != null && lead.display_currency ? (
 						<Tooltip
-							title={`≈ ${formatMoney(lead.display_value, lead.display_currency)} — converted using the exchange rate on ${formatDate(lead.created_at)}${lead.display_rate != null ? ` (${formatRate(lead.currency, lead.display_currency, lead.display_rate)})` : ''}`}
+							title={`Original: ${formatCurrency(lead.estimated_value, lead.currency)}${lead.display_rate != null ? ` — converted using the exchange rate on ${formatDate(lead.created_at)} (${formatRate(lead.currency, lead.display_currency, lead.display_rate)})` : ''}`}
 							arrow
 						>
-							<span>{formatCurrency(lead.estimated_value, lead.currency)}</span>
+							<Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', cursor: 'help' }}>
+								{formatMoney(lead.display_value, lead.display_currency)}
+							</Typography>
 						</Tooltip>
 					) : (
 						formatCurrency(lead.estimated_value, lead.currency)
