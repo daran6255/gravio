@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, Typography, Box, useTheme, Skeleton } from '@mui/material';
 import { Timeline } from '@mui/icons-material';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import crmService from '../../../services/crmService';
+import { useAppDispatch } from '../../../store/hooks';
+import { fetchLeads } from '../../../store/slices/crmSlice';
 
 interface ChartDataPoint {
 	date: string;
@@ -12,6 +13,7 @@ interface ChartDataPoint {
 export const LeadGenerationChartPanel: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const dispatch = useAppDispatch();
 	const [data, setData] = useState<ChartDataPoint[]>([]);
 	const [loading, setLoading] = useState(true);
 
@@ -20,7 +22,7 @@ export const LeadGenerationChartPanel: React.FC = () => {
 
 		const loadData = async () => {
 			try {
-				const leadsRes = await crmService.listLeads({ pageSize: 500 }).catch(() => ({ items: [], total: 0 }));
+				const leadsRes = await dispatch(fetchLeads({ pageSize: 500 })).unwrap().catch(() => ({ items: [], total: 0 }));
 				if (cancelled) return;
 
 				// Map the last 7 days
@@ -62,7 +64,7 @@ export const LeadGenerationChartPanel: React.FC = () => {
 
 		loadData();
 		return () => { cancelled = true; };
-	}, []);
+	}, [dispatch]);
 
 	const cardBg = theme.gradients.card;
 

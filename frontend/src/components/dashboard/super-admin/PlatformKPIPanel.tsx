@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { Grid, useTheme } from '@mui/material';
 import { Business, Group, CheckCircleOutline, HourglassEmpty } from '@mui/icons-material';
-import orgAdminService from '../../../services/orgAdminService';
+import { useAppDispatch } from '../../../store/hooks';
+import { fetchAdminStats } from '../../../store/slices/orgAdminSlice';
 import StatCard from '../../common/stats/StatCard';
 import type { AdminStats } from '../../../models/admin';
 
 export const PlatformKPIPanel: React.FC = () => {
 	const theme = useTheme();
+	const dispatch = useAppDispatch();
 	const [stats, setStats] = useState<AdminStats | null>(null);
 
 	useEffect(() => {
 		let cancelled = false;
-		orgAdminService.getAdminStats()
+		dispatch(fetchAdminStats()).unwrap()
 			.then((data) => { if (!cancelled) setStats(data); })
 			.catch(() => { if (!cancelled) setStats(null); });
 		return () => { cancelled = true; };
-	}, []);
+	}, [dispatch]);
 
 	const kpis = [
 		{

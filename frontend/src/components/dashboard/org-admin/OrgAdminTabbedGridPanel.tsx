@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, Typography, Box, useTheme, Skeleton, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, alpha } from '@mui/material';
 import { Leaderboard, BusinessCenter, Assignment } from '@mui/icons-material';
-import crmService from '../../../services/crmService';
-import projectService from '../../../services/projectService';
+import { useAppDispatch } from '../../../store/hooks';
+import { fetchLeads, fetchDeals } from '../../../store/slices/crmSlice';
+import { fetchProjects } from '../../../store/slices/projectsSlice';
 import type { Lead } from '../../../models/crm/lead';
 import type { Deal } from '../../../models/crm/deal';
 import type { Project } from '../../../models/projects/project';
@@ -35,8 +36,9 @@ const CustomTabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...ot
 export const OrgAdminTabbedGridPanel: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const dispatch = useAppDispatch();
 	const [activeTab, setActiveTab] = useState(0);
-	
+
 	const [leads, setLeads] = useState<Lead[]>([]);
 	const [deals, setDeals] = useState<Deal[]>([]);
 	const [projects, setProjects] = useState<Project[]>([]);
@@ -48,9 +50,9 @@ export const OrgAdminTabbedGridPanel: React.FC = () => {
 		const loadData = async () => {
 			try {
 				const [leadsRes, dealsRes, projectsRes] = await Promise.all([
-					crmService.listLeads({ pageSize: 5 }).catch(() => ({ items: [], total: 0 })),
-					crmService.listDeals({ pageSize: 5 }).catch(() => ({ items: [], total: 0 })),
-					projectService.listProjects({ pageSize: 5 }).catch(() => ({ items: [], total: 0 })),
+					dispatch(fetchLeads({ pageSize: 5 })).unwrap().catch(() => ({ items: [], total: 0 })),
+					dispatch(fetchDeals({})).unwrap().catch(() => ({ items: [], total: 0 })),
+					dispatch(fetchProjects({ pageSize: 5 })).unwrap().catch(() => ({ items: [], total: 0 })),
 				]);
 
 				if (cancelled) return;
@@ -68,7 +70,7 @@ export const OrgAdminTabbedGridPanel: React.FC = () => {
 
 		loadData();
 		return () => { cancelled = true; };
-	}, []);
+	}, [dispatch]);
 
 	const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
 		setActiveTab(newValue);

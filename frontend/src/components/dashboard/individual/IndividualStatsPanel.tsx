@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Grid, Skeleton } from '@mui/material';
 import { WorkOutline, CheckCircleOutline, FolderSpecialOutlined, MonetizationOnOutlined } from '@mui/icons-material';
-import { useAppSelector } from '../../../store/hooks';
-import crmService from '../../../services/crmService';
-import projectService from '../../../services/projectService';
+import { useAppSelector, useAppDispatch } from '../../../store/hooks';
+import { fetchLeads, fetchDeals } from '../../../store/slices/crmSlice';
+import { fetchProjects } from '../../../store/slices/projectsSlice';
 import StatCard from '../../common/stats/StatCard';
 
 interface StatItem {
@@ -15,6 +15,7 @@ interface StatItem {
 }
 
 export const IndividualStatsPanel: React.FC = () => {
+	const dispatch = useAppDispatch();
 	const user = useAppSelector((state) => state.auth.user);
 	const [stats, setStats] = useState<StatItem[] | null>(null);
 	const [loading, setLoading] = useState(true);
@@ -26,17 +27,17 @@ export const IndividualStatsPanel: React.FC = () => {
 			if (!user) return;
 			try {
 				const [leadsRes, dealsRes, projectsRes] = await Promise.all([
-					crmService.listLeads({ pageSize: 500 }).catch(() => ({ items: [], total: 0 })),
-					crmService.listDeals({ pageSize: 500 }).catch(() => ({ items: [], total: 0 })),
-					projectService.listProjects({ page: 1, pageSize: 200 }).catch(() => ({ items: [], total: 0 })),
+					dispatch(fetchLeads({ ownerId: user.id, pageSize: 500 })).unwrap().catch(() => ({ items: [], total: 0 })),
+					dispatch(fetchDeals({ ownerId: user.id })).unwrap().catch(() => ({ items: [], total: 0 })),
+					dispatch(fetchProjects({ ownerId: user.id, page: 1, pageSize: 200 })).unwrap().catch(() => ({ items: [], total: 0 })),
 				]);
 
 				if (cancelled) return;
 
-				// Filter items owned by the current logged-in user
-				const myLeads = leadsRes.items.filter(l => l.owner_id === user.id);
-				const myDeals = dealsRes.items.filter(d => d.owner_id === user.id);
-				const myProjects = projectsRes.items.filter(p => p.owner_id === user.id);
+				// Leads/deals/projects are already scoped to this user server-side via ownerId
+				const myLeads = leadsRes.items;
+				const myDeals = dealsRes.items;
+				const myProjects = projectsRes.items;
 
 				// Active Deals: open status
 				const activeDeals = myDeals.filter(d => d.status === 'open').length;
@@ -95,7 +96,7 @@ export const IndividualStatsPanel: React.FC = () => {
 
 		loadData();
 		return () => { cancelled = true; };
-	}, [user]);
+	}, [user, dispatch]);
 
 	if (loading) {
 		return (

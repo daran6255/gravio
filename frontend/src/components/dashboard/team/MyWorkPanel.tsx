@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, Typography, Box, useTheme, Skeleton, alpha } from '@mui/material';
 import { ChecklistOutlined, WarningAmberOutlined, EventOutlined, TaskAlt } from '@mui/icons-material';
-import crmService from '../../../services/crmService';
-import projectService from '../../../services/projectService';
+import { useAppDispatch } from '../../../store/hooks';
+import { fetchStats } from '../../../store/slices/crmSlice';
+import { fetchProjectStats } from '../../../store/slices/projectsSlice';
 import type { CRMStats } from '../../../models/crm/crmStats';
 import type { ProjectStats } from '../../../models/projects/project';
 
 export const MyWorkPanel: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const dispatch = useAppDispatch();
 	const [crm, setCrm] = useState<CRMStats | null>(null);
 	const [projects, setProjects] = useState<ProjectStats | null>(null);
 	const [loaded, setLoaded] = useState(false);
@@ -16,8 +18,8 @@ export const MyWorkPanel: React.FC = () => {
 	useEffect(() => {
 		let cancelled = false;
 		Promise.all([
-			crmService.getStats().catch(() => null),
-			projectService.getProjectStats().catch(() => null),
+			dispatch(fetchStats()).unwrap().catch(() => null),
+			dispatch(fetchProjectStats()).unwrap().catch(() => null),
 		]).then(([c, p]) => {
 			if (cancelled) return;
 			setCrm(c);
@@ -25,7 +27,7 @@ export const MyWorkPanel: React.FC = () => {
 			setLoaded(true);
 		});
 		return () => { cancelled = true; };
-	}, []);
+	}, [dispatch]);
 
 	const deadlines = projects?.upcoming_deadlines?.slice(0, 3) ?? [];
 	const nothingToShow = loaded && !crm && !projects;

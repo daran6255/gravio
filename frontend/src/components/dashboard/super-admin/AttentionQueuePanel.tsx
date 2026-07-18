@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Card, CardContent, Typography, Box, useTheme, Skeleton, Link, alpha } from '@mui/material';
 import { NotificationsActive, ChevronRight, TaskAlt } from '@mui/icons-material';
-import orgAdminService from '../../../services/orgAdminService';
+import { useAppDispatch } from '../../../store/hooks';
+import { fetchOrganizations } from '../../../store/slices/orgAdminSlice';
 import type { Organization } from '../../../models/auth';
 import { getTrialDaysLeft } from '../../../utils/trial';
 
@@ -11,17 +12,18 @@ const ATTENTION_WINDOW_DAYS = 7;
 export const AttentionQueuePanel: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const dispatch = useAppDispatch();
 	const [orgs, setOrgs] = useState<Organization[] | null>(null);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		let cancelled = false;
-		orgAdminService.listOrganizations(1, 50)
+		dispatch(fetchOrganizations({ page: 1, pageSize: 50 })).unwrap()
 			.then((res) => { if (!cancelled) setOrgs(res.items); })
 			.catch(() => { if (!cancelled) setOrgs(null); })
 			.finally(() => { if (!cancelled) setLoading(false); });
 		return () => { cancelled = true; };
-	}, []);
+	}, [dispatch]);
 
 	const expiringSoon = (orgs || [])
 		.filter((o) => o.subscription_status === 'trial' && o.trial_expires_at)

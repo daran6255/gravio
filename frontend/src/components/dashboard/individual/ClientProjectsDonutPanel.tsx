@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, Typography, Box, useTheme, Skeleton, LinearProgress } from '@mui/material';
 import { FolderCopy } from '@mui/icons-material';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import projectService from '../../../services/projectService';
+import { useAppDispatch } from '../../../store/hooks';
+import { fetchProjects } from '../../../store/slices/projectsSlice';
 import type { Project } from '../../../models/projects/project';
 
 interface DonutItem {
@@ -16,6 +17,7 @@ const COLORS = ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'
 export const ClientProjectsDonutPanel: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const dispatch = useAppDispatch();
 	const [data, setData] = useState<DonutItem[]>([]);
 	const [totalProjects, setTotalProjects] = useState(0);
 	const [loading, setLoading] = useState(true);
@@ -25,7 +27,7 @@ export const ClientProjectsDonutPanel: React.FC = () => {
 
 		const loadData = async () => {
 			try {
-				const projectsRes = await projectService.listProjects({ page: 1, pageSize: 200 }).catch(() => ({ items: [], total: 0 }));
+				const projectsRes = await dispatch(fetchProjects({ page: 1, pageSize: 200 })).unwrap().catch(() => ({ items: [], total: 0 }));
 				if (cancelled) return;
 
 				const group: Record<string, number> = {};
@@ -74,7 +76,7 @@ export const ClientProjectsDonutPanel: React.FC = () => {
 
 		loadData();
 		return () => { cancelled = true; };
-	}, []);
+	}, [dispatch]);
 
 	const cardBg = theme.gradients.card;
 

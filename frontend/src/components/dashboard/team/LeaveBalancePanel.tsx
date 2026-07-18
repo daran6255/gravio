@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Card, CardContent, Typography, Box, useTheme, Skeleton, Link, LinearProgress, alpha } from '@mui/material';
 import { BeachAccessOutlined, ChevronRight } from '@mui/icons-material';
-import { hrLeaveBalanceApi } from '../../../services/hrService';
+import { useAppDispatch } from '../../../store/hooks';
+import { fetchMyLeaveBalances } from '../../../store/slices/hrSlice';
 import type { HRLeaveBalanceResponse } from '../../../models/hr/leave';
 
 const BAR_COLORS = ['#8B7CF6', '#4EA8FF', '#10B981', '#F59E0B'];
@@ -10,16 +11,17 @@ const BAR_COLORS = ['#8B7CF6', '#4EA8FF', '#10B981', '#F59E0B'];
 export const LeaveBalancePanel: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const dispatch = useAppDispatch();
 	const [balances, setBalances] = useState<HRLeaveBalanceResponse[] | null>(null);
 	const [available, setAvailable] = useState(true);
 
 	useEffect(() => {
 		let cancelled = false;
-		hrLeaveBalanceApi.getMyBalances()
+		dispatch(fetchMyLeaveBalances(undefined)).unwrap()
 			.then((data) => { if (!cancelled) setBalances(data); })
 			.catch(() => { if (!cancelled) { setAvailable(false); setBalances([]); } });
 		return () => { cancelled = true; };
-	}, []);
+	}, [dispatch]);
 
 	if (!available) return null;
 

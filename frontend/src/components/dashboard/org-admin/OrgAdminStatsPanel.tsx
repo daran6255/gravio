@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Grid, Skeleton } from '@mui/material';
 import { People, CheckCircle, TrendingUp, MonetizationOn } from '@mui/icons-material';
-import userService from '../../../services/userService';
-import crmService from '../../../services/crmService';
+import { useAppDispatch } from '../../../store/hooks';
+import { fetchTeamUsers } from '../../../store/slices/userSlice';
+import { fetchLeads, fetchDeals } from '../../../store/slices/crmSlice';
 import StatCard from '../../common/stats/StatCard';
 
 interface StatItem {
@@ -14,6 +15,7 @@ interface StatItem {
 }
 
 export const OrgAdminStatsPanel: React.FC = () => {
+	const dispatch = useAppDispatch();
 	const [stats, setStats] = useState<StatItem[] | null>(null);
 	const [loading, setLoading] = useState(true);
 
@@ -23,9 +25,9 @@ export const OrgAdminStatsPanel: React.FC = () => {
 		const loadData = async () => {
 			try {
 				const [usersRes, leadsRes, dealsRes] = await Promise.all([
-					userService.list(1, 200).catch(() => ({ items: [], total: 0 })),
-					crmService.listLeads({ pageSize: 500 }).catch(() => ({ items: [], total: 0 })),
-					crmService.listDeals({ pageSize: 500 }).catch(() => ({ items: [], total: 0 })),
+					dispatch(fetchTeamUsers({ page: 1, pageSize: 200 })).unwrap().catch(() => ({ items: [], total: 0 })),
+					dispatch(fetchLeads({ pageSize: 500 })).unwrap().catch(() => ({ items: [], total: 0 })),
+					dispatch(fetchDeals({})).unwrap().catch(() => ({ items: [], total: 0 })),
 				]);
 
 				if (cancelled) return;
@@ -85,7 +87,7 @@ export const OrgAdminStatsPanel: React.FC = () => {
 
 		loadData();
 		return () => { cancelled = true; };
-	}, []);
+	}, [dispatch]);
 
 	if (loading) {
 		return (

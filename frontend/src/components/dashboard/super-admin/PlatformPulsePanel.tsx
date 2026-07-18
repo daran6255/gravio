@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, Typography, Box, useTheme, Grid, Skeleton, alpha } from '@mui/material';
 import { Insights, Business, PersonOutline, CheckCircleOutline, HourglassEmpty } from '@mui/icons-material';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import orgAdminService from '../../../services/orgAdminService';
+import { useAppDispatch } from '../../../store/hooks';
+import { fetchAdminStats } from '../../../store/slices/orgAdminSlice';
 import type { AdminStats } from '../../../models/admin';
 
 const miniStat = (icon: React.ReactElement, label: string, value: number | string, color: string) => (
@@ -26,17 +27,18 @@ const miniStat = (icon: React.ReactElement, label: string, value: number | strin
 export const PlatformPulsePanel: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const dispatch = useAppDispatch();
 	const [stats, setStats] = useState<AdminStats | null>(null);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		let cancelled = false;
-		orgAdminService.getAdminStats()
+		dispatch(fetchAdminStats()).unwrap()
 			.then((data) => { if (!cancelled) setStats(data); })
 			.catch(() => { if (!cancelled) setStats(null); })
 			.finally(() => { if (!cancelled) setLoading(false); });
 		return () => { cancelled = true; };
-	}, []);
+	}, [dispatch]);
 
 	const pieData = stats ? [
 		{ name: 'Team Orgs', value: stats.team_organizations, color: theme.palette.info.main },

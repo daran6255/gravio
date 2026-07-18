@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, Typography, Box, useTheme, Skeleton, LinearProgress } from '@mui/material';
 import { Category } from '@mui/icons-material';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import crmService from '../../../services/crmService';
+import { useAppDispatch } from '../../../store/hooks';
+import { fetchLeads } from '../../../store/slices/crmSlice';
 import type { Lead } from '../../../models/crm/lead';
 
 interface DonutItem {
@@ -25,6 +26,7 @@ const SOURCE_LABELS: Record<string, string> = {
 export const LeadCategoryDonutPanel: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const dispatch = useAppDispatch();
 	const [data, setData] = useState<DonutItem[]>([]);
 	const [totalLeads, setTotalLeads] = useState(0);
 	const [loading, setLoading] = useState(true);
@@ -34,7 +36,7 @@ export const LeadCategoryDonutPanel: React.FC = () => {
 
 		const loadData = async () => {
 			try {
-				const leadsRes = await crmService.listLeads({ pageSize: 500 }).catch(() => ({ items: [], total: 0 }));
+				const leadsRes = await dispatch(fetchLeads({ pageSize: 500 })).unwrap().catch(() => ({ items: [], total: 0 }));
 				if (cancelled) return;
 
 				const group: Record<string, number> = {};
@@ -76,7 +78,7 @@ export const LeadCategoryDonutPanel: React.FC = () => {
 
 		loadData();
 		return () => { cancelled = true; };
-	}, []);
+	}, [dispatch]);
 
 	const cardBg = theme.gradients.card;
 

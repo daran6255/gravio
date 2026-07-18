@@ -4,23 +4,25 @@ import {
 	Card, CardContent, Typography, Box, useTheme, Skeleton, alpha, Link, LinearProgress
 } from '@mui/material';
 import { PeopleAlt, ChevronRight, WarningAmber } from '@mui/icons-material';
-import orgAdminService from '../../../services/orgAdminService';
+import { useAppDispatch } from '../../../store/hooks';
+import { fetchOrganizations } from '../../../store/slices/orgAdminSlice';
 import type { Organization } from '../../../models/auth';
 
 export const OrgSeatUsagePanel: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const dispatch = useAppDispatch();
 	const [orgs, setOrgs] = useState<Organization[] | null>(null);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		let cancelled = false;
-		orgAdminService.listOrganizations(1, 50)
+		dispatch(fetchOrganizations({ page: 1, pageSize: 50 })).unwrap()
 			.then((res) => { if (!cancelled) setOrgs(res.items); })
 			.catch(() => { if (!cancelled) setOrgs(null); })
 			.finally(() => { if (!cancelled) setLoading(false); });
 		return () => { cancelled = true; };
-	}, []);
+	}, [dispatch]);
 
 	// Orgs with a known user limit and at least 50% filled
 	const atRisk = (orgs || [])

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, Typography, Box, useTheme, Skeleton, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, alpha } from '@mui/material';
 import { Leaderboard, BusinessCenter, Assignment } from '@mui/icons-material';
-import { useAppSelector } from '../../../store/hooks';
-import crmService from '../../../services/crmService';
-import projectService from '../../../services/projectService';
+import { useAppSelector, useAppDispatch } from '../../../store/hooks';
+import { fetchLeads, fetchDeals } from '../../../store/slices/crmSlice';
+import { fetchProjects } from '../../../store/slices/projectsSlice';
 import type { Lead } from '../../../models/crm/lead';
 import type { Deal } from '../../../models/crm/deal';
 import type { Project } from '../../../models/projects/project';
@@ -36,9 +36,10 @@ const CustomTabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...ot
 export const IndividualTabbedGridPanel: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const dispatch = useAppDispatch();
 	const user = useAppSelector((state) => state.auth.user);
 	const [activeTab, setActiveTab] = useState(0);
-	
+
 	const [leads, setLeads] = useState<Lead[]>([]);
 	const [deals, setDeals] = useState<Deal[]>([]);
 	const [projects, setProjects] = useState<Project[]>([]);
@@ -51,21 +52,17 @@ export const IndividualTabbedGridPanel: React.FC = () => {
 			if (!user) return;
 			try {
 				const [leadsRes, dealsRes, projectsRes] = await Promise.all([
-					crmService.listLeads({ pageSize: 500 }).catch(() => ({ items: [], total: 0 })),
-					crmService.listDeals({ pageSize: 500 }).catch(() => ({ items: [], total: 0 })),
-					projectService.listProjects({ page: 1, pageSize: 200 }).catch(() => ({ items: [], total: 0 })),
+					dispatch(fetchLeads({ ownerId: user.id, pageSize: 500 })).unwrap().catch(() => ({ items: [], total: 0 })),
+					dispatch(fetchDeals({ ownerId: user.id })).unwrap().catch(() => ({ items: [], total: 0 })),
+					dispatch(fetchProjects({ ownerId: user.id, page: 1, pageSize: 200 })).unwrap().catch(() => ({ items: [], total: 0 })),
 				]);
 
 				if (cancelled) return;
 
-				// Filter items owned by the current logged-in user
-				const myLeads = leadsRes.items.filter(l => l.owner_id === user.id);
-				const myDeals = dealsRes.items.filter(d => d.owner_id === user.id);
-				const myProjects = projectsRes.items.filter(p => p.owner_id === user.id);
-
-				setLeads(myLeads.filter(l => l.status !== 'converted' && l.status !== 'unqualified').slice(0, 5));
-				setDeals(myDeals.filter(d => d.status === 'open' || d.status === 'on_hold').slice(0, 5));
-				setProjects(myProjects.filter(p => p.status !== 'completed' && p.status !== 'canceled').slice(0, 5));
+				// Leads/deals/projects are already scoped to this user server-side via ownerId
+				setLeads(leadsRes.items.filter(l => l.status !== 'converted' && l.status !== 'unqualified').slice(0, 5));
+				setDeals(dealsRes.items.filter(d => d.status === 'open' || d.status === 'on_hold').slice(0, 5));
+				setProjects(projectsRes.items.filter(p => p.status !== 'completed' && p.status !== 'canceled').slice(0, 5));
 			} catch (err) {
 				console.error(err);
 			} finally {
@@ -75,7 +72,7 @@ export const IndividualTabbedGridPanel: React.FC = () => {
 
 		loadData();
 		return () => { cancelled = true; };
-	}, [user]);
+	}, [user, dispatch]);
 
 	const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
 		setActiveTab(newValue);

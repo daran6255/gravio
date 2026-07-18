@@ -8,7 +8,8 @@ import {
 	History, Business, PersonOutline, ChevronRight,
 	CheckCircleOutline, HourglassEmpty, Block
 } from '@mui/icons-material';
-import orgAdminService from '../../../services/orgAdminService';
+import { useAppDispatch } from '../../../store/hooks';
+import { fetchOrganizations } from '../../../store/slices/orgAdminSlice';
 import type { Organization } from '../../../models/auth';
 
 const getStatusMeta = (
@@ -38,18 +39,19 @@ const getAvatarColor = (name: string) => AVATAR_PALETTE[name.charCodeAt(0) % AVA
 export const RecentActivityPanel: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const dispatch = useAppDispatch();
 	const [orgs, setOrgs] = useState<Organization[] | null>(null);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		let cancelled = false;
 		// Fetch most recent 8 orgs
-		orgAdminService.listOrganizations(1, 8)
+		dispatch(fetchOrganizations({ page: 1, pageSize: 8 })).unwrap()
 			.then((res) => { if (!cancelled) setOrgs(res.items); })
 			.catch(() => { if (!cancelled) setOrgs(null); })
 			.finally(() => { if (!cancelled) setLoading(false); });
 		return () => { cancelled = true; };
-	}, []);
+	}, [dispatch]);
 
 	const cardBg = theme.gradients.card;
 

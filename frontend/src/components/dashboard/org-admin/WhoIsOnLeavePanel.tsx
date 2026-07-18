@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Card, CardContent, Typography, Box, useTheme, Skeleton, Link, Avatar, Chip, alpha } from '@mui/material';
 import { EventBusy, ChevronRight, AirlineSeatReclineNormal } from '@mui/icons-material';
-import { hrLeaveRequestApi } from '../../../services/hrService';
+import { useAppDispatch } from '../../../store/hooks';
+import { fetchTeamLeaveRequests } from '../../../store/slices/hrSlice';
 import type { HRLeaveRequestResponse } from '../../../models/hr';
 
 const getInitials = (name: string) => {
@@ -17,17 +18,18 @@ const getAvatarColor = (name: string) => AVATAR_PALETTE[name.charCodeAt(0) % AVA
 export const WhoIsOnLeavePanel: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const dispatch = useAppDispatch();
 	const [leaves, setLeaves] = useState<HRLeaveRequestResponse[] | null>(null);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		let cancelled = false;
-		hrLeaveRequestApi.listTeamRequests('approved')
+		dispatch(fetchTeamLeaveRequests('approved')).unwrap()
 			.then((data) => { if (!cancelled) setLeaves(data); })
 			.catch(() => { if (!cancelled) setLeaves(null); })
 			.finally(() => { if (!cancelled) setLoading(false); });
 		return () => { cancelled = true; };
-	}, []);
+	}, [dispatch]);
 
 	// Categorize leaves
 	const today = new Date();

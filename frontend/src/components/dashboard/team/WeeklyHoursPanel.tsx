@@ -3,7 +3,8 @@ import { Link as RouterLink } from 'react-router-dom';
 import { Card, CardContent, Typography, Box, useTheme, Skeleton, Link } from '@mui/material';
 import { AccessTimeOutlined, ChevronRight } from '@mui/icons-material';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from 'recharts';
-import timesheetService from '../../../services/timesheetService';
+import { useAppDispatch } from '../../../store/hooks';
+import { fetchMyTimeLogs } from '../../../store/slices/timesheetSlice';
 import type { ProjectTimeLog } from '../../../models/timesheet';
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -24,16 +25,17 @@ const getCurrentWeekRange = () => {
 export const WeeklyHoursPanel: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const dispatch = useAppDispatch();
 	const [logs, setLogs] = useState<ProjectTimeLog[] | null>(null);
 	const { start, end, monday } = useMemo(getCurrentWeekRange, []);
 
 	useEffect(() => {
 		let cancelled = false;
-		timesheetService.getMyTimeLogs(start, end)
+		dispatch(fetchMyTimeLogs({ startDate: start, endDate: end })).unwrap()
 			.then((data) => { if (!cancelled) setLogs(data); })
 			.catch(() => { if (!cancelled) setLogs(null); });
 		return () => { cancelled = true; };
-	}, [start, end]);
+	}, [start, end, dispatch]);
 
 	const chartData = DAY_LABELS.map((label, idx) => {
 		const date = new Date(monday);

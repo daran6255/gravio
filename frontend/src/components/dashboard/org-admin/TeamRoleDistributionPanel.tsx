@@ -3,7 +3,8 @@ import { Link as RouterLink } from 'react-router-dom';
 import { Card, CardContent, Typography, Box, useTheme, Skeleton, Link, LinearProgress } from '@mui/material';
 import { GroupsOutlined, ChevronRight } from '@mui/icons-material';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import userService from '../../../services/userService';
+import { useAppDispatch } from '../../../store/hooks';
+import { fetchTeamUsers } from '../../../store/slices/userSlice';
 import type { TeamMember } from '../../../models/user';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -38,17 +39,18 @@ const DEFAULT_COLOR = '#94a3b8';
 export const TeamRoleDistributionPanel: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const dispatch = useAppDispatch();
 	const [members, setMembers] = useState<TeamMember[] | null>(null);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		let cancelled = false;
-		userService.list(1, 200)
+		dispatch(fetchTeamUsers({ page: 1, pageSize: 200 })).unwrap()
 			.then((res) => { if (!cancelled) setMembers(res.items); })
 			.catch(() => { if (!cancelled) setMembers(null); })
 			.finally(() => { if (!cancelled) setLoading(false); });
 		return () => { cancelled = true; };
-	}, []);
+	}, [dispatch]);
 
 	// Process roles
 	const roleCounts = (members || []).reduce((acc, m) => {

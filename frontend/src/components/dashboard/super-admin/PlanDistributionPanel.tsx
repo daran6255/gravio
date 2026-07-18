@@ -7,7 +7,8 @@ import {
 	HourglassEmpty, CheckCircle, Block
 } from '@mui/icons-material';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import orgAdminService from '../../../services/orgAdminService';
+import { useAppDispatch } from '../../../store/hooks';
+import { fetchAdminStats } from '../../../store/slices/orgAdminSlice';
 import type { AdminStats } from '../../../models/admin';
 
 interface DistributionRow {
@@ -21,17 +22,18 @@ interface DistributionRow {
 export const PlanDistributionPanel: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const dispatch = useAppDispatch();
 	const [stats, setStats] = useState<AdminStats | null>(null);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		let cancelled = false;
-		orgAdminService.getAdminStats()
+		dispatch(fetchAdminStats()).unwrap()
 			.then((data) => { if (!cancelled) setStats(data); })
 			.catch(() => { if (!cancelled) setStats(null); })
 			.finally(() => { if (!cancelled) setLoading(false); });
 		return () => { cancelled = true; };
-	}, []);
+	}, [dispatch]);
 
 	const total = stats?.total_organizations ?? 0;
 	const pct = (n: number) => total > 0 ? Math.round((n / total) * 100) : 0;

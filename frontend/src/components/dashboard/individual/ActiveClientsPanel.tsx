@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, Typography, Box, useTheme, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, alpha } from '@mui/material';
 import { Business } from '@mui/icons-material';
-import crmService from '../../../services/crmService';
+import { useAppDispatch } from '../../../store/hooks';
+import { fetchCompanies } from '../../../store/slices/crmSlice';
 import type { Company } from '../../../models/crm/company';
 
 const STATUS_LABEL: Record<Company['status'], string> = {
@@ -14,12 +15,13 @@ const STATUS_LABEL: Record<Company['status'], string> = {
 export const ActiveClientsPanel: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const dispatch = useAppDispatch();
 	const [clients, setClients] = useState<Company[]>([]);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		let cancelled = false;
-		crmService.listCompanies({ page: 1, pageSize: 20 })
+		dispatch(fetchCompanies({ page: 1, pageSize: 20 })).unwrap()
 			.then((res) => {
 				if (!cancelled) setClients(res.items);
 			})
@@ -30,7 +32,7 @@ export const ActiveClientsPanel: React.FC = () => {
 				if (!cancelled) setLoading(false);
 			});
 		return () => { cancelled = true; };
-	}, []);
+	}, [dispatch]);
 
 	const cardBg = theme.gradients.card;
 
