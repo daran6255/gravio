@@ -17,21 +17,21 @@ import {
 	Grid,
 	Card,
 	CardContent,
-	Stepper,
-	Step,
-	StepLabel,
 	useTheme,
 	alpha,
 	InputAdornment,
-	Chip
+	Chip,
+	Avatar
 } from '@mui/material';
 import {
 	Close,
 	WorkOutline,
 	ArrowBack,
 	ArrowForward,
-	CheckCircleOutline,
-	ReceiptLong
+	ReceiptLong,
+	Flag,
+	CalendarToday,
+	Check
 } from '@mui/icons-material';
 import { DatePicker, RichTextEditor } from '../../../common/form';
 import useToast from '../../../../hooks/useToast';
@@ -163,7 +163,8 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 					overscrollBehavior: 'contain',
 					borderLeft: '1px solid',
 					borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
-					bgcolor: 'background.default',
+					background: theme.gradients.card,
+					backdropFilter: 'blur(20px)',
 					color: 'text.primary',
 					boxShadow: isDark
 						? '-16px 0px 48px rgba(0, 0, 0, 0.65)'
@@ -175,10 +176,10 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 				{/* Header */}
 				<Box display="flex" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
 					<Box>
-						<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
+						<Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em', mb: 0.5 }}>
 							Create New Project
 						</Typography>
-						<Typography variant="caption" color="text.secondary">
+						<Typography variant="body2" color="text.secondary">
 							{activeStep === 0
 								? 'Choose a template category and select a template, or start blank.'
 								: activeStep === 1
@@ -200,35 +201,85 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 
 				<Divider sx={{ mb: 3 }} />
 
-				{/* Stepper */}
-				<Stepper activeStep={activeStep} sx={{ mb: 4 }} alternativeLabel>
-					<Step key="Select Template">
-						<StepLabel>Choose Template</StepLabel>
-					</Step>
-					<Step key="Preview Template">
-						<StepLabel>Preview Template</StepLabel>
-					</Step>
-					<Step key="Project Details">
-						<StepLabel>Configure Project</StepLabel>
-					</Step>
-				</Stepper>
+				{/* Custom Stepper */}
+				<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 4 }}>
+					{[
+						{ label: 'Choose Template', step: 0 },
+						{ label: 'Preview Template', step: 1 },
+						{ label: 'Configure Project', step: 2 }
+					].map((item, index) => {
+						const isActive = activeStep === item.step;
+						const isCompleted = activeStep > item.step;
+						return (
+							<React.Fragment key={item.label}>
+								{index > 0 && (
+									<Box sx={{ flex: 1, height: 2, bgcolor: isCompleted ? 'primary.main' : 'divider', transition: 'all 0.3s' }} />
+								)}
+								<Box
+									sx={{
+										display: 'flex',
+										alignItems: 'center',
+										gap: 1.25,
+										py: 1,
+										px: 2,
+										borderRadius: '20px',
+										border: '1px solid',
+										borderColor: isActive ? 'primary.main' : isCompleted ? 'success.main' : 'divider',
+										background: isActive
+											? theme.gradients.brandDiagonal
+											: isCompleted
+											? alpha(theme.palette.success.main, 0.08)
+											: 'transparent',
+										color: isActive
+											? '#ffffff'
+											: isCompleted
+											? 'success.main'
+											: 'text.secondary',
+										fontWeight: 700,
+										fontSize: '0.8rem',
+										transition: 'all 0.3s',
+										boxShadow: isActive ? `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}` : 'none'
+									}}
+								>
+									<Avatar
+										sx={{
+											width: 20,
+											height: 20,
+											fontSize: '0.75rem',
+											fontWeight: 800,
+											bgcolor: isActive ? '#ffffff' : isCompleted ? 'success.main' : 'text.secondary',
+											color: isActive ? 'primary.main' : '#ffffff',
+											transition: 'all 0.3s'
+										}}
+									>
+										{isCompleted ? '✓' : index + 1}
+									</Avatar>
+									<Typography sx={{ fontSize: '0.8rem', fontWeight: 700, display: { xs: 'none', sm: 'block' } }}>
+										{item.label}
+									</Typography>
+								</Box>
+							</React.Fragment>
+						);
+					})}
+				</Box>
 
 				{/* Step Content */}
 				<Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', mb: 3 }}>
 					{activeStep === 0 ? (
-						<Grid container spacing={3} sx={{ height: '100%' }}>
-							{/* Left Sidebar - Categories */}
+						<Grid container spacing={3} sx={{ height: '100%', m: 0, width: '100%' }}>
+							{/* Left Sidebar - Split Pane Categories */}
 							<Grid 
-								size={{ xs: 12, md: 3 }} 
+								size={{ xs: 12, md: 4 }} 
 								sx={{ 
-									borderRight: { xs: 'none', md: '1px solid' }, 
-									borderBottom: { xs: '1px solid', md: 'none' }, 
-									borderColor: 'divider', 
-									pr: { xs: 0, md: 2 },
-									pb: { xs: 2, md: 0 }
+									bgcolor: isDark ? 'rgba(255, 255, 255, 0.015)' : '#f8fafc',
+									p: 2.5,
+									borderRadius: '20px',
+									borderRight: { xs: 'none', md: '1px solid' },
+									borderColor: 'divider',
+									height: 'fit-content'
 								}}
 							>
-								<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', pl: 1, display: { xs: 'none', md: 'block' } }}>
+								<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', pl: 1, display: { xs: 'none', md: 'block' }, mb: 1.5, letterSpacing: '0.05em' }}>
 									Categories
 								</Typography>
 
@@ -268,94 +319,167 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 								</Stack>
 
 								{/* Desktop Sidebar categories list */}
-								<List component="nav" sx={{ mt: 1, display: { xs: 'none', md: 'block' } }}>
+								<List component="nav" sx={{ mt: 1, display: { xs: 'none', md: 'block' }, p: 0 }}>
 									<ListItemButton
 										selected={selectedTemplate === null && selectedCategory === 'Blank'}
 										onClick={() => {
 											setSelectedCategory('Blank');
 											handleTemplateSelect(null);
 										}}
-										sx={{ borderRadius: '10px', mb: 0.5 }}
+										sx={{ 
+											borderRadius: '12px', 
+											mb: 1,
+											p: 1.5,
+											'&.Mui-selected': {
+												background: theme.gradients.brandDiagonal,
+												color: '#ffffff',
+												boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`,
+												'& .MuiListItemIcon-root': { color: '#ffffff' },
+												'&:hover': { background: theme.gradients.brandDiagonal }
+											},
+											'&:hover': {
+												bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#f1f5f9'
+											}
+										}}
 									>
-										<ListItemIcon sx={{ minWidth: 36 }}><WorkOutline fontSize="small" /></ListItemIcon>
-										<ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Blank Project</Typography>} />
+										<ListItemIcon sx={{ minWidth: 32 }}><WorkOutline fontSize="small" /></ListItemIcon>
+										<ListItemText primary={<Typography sx={{ fontWeight: 700, fontSize: '0.85rem' }}>Blank Project</Typography>} />
 									</ListItemButton>
 									{TEMPLATE_CATEGORIES.map((cat) => (
 										<ListItemButton
 											key={cat.name}
 											selected={selectedCategory === cat.name}
 											onClick={() => handleCategoryClick(cat.name)}
-											sx={{ borderRadius: '10px', mb: 0.5 }}
+											sx={{ 
+												borderRadius: '12px', 
+												mb: 1,
+												p: 1.5,
+												'&.Mui-selected': {
+													background: theme.gradients.brandDiagonal,
+													color: '#ffffff',
+													boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`,
+													'& .MuiListItemIcon-root': { color: '#ffffff' },
+													'&:hover': { background: theme.gradients.brandDiagonal }
+												},
+												'&:hover': {
+													bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#f1f5f9'
+												}
+											}}
 										>
-											<ListItemIcon sx={{ minWidth: 36 }}>{cat.icon}</ListItemIcon>
-											<ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{cat.name}</Typography>} />
+											<ListItemIcon sx={{ minWidth: 32 }}>{cat.icon}</ListItemIcon>
+											<ListItemText primary={<Typography sx={{ fontWeight: 700, fontSize: '0.85rem' }}>{cat.name}</Typography>} />
 										</ListItemButton>
 									))}
 								</List>
 							</Grid>
 
 							{/* Right - Templates list */}
-							<Grid size={{ xs: 12, md: 9 }} sx={{ pl: { xs: 0, md: 2 }, pr: 2, mt: { xs: 2, md: 0 } }}>
+							<Grid size={{ xs: 12, md: 8 }} sx={{ pl: { xs: 0, md: 3.5 }, pr: 1, mt: { xs: 2, md: 0 } }}>
 								{selectedCategory === 'Blank' ? (
-									<Box sx={{ p: 2, textAlign: 'center', mt: 4 }}>
-										<Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+									<Box sx={{ p: 4, textAlign: 'center', mt: 4, border: '2px dashed', borderColor: 'divider', borderRadius: '20px', bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.005)' }}>
+										<WorkOutline sx={{ fontSize: 56, color: 'primary.main', mb: 2, opacity: 0.9 }} />
+										<Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>
 											Starting fresh?
 										</Typography>
-										<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-											Create a project without any pre-defined tasks. You can add columns and tasks manually as needed.
+										<Typography variant="body2" color="text.secondary" sx={{ mb: 3.5, maxWidth: 380, mx: 'auto' }}>
+											Create a project without any pre-defined tasks. You can add columns, milestones, and tasks manually as needed.
 										</Typography>
-										<Button variant="contained" endIcon={<ArrowForward />} onClick={handleNext}>
-											Next: Preview & Customize
+										<Button variant="contained" endIcon={<ArrowForward />} onClick={handleNext} sx={{ borderRadius: '12px', px: 3 }}>
+											Next: Configure Project
 										</Button>
 									</Box>
 								) : (
 									<Box>
-										<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase' }}>
+										<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', mb: 2, display: 'block', letterSpacing: '0.05em' }}>
 											{selectedCategory} Templates
 										</Typography>
-										<Grid container spacing={2} sx={{ mt: 1 }}>
-											{templatesList.map((tpl) => (
-												<Grid size={{ xs: 12, md: 6 }} key={tpl.key}>
-													<Card
-														variant="outlined"
-														onClick={() => handleTemplateSelect(tpl)}
-														sx={{
-															cursor: 'pointer',
-															borderRadius: '12px',
-															height: '100%',
-															transition: 'all 0.2s',
-															borderColor: selectedTemplate?.key === tpl.key ? 'primary.main' : 'divider',
-															bgcolor: selectedTemplate?.key === tpl.key ? alpha(theme.palette.primary.main, isDark ? 0.1 : 0.04) : 'background.paper',
-															'&:hover': {
-																borderColor: 'primary.main',
-																boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.08)}`
-															}
-														}}
-													>
-														<CardContent sx={{ p: '16px !important' }}>
-															<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-																{tpl.name}
-															</Typography>
-															<Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block', minHeight: 36 }}>
-																{tpl.description}
-															</Typography>
-															<Typography variant="caption" sx={{ mt: 1.5, display: 'inline-flex', alignItems: 'center', gap: 0.5, color: 'primary.main', fontWeight: 600 }}>
-																<ReceiptLong sx={{ fontSize: 14 }} /> {tpl.tasks.length} tasks
-															</Typography>
-														</CardContent>
-													</Card>
-												</Grid>
-											))}
+										<Grid container spacing={2}>
+											{templatesList.map((tpl) => {
+												const subtasksCount = tpl.tasks.reduce((sum, t) => sum + (t.subtasks?.length || 0), 0);
+												const isSelected = selectedTemplate?.key === tpl.key;
+												return (
+													<Grid size={{ xs: 12, sm: 6 }} key={tpl.key}>
+														<Card
+															variant="outlined"
+															onClick={() => handleTemplateSelect(tpl)}
+															sx={{
+																cursor: 'pointer',
+																borderRadius: '18px',
+																height: '100%',
+																position: 'relative',
+																transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+																border: isSelected ? '2px solid' : '1.5px solid',
+																borderColor: isSelected ? 'primary.main' : 'divider',
+																bgcolor: 'background.paper',
+																boxShadow: isSelected 
+																	? `0 12px 28px ${alpha(theme.palette.primary.main, 0.12)}` 
+																	: (isDark ? 'none' : '0 4px 12px rgba(0,0,0,0.015)'),
+																'&:hover': {
+																	borderColor: 'primary.main',
+																	transform: 'translateY(-3px)',
+																	boxShadow: `0 12px 28px ${alpha(theme.palette.primary.main, isDark ? 0.2 : 0.12)}`
+																}
+															}}
+														>
+															<CardContent sx={{ p: 2.5, display: 'flex', flexDirection: 'column', height: '100%' }}>
+																{isSelected && (
+																	<Box 
+																		sx={{ 
+																			position: 'absolute', 
+																			top: 16, 
+																			right: 16, 
+																			display: 'flex', 
+																			alignItems: 'center', 
+																			justifyContent: 'center', 
+																			width: 22, 
+																			height: 22, 
+																			borderRadius: '50%', 
+																			bgcolor: 'primary.main', 
+																			color: '#ffffff',
+																			boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.4)}`
+																		}}
+																	>
+																		<Check sx={{ fontSize: 14 }} />
+																	</Box>
+																)}
+																<Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1, color: 'text.primary', pr: isSelected ? 3.5 : 0 }}>
+																	{tpl.name}
+																</Typography>
+																<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2.5, flex: 1, minHeight: 36, lineHeight: 1.4 }}>
+																	{tpl.description}
+																</Typography>
+																<Stack direction="row" spacing={1} sx={{ mt: 'auto' }}>
+																	<Chip
+																		icon={<ReceiptLong sx={{ fontSize: '0.8rem !important' }} />}
+																		label={`${tpl.tasks.length} Phases • ${subtasksCount} Tasks`}
+																		size="small"
+																		sx={{
+																			bgcolor: isSelected 
+																				? alpha(theme.palette.primary.main, 0.12)
+																				: (isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9'),
+																			color: isSelected ? 'primary.main' : 'text.primary',
+																			fontWeight: 700,
+																			fontSize: '0.7rem',
+																			height: 24,
+																			borderRadius: '8px'
+																		}}
+																	/>
+																</Stack>
+															</CardContent>
+														</Card>
+													</Grid>
+												);
+											})}
 										</Grid>
 									</Box>
 								)}
 							</Grid>
 						</Grid>
 					) : activeStep === 1 ? (
-						<Box sx={{ maxWidth: 600, mx: 'auto', mt: 1 }}>
-							<Box sx={{ mb: 3 }}>
-								<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-									Template: {selectedTemplate ? selectedTemplate.name : 'Blank Project'}
+						<Box sx={{ maxWidth: 650, mx: 'auto', mt: 1, pr: 1 }}>
+							<Box sx={{ mb: 4, p: 2.5, borderRadius: '20px', border: '1px solid', borderColor: 'divider', bgcolor: isDark ? 'rgba(20,24,34,0.4)' : '#ffffff', boxShadow: isDark ? 'none' : '0 4px 16px rgba(0,0,0,0.02)' }}>
+								<Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'primary.main' }}>
+									Template Outline: {selectedTemplate ? selectedTemplate.name : 'Blank Project'}
 								</Typography>
 								<Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
 									{selectedTemplate ? selectedTemplate.description : 'A fresh project container with no default tasks.'}
@@ -363,28 +487,197 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 							</Box>
 
 							{selectedTemplate ? (
-								<Stack spacing={2.5} sx={{ position: 'relative', pl: 3, '&::before': { content: '""', position: 'absolute', left: 4, top: 10, bottom: 10, width: 1.5, bgcolor: 'divider' } }}>
-									{selectedTemplate.tasks.map((task) => (
-										<Box key={task.title} sx={{ position: 'relative' }}>
-											<CheckCircleOutline
+								<Box sx={{ position: 'relative', pl: 4, ml: 1.5, '&::before': { content: '""', position: 'absolute', left: 14, top: 20, bottom: 20, width: '2px', background: `linear-gradient(to bottom, ${theme.palette.primary.main} 0%, ${alpha(theme.palette.primary.main, 0.1)} 100%)` } }}>
+									{selectedTemplate.tasks.map((task, idx) => {
+										return (
+											<Box
+												key={task.title}
 												sx={{
-													position: 'absolute',
-													left: -32,
-													top: 2,
-													fontSize: 16,
-													color: 'primary.main',
-													bgcolor: 'background.default'
+													mb: 3.5,
+													position: 'relative',
+													p: 2.5,
+													borderRadius: '18px',
+													border: '1px solid',
+													borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0',
+													background: isDark ? 'rgba(20, 24, 34, 0.6)' : '#ffffff',
+													boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 4px 16px rgba(139, 124, 246, 0.03)',
+													transition: 'all 0.3s',
+													'&:hover': {
+														borderColor: 'primary.main',
+														boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.3)' : '0 8px 24px rgba(139, 124, 246, 0.06)',
+														transform: 'translateY(-2px)'
+													}
 												}}
-											/>
-											<Typography variant="body2" sx={{ fontWeight: 700 }}>
-												{task.title}
-											</Typography>
-											<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-												{task.description}
-											</Typography>
-										</Box>
-									))}
-								</Stack>
+											>
+												{/* Pipeline Node Indicator */}
+												<Avatar
+													sx={{
+														position: 'absolute',
+														left: -44,
+														top: 18,
+														width: 28,
+														height: 28,
+														fontSize: '0.8rem',
+														fontWeight: 800,
+														bgcolor: 'background.paper',
+														color: 'primary.main',
+														border: '2px solid',
+														borderColor: 'primary.main',
+														boxShadow: `0 0 10px ${alpha(theme.palette.primary.main, 0.25)}`
+													}}
+												>
+													{idx + 1}
+												</Avatar>
+
+												{/* Task Header Info */}
+												<Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1.5, mb: 1.5 }}>
+													<Box sx={{ minWidth: 0, flex: 1 }}>
+														<Typography variant="body1" sx={{ fontWeight: 800, color: 'text.primary' }}>
+															{task.title}
+														</Typography>
+														<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+															{task.description}
+														</Typography>
+													</Box>
+
+													{/* Metadata Chips */}
+													<Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
+														<Chip
+															icon={<CalendarToday sx={{ fontSize: '0.65rem !important' }} />}
+															label={`Day ${task.start_offset_days ?? 0} - ${task.due_offset_days ?? 5}`}
+															size="small"
+															variant="outlined"
+															sx={{ fontSize: '0.65rem', fontWeight: 700, height: 22, borderRadius: '6px' }}
+														/>
+														{task.priority && (
+															<Chip
+																label={task.priority.toUpperCase()}
+																size="small"
+																sx={{
+																	fontSize: '0.65rem',
+																	fontWeight: 700,
+																	height: 22,
+																	borderRadius: '6px',
+																	bgcolor:
+																		task.priority === 'high'
+																			? alpha(theme.palette.error.main, 0.1)
+																			: task.priority === 'medium'
+																			? alpha(theme.palette.warning.main, 0.1)
+																			: alpha(theme.palette.success.main, 0.1),
+																	color:
+																		task.priority === 'high'
+																			? 'error.main'
+																			: task.priority === 'medium'
+																			? 'warning.main'
+																			: 'success.main'
+																}}
+															/>
+														)}
+														{task.milestone && (
+															<Chip
+																icon={<Flag sx={{ fontSize: '0.65rem !important' }} />}
+																label={task.milestone.name}
+																size="small"
+																sx={{
+																	fontSize: '0.65rem',
+																	fontWeight: 700,
+																	height: 22,
+																	borderRadius: '6px',
+																	bgcolor: alpha(task.milestone.color || '#9C27B0', 0.1),
+																	color: task.milestone.color || '#9C27B0',
+																	border: `1px solid ${alpha(task.milestone.color || '#9C27B0', 0.25)}`
+																}}
+															/>
+														)}
+													</Stack>
+												</Box>
+
+												{/* Tags */}
+												{task.tags && task.tags.length > 0 && (
+													<Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 2 }}>
+														{task.tags.map((tg) => (
+															<Chip
+																key={tg.name}
+																label={tg.name}
+																size="small"
+																sx={{
+																	height: 18,
+																	fontSize: '0.62rem',
+																	fontWeight: 700,
+																	bgcolor: alpha(tg.color, 0.12),
+																	color: tg.color,
+																	border: `1px solid ${alpha(tg.color, 0.2)}`,
+																	borderRadius: '4px'
+																}}
+															/>
+														))}
+													</Box>
+												)}
+
+												{/* Nested Subtasks */}
+												{task.subtasks && task.subtasks.length > 0 && (
+													<Box sx={{ mt: 2, pl: 2, borderLeft: `2.5px solid ${theme.palette.divider}` }}>
+														<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', mb: 1.25, display: 'block', letterSpacing: '0.05em' }}>
+															Subtasks ({task.subtasks.length})
+														</Typography>
+														<Stack spacing={1}>
+															{task.subtasks.map((sub) => (
+																<Box
+																	key={sub.title}
+																	sx={{
+																		p: 1.75,
+																		borderRadius: '12px',
+																		bgcolor: isDark ? 'rgba(255,255,255,0.015)' : '#f8fafc',
+																		border: '1px solid',
+																		borderColor: isDark ? 'rgba(255,255,255,0.05)' : '#e2e8f0',
+																		display: 'flex',
+																		flexDirection: { xs: 'column', sm: 'row' },
+																		alignItems: { xs: 'flex-start', sm: 'center' },
+																		justifyContent: 'space-between',
+																		gap: 1.5
+																	}}
+																>
+																	<Box sx={{ minWidth: 0, flex: 1 }}>
+																		<Typography variant="body2" sx={{ fontWeight: 700 }}>
+																			{sub.title}
+																		</Typography>
+																		<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+																			{sub.description}
+																		</Typography>
+																	</Box>
+																	<Stack direction="row" spacing={0.75} sx={{ mt: { xs: 0.5, sm: 0 }, flexShrink: 0 }}>
+																		<Chip
+																			label={`Day ${sub.start_offset_days ?? 0} - ${sub.due_offset_days ?? 5}`}
+																			size="small"
+																			variant="outlined"
+																			sx={{ height: 20, fontSize: '0.62rem', fontWeight: 700, borderRadius: '4px' }}
+																		/>
+																		{sub.tags && sub.tags.map((stg) => (
+																			<Chip
+																				key={stg.name}
+																				label={stg.name}
+																				size="small"
+																				sx={{
+																					height: 20,
+																					fontSize: '0.62rem',
+																					fontWeight: 700,
+																					bgcolor: alpha(stg.color, 0.1),
+																					color: stg.color,
+																					border: `1px solid ${alpha(stg.color, 0.18)}`,
+																					borderRadius: '4px'
+																				}}
+																			/>
+																		))}
+																	</Stack>
+																</Box>
+															))}
+														</Stack>
+													</Box>
+												)}
+											</Box>
+										);
+									})}
+								</Box>
 							) : (
 								<Box sx={{ textAlign: 'center', py: 4 }}>
 									<WorkOutline sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.5, mb: 1.5 }} />
@@ -398,7 +691,7 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 							)}
 						</Box>
 					) : (
-						<Stack spacing={3.5} sx={{ maxDrawWidth: 600, mx: 'auto', mt: 1 }}>
+						<Stack spacing={3.5} sx={{ maxWidth: 600, mx: 'auto', mt: 1 }}>
 							<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
 								Configure Project Settings
 							</Typography>

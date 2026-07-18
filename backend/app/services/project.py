@@ -168,20 +168,8 @@ class ProjectService:
         
         project = await ProjectRepository.create(db, **data)
         
-        if template_key and template_key in PROJECT_TEMPLATES:
-            template = PROJECT_TEMPLATES[template_key]
-            initial_status = await ProjectTaskStatusRepository.get_initial(db)
-            if initial_status:
-                for idx, t in enumerate(template["tasks"]):
-                    await ProjectTaskRepository.create(
-                        db,
-                        project_id=project.id,
-                        parent_task_id=None,
-                        title=t["title"],
-                        description=t["description"],
-                        status_id=initial_status.id,
-                        order=idx,
-                    )
+        if template_key:
+            await ProjectService.seed_project_tasks_from_template(db, project, template_key)
         return project
 
     @staticmethod
@@ -472,20 +460,8 @@ class ProjectService:
 
         # Seed tasks if template selected
         template_key = payload.template_key
-        if template_key and template_key in PROJECT_TEMPLATES:
-            template = PROJECT_TEMPLATES[template_key]
-            initial_status = await ProjectTaskStatusRepository.get_initial(db)
-            if initial_status:
-                for idx, t in enumerate(template["tasks"]):
-                    await ProjectTaskRepository.create(
-                        db,
-                        project_id=project.id,
-                        parent_task_id=None,
-                        title=t["title"],
-                        description=t["description"],
-                        status_id=initial_status.id,
-                        order=idx,
-                    )
+        if template_key:
+            await ProjectService.seed_project_tasks_from_template(db, project, template_key)
 
         await CRMDealRepository.update(db, deal, project_id=project.id)
 
@@ -496,3 +472,66 @@ class ProjectService:
         )
 
         return project
+
+    @staticmethod
+    async def seed_project_tasks_from_template(db: AsyncSession, project: Project, template_key: str) -> None:
+        if not template_key or template_key not in PROJECT_TEMPLATES:
+            return
+
+        template = PROJECT_TEMPLATES[template_key]
+        initial_status = await ProjectTaskStatusRepository.get_initial(db)
+        if not initial_status:
+            return
+
+        from datetime import date, timedelta
+        ref_date = project.start_date or date.today()
+
+        for idx, t in enumerate(template["tasks"]):
+            start_offset = t.get("start_offset_days", 0)
+            due_offset = t.get("due_offset_days", 5)
+            task_start = ref_date + timedelta(days=start_offset)
+            task_due = ref_date + timedelta(days=due_offset)
+
+            custom_fields = {}
+            if "milestone" in t:
+                custom_fields["milestone"] = t["milestone"]
+
+            priority_val = t.get("priority", "medium")
+
+            parent_task = await ProjectTaskRepository.create(
+                db,
+                project_id=project.id,
+                parent_task_id=None,
+                title=t["title"],
+                description=t["description"],
+                status_id=initial_status.id,
+                order=idx,
+                start_date=task_start,
+                due_date=task_due,
+                priority=priority_val,
+                tags=t.get("tags", []),
+                custom_fields=custom_fields,
+            )
+
+            if "subtasks" in t:
+                for s_idx, s in enumerate(t["subtasks"]):
+                    s_start_offset = s.get("start_offset_days", start_offset)
+                    s_due_offset = s.get("due_offset_days", due_offset)
+                    s_start = ref_date + timedelta(days=s_start_offset)
+                    s_due = ref_date + timedelta(days=s_due_offset)
+
+                    s_priority_val = s.get("priority", "medium")
+
+                    await ProjectTaskRepository.create(
+                        db,
+                        project_id=project.id,
+                        parent_task_id=parent_task.id,
+                        title=s["title"],
+                        description=s["description"],
+                        status_id=initial_status.id,
+                        order=s_idx,
+                        start_date=s_start,
+                        due_date=s_due,
+                        priority=s_priority_val,
+                        tags=s.get("tags", []),
+                    )
