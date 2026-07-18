@@ -42,12 +42,18 @@ export const OrgUserTable: React.FC<OrgUserTableProps> = ({
 
 	const [page, setPage] = useState(0);
 	const [rowsPerPage, setRowsPerPage] = useState(20);
+	const [searchTerm, setSearchTerm] = useState('');
 
 	const { columns } = useOrgUserTableConfig({ isMobile, isMedium });
 
 	const fetchData = useCallback(() => {
-		dispatch(fetchTeamUsers({ page: page + 1, pageSize: rowsPerPage }));
-	}, [dispatch, page, rowsPerPage]);
+		dispatch(fetchTeamUsers({ page: page + 1, pageSize: rowsPerPage, search: searchTerm || undefined }));
+	}, [dispatch, page, rowsPerPage, searchTerm]);
+
+	const handleSearchChange = (value: string) => {
+		setSearchTerm(value);
+		setPage(0);
+	};
 
 	useEffect(() => {
 		fetchData();
@@ -121,7 +127,8 @@ export const OrgUserTable: React.FC<OrgUserTableProps> = ({
 		<DataTable<TeamMember>
 			columns={columns} data={users} loading={loading} totalCount={total} page={page} rowsPerPage={rowsPerPage}
 			onPageChange={(_e, p) => setPage(p)} onRowsPerPageChange={(rows) => { setRowsPerPage(rows); setPage(0); }}
-			searchTerm="" onRefresh={fetchData} onCreateClick={onAddUser} createButtonText="Invite Teammate"
+			searchTerm={searchTerm} onSearchChange={handleSearchChange} searchPlaceholder="Search teammates..."
+			onRefresh={fetchData} onCreateClick={onAddUser} createButtonText="Invite Teammate"
 			renderRow={renderRow} emptyMessage="No teammates yet — invite your first one."
 			numSelected={selectedIds.length} onSelectAllClick={(e) => onSelectAll(e.target.checked)} headerActions={headerActions}
 		/>

@@ -27,10 +27,10 @@ const initialState: UserState = {
 
 export const fetchTeamUsers = createAsyncThunk(
 	'users/fetchTeam',
-	async (params: { page?: number; pageSize?: number } | undefined, { rejectWithValue }) => {
+	async (params: { page?: number; pageSize?: number; search?: string } | undefined, { rejectWithValue }) => {
 		try {
-			const { page = 1, pageSize = 20 } = params || {};
-			return await userService.list(page, pageSize);
+			const { page = 1, pageSize = 20, search } = params || {};
+			return await userService.list(page, pageSize, search);
 		} catch (error: any) {
 			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to fetch team');
 		}

@@ -202,17 +202,31 @@ async def list_org_users(
     current_user: User,
     page: int,
     page_size: int,
+    search: Optional[str] = None,
 ) -> tuple[list[User], int]:
     """List users in the organization (or all users if superuser), paginated."""
     if current_user.is_superuser and current_user.organization_id is None:
-        from sqlalchemy import func
+        from sqlalchemy import func, or_
         from sqlalchemy.future import select
 
-        count_result = await db.execute(select(func.count()).select_from(User))
+        conditions = []
+        if search:
+            conditions.append(
+                or_(
+                    User.full_name.ilike(f"%{search}%"),
+                    User.email.ilike(f"%{search}%"),
+                    User.username.ilike(f"%{search}%"),
+                )
+            )
+
+        count_result = await db.execute(
+            select(func.count()).select_from(User).where(*conditions)
+        )
         total = count_result.scalar_one()
 
         result = await db.execute(
             select(User)
+            .where(*conditions)
             .order_by(User.id)
             .offset((page - 1) * page_size)
             .limit(page_size)
@@ -224,6 +238,7 @@ async def list_org_users(
             current_user.organization_id,
             page=page,
             page_size=page_size,
+            search=search,
         )
 
 

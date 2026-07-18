@@ -18,9 +18,9 @@ const userService = {
 	},
 
 	// List users in the current user's organization, paginated (GET /users)
-	list: async (page = 1, pageSize = 20): Promise<PaginatedResponse<TeamMember>> => {
+	list: async (page = 1, pageSize = 20, search?: string): Promise<PaginatedResponse<TeamMember>> => {
 		const response = await api.get<PaginatedResponse<TeamMember>>('/users', {
-			params: { page, page_size: pageSize },
+			params: { page, page_size: pageSize, search: search || undefined },
 		});
 		return response.data;
 	},

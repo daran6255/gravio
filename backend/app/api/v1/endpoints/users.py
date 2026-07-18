@@ -46,10 +46,11 @@ async def invite_user_endpoint(
 async def list_users_endpoint(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
+    search: Optional[str] = Query(None),
     current_user: User = Depends(require_org_admin),
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[UserListItem]:
-    items, total = await list_org_users(db, current_user=current_user, page=page, page_size=page_size)
+    items, total = await list_org_users(db, current_user=current_user, page=page, page_size=page_size, search=search)
     return PaginatedResponse[UserListItem](
         items=[UserListItem.model_validate(u) for u in items],
         total=total,

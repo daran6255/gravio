@@ -144,6 +144,7 @@ class UserRepository:
         page: int = 1,
         page_size: int = 20,
         include_inactive: bool = True,
+        search: Optional[str] = None,
     ) -> tuple[list[User], int]:
         """Return a page of users belonging to an organization, plus the total count.
 
@@ -151,11 +152,19 @@ class UserRepository:
         app/core/database.py does not apply here — organization_id is filtered
         explicitly below.
         """
-        from sqlalchemy import func
+        from sqlalchemy import func, or_
 
         conditions = [User.organization_id == organization_id]
         if not include_inactive:
             conditions.append(User.is_active.is_(True))
+        if search:
+            conditions.append(
+                or_(
+                    User.full_name.ilike(f"%{search}%"),
+                    User.email.ilike(f"%{search}%"),
+                    User.username.ilike(f"%{search}%"),
+                )
+            )
 
         count_result = await db.execute(
             select(func.count()).select_from(User).where(*conditions)
