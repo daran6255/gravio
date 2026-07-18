@@ -1,7 +1,6 @@
 import React from 'react';
 import { Box, Grid } from '@mui/material';
 import WelcomeHeader from '../../components/dashboard/WelcomeHeader';
-import { InfraHealthPanel } from '../../components/dashboard/InfraHealthPanel';
 import { PlatformPulsePanel } from '../../components/dashboard/super-admin/PlatformPulsePanel';
 import { AttentionQueuePanel } from '../../components/dashboard/super-admin/AttentionQueuePanel';
 import { PlatformKPIPanel } from '../../components/dashboard/super-admin/PlatformKPIPanel';
@@ -55,17 +54,14 @@ const Dashboard: React.FC = () => {
 
 					{/* Row 3: Plan Distribution + Recent Registrations + Seat Usage Monitor + Infrastructure Health */}
 					<Grid container spacing={2} alignItems="stretch">
-						<Grid size={{ xs: 12, md: 3 }}>
+						<Grid size={{ xs: 12, md: 4 }}>
 							<PlanDistributionPanel />
 						</Grid>
-						<Grid size={{ xs: 12, md: 3 }}>
+						<Grid size={{ xs: 12, md: 4.5 }}>
 							<RecentActivityPanel />
 						</Grid>
-						<Grid size={{ xs: 12, md: 3 }}>
+						<Grid size={{ xs: 12, md: 3.5 }}>
 							<OrgSeatUsagePanel />
-						</Grid>
-						<Grid size={{ xs: 12, md: 3 }}>
-							<InfraHealthPanel />
 						</Grid>
 					</Grid>
 				</>
