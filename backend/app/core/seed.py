@@ -140,6 +140,81 @@ async def seed_db() -> None:
             other.is_superuser = False
             print(f"Declassified other superuser: {other.username}")
 
+        # 4. Seed several test organizations with user counts to populate Seat Usage Monitor and widgets
+        # Get plans
+        free_plan = (await session.execute(select(Plan).where(Plan.tier == PlanTier.FREE))).scalars().first()
+        basic_plan = (await session.execute(select(Plan).where(Plan.tier == PlanTier.BASIC))).scalars().first()
+        pro_plan = (await session.execute(select(Plan).where(Plan.tier == PlanTier.PRO))).scalars().first()
+        enterprise_plan = (await session.execute(select(Plan).where(Plan.tier == PlanTier.ENTERPRISE))).scalars().first()
+
+        # Helper function to seed organization and its users
+        async def seed_org(name, plan_id, status, count, expires_in_days=None, location="Chennai"):
+            result = await session.execute(select(Organization).where(Organization.name == name))
+            org = result.scalars().first()
+            from datetime import datetime, timezone, timedelta
+            
+            now = datetime.now(timezone.utc)
+            trial_started = now - timedelta(days=10)
+            trial_expires = now + timedelta(days=expires_in_days) if expires_in_days is not None else now + timedelta(days=30)
+            
+            if not org:
+                org = Organization(
+                    name=name,
+                    location=location,
+                    public_id=uuid.uuid4(),
+                    is_active=True,
+                    subscription_status=status,
+                    trial_started_at=trial_started,
+                    trial_expires_at=trial_expires,
+                    plan_id=plan_id,
+                    others={}
+                )
+                session.add(org)
+                await session.flush()
+                print(f"Created organization: {org.name}")
+            else:
+                org.plan_id = plan_id
+                org.subscription_status = status
+                org.trial_expires_at = trial_expires
+                await session.flush()
+                print(f"Updated organization: {org.name}")
+            
+            # Now seed users in this organization
+            user_count_result = await session.execute(
+                select(User).where(User.organization_id == org.id)
+            )
+            existing_users = user_count_result.scalars().all()
+            needed = count - len(existing_users)
+            
+            if needed > 0:
+                hashed_pw = get_password_hash("Testpass@123")
+                for i in range(needed):
+                    suffix = f"{org.name.lower().replace(' ', '')}_{i+len(existing_users)}"
+                    user = User(
+                        username=f"user_{suffix}",
+                        email=f"user_{suffix}@example.com",
+                        full_name=f"User {i+len(existing_users)} - {org.name}",
+                        hashed_password=hashed_pw,
+                        is_active=True,
+                        is_verified=True,
+                        is_superuser=False,
+                        role=UserRole.DEVELOPER if i > 0 else UserRole.ADMIN,
+                        organization_id=org.id,
+                        public_id=uuid.uuid4(),
+                        others={}
+                    )
+                    session.add(user)
+                await session.flush()
+                print(f"Seeded {needed} users for organization {org.name}")
+
+        # Seed test orgs
+        await seed_org("Acme Corporation", pro_plan.id if pro_plan else None, "active", 45, location="San Francisco")
+        await seed_org("Globex Corporation", basic_plan.id if basic_plan else None, "active", 18, location="Boston")
+        await seed_org("Initech Inc.", free_plan.id if free_plan else None, "trial", 8, expires_in_days=3, location="Austin")
+        await seed_org("Hooli", pro_plan.id if pro_plan else None, "trial", 46, expires_in_days=1, location="Silicon Valley")
+        await seed_org("Umbrella Corp", enterprise_plan.id if enterprise_plan else None, "active", 12, location="Raccoon City")
+        await seed_org("Stark Industries", pro_plan.id if pro_plan else None, "active", 15, location="New York")
+
         await session.commit()
         print("Database seeding completed successfully.")
 

@@ -82,7 +82,25 @@ export const OrgSeatUsagePanel: React.FC = () => {
 						<Typography variant="body2" color="text.secondary">All orgs are within healthy seat limits.</Typography>
 					</Box>
 				) : (
-					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+					<Box
+						sx={{
+							display: 'flex',
+							flexDirection: 'column',
+							gap: 1.5,
+							maxHeight: '400px',
+							overflowY: 'auto',
+							pr: 1,
+							'&::-webkit-scrollbar': { width: '6px' },
+							'&::-webkit-scrollbar-track': { background: 'transparent' },
+							'&::-webkit-scrollbar-thumb': {
+								background: theme.palette.divider,
+								borderRadius: '4px',
+							},
+							'&::-webkit-scrollbar-thumb:hover': {
+								background: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
+							},
+						}}
+					>
 						{atRisk.map(({ org, count, limit, pct }) => {
 							const isCritical = pct >= 90;
 							const isWarning = pct >= 70 && pct < 90;

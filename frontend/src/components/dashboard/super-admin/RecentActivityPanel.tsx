@@ -92,7 +92,24 @@ export const RecentActivityPanel: React.FC = () => {
 				) : !orgs || orgs.length === 0 ? (
 					<Typography variant="body2" color="text.secondary">No organizations registered yet.</Typography>
 				) : (
-					<Box sx={{ display: 'flex', flexDirection: 'column' }}>
+					<Box
+						sx={{
+							display: 'flex',
+							flexDirection: 'column',
+							maxHeight: '400px',
+							overflowY: 'auto',
+							pr: 1,
+							'&::-webkit-scrollbar': { width: '6px' },
+							'&::-webkit-scrollbar-track': { background: 'transparent' },
+							'&::-webkit-scrollbar-thumb': {
+								background: theme.palette.divider,
+								borderRadius: '4px',
+							},
+							'&::-webkit-scrollbar-thumb:hover': {
+								background: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
+							},
+						}}
+					>
 						{orgs.map((org, idx) => {
 							const status = getStatusMeta(
 								org.subscription_status,

@@ -30,37 +30,33 @@ const Dashboard: React.FC = () => {
 					{/* Row 1: KPI Cards */}
 					<PlatformKPIPanel />
 
-					{/* Row 2: Platform Pulse (chart) + Attention Queue (trial alerts) */}
+					{/* Row 2: Platform Pulse + Needs Attention + Quick Actions */}
 					<Grid container spacing={2} alignItems="stretch">
-						<Grid size={{ xs: 12, md: 7 }}>
+						<Grid size={{ xs: 12, md: 3 }}>
 							<PlatformPulsePanel />
 						</Grid>
-						<Grid size={{ xs: 12, md: 5 }}>
+						<Grid size={{ xs: 12, md: 4 }}>
 							<AttentionQueuePanel />
 						</Grid>
-					</Grid>
-
-					{/* Row 3: Plan Distribution (donut) + Recent Registrations (activity feed) */}
-					<Grid container spacing={2} alignItems="stretch">
-						<Grid size={{ xs: 12, md: 4 }}>
-							<PlanDistributionPanel />
-						</Grid>
-						<Grid size={{ xs: 12, md: 8 }}>
-							<RecentActivityPanel />
-						</Grid>
-					</Grid>
-
-					{/* Row 4: Seat Usage Monitor + Quick Actions grid */}
-					<Grid container spacing={2} alignItems="stretch">
 						<Grid size={{ xs: 12, md: 5 }}>
-							<OrgSeatUsagePanel />
-						</Grid>
-						<Grid size={{ xs: 12, md: 7 }}>
 							<SuperAdminQuickActions />
 						</Grid>
 					</Grid>
 
-					{/* Row 5: Infrastructure Health (full width) */}
+					{/* Row 3: Plan Distribution + Recent Registrations + Seat Usage Monitor */}
+					<Grid container spacing={2} alignItems="stretch">
+						<Grid size={{ xs: 12, md: 3 }}>
+							<PlanDistributionPanel />
+						</Grid>
+						<Grid size={{ xs: 12, md: 4 }}>
+							<RecentActivityPanel />
+						</Grid>
+						<Grid size={{ xs: 12, md: 5 }}>
+							<OrgSeatUsagePanel />
+						</Grid>
+					</Grid>
+
+					{/* Row 4: Infrastructure Health (Full Width) */}
 					<InfraHealthPanel />
 				</>
 			)}
