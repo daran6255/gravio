@@ -58,6 +58,9 @@ declare module '@mui/material/styles' {
 				card: string;
 				button: string;
 			};
+			/** Fixed height every Navbar pill badge (Super Admin / plan / currency) shares,
+			 *  so they line up evenly regardless of whether they render as a Button or a Chip. */
+			badgeHeight: number;
 			navbar: {
 				background: string;
 			};
@@ -136,6 +139,7 @@ export const getThemeByMode = (mode: 'light' | 'dark'): Theme => {
 				card: '12px',
 				button: '8px',
 			},
+			badgeHeight: 28,
 			navbar: {
 				background: isDark ? '#0B0D12' : '#ffffff',
 			},

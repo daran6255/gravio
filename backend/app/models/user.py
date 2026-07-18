@@ -100,5 +100,14 @@ class User(BaseModel):
     def billing_reminder(self) -> bool:
         return bool((self.others or {}).get("billing_reminder", False))
 
+    @property
+    def onboarding_completed(self) -> bool:
+        # Default True (not False) when the key is absent: this flag was added
+        # after users already existed in the database, and those pre-existing
+        # accounts must not suddenly get blocked by the first-login setup
+        # prompt. UserRepository.create() explicitly sets this False for every
+        # new signup going forward, so only genuinely new accounts see it.
+        return bool((self.others or {}).get("onboarding_completed", True))
+
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email}, username={self.username})>"

@@ -28,31 +28,7 @@ import { updateProfile } from '../../store/slices/authSlice';
 import { useSettingsContext } from '../../context/SettingsContext';
 import useToast from '../../hooks/useToast';
 import { getWorldCurrencies, formatMoney } from '../../utils/currency';
-
-const BROWSER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-const getTimezoneMeta = (tz: string): { offset: string; abbreviation: string } => {
-	const now = new Date();
-	try {
-		const offsetPart =
-			new Intl.DateTimeFormat('en', { timeZone: tz, timeZoneName: 'shortOffset' })
-				.formatToParts(now)
-				.find((p) => p.type === 'timeZoneName')?.value || '';
-		const abbrPart =
-			new Intl.DateTimeFormat('en', { timeZone: tz, timeZoneName: 'short' })
-				.formatToParts(now)
-				.find((p) => p.type === 'timeZoneName')?.value || '';
-		return { offset: offsetPart.replace('GMT', 'UTC'), abbreviation: abbrPart };
-	} catch {
-		return { offset: '', abbreviation: '' };
-	}
-};
-
-const getTimezoneLabel = (tz: string): string => {
-	const { offset, abbreviation } = getTimezoneMeta(tz);
-	const showAbbr = abbreviation && abbreviation !== offset;
-	return `(${offset}) ${tz.replace(/_/g, ' ')}${showAbbr ? ` — ${abbreviation}` : ''}`;
-};
+import { BROWSER_TIMEZONE, getTimezoneOptions } from '../../utils/timezone';
 
 type ThemeOption = 'dark' | 'light' | 'system';
 
@@ -108,15 +84,7 @@ const PreferencesTab: React.FC = () => {
 	// Language (UI-only for now)
 	const [language] = useState('English (United States)');
 
-	const timezoneOptions = useMemo(() => {
-		let zones: string[];
-		try {
-			zones = Intl.supportedValuesOf('timeZone');
-		} catch {
-			zones = [BROWSER_TIMEZONE];
-		}
-		return zones.map((tz) => ({ tz, label: getTimezoneLabel(tz) }));
-	}, []);
+	const timezoneOptions = useMemo(() => getTimezoneOptions(), []);
 
 	const selectedTimezoneOption = timezoneOptions.find((o) => o.tz === timezone) || null;
 

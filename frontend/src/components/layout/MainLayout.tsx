@@ -5,11 +5,15 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
+import ProfileSetupDialog from './ProfileSetupDialog';
+import { useAppSelector } from '../../store/hooks';
 
 const MainLayout: React.FC = () => {
 	const location = useLocation();
 	const theme = useTheme();
 	const navbarHeight = `${theme.layout.navbarHeight}px`;
+	const user = useAppSelector((state) => state.auth.user);
+	const needsProfileSetup = !!user && user.onboarding_completed === false;
 
 	// Detect settings routes — they use their own SettingsLayout with a dedicated sidebar
 	const isSettingsRoute =
@@ -44,6 +48,7 @@ const MainLayout: React.FC = () => {
 		return (
 			<Box sx={{ display: 'flex', height: '100vh', width: '100%', overflow: 'hidden' }}>
 				<CssBaseline />
+				<ProfileSetupDialog open={needsProfileSetup} />
 				<Navbar />
 				<Sidebar />
 				<Box
@@ -67,6 +72,7 @@ const MainLayout: React.FC = () => {
 	return (
 		<Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
 			<CssBaseline />
+			<ProfileSetupDialog open={needsProfileSetup} />
 			<Navbar />
 			<Sidebar />
 			<Box
