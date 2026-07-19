@@ -18,8 +18,6 @@ import {
 	CloseOutlined,
 	CheckOutlined,
 	DeleteOutline,
-	OpenInNewOutlined,
-	MoreHorizOutlined,
 	CheckCircleOutline,
 	FolderOutlined,
 	AssignmentOutlined,
@@ -73,15 +71,6 @@ export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
 	// The task drawer isn't itself a route -- it's opened over the project page via
 	// a `?task=<public_id>` query param (see useProjectDetail's deep-link effect),
 	// so that's what makes a copied/opened link actually reopen this exact task.
-	const buildTaskUrl = () => {
-		const url = new URL(window.location.href);
-		url.searchParams.set('task', task.public_id);
-		return url.toString();
-	};
-
-	const handleOpenInNewTab = () => {
-		window.open(buildTaskUrl(), '_blank', 'noopener,noreferrer');
-	};
 
 	const handleCopyTaskId = async () => {
 		try {
@@ -175,14 +164,8 @@ export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
 
 				{/* Header Actions */}
 				<Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
-					<IconButton size="small" title="Open in new tab" onClick={handleOpenInNewTab} sx={{ color: 'text.secondary', '&:hover': { bgcolor: theme.palette.action.hover } }}>
-						<OpenInNewOutlined fontSize="small" style={{ fontSize: 16 }} />
-					</IconButton>
 					<IconButton size="small" title="Delete task" onClick={onDelete} sx={{ color: 'error.main', '&:hover': { bgcolor: theme.palette.action.hover } }}>
 						<DeleteOutline fontSize="small" style={{ fontSize: 16 }} />
-					</IconButton>
-					<IconButton size="small" title="More options" onClick={(e) => setMoreAnchor(e.currentTarget)} sx={{ color: 'text.secondary', '&:hover': { bgcolor: theme.palette.action.hover } }}>
-						<MoreHorizOutlined fontSize="small" style={{ fontSize: 16 }} />
 					</IconButton>
 					<IconButton size="small" onClick={onClose} sx={{ color: 'text.primary', '&:hover': { bgcolor: theme.palette.action.hover } }}>
 						<CloseOutlined fontSize="small" style={{ fontSize: 18 }} />
