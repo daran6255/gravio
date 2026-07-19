@@ -32,6 +32,7 @@ from app.schemas.project import (
     ProjectTaskStatusResponse,
     ProjectTaskStatusesUpdateRequest,
     ProjectTaskFileResponse,
+    TaskCommentCreate,
 )
 from app.schemas.crm import AuditLogResponse
 from app.utils.file_validation import validate_upload
@@ -343,6 +344,34 @@ async def get_task_history_endpoint(
         page=page,
         page_size=page_size,
     )
+
+
+@router_tasks.post(
+    "/{task_public_id}/comments",
+    response_model=AuditLogResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add a comment to a task",
+)
+async def create_task_comment_endpoint(
+    task_public_id: uuid.UUID,
+    payload: TaskCommentCreate,
+    current_user: User = Depends(require_project_access),
+    _pm: User = Depends(require_pm_module),
+    db: AsyncSession = Depends(get_db),
+) -> AuditLogResponse:
+    from app.services.audit import AuditService
+    task = await ProjectService.get_task(db, task_public_id)
+    comment_log = await AuditService.record(
+        db,
+        entity_type="project_task",
+        entity_id=task.id,
+        action="comment",
+        changed_by_user_id=current_user.id,
+        new_value=payload.content,
+    )
+    await db.commit()
+    await db.refresh(comment_log)
+    return comment_log
 
 
 @router_tasks.delete(

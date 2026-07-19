@@ -284,3 +284,7 @@ class ProjectTaskFileResponse(BaseModel):
         if "owner" not in sa_inspect(data).unloaded and data.owner is not None:
             data.owner_name = data.owner.full_name or data.owner.email
         return data
+
+
+class TaskCommentCreate(BaseModel):
+    content: str = Field(..., min_length=1)

@@ -4,10 +4,11 @@ import {
 	Box,
 	useTheme,
 } from '@mui/material';
-import { useAppDispatch } from '../../../../store/hooks';
-import { updateProjectTask } from '../../../../store/slices/projectsSlice';
+import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
+import { updateProjectTask, addTaskComment, uploadTaskFile } from '../../../../store/slices/projectsSlice';
 import type { ProjectTask, ProjectTaskUpdate, ProjectTaskStatus, ProjectTaskTag } from '../../../../models/projects/projectTask';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
+import { useParams } from 'react-router-dom';
 
 // Import Decomposed task drawer sub-components
 import { TaskDrawerHeader } from '../components/task-drawer/TaskDrawerHeader';
@@ -51,6 +52,8 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 	const dispatch = useAppDispatch();
 	const theme = useTheme();
 	const bgColor = theme.palette.background.paper;
+	const { public_id: projectPublicId = '' } = useParams<{ public_id: string }>();
+	const taskFiles = useAppSelector((state) => state.projects.taskFiles);
 
 	const [commentText, setCommentText] = useState('');
 
@@ -63,6 +66,14 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 
 	const handleUpdateSubtask = async (subtaskPublicId: string, fields: ProjectTaskUpdate) => {
 		await dispatch(updateProjectTask({ taskPublicId: subtaskPublicId, payload: fields })).unwrap();
+	};
+
+	const handleAddComment = async (content: string) => {
+		await dispatch(addTaskComment({ taskPublicId: latestTask.public_id, content })).unwrap();
+	};
+
+	const handleUploadAttachment = async (file: File) => {
+		await dispatch(uploadTaskFile({ taskPublicId: latestTask.public_id, file })).unwrap();
 	};
 
 
@@ -103,6 +114,9 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 							task={latestTask}
 							onUpdateField={handleUpdateField}
 							setCommentText={setCommentText}
+							owners={owners}
+							tasks={tasks}
+							files={taskFiles}
 						/>
 
 						{/* Sub-tasks checklist */}
@@ -127,10 +141,14 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 						{/* Comments Section */}
 						<CommentsSection
 							task={latestTask}
-							statuses={statuses}
-							onUpdateField={handleUpdateField}
 							commentText={commentText}
 							setCommentText={setCommentText}
+							onAddComment={handleAddComment}
+							onUploadAttachment={handleUploadAttachment}
+							owners={owners}
+							tasks={tasks}
+							files={taskFiles}
+							projectPublicId={projectPublicId}
 						/>
 					</Box>
 

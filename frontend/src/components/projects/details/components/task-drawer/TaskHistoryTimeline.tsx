@@ -19,8 +19,11 @@ import {
 	OutlinedFlag,
 	EditOutlined,
 	HistoryToggleOff,
+	ChatBubbleOutline,
 } from '@mui/icons-material';
 import type { ProjectTask, ProjectTaskStatus, ProjectTaskHistoryEntry } from '../../../../../models/projects/projectTask';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
 import { fetchTaskHistory } from '../../../../../store/slices/projectsSlice';
@@ -148,6 +151,8 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 		switch (h.action) {
 			case 'create':
 				return { Icon: AddCircleOutline, color: theme.palette.success.main };
+			case 'comment':
+				return { Icon: ChatBubbleOutline, color: theme.palette.info.main };
 			case 'delete':
 			case 'remove_subtask':
 				return { Icon: h.action === 'delete' ? DeleteOutline : FormatListBulleted, color: theme.palette.error.main };
@@ -266,6 +271,8 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 		switch (h.action) {
 			case 'create':
 				return <>added this to {b(projectName)}</>;
+			case 'comment':
+				return <>commented</>;
 			case 'delete':
 				return <>deleted this task</>;
 			case 'add_subtask':
@@ -381,17 +388,40 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 							h.id,
 							Icon,
 							color,
-							<Stack direction="row" alignItems="center" spacing={0.9} sx={{ flexWrap: 'wrap', rowGap: 0.5 }}>
-								<EnterpriseAvatar name={name} size={20} sx={{ fontSize: '0.62rem', borderRadius: '6px' }} />
-								<Typography component="span" sx={{ fontWeight: 700, fontSize: '0.8rem', color: nameColor }}>
-									{name}
-								</Typography>
-								<Typography component="span" variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary', lineHeight: 1.5 }}>
-									{describeEntry(h)}
-								</Typography>
-								<Typography component="span" sx={{ color: 'text.disabled', whiteSpace: 'nowrap', fontSize: '0.7rem', ml: 'auto', pl: 1 }}>
-									{formatDateTime(h.changed_at)}
-								</Typography>
+							<Stack spacing={0.75} sx={{ width: '100%' }}>
+								<Stack direction="row" alignItems="center" spacing={0.9} sx={{ flexWrap: 'wrap', rowGap: 0.5 }}>
+									<EnterpriseAvatar name={name} size={20} sx={{ fontSize: '0.62rem', borderRadius: '6px' }} />
+									<Typography component="span" sx={{ fontWeight: 700, fontSize: '0.8rem', color: nameColor }}>
+										{name}
+									</Typography>
+									<Typography component="span" variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary', lineHeight: 1.5 }}>
+										{describeEntry(h)}
+									</Typography>
+									<Typography component="span" sx={{ color: 'text.disabled', whiteSpace: 'nowrap', fontSize: '0.7rem', ml: 'auto', pl: 1 }}>
+										{formatDateTime(h.changed_at)}
+									</Typography>
+								</Stack>
+								{h.action === 'comment' && h.new_value && (
+									<Box
+										sx={{
+											mt: 0.5,
+											p: 1.25,
+											borderRadius: '8px',
+											bgcolor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+											border: '1px solid',
+											borderColor: isDark ? '#30363d' : '#d0d7de',
+											'& .markdown-body': {
+												fontSize: '0.8rem',
+												lineHeight: 1.5,
+												color: 'text.primary',
+											}
+										}}
+									>
+										<Box className="markdown-body">
+											<ReactMarkdown remarkPlugins={[remarkGfm]}>{h.new_value}</ReactMarkdown>
+										</Box>
+									</Box>
+								)}
 							</Stack>
 						);
 					})}

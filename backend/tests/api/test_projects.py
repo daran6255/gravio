@@ -182,3 +182,66 @@ async def test_update_stages_and_reassign_tasks(auth_pm_client: AsyncClient, db_
     )
     task = task_result.scalar_one()
     assert task.status_id == stage_a_id
+
+
+@pytest.mark.asyncio
+async def test_add_task_comment(auth_pm_client: AsyncClient, db_session: AsyncSession, project_test_data):
+    org, pm_user = project_test_data
+    
+    # 1. Create a project
+    response = await auth_pm_client.post(
+        "/api/v1/projects",
+        json={
+            "name": "Comment Project",
+            "currency": "USD",
+        }
+    )
+    proj_data = response.json()
+    proj_public_id = proj_data["public_id"]
+    
+    # 2. Get initial status
+    result = await db_session.execute(select(Project).where(Project.public_id == uuid.UUID(proj_public_id)))
+    project = result.scalar_one()
+    result_statuses = await db_session.execute(
+        select(ProjectTaskStatus).where(ProjectTaskStatus.project_id == project.id).order_by(ProjectTaskStatus.order)
+    )
+    statuses = result_statuses.scalars().all()
+    initial_status_id = statuses[0].id
+    
+    # 3. Create a task
+    task_response = await auth_pm_client.post(
+        f"/api/v1/projects/{proj_public_id}/tasks",
+        json={
+            "title": "Task with comments",
+            "status_id": initial_status_id,
+            "priority": "medium"
+        }
+    )
+    assert task_response.status_code == 201
+    task_data = task_response.json()
+    task_public_id = task_data["public_id"]
+    
+    # 4. Post comment
+    comment_response = await auth_pm_client.post(
+        f"/api/v1/project-tasks/{task_public_id}/comments",
+        json={
+            "content": "This is a **test** comment with formatting."
+        }
+    )
+    assert comment_response.status_code == 201
+    comment_data = comment_response.json()
+    assert comment_data["action"] == "comment"
+    assert comment_data["new_value"] == "This is a **test** comment with formatting."
+    assert comment_data["changed_by_user_id"] == pm_user.id
+    
+    # 5. Verify the comment appears in task history
+    history_response = await auth_pm_client.get(
+        f"/api/v1/project-tasks/{task_public_id}/history"
+    )
+    assert history_response.status_code == 200
+    history_data = history_response.json()
+    history_items = history_data["items"]
+    # Check that the comment is in the items
+    comment_entries = [item for item in history_items if item["action"] == "comment"]
+    assert len(comment_entries) == 1
+    assert comment_entries[0]["new_value"] == "This is a **test** comment with formatting."

@@ -30,7 +30,9 @@ import {
 	AttachFile,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
-import type { ProjectTask, ProjectTaskUpdate } from '../../../../../models/projects/projectTask';
+import { useParams } from 'react-router-dom';
+import type { ProjectTask, ProjectTaskUpdate, ProjectTaskFile } from '../../../../../models/projects/projectTask';
+import type { CRMOwnerOption } from '../../../../../models/crm/owner';
 import { RichTextEditor, RichTextViewer } from '../../../../common/form';
 import useToast from '../../../../../hooks/useToast';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
@@ -41,15 +43,22 @@ interface TaskDescriptionCardProps {
 	task: ProjectTask;
 	onUpdateField: (fields: ProjectTaskUpdate) => Promise<void>;
 	setCommentText?: React.Dispatch<React.SetStateAction<string>>;
+	owners?: CRMOwnerOption[];
+	tasks?: ProjectTask[];
+	files?: ProjectTaskFile[];
 }
 
 export const TaskDescriptionCard: React.FC<TaskDescriptionCardProps> = ({
 	task,
 	onUpdateField,
 	setCommentText,
+	owners,
+	tasks,
+	files,
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const { public_id: projectPublicId = '' } = useParams<{ public_id: string }>();
 
 	const cardBorderColor = isDark ? '#1f6feb' : '#0969da';
 	const borderColor = isDark ? '#30363d' : '#d0d7de';
@@ -412,6 +421,13 @@ export const TaskDescriptionCard: React.FC<TaskDescriptionCardProps> = ({
 									minHeight={140}
 									variant="standard"
 									bordered={false}
+									mentionSuggestions={{
+										users: owners || [],
+										documents: files || [],
+										tasks: tasks || [],
+										projectPublicId: projectPublicId,
+										taskPublicId: task.public_id,
+									}}
 								/>
 							) : (
 								<Box sx={{ p: 2, minHeight: 140, overflowY: 'auto' }}>

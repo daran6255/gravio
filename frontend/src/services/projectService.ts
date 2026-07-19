@@ -166,6 +166,11 @@ const projectService = {
 		link.remove();
 		window.URL.revokeObjectURL(downloadUrl);
 	},
+
+	createTaskComment: async (taskPublicId: string, content: string): Promise<ProjectTaskHistoryEntry> => {
+		const response = await api.post<ProjectTaskHistoryEntry>(`/project-tasks/${taskPublicId}/comments`, { content });
+		return response.data;
+	},
 };
 
 export default projectService;

@@ -296,6 +296,19 @@ export const fetchTaskHistory = createAsyncThunk(
 	}
 );
 
+export const addTaskComment = createAsyncThunk(
+	'projects/addTaskComment',
+	async ({ taskPublicId, content }: { taskPublicId: string; content: string }, { dispatch, rejectWithValue }) => {
+		try {
+			const comment = await projectService.createTaskComment(taskPublicId, content);
+			dispatch(fetchTaskHistory(taskPublicId));
+			return comment;
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to add comment'));
+		}
+	}
+);
+
 // --- Task Statuses (per-project) ---
 export const fetchTaskStatuses = createAsyncThunk(
 	'projects/fetchTaskStatuses',
