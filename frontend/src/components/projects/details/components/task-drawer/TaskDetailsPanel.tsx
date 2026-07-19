@@ -50,6 +50,14 @@ interface TaskDetailsPanelProps {
 	onUpdateField: (fields: ProjectTaskUpdate) => Promise<void>;
 }
 
+const formatCustomFieldLabel = (str: string) => {
+	return str
+		.replace(/_/g, ' ')
+		.split(' ')
+		.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+		.join(' ');
+};
+
 export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 	task,
 	tasks,
@@ -230,7 +238,7 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 				direction="row"
 				alignItems="center"
 				spacing={1.1}
-				sx={{ width: 128, flexShrink: 0, color: 'text.secondary', pt: alignTop ? 0.3 : 0 }}
+				sx={{ width: 115, flexShrink: 0, color: 'text.secondary', pt: alignTop ? 0.3 : 0 }}
 			>
 				<Box
 					sx={{
@@ -502,7 +510,7 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 					{userCustomFields.map((field) => (
 						renderPropertyRow({
 							icon: <ExtensionOutlined fontSize="inherit" />,
-							label: field.name,
+							label: formatCustomFieldLabel(field.name),
 							onRowClick: openPopover('editCustomField', field.name),
 							children: (
 								<Typography variant="body2" sx={{ fontSize: '0.825rem', fontWeight: 500, color: 'text.primary' }}>

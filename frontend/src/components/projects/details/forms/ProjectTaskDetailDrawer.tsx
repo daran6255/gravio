@@ -14,7 +14,6 @@ import { useParams } from 'react-router-dom';
 import { TaskDrawerHeader } from '../components/task-drawer/TaskDrawerHeader';
 import { TaskDetailsPanel } from '../components/task-drawer/TaskDetailsPanel';
 import { TaskAttachmentsCard } from '../components/task-drawer/TaskAttachmentsCard';
-import { TaskActionsCard } from '../components/task-drawer/TaskActionsCard';
 import { TaskDescriptionCard } from '../components/task-drawer/TaskDescriptionCard';
 import { SubtasksList } from '../components/task-drawer/SubtasksList';
 import { TaskHistoryTimeline } from '../components/task-drawer/TaskHistoryTimeline';
@@ -84,7 +83,7 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 			onClose={onClose}
 			PaperProps={{
 				sx: {
-					width: { xs: '100%', md: '70vw' },
+					width: { xs: '100%', md: '80vw' },
 					maxWidth: '100%',
 					borderTopLeftRadius: '8px',
 					borderBottomLeftRadius: '8px',
@@ -107,8 +106,8 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 
 				{/* Two Column Scrollable Body */}
 				<Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start', minHeight: 0 }}>
-					{/* Left Column (Main description card & subtasks) - 70% width on Desktop */}
-					<Box sx={{ width: { xs: '100%', md: '70%' }, flexShrink: 0, p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
+					{/* Left Column (Main description card & subtasks) - 67% width on Desktop */}
+					<Box sx={{ width: { xs: '100%', md: '67%' }, flexShrink: 0, p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
 						{/* Task Description Card Component */}
 						<TaskDescriptionCard
 							task={latestTask}
@@ -152,10 +151,10 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 						/>
 					</Box>
 
-					{/* Right Column (Sidebar settings) - 30% width on Desktop */}
+					{/* Right Column (Sidebar settings) - 33% width on Desktop */}
 					<Box
 						sx={{
-							width: { xs: '100%', md: '30%' },
+							width: { xs: '100%', md: '33%' },
 							flexShrink: 0,
 							minHeight: { md: '100%' },
 							p: 2,
@@ -174,7 +173,6 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 							onUpdateField={handleUpdateField}
 						/>
 						<TaskAttachmentsCard task={latestTask} />
-						<TaskActionsCard onDelete={onDelete} />
 					</Box>
 				</Box>
 			</Box>
