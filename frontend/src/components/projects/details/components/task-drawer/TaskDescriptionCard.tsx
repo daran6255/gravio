@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
 	Box,
 	Stack,
@@ -15,6 +15,8 @@ import {
 	Popover,
 	Tab,
 	Tabs,
+	CircularProgress,
+	Fade,
 	alpha,
 } from '@mui/material';
 import {
@@ -25,23 +27,15 @@ import {
 	FormatQuoteOutlined,
 	ReportOutlined,
 	SentimentSatisfiedAltOutlined,
-	KeyboardArrowDown,
-	FormatBold,
-	FormatItalic,
-	FormatQuote,
-	Code,
-	AlternateEmail,
 	AttachFile,
-	Undo,
-	FormatListNumbered,
-	FormatListBulleted,
-	PlaylistAddCheck,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import type { ProjectTask, ProjectTaskUpdate } from '../../../../../models/projects/projectTask';
-import { RichTextViewer } from '../../../../common/form';
+import { RichTextEditor, RichTextViewer } from '../../../../common/form';
 import useToast from '../../../../../hooks/useToast';
-import { useAppSelector } from '../../../../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
+import { uploadTaskFile } from '../../../../../store/slices/projectsSlice';
+import { MAX_FILE_SIZE_BYTES, ALLOWED_UPLOAD_MIME_TYPES } from '../../../../../constants/fileUpload';
 
 interface TaskDescriptionCardProps {
 	task: ProjectTask;
@@ -74,7 +68,9 @@ export const TaskDescriptionCard: React.FC<TaskDescriptionCardProps> = ({
 	const [isEditingDesc, setIsEditingDesc] = useState(false);
 	const [editDesc, setEditDesc] = useState(task.description || '');
 	const [editTab, setEditTab] = useState(0);
-	const [isFocused, setIsFocused] = useState(false);
+	const [isDraggingFile, setIsDraggingFile] = useState(false);
+	const [isUploadingFile, setIsUploadingFile] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	// Reactions state
 	const [reactions, setReactions] = useState<Record<string, number>>({});
@@ -85,6 +81,7 @@ export const TaskDescriptionCard: React.FC<TaskDescriptionCardProps> = ({
 	const [reactionAnchor, setReactionAnchor] = useState<null | HTMLElement>(null);
 
 	const toast = useToast();
+	const dispatch = useAppDispatch();
 
 	useEffect(() => {
 		setEditDesc(task.description || '');
@@ -100,11 +97,70 @@ export const TaskDescriptionCard: React.FC<TaskDescriptionCardProps> = ({
 				description: editDesc.trim() || null,
 				custom_fields: {
 					...task.custom_fields,
-					last_edited_by: user?.username || 'dharani6255'
+					last_edited_by: user?.username || 'Unknown user'
 				}
 			});
 		}
 		setIsEditingDesc(false);
+	};
+
+	const cancelEditDescription = () => {
+		setEditDesc(task.description || '');
+		setEditTab(0);
+		setIsEditingDesc(false);
+	};
+
+	const uploadDescriptionFile = async (file: File) => {
+		if (file.size > MAX_FILE_SIZE_BYTES) {
+			toast.error(`File size exceeds the ${MAX_FILE_SIZE_BYTES / (1024 * 1024)}MB limit`);
+			return;
+		}
+		if (file.type && !ALLOWED_UPLOAD_MIME_TYPES.includes(file.type)) {
+			toast.error(`File type "${file.type}" is not allowed`);
+			return;
+		}
+
+		setIsUploadingFile(true);
+		try {
+			await dispatch(uploadTaskFile({ taskPublicId: task.public_id, file })).unwrap();
+			toast.success('File attached to task');
+		} catch (err: any) {
+			toast.error(err || 'Failed to upload file');
+		} finally {
+			setIsUploadingFile(false);
+		}
+	};
+
+	const handleAttachFileClick = () => {
+		if (!isUploadingFile) fileInputRef.current?.click();
+	};
+
+	const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+		if (!e.target.files || e.target.files.length === 0) return;
+		await uploadDescriptionFile(e.target.files[0]);
+		e.target.value = '';
+	};
+
+	const handleDescDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+		e.preventDefault();
+		if (!isUploadingFile) setIsDraggingFile(true);
+	};
+
+	const handleDescDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+		e.preventDefault();
+		setIsDraggingFile(false);
+	};
+
+	const handleDescDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+		e.preventDefault();
+		setIsDraggingFile(false);
+		if (isUploadingFile || !e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
+		await uploadDescriptionFile(e.dataTransfer.files[0]);
+	};
+
+	const handleDescPaste = async (e: React.ClipboardEvent<HTMLDivElement>) => {
+		const file = Array.from(e.clipboardData?.files || [])[0];
+		if (file) await uploadDescriptionFile(file);
 	};
 
 	const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -206,7 +262,7 @@ export const TaskDescriptionCard: React.FC<TaskDescriptionCardProps> = ({
 						{userInitials}
 					</Avatar>
 					<Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.825rem', color: 'text.primary' }}>
-						{user?.username || 'dharani6255'}
+						{user?.username || 'Unknown user'}
 						<Box component="span" sx={{ color: 'text.secondary', fontWeight: 400, ml: 0.75 }}>
 							opened on {dayjs(task.created_at).format('MMM D, YYYY')}
 						</Box>
@@ -216,11 +272,10 @@ export const TaskDescriptionCard: React.FC<TaskDescriptionCardProps> = ({
 				{/* Right side: Last edited + Role + Options Menu */}
 				<Stack direction="row" alignItems="center" spacing={1.25}>
 					{task.custom_fields?.last_edited_by && (
-						<Stack direction="row" alignItems="center" spacing={0.25} sx={{ cursor: 'pointer', opacity: 0.85 }}>
+						<Stack direction="row" alignItems="center" spacing={0.25} sx={{ opacity: 0.85 }}>
 							<Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 500 }}>
 								Last edited by {task.custom_fields.last_edited_by}
 							</Typography>
-							<KeyboardArrowDown sx={{ fontSize: 12, color: 'text.secondary' }} />
 						</Stack>
 					)}
 					<Box sx={{ border: '1px solid', borderColor: borderColor, px: 1, py: 0.125, borderRadius: '100px', fontSize: '0.7rem', fontWeight: 600, color: 'text.secondary', bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)' }}>
@@ -242,15 +297,14 @@ export const TaskDescriptionCard: React.FC<TaskDescriptionCardProps> = ({
 						<Box
 							sx={{
 								border: '1px solid',
-								borderColor: isFocused ? theme.palette.primary.main : cardBorderColor,
-								boxShadow: isFocused ? `0 0 0 1px ${theme.palette.primary.main}` : 'none',
+								borderColor: cardBorderColor,
 								borderRadius: '8px',
 								overflow: 'hidden',
 								bgcolor: 'background.paper',
 								transition: 'border-color 0.2s, box-shadow 0.2s',
 							}}
 						>
-							{/* Editor Tabs & Formatting Toolbar */}
+							{/* Editor Tabs & Attach action */}
 							<Box
 								sx={{
 									display: 'flex',
@@ -336,79 +390,28 @@ export const TaskDescriptionCard: React.FC<TaskDescriptionCardProps> = ({
 									/>
 								</Tabs>
 
-								{/* Formatting Toolbar */}
 								{editTab === 0 && (
-									<Stack direction="row" spacing={0.25} alignItems="center" sx={{ pr: 1.5 }}>
-										<IconButton size="small" title="Header" sx={{ color: 'text.secondary', p: 0.5 }}>
-											<Typography sx={{ fontSize: '0.8rem', fontWeight: 800 }}>H</Typography>
-										</IconButton>
-										<IconButton size="small" title="Bold" sx={{ color: 'text.secondary', p: 0.5 }}>
-											<FormatBold fontSize="small" style={{ fontSize: 16 }} />
-										</IconButton>
-										<IconButton size="small" title="Italic" sx={{ color: 'text.secondary', p: 0.5 }}>
-											<FormatItalic fontSize="small" style={{ fontSize: 16 }} />
-										</IconButton>
-										<IconButton size="small" title="Quote" sx={{ color: 'text.secondary', p: 0.5 }}>
-											<FormatQuote fontSize="small" style={{ fontSize: 16 }} />
-										</IconButton>
-										<IconButton size="small" title="Code" sx={{ color: 'text.secondary', p: 0.5 }}>
-											<Code fontSize="small" style={{ fontSize: 16 }} />
-										</IconButton>
-										<IconButton size="small" title="Link" sx={{ color: 'text.secondary', p: 0.5 }}>
-											<LinkIcon fontSize="small" style={{ fontSize: 16 }} />
-										</IconButton>
-
-										<Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 1 }} />
-
-										<IconButton size="small" title="Numbered List" sx={{ color: 'text.secondary', p: 0.5 }}>
-											<FormatListNumbered fontSize="small" style={{ fontSize: 16 }} />
-										</IconButton>
-										<IconButton size="small" title="Bulleted List" sx={{ color: 'text.secondary', p: 0.5 }}>
-											<FormatListBulleted fontSize="small" style={{ fontSize: 16 }} />
-										</IconButton>
-										<IconButton size="small" title="Task List" sx={{ color: 'text.secondary', p: 0.5 }}>
-											<PlaylistAddCheck fontSize="small" style={{ fontSize: 18 }} />
-										</IconButton>
-
-										<Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 1 }} />
-
-										<IconButton size="small" title="Mention" sx={{ color: 'text.secondary', p: 0.5 }}>
-											<AlternateEmail fontSize="small" style={{ fontSize: 16 }} />
-										</IconButton>
-										<IconButton size="small" title="Quote Reply" sx={{ color: 'text.secondary', p: 0.5 }}>
-											<FormatQuoteOutlined fontSize="small" style={{ fontSize: 16 }} />
-										</IconButton>
-										<IconButton size="small" title="Attach file" sx={{ color: 'text.secondary', p: 0.5 }}>
-											<AttachFile fontSize="small" style={{ fontSize: 16 }} />
-										</IconButton>
-										<IconButton size="small" title="Undo" sx={{ color: 'text.secondary', p: 0.5 }}>
-											<Undo fontSize="small" style={{ fontSize: 16 }} />
-										</IconButton>
-									</Stack>
+									<IconButton
+										size="small"
+										title="Attach file"
+										onClick={handleAttachFileClick}
+										disabled={isUploadingFile}
+										sx={{ color: 'text.secondary', p: 0.5, mr: 1.5 }}
+									>
+										{isUploadingFile ? <CircularProgress size={16} /> : <AttachFile fontSize="small" style={{ fontSize: 16 }} />}
+									</IconButton>
 								)}
 							</Box>
 
-							{/* Text Field or Preview area */}
+							{/* Editor or Preview area */}
 							{editTab === 0 ? (
-								<textarea
-									placeholder="Type your description here..."
+								<RichTextEditor
 									value={editDesc}
-									onChange={(e) => setEditDesc(e.target.value)}
-									onFocus={() => setIsFocused(true)}
-									onBlur={() => setIsFocused(false)}
-									style={{
-										width: '100%',
-										minHeight: '140px',
-										padding: '16px',
-										fontSize: '0.875rem',
-										fontFamily: 'inherit',
-										backgroundColor: 'transparent',
-										border: 'none',
-										outline: 'none',
-										color: 'inherit',
-										resize: 'vertical',
-										boxSizing: 'border-box',
-									}}
+									onChange={setEditDesc}
+									placeholder="Type your description here..."
+									minHeight={140}
+									variant="standard"
+									bordered={false}
 								/>
 							) : (
 								<Box sx={{ p: 2, minHeight: 140, overflowY: 'auto' }}>
@@ -422,29 +425,48 @@ export const TaskDescriptionCard: React.FC<TaskDescriptionCardProps> = ({
 								</Box>
 							)}
 
-							{/* Editor Footer: Upload text on left, Cancel / Save buttons on right (Inside blue editor Box) */}
+							{/* Editor Footer: Upload zone on left, Cancel / Save buttons on right */}
 							<Box
+								onDragOver={handleDescDragOver}
+								onDragLeave={handleDescDragLeave}
+								onDrop={handleDescDrop}
+								onPaste={handleDescPaste}
 								sx={{
 									px: 2,
 									py: 1.5,
 									borderTop: '1px dashed',
-									borderColor: 'divider',
+									borderColor: isDraggingFile ? 'primary.main' : 'divider',
+									bgcolor: isDraggingFile
+										? alpha(theme.palette.primary.main, 0.04)
+										: (isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.002)'),
 									display: 'flex',
 									justifyContent: 'space-between',
 									alignItems: 'center',
-									bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.002)',
+									transition: 'background-color 0.15s ease, border-color 0.15s ease',
 								}}
 							>
-								<Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: 'text.secondary', cursor: 'pointer', '&:hover': { color: 'text.primary' } }}>
-									<AttachFile sx={{ fontSize: 16 }} />
+								<Stack
+									direction="row"
+									spacing={0.5}
+									alignItems="center"
+									onClick={handleAttachFileClick}
+									sx={{ color: isDraggingFile ? 'primary.main' : 'text.secondary', cursor: 'pointer', '&:hover': { color: 'text.primary' } }}
+								>
+									{isUploadingFile ? <CircularProgress size={14} /> : <AttachFile sx={{ fontSize: 16 }} />}
 									<Typography variant="caption" sx={{ fontWeight: 500 }}>
-										Paste, drop, or click to add files
+										{isDraggingFile ? 'Drop file to attach' : 'Paste, drop, or click to add files'}
 									</Typography>
 								</Stack>
+								<input
+									type="file"
+									ref={fileInputRef}
+									onChange={handleFileInputChange}
+									style={{ display: 'none' }}
+								/>
 
 								<Stack direction="row" spacing={1.5}>
 									<Button
-										onClick={() => setIsEditingDesc(false)}
+										onClick={cancelEditDescription}
 										size="small"
 										sx={{
 											textTransform: 'none',
@@ -616,6 +638,8 @@ export const TaskDescriptionCard: React.FC<TaskDescriptionCardProps> = ({
 				onClose={() => setReactionAnchor(null)}
 				anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
 				transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+				TransitionComponent={Fade}
+				transitionDuration={150}
 				PaperProps={{
 					sx: {
 						borderRadius: '20px',
@@ -624,6 +648,7 @@ export const TaskDescriptionCard: React.FC<TaskDescriptionCardProps> = ({
 						boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
 						border: '1px solid',
 						borderColor: 'divider',
+						willChange: 'auto',
 					}
 				}}
 			>
@@ -634,9 +659,11 @@ export const TaskDescriptionCard: React.FC<TaskDescriptionCardProps> = ({
 							size="small"
 							onClick={() => toggleEmojiReaction(emoji)}
 							sx={{
-								fontSize: '1.1rem',
+								fontSize: '20px',
+								lineHeight: 1,
 								p: 0.75,
 								borderRadius: '50%',
+								WebkitFontSmoothing: 'antialiased',
 								'&:hover': { bgcolor: theme.palette.action.hover }
 							}}
 						>

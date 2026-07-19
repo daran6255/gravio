@@ -12,6 +12,8 @@ interface RichTextEditorProps {
 	variant?: 'standard' | 'simple';
 	/** Caps the plain-text word count; edits that would exceed it are rejected and a live counter is shown below the editor. */
 	maxWords?: number;
+	/** Set to false when embedding inside an already-bordered container to avoid a double frame. */
+	bordered?: boolean;
 }
 
 const countWords = (html: string): number => {
@@ -45,7 +47,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 	placeholder,
 	minHeight = 160,
 	variant = 'standard',
-	maxWords
+	maxWords,
+	bordered = true
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
@@ -70,9 +73,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 			)}
 			<Box
 				sx={{
-					borderRadius: '10px',
+					borderRadius: bordered ? '10px' : 0,
 					overflow: 'hidden',
-					border: '1px solid',
+					border: bordered ? '1px solid' : 'none',
 					borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)',
 					'& .ql-toolbar.ql-snow': {
 						borderColor: 'transparent',
@@ -92,8 +95,12 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 							color: theme.palette.text.secondary,
 							fontStyle: 'normal',
 						},
-						...(isDark && {
+						...(isDark ? {
 							'& span[style*="color: rgb(0, 0, 0)"], & span[style*="color: rgb(34, 34, 34)"], & span[style*="color: black"], & [style*="color:#000"], & [style*="color:#000000"]': {
+								color: `${theme.palette.text.primary} !important`,
+							},
+						} : {
+							'& span[style*="color: rgb(255, 255, 255)"], & span[style*="color: white"], & [style*="color:#fff"], & [style*="color:#ffffff"], & [style*="color: rgb(250, 250, 250)"]': {
 								color: `${theme.palette.text.primary} !important`,
 							},
 						}),
@@ -124,9 +131,11 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 					'& .ql-snow.ql-toolbar button.ql-active .ql-fill, & .ql-snow .ql-toolbar button.ql-active .ql-fill': {
 						fill: theme.palette.primary.main,
 					},
-					'&:focus-within': {
-						borderColor: alpha(theme.palette.primary.main, 0.6),
-					},
+					...(bordered && {
+						'&:focus-within': {
+							borderColor: alpha(theme.palette.primary.main, 0.6),
+						},
+					}),
 				}}
 			>
 				<ReactQuill theme="snow" value={value} onChange={handleChange} modules={modules} placeholder={placeholder} />

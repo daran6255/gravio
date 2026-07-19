@@ -20,6 +20,7 @@ import {
 import dayjs from 'dayjs';
 import type { ProjectTask, ProjectTaskStatus } from '../../../../../models/projects/projectTask';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
+import { useAppSelector } from '../../../../../store/hooks';
 
 interface TaskHistoryTimelineProps {
 	task: ProjectTask;
@@ -49,6 +50,9 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 
+	const currentUser = useAppSelector((state) => state.auth.user);
+	const currentUsername = task.custom_fields?.last_edited_by || currentUser?.username || currentUser?.full_name || 'Unknown user';
+
 	const subtasks = tasks.filter((t) => t.parent_task_id === task.id);
 	const activeAssignee = owners.find((o) => o.id === task.assignee_id);
 	const currentStatus = statuses.find((s) => s.id === task.status_id) || statuses[0];
@@ -62,7 +66,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 		list.push({
 			id: 'creation',
 			icon: <FolderOutlined sx={{ fontSize: 15, color: 'text.secondary' }} />,
-			user: 'dharani6255',
+			user: currentUsername,
 			actionText: (
 				<>
 					added this to <span style={{ fontWeight: 600 }}>{projectName}</span>
@@ -77,7 +81,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 		list.push({
 			id: 'type-assignment',
 			icon: <Adjust sx={{ fontSize: 15, color: 'text.secondary' }} />,
-			user: 'dharani6255',
+			user: currentUsername,
 			actionText: (
 				<>
 					added the{' '}
@@ -111,7 +115,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 			list.push({
 				id: 'tags-assignment',
 				icon: <LocalOfferOutlined sx={{ fontSize: 15, color: 'text.secondary' }} />,
-				user: 'dharani6255',
+				user: currentUsername,
 				actionText: (
 					<>
 						added{' '}
@@ -149,7 +153,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 			list.push({
 				id: 'assignment',
 				icon: <PersonOutline sx={{ fontSize: 15, color: 'text.secondary' }} />,
-				user: 'dharani6255',
+				user: currentUsername,
 				actionText: (
 					<>
 						assigned{' '}
@@ -173,7 +177,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 			list.push({
 				id: 'subtasks-added',
 				icon: <FormatListBulleted sx={{ fontSize: 15, color: 'text.secondary' }} />,
-				user: 'dharani6255',
+				user: currentUsername,
 				actionText: 'added sub-tasks',
 				date: latestSubtaskDate.format('MMM D, YYYY'),
 				dateObj: latestSubtaskDate,
@@ -216,7 +220,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 			list.push({
 				id: 'milestone-added',
 				icon: <OutlinedFlag sx={{ fontSize: 15, color: 'text.secondary' }} />,
-				user: 'dharani6255',
+				user: currentUsername,
 				actionText: (
 					<>
 						added this to the{' '}
@@ -237,7 +241,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 			list.push({
 				id: 'status-movement',
 				icon: <FolderOutlined sx={{ fontSize: 15, color: 'text.secondary' }} />,
-				user: 'dharani6255',
+				user: currentUsername,
 				actionText: (
 					<>
 						moved this from <span style={{ fontWeight: 600 }}>{statuses[0]?.name || 'To do'}</span> to{' '}
