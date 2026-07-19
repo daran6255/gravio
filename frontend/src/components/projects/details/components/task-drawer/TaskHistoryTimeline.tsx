@@ -360,7 +360,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 				)}
 			</Stack>
 
-			{taskHistoryLoading ? (
+			{taskHistoryLoading && taskHistory.length === 0 ? (
 				<Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
 					<CircularProgress size={22} />
 				</Box>
