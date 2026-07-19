@@ -190,7 +190,10 @@ class ProjectService:
             await ProjectService.seed_project_tasks_custom(db, project, custom_tasks)
         elif template_key:
             await ProjectService.seed_project_tasks_from_template(db, project, template_key)
-        return project
+        
+        await db.flush()
+        refetched = await ProjectRepository.get_by_public_id(db, project.public_id)
+        return refetched if refetched else project
 
     @staticmethod
     async def update_project(db: AsyncSession, public_id: uuid.UUID, payload: ProjectUpdate) -> Project:

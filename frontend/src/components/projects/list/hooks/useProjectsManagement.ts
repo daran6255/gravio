@@ -99,9 +99,10 @@ export const useProjectsManagement = () => {
 	};
 
 	const handleSubmit = async (payload: ProjectCreate) => {
-		await dispatch(createProject(payload)).unwrap();
+		const newProject = await dispatch(createProject(payload)).unwrap();
 		toast.success('Project created');
 		setCreateDrawerOpen(false);
+		navigate(newProject.public_id);
 	};
 
 	const handleToggleSelect = (publicId: string) => {
