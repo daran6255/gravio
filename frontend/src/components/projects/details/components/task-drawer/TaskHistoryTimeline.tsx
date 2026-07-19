@@ -3,9 +3,9 @@ import {
 	Box,
 	Stack,
 	Typography,
-	Avatar,
 	CircularProgress,
 	useTheme,
+	alpha,
 } from '@mui/material';
 import {
 	AddCircleOutline,
@@ -18,12 +18,14 @@ import {
 	LocalOfferOutlined,
 	OutlinedFlag,
 	EditOutlined,
+	HistoryToggleOff,
 } from '@mui/icons-material';
-import dayjs from 'dayjs';
 import type { ProjectTask, ProjectTaskStatus, ProjectTaskHistoryEntry } from '../../../../../models/projects/projectTask';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
 import { fetchTaskHistory } from '../../../../../store/slices/projectsSlice';
+import useDateTime from '../../../../../hooks/useDateTime';
+import EnterpriseAvatar, { getAvatarColor } from '../../../../common/avatar/Avatar';
 
 interface TaskHistoryTimelineProps {
 	task: ProjectTask;
@@ -32,6 +34,10 @@ interface TaskHistoryTimelineProps {
 	owners: CRMOwnerOption[];
 	projectName: string;
 }
+
+/** Every icon imported above shares this shape -- used instead of importing MUI's
+ *  (unexported) SvgIconComponent type. */
+type IconType = typeof AddCircleOutline;
 
 const FIELD_LABELS: Record<string, string> = {
 	title: 'Title',
@@ -57,6 +63,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const dispatch = useAppDispatch();
+	const { formatDateTime } = useDateTime();
 
 	const { taskHistory, taskHistoryLoading } = useAppSelector((state) => state.projects);
 	const taskFiles = useAppSelector((state) => state.projects.taskFiles);
@@ -69,7 +76,8 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 	const hasCreateEvent = taskHistory.some((h) => h.action === 'create');
 
 	// Re-fetch whenever anything that can generate a new history row for this task
-	// changes -- the task itself (description/status/priority/etc.), its sub-tasks,
+	// changes -- the task itself (description/status/priority/etc.), its sub-tasks
+	// (a sub-task's own updated_at, since editing it doesn't touch the parent's),
 	// or its attached files.
 	const subtasksVersion = subtasks.map((t) => `${t.id}:${t.updated_at}`).join(',');
 
@@ -83,12 +91,6 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 		if (id == null) return 'Unassigned';
 		const o = owners.find((ow) => ow.id === id);
 		return o ? (o.full_name || o.email) : `User #${id}`;
-	};
-
-	const statusName = (id?: string | null) => {
-		if (!id) return '—';
-		const s = statuses.find((st) => String(st.id) === String(id));
-		return s ? s.name : `#${id}`;
 	};
 
 	const actorName = (id?: number) => {
@@ -105,38 +107,74 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 		return { field: field || '', subtaskTitle: subtaskTitle || 'a sub-task' };
 	};
 
-	const getHistoryIcon = (h: ProjectTaskHistoryEntry) => {
-		const iconSx = { fontSize: 15, color: 'text.secondary' } as const;
+	// A colored status "pill" (reusing the status's own board color) instead of
+	// plain bold text -- makes status transitions scannable at a glance and matches
+	// how statuses are already rendered everywhere else in the drawer.
+	const StatusPill: React.FC<{ statusId?: string | null }> = ({ statusId }) => {
+		const s = statuses.find((st) => String(st.id) === String(statusId));
+		if (!s) {
+			return <span style={{ fontWeight: 700 }}>{statusId ? `#${statusId}` : '—'}</span>;
+		}
+		return (
+			<Box
+				component="span"
+				sx={{
+					display: 'inline-flex',
+					alignItems: 'center',
+					gap: 0.6,
+					px: 1,
+					py: 0.2,
+					borderRadius: '100px',
+					fontSize: '0.72rem',
+					fontWeight: 700,
+					bgcolor: alpha(s.color, 0.12),
+					color: s.color,
+					border: '1px solid',
+					borderColor: alpha(s.color, 0.35),
+					verticalAlign: 'middle',
+					mx: 0.25,
+				}}
+			>
+				<Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: s.color, display: 'inline-block', flexShrink: 0 }} />
+				{s.name}
+			</Box>
+		);
+	};
+
+	// Each event type/field gets its own accent color, applied to both its icon
+	// circle and (for status pills) reused via the status's own color -- gives the
+	// feed a scannable rhythm instead of one flat gray icon for everything.
+	const resolveEvent = (h: ProjectTaskHistoryEntry): { Icon: IconType; color: string } => {
 		switch (h.action) {
 			case 'create':
-				return <AddCircleOutline sx={{ ...iconSx, color: 'success.main' }} />;
+				return { Icon: AddCircleOutline, color: theme.palette.success.main };
 			case 'delete':
-				return <DeleteOutline sx={{ ...iconSx, color: 'error.main' }} />;
-			case 'add_subtask':
 			case 'remove_subtask':
-				return <FormatListBulleted sx={iconSx} />;
+				return { Icon: h.action === 'delete' ? DeleteOutline : FormatListBulleted, color: theme.palette.error.main };
+			case 'add_subtask':
+				return { Icon: FormatListBulleted, color: theme.palette.success.main };
 			case 'attach_file':
 			case 'delete_file':
 			case 'subtask_attach_file':
 			case 'subtask_delete_file':
-				return <AttachFile sx={iconSx} />;
+				return { Icon: AttachFile, color: '#d97706' };
 			default:
 				break;
 		}
-		const field = h.action === 'update_subtask' ? splitSubtaskField(h.field_name).field : h.field_name;
+		const field = h.action === 'update_subtask' ? splitSubtaskField(h.field_name).field : (h.field_name || '');
 		switch (field) {
 			case 'status_id':
-				return <Adjust sx={iconSx} />;
+				return { Icon: Adjust, color: theme.palette.primary.main };
 			case 'assignee_id':
-				return <PersonOutline sx={iconSx} />;
+				return { Icon: PersonOutline, color: theme.palette.secondary.main };
 			case 'description':
-				return <DescriptionOutlined sx={iconSx} />;
+				return { Icon: DescriptionOutlined, color: theme.palette.info.main };
 			case 'tags':
-				return <LocalOfferOutlined sx={iconSx} />;
+				return { Icon: LocalOfferOutlined, color: '#d97706' };
 			case 'priority':
-				return <OutlinedFlag sx={iconSx} />;
+				return { Icon: OutlinedFlag, color: '#d97706' };
 			default:
-				return <EditOutlined sx={iconSx} />;
+				return { Icon: EditOutlined, color: theme.palette.text.secondary };
 		}
 	};
 
@@ -146,7 +184,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 	// duplicated between the two (they still get their own sentence phrasing below,
 	// since "I changed X" and "sub-task Y had X changed" are different grammar).
 	type FieldChangeParts =
-		| { kind: 'status'; oldDisplay: string; newDisplay: string }
+		| { kind: 'status'; oldId?: string; newId?: string }
 		| { kind: 'assignee'; newDisplay: string | null }
 		| { kind: 'description' }
 		| { kind: 'blob'; label: string }
@@ -154,7 +192,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 
 	const resolveFieldChange = (field: string, oldValue?: string, newValue?: string): FieldChangeParts => {
 		if (field === 'status_id') {
-			return { kind: 'status', oldDisplay: statusName(oldValue), newDisplay: statusName(newValue) };
+			return { kind: 'status', oldId: oldValue, newId: newValue };
 		}
 		if (field === 'assignee_id') {
 			return { kind: 'assignee', newDisplay: newValue ? ownerName(Number(newValue)) : null };
@@ -174,6 +212,9 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 	};
 
 	const b = (text: React.ReactNode) => <span style={{ fontWeight: 600 }}>{text}</span>;
+	const assigneeChip = (name: string) => (
+		<span style={{ fontWeight: 700, color: getAvatarColor(name, theme) }}>{name}</span>
+	);
 
 	// First-person phrasing for a task describing its own history, e.g. "changed
 	// status from To do to Done".
@@ -181,11 +222,9 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 		const parts = resolveFieldChange(field, oldValue, newValue);
 		switch (parts.kind) {
 			case 'status':
-				return <>moved this from {b(parts.oldDisplay)} to {b(parts.newDisplay)}</>;
+				return <>moved this from <StatusPill statusId={parts.oldId} /> to <StatusPill statusId={parts.newId} /></>;
 			case 'assignee':
-				return parts.newDisplay
-					? <>assigned <span style={{ fontWeight: 600, color: theme.palette.primary.main }}>{parts.newDisplay}</span></>
-					: <>removed the assignee</>;
+				return parts.newDisplay ? <>assigned {assigneeChip(parts.newDisplay)}</> : <>removed the assignee</>;
 			case 'description':
 				return <>updated the description</>;
 			case 'blob':
@@ -206,11 +245,9 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 		const parts = resolveFieldChange(field, oldValue, newValue);
 		switch (parts.kind) {
 			case 'status':
-				return <>moved from {b(parts.oldDisplay)} to {b(parts.newDisplay)}</>;
+				return <>moved from <StatusPill statusId={parts.oldId} /> to <StatusPill statusId={parts.newId} /></>;
 			case 'assignee':
-				return parts.newDisplay
-					? <>was assigned to <span style={{ fontWeight: 600, color: theme.palette.primary.main }}>{parts.newDisplay}</span></>
-					: <>had its assignee removed</>;
+				return parts.newDisplay ? <>was assigned to {assigneeChip(parts.newDisplay)}</> : <>had its assignee removed</>;
 			case 'description':
 				return <>had its description updated</>;
 			case 'blob':
@@ -252,11 +289,69 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 		}
 	};
 
+	const railColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+
+	const renderRow = (key: React.Key, Icon: IconType, color: string, content: React.ReactNode, opacity = 1) => (
+		<Box
+			key={key}
+			sx={{
+				display: 'flex',
+				gap: 1.75,
+				position: 'relative',
+				zIndex: 1,
+				py: 0.75,
+				px: 1,
+				mx: -1,
+				borderRadius: '8px',
+				opacity,
+				transition: 'background-color 0.12s ease',
+				'&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.02)' },
+			}}
+		>
+			<Box
+				sx={{
+					width: 28,
+					height: 28,
+					borderRadius: '50%',
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: 'center',
+					bgcolor: alpha(color, isDark ? 0.16 : 0.1),
+					border: '1px solid',
+					borderColor: alpha(color, 0.3),
+					color,
+					flexShrink: 0,
+				}}
+			>
+				<Icon sx={{ fontSize: 14 }} />
+			</Box>
+			<Box sx={{ flex: 1, minWidth: 0, pt: 0.2 }}>{content}</Box>
+		</Box>
+	);
+
 	return (
-		<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 4, pl: 1 }}>
-			<Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.75rem', mb: 1 }}>
-				History of Changes
-			</Typography>
+		<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 4, pl: 1 }}>
+			<Stack direction="row" alignItems="center" spacing={0.75}>
+				<HistoryToggleOff sx={{ fontSize: 15, color: 'text.secondary' }} />
+				<Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.75rem' }}>
+					History of Changes
+				</Typography>
+				{taskHistory.length > 0 && (
+					<Box
+						sx={{
+							px: 0.85,
+							py: 0.05,
+							borderRadius: '100px',
+							bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+							color: 'text.secondary',
+							fontSize: '0.68rem',
+							fontWeight: 700,
+						}}
+					>
+						{taskHistory.length}
+					</Box>
+				)}
+			</Stack>
 
 			{taskHistoryLoading ? (
 				<Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
@@ -272,84 +367,46 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 							top: 14,
 							bottom: 14,
 							width: 2,
-							bgcolor: isDark ? '#30363d' : '#d0d7de',
+							bgcolor: railColor,
 							zIndex: 0,
 						}}
 					/>
 
-					{taskHistory.map((h) => (
-						<Box key={h.id} sx={{ display: 'flex', gap: 2, mb: 3.5, position: 'relative', zIndex: 1 }}>
-							{/* Circle Icon Container */}
-							<Box
-								sx={{
-									width: 30,
-									height: 30,
-									borderRadius: '50%',
-									display: 'flex',
-									alignItems: 'center',
-									justifyContent: 'center',
-									bgcolor: isDark ? '#161b22' : '#f6f8fa',
-									border: '1px solid',
-									borderColor: isDark ? '#30363d' : '#d0d7de',
-									flexShrink: 0,
-								}}
-							>
-								{getHistoryIcon(h)}
-							</Box>
+					{taskHistory.map((h) => {
+						const { Icon, color } = resolveEvent(h);
+						const name = actorName(h.changed_by_user_id);
+						const nameColor = getAvatarColor(name, theme);
 
-							{/* Right side event detail text */}
-							<Box sx={{ flex: 1, pt: 0.5 }}>
-								<Stack direction="row" alignItems="center" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 0.5 }}>
-									<Avatar
-										sx={{
-											width: 18,
-											height: 18,
-											fontSize: '0.6rem',
-											fontWeight: 700,
-											bgcolor: theme.palette.primary.main,
-											color: 'white',
-										}}
-									>
-										{actorName(h.changed_by_user_id)[0]?.toUpperCase()}
-									</Avatar>
-									<Typography variant="body2" sx={{ fontSize: '0.825rem', color: 'text.primary' }}>
-										<span style={{ fontWeight: 700 }}>{actorName(h.changed_by_user_id)}</span> {describeEntry(h)}{' '}
-										<Box component="span" sx={{ color: 'text.secondary', ml: 1, whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
-											on {dayjs(h.changed_at).format('MMM D, YYYY')}
-										</Box>
-									</Typography>
-								</Stack>
-							</Box>
-						</Box>
-					))}
-
-					{!hasCreateEvent && (
-						<Box sx={{ display: 'flex', gap: 2, position: 'relative', zIndex: 1, opacity: 0.75 }}>
-							<Box
-								sx={{
-									width: 30,
-									height: 30,
-									borderRadius: '50%',
-									display: 'flex',
-									alignItems: 'center',
-									justifyContent: 'center',
-									bgcolor: isDark ? '#161b22' : '#f6f8fa',
-									border: '1px solid',
-									borderColor: isDark ? '#30363d' : '#d0d7de',
-									flexShrink: 0,
-								}}
-							>
-								<AddCircleOutline sx={{ fontSize: 15, color: 'text.secondary' }} />
-							</Box>
-							<Box sx={{ flex: 1, pt: 0.5 }}>
-								<Typography variant="body2" sx={{ fontSize: '0.825rem', color: 'text.secondary', fontStyle: 'italic' }}>
-									Task created{' '}
-									<Box component="span" sx={{ ml: 1, whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
-										on {dayjs(task.created_at).format('MMM D, YYYY')}
-									</Box>
+						return renderRow(
+							h.id,
+							Icon,
+							color,
+							<Stack direction="row" alignItems="center" spacing={0.9} sx={{ flexWrap: 'wrap', rowGap: 0.5 }}>
+								<EnterpriseAvatar name={name} size={20} sx={{ fontSize: '0.62rem', borderRadius: '6px' }} />
+								<Typography component="span" sx={{ fontWeight: 700, fontSize: '0.8rem', color: nameColor }}>
+									{name}
 								</Typography>
+								<Typography component="span" variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary', lineHeight: 1.5 }}>
+									{describeEntry(h)}
+								</Typography>
+								<Typography component="span" sx={{ color: 'text.disabled', whiteSpace: 'nowrap', fontSize: '0.7rem', ml: 'auto', pl: 1 }}>
+									{formatDateTime(h.changed_at)}
+								</Typography>
+							</Stack>
+						);
+					})}
+
+					{!hasCreateEvent && renderRow(
+						'synthetic-create',
+						AddCircleOutline,
+						theme.palette.text.secondary,
+						<Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary', fontStyle: 'italic' }}>
+							Task created
+							<Box component="span" sx={{ ml: 1, whiteSpace: 'nowrap', fontSize: '0.7rem', fontStyle: 'normal', color: 'text.disabled' }}>
+								{formatDateTime(task.created_at)}
 							</Box>
-						</Box>
+						</Typography>,
+						0.75
 					)}
 				</Box>
 			)}
