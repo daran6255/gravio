@@ -32,7 +32,7 @@ export const fetchTeamUsers = createAsyncThunk(
 			const { page = 1, pageSize = 20, search } = params || {};
 			return await userService.list(page, pageSize, search);
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to fetch team');
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch team'));
 		}
 	}
 );
@@ -43,7 +43,7 @@ export const inviteTeamUser = createAsyncThunk(
 		try {
 			return await userService.inviteUser(payload);
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to invite user');
+			return rejectWithValue(extractErrorMessage(error, 'Failed to invite user'));
 		}
 	}
 );
@@ -54,7 +54,7 @@ export const updateTeamUser = createAsyncThunk(
 		try {
 			return await userService.updateUser(data.publicId, data.payload);
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to update user');
+			return rejectWithValue(extractErrorMessage(error, 'Failed to update user'));
 		}
 	}
 );
@@ -79,7 +79,7 @@ export const reactivateTeamUser = createAsyncThunk(
 		try {
 			return await userService.reactivate(publicId);
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to reactivate user');
+			return rejectWithValue(extractErrorMessage(error, 'Failed to reactivate user'));
 		}
 	}
 );
@@ -104,7 +104,7 @@ export const bulkDeleteTeamUsers = createAsyncThunk(
 		try {
 			return await userService.bulkDeleteUsers(publicIds);
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to bulk delete users');
+			return rejectWithValue(extractErrorMessage(error, 'Failed to bulk delete users'));
 		}
 	}
 );
@@ -115,7 +115,7 @@ export const resendTeamUserInvite = createAsyncThunk(
 		try {
 			return await userService.resendInvite(publicId);
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to resend invite');
+			return rejectWithValue(extractErrorMessage(error, 'Failed to resend invite'));
 		}
 	}
 );
@@ -126,7 +126,7 @@ export const resetTeamUserPassword = createAsyncThunk(
 		try {
 			return await userService.triggerPasswordReset(publicId);
 		} catch (error: any) {
-			return rejectWithValue(error.response?.data?.detail || error.message || 'Failed to send password reset link');
+			return rejectWithValue(extractErrorMessage(error, 'Failed to send password reset link'));
 		}
 	}
 );
