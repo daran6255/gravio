@@ -159,7 +159,9 @@ class ProjectService:
         return project
 
     @staticmethod
-    async def create_project(db: AsyncSession, payload: ProjectCreate) -> Project:
+    async def create_project(
+        db: AsyncSession, payload: ProjectCreate, current_user: Optional[User] = None,
+    ) -> Project:
         org_id = tenant_context.get()
         if org_id is not None:
             await ProjectService.check_project_limit(db, org_id)
@@ -168,9 +170,9 @@ class ProjectService:
         template_key = data.get("template_key")
         custom_tasks = data.pop("custom_tasks", None)
         custom_stages = data.pop("custom_stages", None)
-        
+
         project = await ProjectRepository.create(db, **data)
-        
+
         if custom_stages:
             for idx, s in enumerate(custom_stages):
                 await ProjectTaskStatusRepository.create(
@@ -187,10 +189,10 @@ class ProjectService:
             await ProjectService.seed_project_task_statuses(db, project, template_key)
 
         if custom_tasks:
-            await ProjectService.seed_project_tasks_custom(db, project, custom_tasks)
+            await ProjectService.seed_project_tasks_custom(db, project, custom_tasks, current_user)
         elif template_key:
-            await ProjectService.seed_project_tasks_from_template(db, project, template_key)
-        
+            await ProjectService.seed_project_tasks_from_template(db, project, template_key, current_user)
+
         await db.flush()
         refetched = await ProjectRepository.get_by_public_id(db, project.public_id)
         return refetched if refetched else project
@@ -291,26 +293,55 @@ class ProjectService:
         return initial.id
 
     @staticmethod
-    async def create_task(db: AsyncSession, project_public_id: uuid.UUID, payload: ProjectTaskCreate) -> ProjectTask:
+    async def create_task(
+        db: AsyncSession, project_public_id: uuid.UUID, payload: ProjectTaskCreate,
+        current_user: Optional[User] = None,
+    ) -> ProjectTask:
         """Creates a top-level task (parent_task_id is always None here)."""
         project = await ProjectService.get_project(db, project_public_id)
         data = payload.model_dump()
         data["status_id"] = await ProjectService._resolve_status_id(db, project.id, data.pop("status_id"))
-        return await ProjectTaskRepository.create(db, project_id=project.id, parent_task_id=None, **data)
+        task = await ProjectTaskRepository.create(db, project_id=project.id, parent_task_id=None, **data)
+
+        if current_user:
+            await AuditService.record(
+                db, entity_type="project_task", entity_id=task.id, action="create",
+                changed_by_user_id=current_user.id, field_name="title", new_value=task.title,
+            )
+
+        return task
 
     @staticmethod
-    async def create_subtask(db: AsyncSession, parent_public_id: uuid.UUID, payload: ProjectTaskCreate) -> ProjectTask:
+    async def create_subtask(
+        db: AsyncSession, parent_public_id: uuid.UUID, payload: ProjectTaskCreate,
+        current_user: Optional[User] = None,
+    ) -> ProjectTask:
         """Creates a sub-task under an existing task -- forces project_id/parent_task_id
         from the parent regardless of what's in the payload."""
         parent = await ProjectService.get_task(db, parent_public_id)
         data = payload.model_dump()
         data["status_id"] = await ProjectService._resolve_status_id(db, parent.project_id, data.pop("status_id"))
-        return await ProjectTaskRepository.create(
+        task = await ProjectTaskRepository.create(
             db, project_id=parent.project_id, parent_task_id=parent.id, **data
         )
 
+        if current_user:
+            await AuditService.record(
+                db, entity_type="project_task", entity_id=parent.id, action="add_subtask",
+                changed_by_user_id=current_user.id, field_name="subtask", new_value=task.title,
+            )
+            await AuditService.record(
+                db, entity_type="project_task", entity_id=task.id, action="create",
+                changed_by_user_id=current_user.id, field_name="title", new_value=task.title,
+            )
+
+        return task
+
     @staticmethod
-    async def update_task(db: AsyncSession, public_id: uuid.UUID, payload: ProjectTaskUpdate) -> ProjectTask:
+    async def update_task(
+        db: AsyncSession, public_id: uuid.UUID, payload: ProjectTaskUpdate,
+        current_user: Optional[User] = None,
+    ) -> ProjectTask:
         task = await ProjectService.get_task(db, public_id)
         data = payload.model_dump(exclude_unset=True)
 
@@ -325,11 +356,59 @@ class ProjectService:
             else:
                 data["completed_at"] = None
 
-        return await ProjectTaskRepository.update(db, task, **data)
+        # Snapshot old values for the fields being changed, for history purposes.
+        # "order" (drag-and-drop reordering) and "completed_at" (derived from the
+        # status_id change above, already recorded on its own) are excluded to
+        # avoid flooding the history with noise.
+        NOISY_AUDIT_FIELDS = {"order", "completed_at"}
+        changes = {
+            field: (getattr(task, field), new_val)
+            for field, new_val in data.items()
+            if field not in NOISY_AUDIT_FIELDS and hasattr(task, field) and getattr(task, field) != new_val
+        }
+
+        updated = await ProjectTaskRepository.update(db, task, **data)
+
+        if current_user and changes:
+            await AuditService.record_field_changes(
+                db, entity_type="project_task", entity_id=updated.id, action="update",
+                changed_by_user_id=current_user.id, changes=changes,
+            )
+            # Also roll up each changed field onto the parent's own history so editing
+            # a sub-task (status, description, assignee, etc.) shows the same "from
+            # what to what" detail on the parent task's timeline, not just a generic
+            # "sub-task was updated" note. The sub-task's title is smuggled into
+            # field_name (as "<field>::<subtask title>") since AuditLog has no
+            # dedicated column for it -- the frontend splits it back apart.
+            if updated.parent_task_id is not None:
+                for field_name, (old_val, new_val) in changes.items():
+                    if old_val == new_val:
+                        continue
+                    await AuditService.record(
+                        db, entity_type="project_task", entity_id=updated.parent_task_id, action="update_subtask",
+                        changed_by_user_id=current_user.id, field_name=f"{field_name}::{updated.title}",
+                        old_value=old_val, new_value=new_val,
+                    )
+
+        return updated
 
     @staticmethod
-    async def delete_task(db: AsyncSession, public_id: uuid.UUID) -> None:
+    async def delete_task(
+        db: AsyncSession, public_id: uuid.UUID, current_user: Optional[User] = None,
+    ) -> None:
         task = await ProjectService.get_task(db, public_id)
+
+        if current_user:
+            await AuditService.record(
+                db, entity_type="project_task", entity_id=task.id, action="delete",
+                changed_by_user_id=current_user.id, field_name="title", old_value=task.title,
+            )
+            if task.parent_task_id:
+                await AuditService.record(
+                    db, entity_type="project_task", entity_id=task.parent_task_id, action="remove_subtask",
+                    changed_by_user_id=current_user.id, field_name="subtask", old_value=task.title,
+                )
+
         await ProjectTaskRepository.delete(db, task)
 
     # --- Task file attachments ---
@@ -350,7 +429,7 @@ class ProjectService:
         owner_id: Optional[int] = None,
     ) -> ProjectTaskFile:
         task = await ProjectService.get_task(db, task_public_id)
-        return await ProjectTaskFileRepository.create(
+        task_file = await ProjectTaskFileRepository.create(
             db,
             task_id=task.id,
             file_name=file_name,
@@ -359,6 +438,19 @@ class ProjectService:
             mime_type=mime_type,
             owner_id=owner_id,
         )
+
+        if owner_id:
+            await AuditService.record(
+                db, entity_type="project_task", entity_id=task.id, action="attach_file",
+                changed_by_user_id=owner_id, field_name="file", new_value=file_name,
+            )
+            if task.parent_task_id is not None:
+                await AuditService.record(
+                    db, entity_type="project_task", entity_id=task.parent_task_id, action="subtask_attach_file",
+                    changed_by_user_id=owner_id, field_name=task.title, new_value=file_name,
+                )
+
+        return task_file
 
     @staticmethod
     async def get_task_file(db: AsyncSession, task_public_id: uuid.UUID, file_public_id: uuid.UUID) -> ProjectTaskFile:
@@ -369,7 +461,10 @@ class ProjectService:
         return task_file
 
     @staticmethod
-    async def delete_task_file(db: AsyncSession, task_public_id: uuid.UUID, file_public_id: uuid.UUID) -> None:
+    async def delete_task_file(
+        db: AsyncSession, task_public_id: uuid.UUID, file_public_id: uuid.UUID,
+        current_user: Optional[User] = None,
+    ) -> None:
         task_file = await ProjectService.get_task_file(db, task_public_id, file_public_id)
 
         import os
@@ -380,7 +475,27 @@ class ProjectService:
                 from loguru import logger
                 logger.error(f"Failed to remove file from disk: {e}")
 
+        if current_user:
+            await AuditService.record(
+                db, entity_type="project_task", entity_id=task_file.task_id, action="delete_file",
+                changed_by_user_id=current_user.id, field_name="file", old_value=task_file.file_name,
+            )
+            task = await ProjectService.get_task(db, task_public_id)
+            if task.parent_task_id is not None:
+                await AuditService.record(
+                    db, entity_type="project_task", entity_id=task.parent_task_id, action="subtask_delete_file",
+                    changed_by_user_id=current_user.id, field_name=task.title, old_value=task_file.file_name,
+                )
+
         await ProjectTaskFileRepository.delete(db, task_file)
+
+    # --- Task history ---
+    @staticmethod
+    async def get_task_history(db: AsyncSession, task_public_id: uuid.UUID, page: int, page_size: int):
+        task = await ProjectService.get_task(db, task_public_id)
+        return await AuditService.list_for_entity(
+            db, entity_type="project_task", entity_id=task.id, page=page, page_size=page_size
+        )
 
     # --- Deal -> Project conversion ---
     @staticmethod
@@ -487,9 +602,9 @@ class ProjectService:
         template_key = payload.template_key
         custom_tasks = payload.custom_tasks
         if custom_tasks:
-            await ProjectService.seed_project_tasks_custom(db, project, custom_tasks)
+            await ProjectService.seed_project_tasks_custom(db, project, custom_tasks, current_user)
         elif template_key:
-            await ProjectService.seed_project_tasks_from_template(db, project, template_key)
+            await ProjectService.seed_project_tasks_from_template(db, project, template_key, current_user)
 
         await CRMDealRepository.update(db, deal, project_id=project.id)
 
@@ -502,7 +617,9 @@ class ProjectService:
         return project
 
     @staticmethod
-    async def seed_project_tasks_from_template(db: AsyncSession, project: Project, template_key: str) -> None:
+    async def seed_project_tasks_from_template(
+        db: AsyncSession, project: Project, template_key: str, current_user: Optional[User] = None,
+    ) -> None:
         if not template_key or template_key not in PROJECT_TEMPLATES:
             return
 
@@ -540,6 +657,11 @@ class ProjectService:
                 tags=t.get("tags", []),
                 custom_fields=custom_fields,
             )
+            if current_user:
+                await AuditService.record(
+                    db, entity_type="project_task", entity_id=parent_task.id, action="create",
+                    changed_by_user_id=current_user.id, field_name="title", new_value=parent_task.title,
+                )
 
             if "subtasks" in t:
                 for s_idx, s in enumerate(t["subtasks"]):
@@ -550,7 +672,7 @@ class ProjectService:
 
                     s_priority_val = s.get("priority", "medium")
 
-                    await ProjectTaskRepository.create(
+                    subtask = await ProjectTaskRepository.create(
                         db,
                         project_id=project.id,
                         parent_task_id=parent_task.id,
@@ -563,9 +685,20 @@ class ProjectService:
                         priority=s_priority_val,
                         tags=s.get("tags", []),
                     )
+                    if current_user:
+                        await AuditService.record(
+                            db, entity_type="project_task", entity_id=parent_task.id, action="add_subtask",
+                            changed_by_user_id=current_user.id, field_name="subtask", new_value=subtask.title,
+                        )
+                        await AuditService.record(
+                            db, entity_type="project_task", entity_id=subtask.id, action="create",
+                            changed_by_user_id=current_user.id, field_name="title", new_value=subtask.title,
+                        )
 
     @staticmethod
-    async def seed_project_tasks_custom(db: AsyncSession, project: Project, custom_tasks: list[dict[str, Any]]) -> None:
+    async def seed_project_tasks_custom(
+        db: AsyncSession, project: Project, custom_tasks: list[dict[str, Any]], current_user: Optional[User] = None,
+    ) -> None:
         initial_status = await ProjectTaskStatusRepository.get_initial(db, project_id=project.id)
         if not initial_status:
             return
@@ -602,6 +735,11 @@ class ProjectService:
                 tags=t.get("tags", []),
                 custom_fields=custom_fields,
             )
+            if current_user:
+                await AuditService.record(
+                    db, entity_type="project_task", entity_id=parent_task.id, action="create",
+                    changed_by_user_id=current_user.id, field_name="title", new_value=parent_task.title,
+                )
 
             if "subtasks" in t and t["subtasks"]:
                 for s_idx, s in enumerate(t["subtasks"]):
@@ -615,7 +753,7 @@ class ProjectService:
 
                     s_priority_val = s.get("priority", "medium")
 
-                    await ProjectTaskRepository.create(
+                    subtask = await ProjectTaskRepository.create(
                         db,
                         project_id=project.id,
                         parent_task_id=parent_task.id,
@@ -628,3 +766,12 @@ class ProjectService:
                         priority=s_priority_val,
                         tags=s.get("tags", []),
                     )
+                    if current_user:
+                        await AuditService.record(
+                            db, entity_type="project_task", entity_id=parent_task.id, action="add_subtask",
+                            changed_by_user_id=current_user.id, field_name="subtask", new_value=subtask.title,
+                        )
+                        await AuditService.record(
+                            db, entity_type="project_task", entity_id=subtask.id, action="create",
+                            changed_by_user_id=current_user.id, field_name="title", new_value=subtask.title,
+                        )

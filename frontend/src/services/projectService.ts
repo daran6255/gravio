@@ -8,6 +8,7 @@ import type {
 	ProjectTaskStatus,
 	ProjectTaskStatusUpsert,
 	ProjectTaskFile,
+	ProjectTaskHistoryEntry,
 } from '../models/projects/projectTask';
 
 const projectService = {
@@ -100,6 +101,13 @@ const projectService = {
 
 	deleteProjectTask: async (taskPublicId: string): Promise<void> => {
 		await api.delete(`/project-tasks/${taskPublicId}`);
+	},
+
+	getTaskHistory: async (taskPublicId: string, page = 1, pageSize = 50): Promise<PaginatedResponse<ProjectTaskHistoryEntry>> => {
+		const response = await api.get<PaginatedResponse<ProjectTaskHistoryEntry>>(`/project-tasks/${taskPublicId}/history`, {
+			params: { page, page_size: pageSize },
+		});
+		return response.data;
 	},
 
 	// --- Task Statuses (per-project — scoped to /projects/{id}/task-statuses) ---

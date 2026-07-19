@@ -78,6 +78,17 @@ export interface ProjectTaskUpdate extends Partial<ProjectTaskCreate> {
 	parent_task_id?: number;
 }
 
+/** Matches backend's AuditLogResponse (generic audit_logs row, entity_type="project_task"). */
+export interface ProjectTaskHistoryEntry {
+	id: number;
+	action: string;
+	field_name?: string;
+	old_value?: string;
+	new_value?: string;
+	changed_by_user_id?: number;
+	changed_at: string;
+}
+
 /** A file attached to a task. Matches backend's ProjectTaskFileResponse. */
 export interface ProjectTaskFile {
 	id: number;

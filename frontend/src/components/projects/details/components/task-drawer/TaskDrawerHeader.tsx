@@ -93,8 +93,11 @@ export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
 		setMoreAnchor(null);
 	};
 
+	// `statuses` can be briefly empty while the project's task-status board is
+	// still loading (e.g. opening the drawer via a deep link) -- guard against
+	// that instead of assuming a match (or a first element) always exists.
 	const selectedStatus = statuses.find((s) => s.id === task.status_id) || statuses[0];
-	const isClosed = selectedStatus.is_done_status;
+	const isClosed = selectedStatus?.is_done_status ?? false;
 
 	// Calculate subtask counts
 	const subtasks = tasks.filter((t) => t.parent_task_id === task.id);
@@ -236,7 +239,7 @@ export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
 						<CheckCircleOutline style={{ fontSize: 13 }} />
 						Closed
 					</Box>
-				) : (
+				) : selectedStatus ? (
 					<Box
 						onClick={(e) => setStatusAnchor(e.currentTarget)}
 						sx={{
@@ -257,6 +260,24 @@ export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
 					>
 						{dotIcon(selectedStatus.color)}
 						{selectedStatus.name}
+					</Box>
+				) : (
+					<Box
+						sx={{
+							display: 'inline-flex',
+							alignItems: 'center',
+							gap: 0.75,
+							border: '1px solid',
+							borderColor: 'divider',
+							color: 'text.secondary',
+							px: 1.5,
+							py: 0.5,
+							borderRadius: '6px',
+							fontSize: '0.75rem',
+							fontWeight: 700,
+						}}
+					>
+						No status
 					</Box>
 				)}
 

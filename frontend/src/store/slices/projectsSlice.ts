@@ -9,6 +9,7 @@ import type {
 	ProjectTaskStatus,
 	ProjectTaskStatusUpsert,
 	ProjectTaskFile,
+	ProjectTaskHistoryEntry,
 } from '../../models/projects/projectTask';
 import type { PaginatedResponse } from '../../models/common';
 
@@ -65,6 +66,10 @@ interface ProjectsState {
 	taskFilesError: string | null;
 	fileUploading: boolean;
 	fileUploadError: string | null;
+
+	taskHistory: ProjectTaskHistoryEntry[];
+	taskHistoryLoading: boolean;
+	taskHistoryError: string | null;
 }
 
 const initialState: ProjectsState = {
@@ -112,6 +117,10 @@ const initialState: ProjectsState = {
 	taskFilesError: null,
 	fileUploading: false,
 	fileUploadError: null,
+
+	taskHistory: [],
+	taskHistoryLoading: false,
+	taskHistoryError: null,
 };
 
 // --- Projects ---
@@ -272,6 +281,17 @@ export const deleteProjectTask = createAsyncThunk(
 			return taskPublicId;
 		} catch (error: any) {
 			return rejectWithValue(extractErrorMessage(error, 'Failed to delete task'));
+		}
+	}
+);
+
+export const fetchTaskHistory = createAsyncThunk(
+	'projects/fetchTaskHistory',
+	async (taskPublicId: string, { rejectWithValue }) => {
+		try {
+			return await projectService.getTaskHistory(taskPublicId);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch task history'));
 		}
 	}
 );
@@ -553,6 +573,20 @@ const projectsSlice = createSlice({
 					}
 				}
 				state.projectTasks = state.projectTasks.filter((t) => !deletedIds.has(t.id));
+			})
+
+			// Task history
+			.addCase(fetchTaskHistory.pending, (state) => {
+				state.taskHistoryLoading = true;
+				state.taskHistoryError = null;
+			})
+			.addCase(fetchTaskHistory.fulfilled, (state, action: PayloadAction<PaginatedResponse<ProjectTaskHistoryEntry>>) => {
+				state.taskHistoryLoading = false;
+				state.taskHistory = action.payload.items;
+			})
+			.addCase(fetchTaskHistory.rejected, (state, action: PayloadAction<any>) => {
+				state.taskHistoryLoading = false;
+				state.taskHistoryError = action.payload;
 			})
 
 			// Task Statuses

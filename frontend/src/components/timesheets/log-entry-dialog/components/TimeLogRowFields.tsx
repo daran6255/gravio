@@ -16,7 +16,6 @@ interface TimeLogRowFieldsProps {
 	visibleProjects: Project[];
 	getVisibleTasks: (row: RowDraft) => ProjectTask[];
 	tasksLoading: boolean;
-	doneStatusIds: Set<number>;
 	categories: TimesheetCategory[];
 	myCategories: TimesheetCategory[];
 	submitting: boolean;
@@ -39,7 +38,6 @@ export const TimeLogRowFields: React.FC<TimeLogRowFieldsProps> = ({
 	visibleProjects,
 	getVisibleTasks,
 	tasksLoading,
-	doneStatusIds,
 	categories,
 	myCategories,
 	submitting,

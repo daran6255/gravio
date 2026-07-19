@@ -33,6 +33,7 @@ from app.schemas.project import (
     ProjectTaskStatusesUpdateRequest,
     ProjectTaskFileResponse,
 )
+from app.schemas.crm import AuditLogResponse
 from app.utils.file_validation import validate_upload
 from app.middleware.exceptions import NotFoundError
 from app.services.currency import CurrencyConversionService
@@ -102,7 +103,7 @@ async def create_project_endpoint(
     _pm: User = Depends(require_pm_module),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
-    project = await ProjectService.create_project(db, payload)
+    project = await ProjectService.create_project(db, payload, current_user)
     await CurrencyConversionService.attach_display_value(
         db, project, value_field="budget", currency_field="currency", user_currency=current_user.currency,
     )
@@ -285,7 +286,7 @@ async def create_project_task_endpoint(
     _pm: User = Depends(require_pm_module),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectTaskResponse:
-    task = await ProjectService.create_task(db, public_id, payload)
+    task = await ProjectService.create_task(db, public_id, payload, current_user)
     return ProjectTaskResponse.model_validate(task)
 
 
@@ -302,7 +303,7 @@ async def create_subtask_endpoint(
     _pm: User = Depends(require_pm_module),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectTaskResponse:
-    task = await ProjectService.create_subtask(db, task_public_id, payload)
+    task = await ProjectService.create_subtask(db, task_public_id, payload, current_user)
     return ProjectTaskResponse.model_validate(task)
 
 
@@ -318,8 +319,30 @@ async def update_project_task_endpoint(
     _pm: User = Depends(require_pm_module),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectTaskResponse:
-    task = await ProjectService.update_task(db, task_public_id, payload)
+    task = await ProjectService.update_task(db, task_public_id, payload, current_user)
     return ProjectTaskResponse.model_validate(task)
+
+
+@router_tasks.get(
+    "/{task_public_id}/history",
+    response_model=PaginatedResponse[AuditLogResponse],
+    summary="Get a task's field-level change history",
+)
+async def get_task_history_endpoint(
+    task_public_id: uuid.UUID,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
+    current_user: User = Depends(require_project_access),
+    _pm: User = Depends(require_pm_module),
+    db: AsyncSession = Depends(get_db),
+) -> PaginatedResponse[AuditLogResponse]:
+    items, total = await ProjectService.get_task_history(db, task_public_id, page, page_size)
+    return PaginatedResponse[AuditLogResponse](
+        items=[AuditLogResponse.model_validate(i) for i in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router_tasks.delete(
@@ -333,7 +356,7 @@ async def delete_project_task_endpoint(
     _pm: User = Depends(require_pm_module),
     db: AsyncSession = Depends(get_db),
 ):
-    await ProjectService.delete_task(db, task_public_id)
+    await ProjectService.delete_task(db, task_public_id, current_user)
 
 
 # --- Task File Attachments ---
@@ -434,4 +457,4 @@ async def delete_task_file_endpoint(
     _pm: User = Depends(require_pm_module),
     db: AsyncSession = Depends(get_db),
 ):
-    await ProjectService.delete_task_file(db, task_public_id, file_public_id)
+    await ProjectService.delete_task_file(db, task_public_id, file_public_id, current_user)
