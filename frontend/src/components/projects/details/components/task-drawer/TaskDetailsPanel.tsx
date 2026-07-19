@@ -132,9 +132,50 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 	const userCustomFields = React.useMemo(() => {
 		if (!task.custom_fields) return [];
 		return Object.entries(task.custom_fields)
-			.filter(([key]) => key !== 'task_type' && key !== 'milestone')
+			.filter(([key]) => key !== 'task_type' && key !== 'milestone' && key !== 'participants')
 			.map(([key, val]) => ({ name: key, value: String(val) }));
 	}, [task.custom_fields]);
+
+	const participantIds = React.useMemo<number[]>(() => {
+		const ids = new Set<number>();
+		
+		// 1. Task assignee (owner)
+		if (task.assignee_id) {
+			ids.add(task.assignee_id);
+		}
+		
+		// 2. Subtask owners (assignees of subtasks)
+		const subtasks = tasks.filter((t) => t.parent_task_id === task.id);
+		subtasks.forEach((st) => {
+			if (st.assignee_id) {
+				ids.add(st.assignee_id);
+			}
+		});
+		
+		// 3. Manually selected participants
+		const manualIds: number[] = task.custom_fields?.participants || [];
+		manualIds.forEach((id) => ids.add(id));
+		
+		return Array.from(ids);
+	}, [task.assignee_id, task.id, tasks, task.custom_fields?.participants]);
+
+	const currentParticipants = React.useMemo(() => {
+		return owners.filter((o) => participantIds.includes(o.id));
+	}, [owners, participantIds]);
+
+	const handleToggleParticipant = async (ownerId: number) => {
+		const manualIds: number[] = task.custom_fields?.participants || [];
+		const newIds = manualIds.includes(ownerId)
+			? manualIds.filter((id) => id !== ownerId)
+			: [...manualIds, ownerId];
+		
+		await onUpdateField({
+			custom_fields: {
+				...task.custom_fields,
+				participants: newIds,
+			},
+		});
+	};
 
 	const hoverBg = theme.palette.action.hover;
 	const borderColor = theme.palette.divider;
@@ -490,16 +531,30 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 					{renderPropertyRow({
 						icon: <PersonOutline fontSize="inherit" />,
 						label: 'Participants',
+						popoverKey: 'participants',
 						children: (
-							<Stack direction="row" spacing={-0.75}>
-								{selectedAssignee ? (
-									<Avatar sx={{ width: 24, height: 24, border: '2px solid', borderColor: cardBg, fontSize: '0.68rem', fontWeight: 700 }}>
-										{(selectedAssignee.full_name || selectedAssignee.email)[0]?.toUpperCase()}
-									</Avatar>
+							<Stack direction="row" spacing={-0.75} alignItems="center">
+								{currentParticipants.length > 0 ? (
+									currentParticipants.map((p) => (
+										<Avatar
+											key={p.id}
+											title={p.full_name || p.email}
+											sx={{
+												width: 24,
+												height: 24,
+												border: '2px solid',
+												borderColor: cardBg,
+												fontSize: '0.68rem',
+												fontWeight: 700,
+												bgcolor: 'primary.main',
+												color: 'white',
+											}}
+										>
+											{(p.full_name || p.email)[0]?.toUpperCase()}
+										</Avatar>
+									))
 								) : (
-									<Avatar sx={{ width: 24, height: 24, border: '2px solid', borderColor: cardBg, bgcolor: 'transparent', color: 'text.secondary' }}>
-										<PersonOutline sx={{ fontSize: 14 }} />
-									</Avatar>
+									emptyValue('Add participants')
 								)}
 							</Stack>
 						),
@@ -613,6 +668,52 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 							</Typography>
 						</Box>
 					))}
+				</Stack>
+			</Popover>
+
+			{/* Participants Picker Popover */}
+			<Popover
+				open={popover?.key === 'participants'}
+				anchorEl={popover?.anchorEl}
+				onClose={closePopover}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+				PaperProps={{ sx: { borderRadius: '10px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' } }}
+			>
+				<Stack sx={{ minWidth: 240, py: 0.5, maxHeight: 300, overflowY: 'auto' }}>
+					<Box sx={{ px: 2.25, py: 1, borderBottom: '1px solid', borderColor: theme.palette.divider }}>
+						<Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: '0.75rem', color: 'text.secondary', textTransform: 'uppercase' }}>
+							Select Participants
+						</Typography>
+					</Box>
+					{owners.map((o) => {
+						const isSelected = participantIds.includes(o.id);
+						return (
+							<Box
+								key={o.id}
+								onClick={() => handleToggleParticipant(o.id)}
+								sx={{
+									display: 'flex',
+									alignItems: 'center',
+									justifyContent: 'space-between',
+									px: 2.25,
+									py: 1.25,
+									cursor: 'pointer',
+									bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
+									'&:hover': { bgcolor: hoverBg },
+								}}
+							>
+								<Stack direction="row" alignItems="center" spacing={1.5}>
+									<Avatar sx={{ width: 24, height: 24, fontSize: '0.72rem', fontWeight: 700, bgcolor: 'primary.main', color: 'white' }}>
+										{(o.full_name || o.email)[0]?.toUpperCase()}
+									</Avatar>
+									<Typography variant="body2" sx={{ fontWeight: isSelected ? 700 : 600 }}>
+										{o.full_name || o.email}
+									</Typography>
+								</Stack>
+								{isSelected && <CheckOutlined sx={{ fontSize: 16, color: 'primary.main' }} />}
+							</Box>
+						);
+					})}
 				</Stack>
 			</Popover>
 

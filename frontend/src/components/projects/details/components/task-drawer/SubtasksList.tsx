@@ -59,6 +59,15 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 	const [typePopoverAnchor, setTypePopoverAnchor] = useState<{ anchorEl: HTMLElement, task: ProjectTask } | null>(null);
 	const [reminderDialogTask, setReminderDialogTask] = useState<ProjectTask | null>(null);
 	const [newTypeName, setNewTypeName] = useState('');
+	const [assigneeMenuAnchor, setAssigneeMenuAnchor] = useState<{ anchorEl: HTMLElement, task: ProjectTask } | null>(null);
+	const [priorityMenuAnchor, setPriorityMenuAnchor] = useState<{ anchorEl: HTMLElement, task: ProjectTask } | null>(null);
+
+	const PRIORITIES = [
+		{ value: 'low', label: 'Low', color: theme.palette.success.main },
+		{ value: 'medium', label: 'Medium', color: theme.palette.info.main },
+		{ value: 'high', label: 'High', color: theme.palette.warning.main },
+		{ value: 'urgent', label: 'Urgent', color: theme.palette.error.main },
+	];
 
 	// Filter Subtasks
 	const subtasks = tasks.filter((t) => t.parent_task_id === task.id);
@@ -150,6 +159,37 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 				}
 			});
 			setTypePopoverAnchor(null);
+		}
+	};
+	const handleAssigneeClick = (event: React.MouseEvent<HTMLElement>, st: ProjectTask) => {
+		event.stopPropagation();
+		setAssigneeMenuAnchor({ anchorEl: event.currentTarget, task: st });
+	};
+
+	const handleAssigneeMenuClose = () => {
+		setAssigneeMenuAnchor(null);
+	};
+
+	const handleSelectAssignee = async (assigneeId: number | null) => {
+		if (assigneeMenuAnchor) {
+			await onUpdateSubtask(assigneeMenuAnchor.task.public_id, { assignee_id: assigneeId });
+			setAssigneeMenuAnchor(null);
+		}
+	};
+
+	const handlePriorityMenuClick = (event: React.MouseEvent<HTMLElement>, st: ProjectTask) => {
+		event.stopPropagation();
+		setPriorityMenuAnchor({ anchorEl: event.currentTarget, task: st });
+	};
+
+	const handlePriorityMenuClose = () => {
+		setPriorityMenuAnchor(null);
+	};
+
+	const handleSelectPriority = async (priority: string) => {
+		if (priorityMenuAnchor) {
+			await onUpdateSubtask(priorityMenuAnchor.task.public_id, { priority: priority as any });
+			setPriorityMenuAnchor(null);
 		}
 	};
 
@@ -300,6 +340,8 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 												);
 											})()}
 
+
+
 											{/* Sub-task title & ID */}
 											<Typography
 												variant="body2"
@@ -351,6 +393,39 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 												<KeyboardArrowDown sx={{ fontSize: 11, ml: 0.15 }} />
 											</Box>
 
+											{/* Priority Dropdown Chip */}
+											{(() => {
+												const subPriority = PRIORITIES.find((p) => p.value === st.priority) || PRIORITIES[1];
+												return (
+													<Box
+														onClick={(e) => handlePriorityMenuClick(e, st)}
+														sx={{
+															display: 'inline-flex',
+															alignItems: 'center',
+															gap: 0.5,
+															cursor: 'pointer',
+															border: '1px solid',
+															borderColor: subPriority.color,
+															color: subPriority.color,
+															bgcolor: alpha(subPriority.color, 0.08),
+															px: 1,
+															py: 0.25,
+															borderRadius: '100px',
+															fontSize: '0.7rem',
+															fontWeight: 600,
+															userSelect: 'none',
+															transition: 'all 0.15s',
+															'&:hover': {
+																bgcolor: alpha(subPriority.color, 0.15),
+															}
+														}}
+													>
+														{subPriority.label}
+														<KeyboardArrowDown sx={{ fontSize: 11, ml: 0.15 }} />
+													</Box>
+												);
+											})()}
+
 											{/* Reminder Bell Icon Button */}
 											<IconButton
 												size="small"
@@ -365,21 +440,45 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 												)}
 											</IconButton>
 
-											{subAssignee && (
-												<Avatar
-													title={subAssignee.full_name || subAssignee.email}
-													sx={{
-														width: 20,
-														height: 20,
-														fontSize: '0.65rem',
-														fontWeight: 700,
-														bgcolor: 'primary.main',
-														color: 'white',
-													}}
-												>
-													{assigneeInitials}
-												</Avatar>
-											)}
+											<IconButton
+												size="small"
+												onClick={(e) => handleAssigneeClick(e, st)}
+												title={subAssignee ? `Assigned to ${subAssignee.full_name || subAssignee.email}` : 'Assign user'}
+												sx={{ p: 0.25 }}
+											>
+												{subAssignee ? (
+													<Avatar
+														sx={{
+															width: 20,
+															height: 20,
+															fontSize: '0.65rem',
+															fontWeight: 700,
+															bgcolor: 'primary.main',
+															color: 'white',
+														}}
+													>
+														{assigneeInitials}
+													</Avatar>
+												) : (
+													<Avatar
+														sx={{
+															width: 20,
+															height: 20,
+															bgcolor: 'transparent',
+															border: '1px dashed',
+															borderColor: 'text.secondary',
+															color: 'text.secondary',
+															opacity: 0.6,
+															display: 'flex',
+															alignItems: 'center',
+															justifyContent: 'center',
+															'&:hover': { opacity: 1, borderColor: 'primary.main', color: 'primary.main' }
+														}}
+													>
+														<span style={{ fontSize: '0.75rem', fontWeight: 700, lineHeight: 1 }}>+</span>
+													</Avatar>
+												)}
+											</IconButton>
 											<IconButton size="small" sx={{ color: 'text.secondary', p: 0.25 }}>
 												<MoreHoriz fontSize="small" sx={{ fontSize: 16 }} />
 											</IconButton>
@@ -610,6 +709,94 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 					defaultDueDate={reminderDialogTask.due_date}
 				/>
 			)}
+
+			{/* Assignee Selection Menu */}
+			<Menu
+				anchorEl={assigneeMenuAnchor?.anchorEl}
+				open={Boolean(assigneeMenuAnchor)}
+				onClose={handleAssigneeMenuClose}
+				PaperProps={{
+					sx: {
+						minWidth: 200,
+						maxHeight: 280,
+						border: '1px solid',
+						borderColor: isDark ? '#30363d' : '#d0d7de',
+						boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.3)' : '0 8px 24px rgba(0,0,0,0.08)',
+						bgcolor: isDark ? '#161b22' : '#ffffff',
+					}
+				}}
+			>
+				<MenuItem
+					onClick={() => handleSelectAssignee(null)}
+					selected={assigneeMenuAnchor?.task.assignee_id === null}
+					sx={{ fontSize: '0.8rem', py: 0.75 }}
+				>
+					<Stack direction="row" alignItems="center" spacing={1}>
+						<Avatar sx={{ width: 20, height: 20, bgcolor: isDark ? '#30363d' : '#f0f0f0', color: 'text.secondary' }}>
+							<RadioButtonUnchecked sx={{ fontSize: 12 }} />
+						</Avatar>
+						<Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 500 }}>
+							Unassigned
+						</Typography>
+					</Stack>
+				</MenuItem>
+				
+				<Divider sx={{ my: 0.5 }} />
+
+				{owners.map((owner) => (
+					<MenuItem
+						key={owner.id}
+						onClick={() => handleSelectAssignee(owner.id)}
+						selected={owner.id === assigneeMenuAnchor?.task.assignee_id}
+						sx={{ fontSize: '0.8rem', py: 0.75 }}
+					>
+						<Stack direction="row" alignItems="center" spacing={1}>
+							<Avatar sx={{ width: 20, height: 20, fontSize: '0.62rem', fontWeight: 700, bgcolor: 'primary.main', color: 'white' }}>
+								{(owner.full_name || owner.email)[0]?.toUpperCase()}
+							</Avatar>
+							<Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 500 }}>
+								{owner.full_name || owner.email}
+							</Typography>
+						</Stack>
+					</MenuItem>
+				))}
+			</Menu>
+
+			{/* Priority Selection Menu */}
+			<Menu
+				anchorEl={priorityMenuAnchor?.anchorEl}
+				open={Boolean(priorityMenuAnchor)}
+				onClose={handlePriorityMenuClose}
+				PaperProps={{
+					sx: {
+						minWidth: 120,
+						border: '1px solid',
+						borderColor: isDark ? '#30363d' : '#d0d7de',
+						boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.3)' : '0 8px 24px rgba(0,0,0,0.08)',
+						bgcolor: isDark ? '#161b22' : '#ffffff',
+					}
+				}}
+			>
+				{PRIORITIES.map((p) => (
+					<MenuItem
+						key={p.value}
+						onClick={() => handleSelectPriority(p.value)}
+						selected={p.value === priorityMenuAnchor?.task.priority}
+						sx={{
+							fontSize: '0.8rem',
+							py: 0.75,
+							fontWeight: 500,
+							color: p.color,
+							'&.Mui-selected': {
+								bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+								fontWeight: 700,
+							}
+						}}
+					>
+						{p.label}
+					</MenuItem>
+				))}
+			</Menu>
 		</Box>
 	);
 };
