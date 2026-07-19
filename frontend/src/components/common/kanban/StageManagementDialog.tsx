@@ -53,6 +53,8 @@ interface StageManagementDialogProps {
 	/** Key (into `presets`) of the preset linked to the current context — e.g. the template
 	 *  the current project was created from. Surfaced as a callout above the generic picker. */
 	recommendedPresetKey?: string;
+	isReadOnlyStageName?: (item: StageItem) => boolean;
+	isDeletableStage?: (item: StageItem) => boolean;
 }
 
 export const StageManagementDialog: React.FC<StageManagementDialogProps> = ({
@@ -66,6 +68,8 @@ export const StageManagementDialog: React.FC<StageManagementDialogProps> = ({
 	onSave,
 	presets,
 	recommendedPresetKey,
+	isReadOnlyStageName,
+	isDeletableStage,
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
@@ -175,7 +179,7 @@ export const StageManagementDialog: React.FC<StageManagementDialogProps> = ({
 					<Alert severity="error" sx={{ borderRadius: '10px' }}>{error}</Alert>
 				)}
 
-				{recommendedPreset && (
+				{recommendedPreset && type !== 'projects' && (
 					<Box
 						sx={{
 							p: 1.75,
@@ -229,7 +233,7 @@ export const StageManagementDialog: React.FC<StageManagementDialogProps> = ({
 					</Box>
 				)}
 
-				{presets && presets.length > 0 && (
+				{presets && presets.length > 0 && type !== 'projects' && (
 					<Box
 						sx={{
 							p: 1.75,
@@ -342,7 +346,7 @@ export const StageManagementDialog: React.FC<StageManagementDialogProps> = ({
 										justifyContent: 'center',
 										fontWeight: 800,
 										fontSize: '0.8rem',
-										cursor: 'pointer',
+										cursor: (isReadOnlyStageName && isReadOnlyStageName(item)) ? 'default' : 'pointer',
 										boxShadow: `0 0 0 1px ${alpha('#000', 0.08)}, 0 2px 6px ${alpha(item.color, 0.35)}`,
 									}}
 								>
@@ -352,6 +356,7 @@ export const StageManagementDialog: React.FC<StageManagementDialogProps> = ({
 									id={`stage-color-input-${index}`}
 									type="color"
 									value={item.color}
+									disabled={isReadOnlyStageName ? isReadOnlyStageName(item) : false}
 									onChange={(e) => updateItem(index, { color: e.target.value })}
 									style={{ display: 'none' }}
 								/>
@@ -363,6 +368,7 @@ export const StageManagementDialog: React.FC<StageManagementDialogProps> = ({
 								onChange={(e) => updateItem(index, { name: e.target.value })}
 								placeholder={type === 'deals' ? 'Stage name' : 'Status name'}
 								size="small"
+								disabled={isReadOnlyStageName ? isReadOnlyStageName(item) : false}
 								sx={{
 									flex: 1,
 									minWidth: 120,
@@ -504,19 +510,22 @@ export const StageManagementDialog: React.FC<StageManagementDialogProps> = ({
 								</Stack>
 
 								<Tooltip title="Remove" arrow>
-									<IconButton
-										size="small"
-										onClick={() => removeItem(index)}
-										sx={{
-											color: 'error.main',
-											bgcolor: isDark ? 'rgba(211, 47, 47, 0.05)' : 'rgba(211, 47, 47, 0.03)',
-											'&:hover': {
-												bgcolor: isDark ? 'rgba(211, 47, 47, 0.15)' : 'rgba(211, 47, 47, 0.08)',
-											}
-										}}
-									>
-										<DeleteOutline fontSize="small" />
-									</IconButton>
+									<span>
+										<IconButton
+											size="small"
+											onClick={() => removeItem(index)}
+											disabled={isDeletableStage ? !isDeletableStage(item) : false}
+											sx={{
+												color: 'error.main',
+												bgcolor: isDark ? 'rgba(211, 47, 47, 0.05)' : 'rgba(211, 47, 47, 0.03)',
+												'&:hover': {
+													bgcolor: isDark ? 'rgba(211, 47, 47, 0.15)' : 'rgba(211, 47, 47, 0.08)',
+												}
+											}}
+										>
+											<DeleteOutline fontSize="small" />
+										</IconButton>
+									</span>
 								</Tooltip>
 							</Stack>
 						</Stack>

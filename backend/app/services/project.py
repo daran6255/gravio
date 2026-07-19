@@ -167,9 +167,24 @@ class ProjectService:
         data = payload.model_dump()
         template_key = data.get("template_key")
         custom_tasks = data.pop("custom_tasks", None)
+        custom_stages = data.pop("custom_stages", None)
         
         project = await ProjectRepository.create(db, **data)
-        await ProjectService.seed_project_task_statuses(db, project, template_key)
+        
+        if custom_stages:
+            for idx, s in enumerate(custom_stages):
+                await ProjectTaskStatusRepository.create(
+                    db,
+                    name=s["name"],
+                    order=s.get("order", idx),
+                    color=s.get("color", "#808080"),
+                    is_initial_status=s.get("is_initial_status", False),
+                    is_done_status=s.get("is_done_status", False),
+                    custom_fields=s.get("custom_fields"),
+                    project_id=project.id,
+                )
+        else:
+            await ProjectService.seed_project_task_statuses(db, project, template_key)
 
         if custom_tasks:
             await ProjectService.seed_project_tasks_custom(db, project, custom_tasks)

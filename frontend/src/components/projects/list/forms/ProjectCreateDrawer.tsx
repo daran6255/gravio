@@ -32,7 +32,11 @@ import {
 	ReceiptLong,
 	Flag,
 	CalendarToday,
-	Check
+	Check,
+	Add,
+	DeleteOutline,
+	ArrowUpward,
+	ArrowDownward
 } from '@mui/icons-material';
 import { DatePicker, RichTextEditor } from '../../../common/form';
 import useToast from '../../../../hooks/useToast';
@@ -70,6 +74,51 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 	const [selectedTemplate, setSelectedTemplate] = useState<ProjectTemplate | null>(null);
 	const [tasksState, setTasksState] = useState<any[]>([]);
 
+	// Stage Mode State for Blank Project
+	const [stageMode, setStageMode] = useState<'default' | 'custom'>('default');
+	const [customStages, setCustomStages] = useState<any[]>([
+		{ name: 'To Do', color: '#9E9E9E', order: 0, is_initial_status: true },
+		{ name: 'In Progress', color: '#2196F3', order: 1 },
+		{ name: 'Done', color: '#4CAF50', order: 2, is_done_status: true }
+	]);
+
+	const addCustomStage = () => {
+		const newOrder = customStages.length;
+		setCustomStages((prev) => [
+			...prev,
+			{ name: '', color: '#808080', order: newOrder, is_initial_status: false, is_done_status: false }
+		]);
+	};
+
+	const updateCustomStage = (index: number, patch: Partial<any>) => {
+		setCustomStages((prev) => prev.map((s, i) => (i === index ? { ...s, ...patch } : s)));
+	};
+
+	const removeCustomStage = (index: number) => {
+		setCustomStages((prev) => prev.filter((_, i) => i !== index));
+	};
+
+	const moveCustomStage = (index: number, direction: -1 | 1) => {
+		setCustomStages((prev) => {
+			const next = [...prev];
+			const target = index + direction;
+			if (target < 0 || target >= next.length) return prev;
+			[next[index], next[target]] = [next[target], next[index]];
+			return next.map((s, idx) => ({ ...s, order: idx }));
+		});
+	};
+
+	const isStep1Valid = () => {
+		if (selectedTemplate) return true;
+		if (selectedCategory === 'Blank') {
+			if (stageMode === 'default') return true;
+			if (stageMode === 'custom') {
+				return customStages.length > 0 && customStages.every((s) => s.name.trim().length > 0);
+			}
+		}
+		return true;
+	};
+
 	// Project Details Form State
 	const [name, setName] = useState('');
 	const [description, setDescription] = useState('');
@@ -99,6 +148,12 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 			setBudget('');
 			setCurrency('USD');
 			setTouched(false);
+			setStageMode('default');
+			setCustomStages([
+				{ name: 'To Do', color: '#9E9E9E', order: 0, is_initial_status: true },
+				{ name: 'In Progress', color: '#2196F3', order: 1 },
+				{ name: 'Done', color: '#4CAF50', order: 2, is_done_status: true }
+			]);
 		}
 	}
 
@@ -197,7 +252,8 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 				phase: undefined,
 				issues: undefined,
 				template_key: selectedTemplate?.key || undefined,
-				custom_tasks: selectedTemplate ? tasksState : undefined
+				custom_tasks: selectedTemplate ? tasksState : undefined,
+				custom_stages: (selectedCategory === 'Blank' && stageMode === 'custom') ? customStages : undefined
 			});
 			onClose();
 		} catch (err: any) {
@@ -712,14 +768,203 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 									</Box>
 								</Box>
 							) : (
-								<Box sx={{ textAlign: 'center', py: 4 }}>
-									<WorkOutline sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.5, mb: 1.5 }} />
-									<Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
-										No Default Tasks
+								<Box sx={{ mt: 1 }}>
+									<Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}>
+										Workflow Stages
 									</Typography>
-									<Typography variant="caption" color="text.secondary" sx={{ display: 'block', maxWidth: 350, mx: 'auto' }}>
-										You will start with an empty project board. You can manually create tasks and set up workflow stages on the task board.
+									<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 3 }}>
+										Choose whether to seed this project with standard default stages or define your own custom stages now.
 									</Typography>
+
+									{/* Choice Cards */}
+									<Grid container spacing={2} sx={{ mb: 3 }}>
+										<Grid size={{ xs: 12, sm: 6 }}>
+											<Card
+												variant="outlined"
+												onClick={() => setStageMode('default')}
+												sx={{
+													cursor: 'pointer',
+													borderRadius: '16px',
+													border: stageMode === 'default' ? '2px solid' : '1.5px solid',
+													borderColor: stageMode === 'default' ? 'primary.main' : 'divider',
+													bgcolor: stageMode === 'default' ? alpha(theme.palette.primary.main, 0.04) : 'background.paper',
+													transition: 'all 0.2s',
+													'&:hover': { borderColor: 'primary.main' }
+												}}
+											>
+												<CardContent sx={{ p: 2 }}>
+													<Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5, color: stageMode === 'default' ? 'primary.main' : 'text.primary' }}>
+														Default Stages
+													</Typography>
+													<Typography variant="caption" color="text.secondary">
+														Seed with 10 standard workflow stages (Planning, Active, In Progress, Completed, etc.)
+													</Typography>
+												</CardContent>
+											</Card>
+										</Grid>
+										<Grid size={{ xs: 12, sm: 6 }}>
+											<Card
+												variant="outlined"
+												onClick={() => setStageMode('custom')}
+												sx={{
+													cursor: 'pointer',
+													borderRadius: '16px',
+													border: stageMode === 'custom' ? '2px solid' : '1.5px solid',
+													borderColor: stageMode === 'custom' ? 'primary.main' : 'divider',
+													bgcolor: stageMode === 'custom' ? alpha(theme.palette.primary.main, 0.04) : 'background.paper',
+													transition: 'all 0.2s',
+													'&:hover': { borderColor: 'primary.main' }
+												}}
+											>
+												<CardContent sx={{ p: 2 }}>
+													<Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5, color: stageMode === 'custom' ? 'primary.main' : 'text.primary' }}>
+														Custom Stages
+													</Typography>
+													<Typography variant="caption" color="text.secondary">
+														Define and customize your own task workflow columns from scratch.
+													</Typography>
+												</CardContent>
+											</Card>
+										</Grid>
+									</Grid>
+
+									{stageMode === 'default' ? (
+										<Box sx={{ p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: '16px', bgcolor: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.005)' }}>
+											<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', mb: 2, display: 'block', letterSpacing: '0.05em' }}>
+												Default Stages Preview
+											</Typography>
+											<Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ gap: 1 }}>
+												{['Planning', 'Active', 'In Progress', 'Delayed', 'In Testing', 'On Hold', 'Completed', 'Approved', 'Invoiced', 'Canceled'].map((n) => (
+													<Chip key={n} label={n} size="small" sx={{ fontWeight: 700, borderRadius: '6px' }} />
+												))}
+											</Stack>
+										</Box>
+									) : (
+										<Stack spacing={2}>
+											<Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+												Custom Stages Editor
+											</Typography>
+
+											<Stack spacing={1}>
+												{customStages.map((item, index) => (
+													<Stack
+														key={index}
+														direction="row"
+														spacing={1.5}
+														alignItems="center"
+														sx={{
+															p: 1.25,
+															borderRadius: '12px',
+															bgcolor: 'background.paper',
+															border: '1px solid',
+															borderColor: 'divider',
+														}}
+													>
+														{/* Color Swatch */}
+														<Box sx={{ position: 'relative', width: 28, height: 28, flexShrink: 0 }}>
+															<Box
+																component="label"
+																htmlFor={`custom-stage-color-${index}`}
+																sx={{
+																	width: '100%',
+																	height: '100%',
+																	borderRadius: '8px',
+																	bgcolor: item.color,
+																	color: '#ffffff',
+																	display: 'flex',
+																	alignItems: 'center',
+																	justifyContent: 'center',
+																	fontWeight: 800,
+																	fontSize: '0.75rem',
+																	cursor: 'pointer',
+																	boxShadow: `0 0 0 1px ${alpha('#000', 0.08)}, 0 2px 4px ${alpha(item.color, 0.25)}`,
+																}}
+															>
+																{index + 1}
+															</Box>
+															<input
+																id={`custom-stage-color-${index}`}
+																type="color"
+																value={item.color}
+																onChange={(e) => updateCustomStage(index, { color: e.target.value })}
+																style={{ display: 'none' }}
+															/>
+														</Box>
+
+														{/* Stage Name */}
+														<TextField
+															value={item.name}
+															onChange={(e) => updateCustomStage(index, { name: e.target.value })}
+															placeholder="Stage name"
+															size="small"
+															fullWidth
+															sx={{
+																'& .MuiOutlinedInput-root': {
+																	borderRadius: '8px',
+																	bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.005)',
+																}
+															}}
+														/>
+
+														{/* Initial & Done toggles */}
+														<Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
+															<Chip
+																label="Initial"
+																size="small"
+																onClick={() => {
+																	setCustomStages(prev => prev.map((s, idx) => ({
+																		...s,
+																		is_initial_status: idx === index ? !s.is_initial_status : false
+																	})));
+																}}
+																variant={item.is_initial_status ? 'filled' : 'outlined'}
+																color={item.is_initial_status ? 'warning' : 'default'}
+																sx={{ fontWeight: 700, borderRadius: '6px', height: 24, fontSize: '0.65rem' }}
+															/>
+															<Chip
+																label="Done"
+																size="small"
+																onClick={() => updateCustomStage(index, { is_done_status: !item.is_done_status })}
+																variant={item.is_done_status ? 'filled' : 'outlined'}
+																color={item.is_done_status ? 'success' : 'default'}
+																sx={{ fontWeight: 700, borderRadius: '6px', height: 24, fontSize: '0.65rem' }}
+															/>
+														</Stack>
+
+														{/* Reorder and Delete */}
+														<Stack direction="row" spacing={0.25} sx={{ flexShrink: 0 }}>
+															<IconButton size="small" disabled={index === 0} onClick={() => moveCustomStage(index, -1)}>
+																<ArrowUpward sx={{ fontSize: 16 }} />
+															</IconButton>
+															<IconButton size="small" disabled={index === customStages.length - 1} onClick={() => moveCustomStage(index, 1)}>
+																<ArrowDownward sx={{ fontSize: 16 }} />
+															</IconButton>
+															<IconButton size="small" color="error" onClick={() => removeCustomStage(index)}>
+																<DeleteOutline sx={{ fontSize: 16 }} />
+															</IconButton>
+														</Stack>
+													</Stack>
+												))}
+											</Stack>
+
+											<Button
+												variant="outlined"
+												startIcon={<Add />}
+												onClick={addCustomStage}
+												sx={{
+													textTransform: 'none',
+													fontWeight: 700,
+													borderRadius: '10px',
+													borderStyle: 'dashed',
+													borderWidth: '1.5px',
+													py: 0.75,
+													color: 'text.secondary',
+												}}
+											>
+												Add Status
+											</Button>
+										</Stack>
+									)}
 								</Box>
 							)}
 						</Box>
@@ -831,7 +1076,7 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 							<Button variant="outlined" startIcon={<ArrowBack />} onClick={handleBack}>
 								Back
 							</Button>
-							<Button variant="contained" endIcon={<ArrowForward />} onClick={handleNext}>
+							<Button variant="contained" endIcon={<ArrowForward />} onClick={handleNext} disabled={!isStep1Valid()}>
 								Next: Project Details
 							</Button>
 						</>

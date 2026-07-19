@@ -75,6 +75,7 @@ export interface ProjectCreate {
 	tags?: string[];
 	custom_fields?: Record<string, any>;
 	custom_tasks?: any[];
+	custom_stages?: any[];
 }
 
 export interface ProjectUpdate extends Partial<ProjectCreate> { }

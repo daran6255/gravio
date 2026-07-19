@@ -59,6 +59,7 @@ class ProjectBase(BaseModel):
 class ProjectCreate(ProjectBase):
     template_key: Optional[str] = None
     custom_tasks: Optional[list[dict[str, Any]]] = None
+    custom_stages: Optional[list[ProjectTaskStatusBase]] = None
 
 
 class ProjectUpdate(BaseModel):
