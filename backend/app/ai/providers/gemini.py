@@ -43,7 +43,8 @@ class GeminiProvider(LLMProvider):
                 raise LLMProviderError(f"Gemini error: {resp.text}", provider="gemini")
             data = resp.json()
             content = data["candidates"][0]["content"]["parts"][0]["text"]
-            return LLMResponse(content=content, raw_response=data)
+            tokens_used = data.get("usageMetadata", {}).get("totalTokenCount")
+            return LLMResponse(content=content, tokens_used=tokens_used, raw_response=data)
 
     async def stream_complete(self, system_prompt, user_message, temperature=0.2, max_tokens=4096) -> AsyncGenerator[str, None]:
         url = f"{self.BASE_URL}/{self._model}:streamGenerateContent?key={self._api_key}"

@@ -89,6 +89,19 @@ class RateLimitError(AppError):
     message: str = "Rate limit exceeded. Please try again later."
 
 
+class AICreditsExhaustedError(RateLimitError):
+    """Organization's AI credits for the current billing period are exhausted (HTTP 429).
+
+    Subclasses RateLimitError to keep existing 429 handling, but carries its own error_code
+    (AI_CREDITS_EXHAUSTED) so the frontend can distinguish "buy more / upgrade" from generic
+    rate limiting and show the right prompt.
+    """
+    message: str = (
+        "Your organization's AI credits for this billing period are exhausted. "
+        "Upgrade your plan or wait for the next reset."
+    )
+
+
 # --- Server Errors (5xx) ---
 
 class InternalServerError(AppError):
@@ -107,3 +120,16 @@ class ServiceUnavailableError(AppError):
     """Service temporarily unavailable exception (HTTP 503)"""
     status_code: int = 503
     message: str = "Service is temporarily unavailable"
+
+
+class AIServiceUnavailableError(ServiceUnavailableError):
+    """Raised when the primary AI provider AND its configured fallback both fail (HTTP 503).
+
+    Distinct from AICreditsExhaustedError: this means the AI infrastructure itself is down
+    (rate-limited/erroring on every configured provider), not that the org is out of credits.
+    """
+    message: str = "AI is temporarily unavailable. Please try again in a moment."
+
+    def __init__(self, primary: str | None = None, fallback: str | None = None, **kwargs):
+        detail = {"primary_provider": primary, "fallback_provider": fallback}
+        super().__init__(detail=detail, **kwargs)

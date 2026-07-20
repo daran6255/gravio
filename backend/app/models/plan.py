@@ -26,7 +26,7 @@ class Module(str, enum.Enum):
 
 
 class Plan(BaseModel):
-    """A pricing tier — which modules it unlocks and its monthly AI usage quota."""
+    """A pricing tier — which modules it unlocks and its monthly AI credit grant."""
 
     __tablename__ = "plans"
 
@@ -42,7 +42,8 @@ class Plan(BaseModel):
     # List of Module values enabled for this tier, e.g. ["project_management", "crm_management"]
     enabled_modules: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
 
-    ai_monthly_limit: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Monthly AI credits granted to an org on this plan (token-weighted, see AICreditWallet).
+    ai_credits_monthly: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # Maximum number of users allowed in this organization tier (None for unlimited)
     user_limit: Mapped[int | None] = mapped_column(Integer, nullable=True)

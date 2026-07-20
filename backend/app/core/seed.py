@@ -12,7 +12,7 @@ from app.models.crm import CRMLead, CRMDeal, CRMPipeline, CRMPipelineStage, Lead
 from app.models.project import Project, ProjectStatus
 from datetime import date, timedelta
 
-# Tier -> modules unlocked + monthly AI action quota.
+# Tier -> modules unlocked + monthly AI credit grant (token-weighted, see AICreditWallet).
 # See backend/documentation/PRICING_PLAN_BUSINESS_LOGIC.md for the business rationale.
 PLAN_DEFINITIONS = {
     PlanTier.FREE: {
@@ -20,7 +20,7 @@ PLAN_DEFINITIONS = {
         "enabled_modules": [
             Module.PROJECT_MANAGEMENT.value,
         ],
-        "ai_monthly_limit": 10,
+        "ai_credits_monthly": 100,
         "user_limit": 10,
     },
     PlanTier.BASIC: {
@@ -31,7 +31,7 @@ PLAN_DEFINITIONS = {
             Module.CRM_MANAGEMENT.value,
             Module.REPORTS_MANAGEMENT.value,
         ],
-        "ai_monthly_limit": 100,
+        "ai_credits_monthly": 1000,
         "user_limit": 20,
     },
     PlanTier.PRO: {
@@ -44,13 +44,13 @@ PLAN_DEFINITIONS = {
             Module.CANDIDATE_MANAGEMENT.value,
             Module.PLACEMENT_MANAGEMENT.value,
         ],
-        "ai_monthly_limit": 1000,
+        "ai_credits_monthly": 5000,
         "user_limit": 50,
     },
     PlanTier.ENTERPRISE: {
         "name": "Enterprise",
         "enabled_modules": [m.value for m in Module],
-        "ai_monthly_limit": 10000,
+        "ai_credits_monthly": 25000,
         "user_limit": None,
     },
 }
@@ -68,7 +68,7 @@ async def seed_plans(session) -> None:
         else:
             plan.name = definition["name"]
             plan.enabled_modules = definition["enabled_modules"]
-            plan.ai_monthly_limit = definition["ai_monthly_limit"]
+            plan.ai_credits_monthly = definition["ai_credits_monthly"]
             plan.user_limit = definition["user_limit"]
             print(f"Updated plan: {definition['name']}")
 

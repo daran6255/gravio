@@ -201,7 +201,7 @@ async def delete_organization(
 
     This deletes:
       1. Refresh tokens of all users in the organization
-      2. AI usage counters of the organization
+      2. AI credit wallet/transactions of the organization
       3. All user accounts in the organization
       4. The organization itself
     """
@@ -209,7 +209,7 @@ async def delete_organization(
     from sqlalchemy.orm import selectinload
     from app.models.organization import Organization
     from app.models.refresh_token import RefreshToken
-    from app.models.ai_usage import AIUsageCounter
+    from app.models.ai_credit import AICreditWallet, AICreditTransaction
     from app.models.user import User
     from app.middleware.exceptions import NotFoundError
     from app.schemas.onboarding import OrgPublic
@@ -243,9 +243,12 @@ async def delete_organization(
             delete(RefreshToken).where(RefreshToken.user_id.in_(user_ids))
         )
 
-    # 3. Delete AI usage counters for the organization
+    # 3. Delete AI credit ledger + wallet for the organization (transactions first — FK to wallet)
     await db.execute(
-        delete(AIUsageCounter).where(AIUsageCounter.organization_id == org.id)
+        delete(AICreditTransaction).where(AICreditTransaction.organization_id == org.id)
+    )
+    await db.execute(
+        delete(AICreditWallet).where(AICreditWallet.organization_id == org.id)
     )
 
     # 4. Delete all users belonging to this organization

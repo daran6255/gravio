@@ -155,7 +155,7 @@ async def test_list_organizations_pagination(auth_superuser_client: AsyncClient,
 async def test_delete_organization_as_superuser(auth_superuser_client: AsyncClient, db_session: AsyncSession, sample_admin_data):
     org1, _, _, _, _ = sample_admin_data
     
-    from app.models.ai_usage import AIUsageCounter
+    from app.models.ai_credit import AICreditWallet
     from app.models.refresh_token import RefreshToken
     from app.models.user import User
     from app.models.trial_registry import TrialEmailRegistry
@@ -180,12 +180,13 @@ async def test_delete_organization_as_superuser(auth_superuser_client: AsyncClie
         )
         db_session.add(trial_reg)
         
-    ai_counter = AIUsageCounter(
-        organization_id=org1.id, 
-        period_start=datetime.now(timezone.utc), 
-        count=30
+    ai_wallet = AICreditWallet(
+        organization_id=org1.id,
+        period_start=datetime.now(timezone.utc),
+        balance=70,
+        granted=100,
     )
-    db_session.add(ai_counter)
+    db_session.add(ai_wallet)
     await db_session.commit()
 
     # Call endpoint to delete organization
@@ -202,8 +203,8 @@ async def test_delete_organization_as_superuser(auth_superuser_client: AsyncClie
     user_check_q = await db_session.execute(select(User).where(User.organization_id == org1.id))
     assert len(user_check_q.scalars().all()) == 0
     
-    # AIUsageCounter should be deleted
-    ai_check_q = await db_session.execute(select(AIUsageCounter).where(AIUsageCounter.organization_id == org1.id))
+    # AICreditWallet should be deleted
+    ai_check_q = await db_session.execute(select(AICreditWallet).where(AICreditWallet.organization_id == org1.id))
     assert len(ai_check_q.scalars().all()) == 0
 
     # TrialEmailRegistry entries should be deleted

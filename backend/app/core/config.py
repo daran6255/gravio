@@ -1,7 +1,7 @@
 """Application configuration using Pydantic Settings"""
 
 import os
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import AnyHttpUrl, PostgresDsn, validator
 
@@ -144,13 +144,23 @@ class Settings(BaseSettings):
 
     # Active provider — one of the keys below
     # Supported: gemini | openai | anthropic | groq | mistral | together | cohere | ollama
-    AI_PROVIDER: str = "gemini"
+    AI_PROVIDER: str = "groq"
+
+    # If the primary provider (and its own key pool, for providers that have one) is fully
+    # unavailable, ResilientLLMProvider retries once against this provider before giving up.
+    # Set to None/empty to disable cross-provider fallback entirely.
+    AI_FALLBACK_PROVIDER: Optional[str] = "gemini"
 
     # Provider API Keys
     GEMINI_API_KEY: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None
     ANTHROPIC_API_KEY: Optional[str] = None     # Claude
-    GROQ_API_KEY: Optional[str] = None          # Groq (blazing fast inference)
+    GROQ_API_KEY: Optional[str] = None          # Groq (blazing fast inference) — legacy single-key
+    # Groq key pool: up to 3 keys rotated on rate-limit so one provider never interrupts a user.
+    # Any subset may be set; GROQ_API_KEY above is also folded into the pool if present.
+    GROQ_API_KEY_1: Optional[str] = None
+    GROQ_API_KEY_2: Optional[str] = None
+    GROQ_API_KEY_3: Optional[str] = None
     MISTRAL_API_KEY: Optional[str] = None       # Mistral AI
     TOGETHER_API_KEY: Optional[str] = None      # Together AI (open-source models)
     COHERE_API_KEY: Optional[str] = None        # Cohere
@@ -174,7 +184,20 @@ class Settings(BaseSettings):
     AI_MAX_RETRIES: int = 3                 # Retry failed tool calls
     AI_APPROVAL_RECORD_THRESHOLD: int = 5   # Tasks touching >N records need approval
     AI_LOG_RETENTION_DAYS: int = 90         # How long to keep AI task journals
-    
+
+    # ── AI Credits ────────────────────────────────────────────────────────────
+    # Token-weighted credit accounting: 1 credit = AI_CREDIT_TOKEN_RATIO tokens at a provider's
+    # cost multiplier of 1.0. Cheaper/faster providers (Groq, Gemini) are charged at face value;
+    # pricier providers cost proportionally more credits for the same token count.
+    AI_CREDIT_TOKEN_RATIO: int = 1000
+    AI_PROVIDER_COST_MULTIPLIER: Dict[str, float] = {
+        "groq": 1.0,
+        "gemini": 1.0,
+        "mistral": 1.5,
+        "openai": 3.0,
+        "anthropic": 3.0,
+    }
+
     model_config = SettingsConfigDict(
         env_file=os.getenv("ENV_FILE", ".env"),
         env_file_encoding="utf-8",

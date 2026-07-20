@@ -70,9 +70,13 @@ class AIEngine:
         except ValueError:
             trigger = AITaskTrigger.API
 
-        # Initialise LLM provider
+        # Initialise LLM provider (metered against the user's org, so agentic runs draw from
+        # the same AI credit wallet as chat/extraction calls)
         try:
-            provider = await get_llm_provider(self._db)
+            provider = await get_llm_provider(
+                self._db, org_id=self._user.organization_id, user_id=self._user_id,
+                action_type="agentic_task",
+            )
         except (LLMAuthError, LLMProviderError) as e:
             logger.error("Cannot initialize LLM provider: %s", str(e))
             return AITaskRunResponse(

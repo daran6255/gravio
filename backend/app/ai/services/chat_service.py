@@ -119,7 +119,10 @@ class AIChatService:
         system_prompt_override = None
 
         try:
-            provider = await get_llm_provider(self._db)
+            provider = await get_llm_provider(
+                self._db, org_id=self._user.organization_id, user_id=self._user.id,
+                action_type="chat_message",
+            )
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e), 'status': 'failed'})}\n\n"
             return

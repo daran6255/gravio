@@ -58,7 +58,10 @@ class JobRoleExtractionService:
         })
 
         # 3. Call LLM
-        provider = await get_llm_provider(self._db)
+        provider = await get_llm_provider(
+            self._db, org_id=self._user.organization_id, user_id=self._user.id,
+            action_type="jd_extraction",
+        )
         response = await provider.complete(
             system_prompt=system_prompt,
             user_message=f"Analyze this JD and extract the fields:\n\n{source_text}",
@@ -173,7 +176,10 @@ class CandidateExtractionService:
         })
 
         # 3. Call LLM
-        provider = await get_llm_provider(self._db)
+        provider = await get_llm_provider(
+            self._db, org_id=self._user.organization_id, user_id=self._user.id,
+            action_type="candidate_extraction",
+        )
         response = await provider.complete(
             system_prompt=system_prompt,
             user_message=f"Analyze this Resume and extract the fields:\n\n{source_text}",

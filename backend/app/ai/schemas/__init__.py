@@ -25,6 +25,14 @@ from app.ai.schemas.responses import (
     JobRoleExtractionResponse,
     CandidateExtractionResponse,
 )
+from app.ai.schemas.ai_credit import AICreditBalanceResponse
+from app.ai.schemas.token_utilization import (
+    TokenUtilizationSummary,
+    ProviderBreakdown,
+    ModelBreakdown,
+    ActionTypeBreakdown,
+    DailyUsagePoint,
+)
 
 __all__ = [
     "ToolDefinition",
@@ -40,4 +48,10 @@ __all__ = [
     "AITaskLogListItem",
     "JobRoleExtractionResponse",
     "CandidateExtractionResponse",
+    "AICreditBalanceResponse",
+    "TokenUtilizationSummary",
+    "ProviderBreakdown",
+    "ModelBreakdown",
+    "ActionTypeBreakdown",
+    "DailyUsagePoint",
 ]

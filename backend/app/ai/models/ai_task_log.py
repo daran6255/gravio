@@ -12,9 +12,14 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel, TenantAwareMixin
 
+# Imported eagerly (not just under TYPE_CHECKING): AIChatSession must be registered with the
+# shared SQLAlchemy mapper registry whenever this module is, so the `relationship("AIChatSession",
+# ...)` string below can always be resolved — ai_chat.py has no runtime dependency back on this
+# module (its own reference to AITaskLog is TYPE_CHECKING-only), so this direction is cycle-safe.
+from app.ai.models.ai_chat import AIChatSession
+
 if TYPE_CHECKING:
     from app.models.user import User
-    from app.ai.models.ai_chat import AIChatSession
 
 
 class AITaskStatus(str, enum.Enum):

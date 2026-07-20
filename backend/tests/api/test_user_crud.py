@@ -212,12 +212,12 @@ async def test_invite_user_seat_limit(auth_admin_client: AsyncClient, sample_org
         tier=PlanTier.FREE,
         name="Free Test",
         enabled_modules=[],
-        ai_monthly_limit=10,
+        ai_credits_monthly=10,
         user_limit=2
     )
     db_session.add(plan)
     await db_session.flush()
-    
+
     org.plan_id = plan.id
     await db_session.commit()
     
@@ -246,7 +246,7 @@ async def test_change_plan_seat_limit(auth_admin_client: AsyncClient, sample_org
         tier=PlanTier.FREE,
         name="Free Test Limit",
         enabled_modules=[],
-        ai_monthly_limit=10,
+        ai_credits_monthly=10,
         user_limit=2
     )
     db_session.add(plan)
@@ -267,7 +267,7 @@ async def test_change_plan_seat_limit(auth_admin_client: AsyncClient, sample_org
         tier=PlanTier.ENTERPRISE,
         name="Enterprise Test Limit",
         enabled_modules=[],
-        ai_monthly_limit=10000,
+        ai_credits_monthly=10000,
         user_limit=None
     )
     db_session.add(ent_plan)

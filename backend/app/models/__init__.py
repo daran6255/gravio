@@ -5,7 +5,7 @@ from app.models.user import User, UserRole
 from app.models.base import BaseModel
 from app.models.trial_registry import TrialEmailRegistry
 from app.models.plan import Plan, PlanTier, Module
-from app.models.ai_usage import AIUsageCounter
+from app.models.ai_credit import AICreditWallet, AICreditTransaction, AICreditTransactionReason
 from app.models.refresh_token import RefreshToken
 from app.models.audit import AuditLog
 from app.models.notification import Notification, NotificationType
@@ -84,7 +84,9 @@ __all__ = [
     "Plan",
     "PlanTier",
     "Module",
-    "AIUsageCounter",
+    "AICreditWallet",
+    "AICreditTransaction",
+    "AICreditTransactionReason",
     "RefreshToken",
     "AuditLog",
     "Notification",

@@ -59,3 +59,8 @@ router.include_router(holidays_router)
 #                             /api/v1/hr/employees
 from app.api.v1.endpoints.hr import router as hr_router
 router.include_router(hr_router)
+
+# AI credits & usage            →  GET /api/v1/ai/credits
+#                             GET /api/v1/ai/usage
+from app.api.v1.endpoints.ai import router as ai_router
+router.include_router(ai_router)

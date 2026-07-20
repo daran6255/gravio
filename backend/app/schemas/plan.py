@@ -11,7 +11,7 @@ class PlanResponse(BaseModel):
     tier: PlanTier
     name: str
     enabled_modules: list[str]
-    ai_monthly_limit: int
+    ai_credits_monthly: int
     user_limit: Optional[int] = None
 
     class Config:
