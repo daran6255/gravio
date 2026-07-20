@@ -12,6 +12,10 @@ from app.core.database import Base
 from app.core.config import settings
 from app import models  # Import all model modules here
 
+# The AI package's models live outside app.models and are never imported by the line above —
+# without this, autogenerate silently can't see ai_chat_sessions/ai_chat_messages/ai_task_logs.
+from app.ai.models import ai_chat, ai_task_log  # noqa: F401
+
 # this is the Alembic Config object
 config = context.config
 

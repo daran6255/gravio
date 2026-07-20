@@ -12,10 +12,11 @@ import {
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { useNavigate } from 'react-router-dom';
-import { toggleSidebar } from '../../store/slices/uiSlice';
+import { toggleSidebar, toggleAriaChat } from '../../store/slices/uiSlice';
 import { useColorMode } from '../../theme/ThemeContext';
 import GlobalSearch from '../common/GlobalSearch';
 import NotificationBell from './NotificationBell';
+import AriaChatDrawer from './AriaChatDrawer';
 import { getCurrencySymbol } from '../../utils/currency';
 
 const Navbar: React.FC = () => {
@@ -285,6 +286,18 @@ const Navbar: React.FC = () => {
 					>
 						{mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
 					</IconButton>
+
+					{/* Ask ARIA */}
+					<Tooltip title="Ask ARIA">
+						<IconButton
+							onClick={() => dispatch(toggleAriaChat())}
+							aria-label="Ask ARIA"
+							sx={{ color: theme.palette.text.secondary }}
+						>
+							<PremiumIcon />
+						</IconButton>
+					</Tooltip>
+					<AriaChatDrawer />
 
 					{/* Notification Bell */}
 					<Box sx={{ color: theme.palette.text.secondary }}>

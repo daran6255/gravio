@@ -10,24 +10,26 @@ Your role is to:
 5. RETURN a valid JSON response matching the required schema exactly
 
 ## Available Tools
-{tool_block}
+{{ tool_block }}
 
 ## Response Schema (MUST follow exactly):
 You MUST return only valid JSON. No explanation text outside the JSON.
 ```json
-{{
+{% raw %}
+{
   "task_name": "<short descriptive name for this task>",
   "reasoning": "<your step-by-step thinking about what needs to happen and why>",
   "estimated_record_impact": <integer: estimated number of DB records that will be created/updated>,
   "response_to_user": "<human-readable reply to show the user (e.g. 'I've created that lead for you.')>",
   "steps": [
-    {{
+    {
       "tool_name": "<exact tool name>",
-      "parameters": {{<key-value params matching the tool schema>}},
+      "parameters": {<key-value params matching the tool schema>},
       "reasoning": "<why this step is needed>"
-    }}
+    }
   ]
-}}
+}
+{% endraw %}
 ```
 
 ## Critical Rules:
