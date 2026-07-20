@@ -1,6 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Box, Button, Container, Grid, Skeleton, Stack, Tab, Tabs, alpha, useTheme, Alert, IconButton } from '@mui/material';
-import { AddOutlined as AddIcon, HelpOutline as HelpIcon } from '@mui/icons-material';
+import {
+	AddOutlined as AddIcon,
+	HelpOutline as HelpIcon,
+	EventAvailableOutlined as MyLeavesIcon,
+	FactCheckOutlined as TeamApprovalsIcon,
+} from '@mui/icons-material';
 import PageHeader from '../../../components/common/page-header';
 import { responsiveStyles } from '../../../theme';
 import { fetchLeaveTypes, fetchMyLeaveBalances, fetchMyLeaveRequests } from '../../../store/slices/hrSlice';
@@ -155,15 +160,44 @@ const LeaveDashboardPage: React.FC = () => {
 						<Tabs
 							value={activeTab}
 							onChange={(_, v) => setActiveTab(v)}
+							TabIndicatorProps={{ sx: { display: 'none' } }}
 							sx={{
-								borderBottom: 1,
-								borderColor: 'divider',
-								mb: 1.5,
-								'& .MuiTab-root': { textTransform: 'none', fontWeight: 700 }
+								minHeight: 'auto',
+								bgcolor: 'action.hover',
+								borderRadius: '12px',
+								p: 0.5,
+								width: 'fit-content',
+								maxWidth: '100%',
+								'& .MuiTabs-flexContainer': { gap: 0.5 },
+								'& .MuiTab-root': {
+									minHeight: 40,
+									minWidth: 'auto',
+									borderRadius: '9px',
+									fontWeight: 700,
+									fontSize: '0.8125rem',
+									textTransform: 'none',
+									color: 'text.secondary',
+									px: 2,
+									py: 1,
+									transition: 'color 0.2s ease, background-color 0.2s ease'
+								},
+								'& .MuiTab-root .MuiTab-iconWrapper': {
+									marginRight: '6px',
+									fontSize: '1.1rem'
+								},
+								'& .MuiTab-root:hover': {
+									color: 'text.primary',
+									bgcolor: (t) => alpha(t.palette.text.primary, 0.04)
+								},
+								'& .Mui-selected': {
+									color: 'primary.main !important',
+									bgcolor: 'background.paper',
+									boxShadow: `0 1px 3px 0 ${alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.3 : 0.1)}`
+								}
 							}}
 						>
-							<Tab label="My Leaves" />
-							<Tab label="Team Approvals" />
+							<Tab label="My Leaves" icon={<MyLeavesIcon fontSize="small" />} iconPosition="start" disableRipple />
+							<Tab label="Team Approvals" icon={<TeamApprovalsIcon fontSize="small" />} iconPosition="start" disableRipple />
 						</Tabs>
 					)}
 

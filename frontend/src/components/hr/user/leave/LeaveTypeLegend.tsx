@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Stack, Typography, LinearProgress, alpha, useTheme } from '@mui/material';
+import { EventNoteOutlined as EmptyIcon } from '@mui/icons-material';
 import type { HRLeaveBalanceResponse } from '../../../../models/hr';
 import { getAccent } from './accentColors';
 
@@ -28,9 +29,28 @@ const LeaveTypeLegend: React.FC<LeaveTypeLegendProps> = ({ balances }) => {
 			<Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2.5 }}>Leave Types</Typography>
 
 			{balances.length === 0 ? (
-				<Typography variant="caption" color="text.disabled" sx={{ fontStyle: 'italic' }}>
-					No leave types allocated yet.
-				</Typography>
+				<Stack spacing={1.5} alignItems="center" sx={{ py: 3, textAlign: 'center' }}>
+					<Box
+						sx={{
+							width: 44,
+							height: 44,
+							borderRadius: '14px',
+							bgcolor: alpha(theme.palette.primary.main, 0.08),
+							color: theme.palette.primary.main,
+							display: 'flex',
+							alignItems: 'center',
+							justifyContent: 'center'
+						}}
+					>
+						<EmptyIcon sx={{ fontSize: '1.4rem' }} />
+					</Box>
+					<Typography variant="body2" fontWeight={700} color="text.secondary">
+						No leave types allocated
+					</Typography>
+					<Typography variant="caption" color="text.disabled">
+						Your HR administrator hasn't set up leave allocations for you yet.
+					</Typography>
+				</Stack>
 			) : (
 				<Stack spacing={2.25}>
 					{balances.map((balance, idx) => {
