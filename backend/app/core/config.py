@@ -165,14 +165,29 @@ class Settings(BaseSettings):
     TOGETHER_API_KEY: Optional[str] = None      # Together AI (open-source models)
     COHERE_API_KEY: Optional[str] = None        # Cohere
 
-    # Model Selection Per Provider (override in .env)
-    AI_MODEL_GEMINI: str = "gemini-1.5-flash"
+    # Model Selection Per Provider (override in .env) — each default is the first entry of
+    # AI_AVAILABLE_MODELS below for that provider.
+    AI_MODEL_GEMINI: str = "gemini-2.0-flash"
     AI_MODEL_OPENAI: str = "gpt-4o-mini"
-    AI_MODEL_ANTHROPIC: str = "claude-3-5-haiku-20241022"  # Best value Claude model
-    AI_MODEL_GROQ: str = "llama-3.1-8b-instant"           # Ultra-fast Groq model
+    AI_MODEL_ANTHROPIC: str = "claude-haiku-4-5-20251001"  # Best value Claude model
+    AI_MODEL_GROQ: str = "openai/gpt-oss-20b"             # Default Groq model
     AI_MODEL_MISTRAL: str = "mistral-small-latest"
     AI_MODEL_TOGETHER: str = "meta-llama/Llama-3.1-8B-Instruct-Turbo"
     AI_MODEL_COHERE: str = "command-r"
+
+    # Selectable models per provider — a settings UI can offer these as a dropdown per provider
+    # (first entry is that provider's default, matching AI_MODEL_<PROVIDER> above). Purely
+    # informational for providers without an adapter yet (together/cohere/ollama).
+    AI_AVAILABLE_MODELS: Dict[str, List[str]] = {
+        "groq": ["openai/gpt-oss-20b", "llama-3.1-8b-instant", "llama-3.3-70b-versatile"],
+        "openai": ["gpt-4o-mini", "gpt-4o", "gpt-4.1", "gpt-4.1-mini"],
+        "anthropic": ["claude-haiku-4-5-20251001", "claude-sonnet-5", "claude-opus-4-8"],
+        "gemini": ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"],
+        "mistral": ["mistral-small-latest", "mistral-large-latest"],
+        "together": ["meta-llama/Llama-3.1-8B-Instruct-Turbo"],
+        "cohere": ["command-r"],
+        "ollama": ["llama3.1"],
+    }
 
     # Ollama (local/self-hosted)
     OLLAMA_BASE_URL: str = "http://localhost:11434"

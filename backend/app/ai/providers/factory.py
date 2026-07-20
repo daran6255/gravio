@@ -118,6 +118,7 @@ def get_provider_info() -> list[dict]:
             "is_fallback": name == settings.AI_FALLBACK_PROVIDER,
             "configured": bool(key_value),
             "model": model_map.get(name, "unknown"),
+            "available_models": settings.AI_AVAILABLE_MODELS.get(name, []),
             "key_env_var": key_name,
         })
     return result
