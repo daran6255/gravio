@@ -9,13 +9,20 @@ import {
 	Stack,
 	Alert,
 	IconButton,
-	Grid
+	Grid,
+	alpha
 } from '@mui/material';
 import {
 	ChevronLeft as PrevIcon,
 	ChevronRight as NextIcon,
 	Today as CurrentIcon,
-	HelpOutline as HelpIcon
+	HelpOutline as HelpIcon,
+	ScheduleOutlined as MyTimesheetIcon,
+	FactCheckOutlined as TeamApprovalsIcon,
+	LockOpenOutlined as UnlockRequestsIcon,
+	InsightsOutlined as ReportsIcon,
+	AccountTreeOutlined as ManagerAllocationIcon,
+	BeachAccessOutlined as HolidayListIcon
 } from '@mui/icons-material';
 import { WelcomeBanner } from '../../components/common/guide/WelcomeBanner';
 import { HelpGuideDrawer } from '../../components/common/guide/HelpGuideDrawer';
@@ -188,17 +195,26 @@ const TimesheetPage: React.FC = () => {
 		return currentUser?.role === 'admin' && !localStorage.getItem('dismissed_timesheet_onboarding');
 	});
 
+	const tabIcons: Record<string, React.ElementType> = {
+		'My Timesheet': MyTimesheetIcon,
+		'Team Approvals': TeamApprovalsIcon,
+		'Unlock Requests': UnlockRequestsIcon,
+		'Reports': ReportsIcon,
+		'Manager Allocation': ManagerAllocationIcon,
+		'Holiday List': HolidayListIcon
+	};
+
 	const tabLabels = useMemo(() => {
 		const labels = ['My Timesheet'];
 		if (isManagerOrAdmin) {
 			labels.push('Team Approvals');
 			labels.push('Unlock Requests');
 		}
-		labels.push('Reports');
 		if (currentUser?.role === 'admin') {
 			labels.push('Manager Allocation');
 			labels.push('Holiday List');
 		}
+		labels.push('Reports');
 		return labels;
 	}, [isManagerOrAdmin, currentUser?.role]);
 
@@ -461,22 +477,53 @@ const TimesheetPage: React.FC = () => {
 			)}
 
 			{/* Tabs Header */}
-			<Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+			<Box sx={{ mb: 3 }}>
 				<Tabs
 					value={activeTab}
 					onChange={(_, val) => setActiveTab(val)}
 					variant="scrollable"
 					scrollButtons="auto"
 					allowScrollButtonsMobile
+					TabIndicatorProps={{ sx: { display: 'none' } }}
 					sx={{
-						minHeight: 44,
-						'& .MuiTab-root': { minHeight: 44, fontWeight: 700, fontSize: '0.875rem' },
-						'& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0' }
+						minHeight: 'auto',
+						bgcolor: 'action.hover',
+						borderRadius: '12px',
+						p: 0.5,
+						width: 'fit-content',
+						maxWidth: '100%',
+						'& .MuiTabs-flexContainer': { gap: 0.5 },
+						'& .MuiTab-root': {
+							minHeight: 40,
+							minWidth: 'auto',
+							borderRadius: '9px',
+							fontWeight: 700,
+							fontSize: '0.8125rem',
+							textTransform: 'none',
+							color: 'text.secondary',
+							px: 2,
+							py: 1,
+							transition: 'color 0.2s ease, background-color 0.2s ease'
+						},
+						'& .MuiTab-root .MuiTab-iconWrapper': {
+							marginRight: '6px',
+							fontSize: '1.1rem'
+						},
+						'& .MuiTab-root:hover': {
+							color: 'text.primary',
+							bgcolor: (theme) => alpha(theme.palette.text.primary, 0.04)
+						},
+						'& .Mui-selected': {
+							color: 'primary.main !important',
+							bgcolor: 'background.paper',
+							boxShadow: (theme) => `0 1px 3px 0 ${alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.3 : 0.1)}`
+						}
 					}}
 				>
-					{tabLabels.map((label, idx) => (
-						<Tab key={idx} label={label} />
-					))}
+					{tabLabels.map((label, idx) => {
+						const Icon = tabIcons[label];
+						return <Tab key={idx} label={label} icon={<Icon fontSize="small" />} iconPosition="start" disableRipple />;
+					})}
 				</Tabs>
 			</Box>
 
