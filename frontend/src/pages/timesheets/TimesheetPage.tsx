@@ -383,28 +383,39 @@ const TimesheetPage: React.FC = () => {
 	};
 
 	const headerAction = (
-		<Stack direction="row" alignItems="center" spacing={2} sx={{ alignSelf: { xs: 'center', md: 'auto' } }}>
+		<Stack direction="row" alignItems="center" spacing={1.5} sx={{ alignSelf: { xs: 'center', md: 'auto' } }}>
 			{/* Week Navigator */}
 			{(tabLabels[activeTab] === 'My Timesheet' || tabLabels[activeTab] === 'Team Approvals') && (
-				<Stack direction="row" alignItems="center" spacing={1}>
-					<IconButton onClick={handlePrevWeek} size="small">
-						<PrevIcon />
+				<Stack
+					direction="row"
+					alignItems="center"
+					sx={{
+						border: '1px solid',
+						borderColor: 'divider',
+						borderRadius: '10px',
+						bgcolor: 'background.paper',
+						p: 0.5
+					}}
+				>
+					<IconButton onClick={handlePrevWeek} size="small" aria-label="Previous week">
+						<PrevIcon fontSize="small" />
 					</IconButton>
-					<Button
-						variant="outlined"
-						size="small"
-						startIcon={<CurrentIcon />}
-						onClick={handleCurrentWeek}
-						sx={{ borderRadius: 3 }}
-					>
-						This Week
-					</Button>
-					<Typography variant="body2" sx={{ fontWeight: 700, px: 2, minWidth: { xs: 140, sm: 200 }, textAlign: 'center' }}>
+					<Typography variant="body2" sx={{ fontWeight: 700, px: 1.5, minWidth: { xs: 128, sm: 172 }, textAlign: 'center' }}>
 						{formatWeekRangeDisplay()}
 					</Typography>
-					<IconButton onClick={handleNextWeek} size="small">
-						<NextIcon />
+					<IconButton onClick={handleNextWeek} size="small" aria-label="Next week">
+						<NextIcon fontSize="small" />
 					</IconButton>
+					<Box sx={{ width: '1px', height: 20, bgcolor: 'divider', mx: 0.5 }} />
+					<Button
+						size="small"
+						startIcon={<CurrentIcon fontSize="small" />}
+						onClick={handleCurrentWeek}
+						disabled={isCurrentWeek}
+						sx={{ borderRadius: '8px', fontWeight: 700, px: 1.5 }}
+					>
+						Today
+					</Button>
 				</Stack>
 			)}
 			<Button
@@ -412,7 +423,7 @@ const TimesheetPage: React.FC = () => {
 				size="small"
 				startIcon={<HelpIcon />}
 				onClick={() => setGuideOpen(true)}
-				sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700 }}
+				sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 700 }}
 			>
 				Help Guide
 			</Button>
@@ -457,6 +468,11 @@ const TimesheetPage: React.FC = () => {
 					variant="scrollable"
 					scrollButtons="auto"
 					allowScrollButtonsMobile
+					sx={{
+						minHeight: 44,
+						'& .MuiTab-root': { minHeight: 44, fontWeight: 700, fontSize: '0.875rem' },
+						'& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0' }
+					}}
 				>
 					{tabLabels.map((label, idx) => (
 						<Tab key={idx} label={label} />
@@ -467,14 +483,6 @@ const TimesheetPage: React.FC = () => {
 			{/* My Timesheet Grid */}
 			{tabLabels[activeTab] === 'My Timesheet' && (
 				<Stack spacing={3}>
-					{!hasReportingManager && (
-						<Alert
-							severity="warning"
-							sx={{ borderRadius: 4 }}
-						>
-							You do not have a Reporting Manager assigned. Please contact your organization administrator to configure one for you to enable timesheet weekly submissions.
-						</Alert>
-					)}
 					<WeeklyTimesheetGrid
 						dates={weekDates}
 						logs={myTimeLogs}

@@ -66,6 +66,10 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const todayStr = React.useMemo(() => {
+		const d = new Date();
+		return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+	}, []);
 
 	const {
 		requestDialogOpen, setRequestDialogOpen,
@@ -97,7 +101,19 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 	return (
 		<Stack spacing={3}>
 			{/* Grid Header Actions */}
-			<Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} gap={2}>
+			<Stack
+				direction={{ xs: 'column', sm: 'row' }}
+				justifyContent="space-between"
+				alignItems={{ xs: 'stretch', sm: 'center' }}
+				gap={2}
+				sx={{
+					border: '1px solid',
+					borderColor: 'divider',
+					borderRadius: theme.layout.radius.card,
+					bgcolor: 'background.paper',
+					p: 2
+				}}
+			>
 				<Stack direction="row" alignItems="center" spacing={2}>
 					<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
 						Week Status:
@@ -113,28 +129,13 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 					)}
 				</Stack>
 
-				<Stack direction="row" spacing={2} width={{ xs: '100%', sm: 'auto' }}>
+				<Stack direction="row" spacing={1.5} width={{ xs: '100%', sm: 'auto' }}>
 					<Button
-						variant="contained"
+						variant="outlined"
 						startIcon={<AddIcon />}
 						onClick={onAddRow}
 						disabled={isLocked || isWeekClosed}
-						sx={(theme) => ({
-							borderRadius: '10px',
-							px: 3,
-							py: 1,
-							background: theme.gradients.brandDiagonal,
-							boxShadow: `0 4px 14px 0 ${alpha(theme.palette.primary.main, 0.4)}`,
-							border: 'none',
-							textTransform: 'none',
-							fontWeight: 700,
-							transition: 'all 0.2s ease',
-							'&:hover': {
-								background: theme.gradients.brandDiagonalHover,
-								boxShadow: `0 6px 20px 0 ${alpha(theme.palette.primary.main, 0.6)}`,
-								transform: 'translateY(-1px)',
-							},
-						})}
+						sx={{ borderRadius: '10px', px: 2.5, fontWeight: 700 }}
 					>
 						Add Row
 					</Button>
@@ -143,7 +144,23 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 							variant="contained"
 							onClick={onSubmitWeek}
 							disabled={submitLoading || !reportingManagerSet || isLocked}
-							sx={{ borderRadius: 4, fontWeight: 700, px: 3 }}
+							sx={(theme) => ({
+								borderRadius: '10px',
+								px: 3,
+								background: theme.gradients.brandDiagonal,
+								boxShadow: `0 4px 14px 0 ${alpha(theme.palette.primary.main, 0.4)}`,
+								border: 'none',
+								fontWeight: 700,
+								transition: 'all 0.2s ease',
+								'&:hover': {
+									background: theme.gradients.brandDiagonalHover,
+									boxShadow: `0 6px 20px 0 ${alpha(theme.palette.primary.main, 0.6)}`,
+									transform: 'translateY(-1px)',
+								},
+								'&.Mui-disabled': {
+									background: 'none'
+								}
+							})}
 						>
 							Submit Week
 						</Button>
@@ -152,11 +169,14 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 			</Stack>
 
 			{!reportingManagerSet && (
-				<Box sx={{ bgcolor: alpha(theme.palette.warning.main, 0.1), color: 'warning.dark', p: 2, borderRadius: 4, border: `1px solid ${theme.palette.warning.main}` }}>
-					<Typography variant="body2" sx={{ fontWeight: 600 }}>
-						⚠️ Submission Blocked: You do not have a Reporting Manager assigned in your profile. Please set one in settings to submit timesheets.
+				<Alert severity="warning" variant="outlined" sx={{ borderRadius: theme.layout.radius.card }}>
+					<Typography variant="body2" sx={{ fontWeight: 700 }}>
+						Submission blocked
 					</Typography>
-				</Box>
+					<Typography variant="body2" color="text.secondary">
+						You don't have a Reporting Manager assigned. Ask your organization administrator to set one so you can submit weekly timesheets.
+					</Typography>
+				</Alert>
 			)}
 
 			{isLocked && (
@@ -207,11 +227,11 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 
 			<TableContainer
 				component={Paper}
-				elevation={0}
+				elevation={1}
 				sx={{
 					border: 1,
 					borderColor: 'divider',
-					borderRadius: 6,
+					borderRadius: theme.layout.radius.card,
 					overflow: 'hidden',
 					bgcolor: 'background.paper'
 				}}
@@ -224,6 +244,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 							{dates.map((date, i) => {
 								const dStr = dateStrings[i];
 								const isHoliday = isHolidayDate(dStr);
+								const isToday = dStr === todayStr;
 								const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
 								const dayNum = date.getDate();
 
@@ -236,7 +257,24 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 											width: '8%',
 											px: 0.5,
 											whiteSpace: 'nowrap',
-											bgcolor: isHoliday ? alpha(theme.palette.warning.main, isDark ? 0.08 : 0.05) : 'inherit'
+											position: 'relative',
+											color: isToday ? 'primary.main' : 'inherit',
+											bgcolor: isHoliday
+												? alpha(theme.palette.warning.main, isDark ? 0.08 : 0.05)
+												: isToday
+													? alpha(theme.palette.primary.main, isDark ? 0.1 : 0.06)
+													: 'inherit',
+											'&::after': isToday
+												? {
+													content: '""',
+													position: 'absolute',
+													top: 0,
+													left: 0,
+													right: 0,
+													height: 2,
+													bgcolor: 'primary.main'
+												}
+												: undefined
 										}}
 									>
 										<Stack direction="row" spacing={0.25} justifyContent="center" alignItems="center">
@@ -271,7 +309,13 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 										transition: 'background-color 0.2s'
 									}}
 								>
-									<TableCell sx={{ py: 1.5 }}>
+									<TableCell
+										sx={{
+											py: 1.5,
+											borderLeft: '3px solid',
+											borderLeftColor: row.type === 'general' ? 'info.main' : 'primary.main'
+										}}
+									>
 										{row.type === 'project_task' && (
 											<Box>
 												<Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -315,6 +359,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 									{dateStrings.map((dateStr) => {
 										const log = row.cells[dateStr];
 										const isHoliday = isHolidayDate(dateStr);
+										const isToday = dateStr === todayStr;
 										const isApproved = log?.status === 'approved';
 										const isSubmitted = log?.status === 'submitted';
 										const isHolidayBlocked = isHoliday && !canLogOnHolidays;
@@ -334,7 +379,11 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 													cursor: isCellDisabled ? 'default' : 'pointer',
 													p: 1,
 													position: 'relative',
-													bgcolor: isHoliday ? alpha(theme.palette.warning.main, isDark ? 0.04 : 0.02) : 'inherit',
+													bgcolor: isHoliday
+														? alpha(theme.palette.warning.main, isDark ? 0.04 : 0.02)
+														: isToday
+															? alpha(theme.palette.primary.main, isDark ? 0.05 : 0.03)
+															: 'inherit',
 													borderRight: 1,
 													borderColor: 'divider',
 													opacity: isHolidayBlocked && !log ? 0.6 : 1,
@@ -392,7 +441,13 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 						)}
 
 						{/* Day Totals Row */}
-						<TableRow sx={{ bgcolor: 'action.hover', borderTop: 2, borderColor: 'divider' }}>
+						<TableRow
+							sx={{
+								bgcolor: alpha(theme.palette.primary.main, isDark ? 0.08 : 0.05),
+								borderTop: '2px solid',
+								borderColor: 'primary.main'
+							}}
+						>
 							<TableCell colSpan={2} sx={{ fontWeight: 800 }}>
 								Total Hours
 							</TableCell>
@@ -401,7 +456,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 									{formatHoursDisplay(dayTotals[dateStr])}
 								</TableCell>
 							))}
-							<TableCell align="center" sx={{ fontWeight: 900, color: 'primary.main', px: 1, whiteSpace: 'nowrap' }}>
+							<TableCell align="center" sx={{ fontWeight: 900, fontSize: '1rem', color: 'primary.main', px: 1, whiteSpace: 'nowrap' }}>
 								{formatHoursDisplay(grandTotal)}
 							</TableCell>
 						</TableRow>
