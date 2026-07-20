@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Box, Button, Container, Grid, Skeleton, Stack, Tab, Tabs, alpha, useTheme, Alert, IconButton } from '@mui/material';
+import { Box, Container, Grid, Skeleton, Stack, Tab, Tabs, alpha, useTheme, Alert } from '@mui/material';
 import {
-	AddOutlined as AddIcon,
 	HelpOutline as HelpIcon,
 	EventAvailableOutlined as MyLeavesIcon,
 	FactCheckOutlined as TeamApprovalsIcon,
 } from '@mui/icons-material';
 import PageHeader from '../../../components/common/page-header';
+import { AddButton, HelpGuideButton } from '../../../components/common/button';
 import { responsiveStyles } from '../../../theme';
 import { fetchLeaveTypes, fetchMyLeaveBalances, fetchMyLeaveRequests } from '../../../store/slices/hrSlice';
 import { fetchTeamUsers } from '../../../store/slices/userSlice';
@@ -138,20 +138,10 @@ const LeaveDashboardPage: React.FC = () => {
 						subtitle="Request leaves and view your allocations."
 						action={
 							<Stack direction="row" spacing={1.5} alignItems="center">
-								<IconButton
-									onClick={() => setGuideOpen(true)}
-									sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}
-								>
-									<HelpIcon />
-								</IconButton>
-								<Button
-									variant="contained"
-									startIcon={<AddIcon />}
-									onClick={() => setApplyOpen(true)}
-									sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 700 }}
-								>
+								<HelpGuideButton compact onClick={() => setGuideOpen(true)} />
+								<AddButton onClick={() => setApplyOpen(true)} sx={{ borderRadius: 3 }}>
 									Apply Leave
-								</Button>
+								</AddButton>
 							</Stack>
 						}
 					/>

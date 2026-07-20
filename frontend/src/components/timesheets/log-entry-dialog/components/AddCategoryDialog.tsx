@@ -1,6 +1,7 @@
 import React from 'react';
-import { Button, TextField, Stack, Box, Alert, Typography, CircularProgress, alpha, useTheme } from '@mui/material';
+import { TextField, Stack, Box, Alert, Typography, alpha, useTheme } from '@mui/material';
 import { BaseDialog } from '../../../common/dialogbox';
+import { SubmitButton, CancelButton } from '../../../common/button';
 import { CATEGORY_COLORS } from '../utils';
 
 interface AddCategoryDialogProps {
@@ -41,17 +42,15 @@ export const AddCategoryDialog: React.FC<AddCategoryDialogProps> = ({
 			loading={creating}
 			actions={
 				<>
-					<Button onClick={onClose} disabled={creating}>
-						Cancel
-					</Button>
-					<Button
-						variant="contained"
+					<CancelButton onClick={onClose} disabled={creating} />
+					<SubmitButton
 						onClick={onCreate}
-						disabled={creating || !name.trim()}
-						sx={{ fontWeight: 700, borderRadius: 4 }}
+						loading={creating}
+						disabled={!name.trim()}
+						sx={{ borderRadius: 4 }}
 					>
-						{creating ? <CircularProgress size={18} /> : 'Create'}
-					</Button>
+						Create
+					</SubmitButton>
 				</>
 			}
 		>

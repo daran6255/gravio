@@ -26,6 +26,7 @@ import {
 } from '@mui/icons-material';
 import { WelcomeBanner } from '../../components/common/guide/WelcomeBanner';
 import { HelpGuideDrawer } from '../../components/common/guide/HelpGuideDrawer';
+import { HelpGuideButton } from '../../components/common/button';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
 	fetchMyTimeLogs,
@@ -434,15 +435,7 @@ const TimesheetPage: React.FC = () => {
 					</Button>
 				</Stack>
 			)}
-			<Button
-				variant="outlined"
-				size="small"
-				startIcon={<HelpIcon />}
-				onClick={() => setGuideOpen(true)}
-				sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 700 }}
-			>
-				Help Guide
-			</Button>
+			<HelpGuideButton onClick={() => setGuideOpen(true)} />
 		</Stack>
 	);
 

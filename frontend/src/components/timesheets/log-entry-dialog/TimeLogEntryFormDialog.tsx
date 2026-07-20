@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react';
-import { Button, Stack, Box, Alert, CircularProgress, Grid, Typography, alpha, ButtonBase } from '@mui/material';
+import { Button, Stack, Box, Alert, Grid, Typography, alpha, ButtonBase } from '@mui/material';
 import {
-	Add as AddIcon,
 	DeleteOutline as DeleteIcon,
 	AssignmentOutlined as ProjectTaskIcon,
 	AllInboxOutlined as GeneralIcon,
 	InfoOutlined as InfoIcon
 } from '@mui/icons-material';
 import { BaseDialog, ConfirmationDialog } from '../../common/dialogbox';
+import { AddButton, SubmitButton, CancelButton } from '../../common/button';
 import { useAppSelector } from '../../../store/hooks';
 import { TimeLogRowFields, AddCategoryDialog, ManageCategoriesDialog } from './components';
 import { useTimeLogRows } from './hooks/useTimeLogRows';
@@ -108,9 +108,7 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 				loading={submitting}
 				actions={
 					isSelectionStep ? (
-						<Button onClick={onClose} disabled={submitting} sx={{ minWidth: 100 }}>
-							Cancel
-						</Button>
+						<CancelButton onClick={onClose} disabled={submitting} sx={{ minWidth: 100 }} />
 					) : (
 						<Box
 							sx={{
@@ -148,25 +146,14 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 										Back
 									</Button>
 								)}
-								<Button onClick={onClose} disabled={submitting}>
-									Cancel
-								</Button>
-								<Button
-									variant="contained"
+								<CancelButton onClick={onClose} disabled={submitting} />
+								<SubmitButton
 									onClick={handleSubmit}
-									disabled={submitting}
-									sx={{ fontWeight: 700, borderRadius: 4, minWidth: 120 }}
+									loading={submitting}
+									sx={{ borderRadius: 4, minWidth: 120 }}
 								>
-									{submitting ? (
-										<CircularProgress size={18} />
-									) : isEdit ? (
-										'Update Entry'
-									) : rows.length > 1 ? (
-										`Log ${rows.length} Entries`
-									) : (
-										'Log Time'
-									)}
-								</Button>
+									{isEdit ? 'Update Entry' : rows.length > 1 ? `Log ${rows.length} Entries` : 'Log Time'}
+								</SubmitButton>
 							</Stack>
 						</Box>
 					)
@@ -395,31 +382,9 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 						))}
 
 						{!isEdit && (
-							<Button
-								variant="contained"
-								startIcon={<AddIcon />}
-								onClick={handleAddRow}
-								disabled={submitting}
-								sx={(theme) => ({
-									alignSelf: 'flex-start',
-									fontWeight: 700,
-									borderRadius: '10px',
-									px: 3,
-									py: 1,
-									background: theme.gradients.brandDiagonal,
-									boxShadow: `0 4px 14px 0 ${alpha(theme.palette.primary.main, 0.4)}`,
-									border: 'none',
-									textTransform: 'none',
-									transition: 'all 0.2s ease',
-									'&:hover': {
-										background: theme.gradients.brandDiagonalHover,
-										boxShadow: `0 6px 20px 0 ${alpha(theme.palette.primary.main, 0.6)}`,
-										transform: 'translateY(-1px)',
-									},
-								})}
-							>
+							<AddButton onClick={handleAddRow} disabled={submitting} sx={{ alignSelf: 'flex-start' }}>
 								Add Another Row
-							</Button>
+							</AddButton>
 						)}
 					</Stack>
 				)}

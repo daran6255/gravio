@@ -27,6 +27,7 @@ import type { ProjectTimeLog, OrgHoliday, TimesheetWeekUnlockRequest } from '../
 import TimesheetStatusBadge from '../shared/TimesheetStatusBadge';
 import { BaseDialog } from '../../common/dialogbox';
 import { DataTableEmpty } from '../../common/table';
+import { AddButton } from '../../common/button';
 import { useWeeklyTimesheetGrid } from './hooks/useWeeklyTimesheetGrid';
 import { formatHoursDisplay } from './utils';
 
@@ -140,30 +141,14 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 						Add Row
 					</Button>
 					{hasUnsubmittedEntries && (
-						<Button
-							variant="contained"
+						<AddButton
+							hideIcon
 							onClick={onSubmitWeek}
 							disabled={submitLoading || !reportingManagerSet || isLocked}
-							sx={(theme) => ({
-								borderRadius: '10px',
-								px: 3,
-								background: theme.gradients.brandDiagonal,
-								boxShadow: `0 4px 14px 0 ${alpha(theme.palette.primary.main, 0.4)}`,
-								border: 'none',
-								fontWeight: 700,
-								transition: 'all 0.2s ease',
-								'&:hover': {
-									background: theme.gradients.brandDiagonalHover,
-									boxShadow: `0 6px 20px 0 ${alpha(theme.palette.primary.main, 0.6)}`,
-									transform: 'translateY(-1px)',
-								},
-								'&.Mui-disabled': {
-									background: 'none'
-								}
-							})}
+							sx={{ px: 3 }}
 						>
 							Submit Week
-						</Button>
+						</AddButton>
 					)}
 				</Stack>
 			</Stack>

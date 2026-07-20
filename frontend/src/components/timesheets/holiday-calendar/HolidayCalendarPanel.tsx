@@ -3,7 +3,6 @@ import {
 	Paper,
 	Typography,
 	TextField,
-	Button,
 	IconButton,
 	Stack,
 	Grid,
@@ -13,7 +12,6 @@ import {
 	Alert,
 	useTheme,
 	alpha,
-	CircularProgress,
 	Box,
 	Chip,
 	Tooltip
@@ -29,6 +27,7 @@ import { useHolidayCalendar } from './hooks/useHolidayCalendar';
 import { BaseDialog, ConfirmationDialog } from '../../common/dialogbox';
 import { DatePicker } from '../../common/form';
 import { DataTable, TableView, type ColumnDefinition, type TableColumnDef } from '../../common/table';
+import { AddButton, SubmitButton, CancelButton } from '../../common/button';
 import type { OrgHoliday } from '../../../models/timesheet';
 
 const HolidayCalendarPanel: React.FC = () => {
@@ -267,21 +266,18 @@ const HolidayCalendarPanel: React.FC = () => {
 								}}
 							/>
 
-							<Button
+							<SubmitButton
 								type="submit"
-								variant="contained"
-								disabled={submitting}
+								loading={submitting}
 								sx={{
 									py: 1.2,
-									fontWeight: 700,
 									borderRadius: '10px',
-									textTransform: 'none',
 									boxShadow: 'none',
 									'&:hover': { boxShadow: 'none' }
 								}}
 							>
-								{submitting ? 'Creating...' : 'Add Holiday'}
-							</Button>
+								Add Holiday
+							</SubmitButton>
 						</Stack>
 					</Paper>
 				</Grid>
@@ -308,21 +304,14 @@ const HolidayCalendarPanel: React.FC = () => {
 								</Typography>
 							</Stack>
 							{isAdminOrManager && (
-								<Button
-									variant="contained"
+								<AddButton
 									size="small"
 									startIcon={<UploadIcon />}
 									onClick={() => setImportDialogOpen(true)}
-									sx={{
-										textTransform: 'none',
-										borderRadius: '8px',
-										fontWeight: 700,
-										boxShadow: 'none',
-										'&:hover': { boxShadow: 'none' }
-									}}
+									sx={{ borderRadius: '8px' }}
 								>
 									Import Holidays
-								</Button>
+								</AddButton>
 							)}
 						</Stack>
 					}
@@ -340,17 +329,15 @@ const HolidayCalendarPanel: React.FC = () => {
 				loading={importLoading}
 				actions={
 					<>
-						<Button onClick={handleCloseImport} variant="outlined" disabled={importLoading} sx={{ borderRadius: 3, textTransform: 'none' }}>
-							Cancel
-						</Button>
-						<Button
+						<CancelButton onClick={handleCloseImport} variant="outlined" disabled={importLoading} />
+						<SubmitButton
 							onClick={handleConfirmImport}
-							disabled={importPreview.length === 0 || importLoading}
-							variant="contained"
-							sx={{ fontWeight: 700, borderRadius: 3, textTransform: 'none', boxShadow: 'none' }}
+							disabled={importPreview.length === 0}
+							loading={importLoading}
+							sx={{ borderRadius: 3, boxShadow: 'none' }}
 						>
-							{importLoading ? <CircularProgress size={20} color="inherit" /> : 'Confirm Import'}
-						</Button>
+							Confirm Import
+						</SubmitButton>
 					</>
 				}
 			>
