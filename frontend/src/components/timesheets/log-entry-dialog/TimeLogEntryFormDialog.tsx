@@ -190,7 +190,7 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 									border: '1.5px solid',
 									borderColor: 'divider',
 									bgcolor: 'background.paper',
-									boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
+									boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.common.black, 0.03)}`,
 									transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
 									'&:hover': {
 										borderColor: 'primary.main',
@@ -247,7 +247,7 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 									border: '1.5px solid',
 									borderColor: 'divider',
 									bgcolor: 'background.paper',
-									boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
+									boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.common.black, 0.03)}`,
 									transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
 									'&:hover': {
 										borderColor: 'info.main',
@@ -407,13 +407,13 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 									px: 3,
 									py: 1,
 									background: theme.gradients.brandDiagonal,
-									boxShadow: '0 4px 14px 0 rgba(139, 124, 246, 0.4)',
+									boxShadow: `0 4px 14px 0 ${alpha(theme.palette.primary.main, 0.4)}`,
 									border: 'none',
 									textTransform: 'none',
 									transition: 'all 0.2s ease',
 									'&:hover': {
 										background: theme.gradients.brandDiagonalHover,
-										boxShadow: '0 6px 20px 0 rgba(139, 124, 246, 0.6)',
+										boxShadow: `0 6px 20px 0 ${alpha(theme.palette.primary.main, 0.6)}`,
 										transform: 'translateY(-1px)',
 									},
 								})}

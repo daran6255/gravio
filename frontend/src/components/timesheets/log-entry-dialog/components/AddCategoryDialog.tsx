@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, TextField, Stack, Box, Alert, Typography, CircularProgress } from '@mui/material';
+import { Button, TextField, Stack, Box, Alert, Typography, CircularProgress, alpha, useTheme } from '@mui/material';
 import { BaseDialog } from '../../../common/dialogbox';
 import { CATEGORY_COLORS } from '../utils';
 
@@ -27,6 +27,7 @@ export const AddCategoryDialog: React.FC<AddCategoryDialogProps> = ({
 	creating,
 	onCreate
 }) => {
+	const theme = useTheme();
 	return (
 		<BaseDialog
 			open={open}
@@ -87,7 +88,7 @@ export const AddCategoryDialog: React.FC<AddCategoryDialogProps> = ({
 									cursor: creating ? 'default' : 'pointer',
 									border: '2px solid',
 									borderColor: color === c ? 'text.primary' : 'transparent',
-									boxShadow: color === c ? '0 0 0 2px rgba(0,0,0,0.05)' : 'none'
+									boxShadow: color === c ? `0 0 0 2px ${alpha(theme.palette.common.black, 0.05)}` : 'none'
 								}}
 							/>
 						))}

@@ -122,7 +122,7 @@ const TimesheetReportPanel: React.FC = () => {
 			value: `${reportRows.length}`,
 			suffix: reportRows.length === 1 ? 'row' : 'rows',
 			icon: <EntriesIcon sx={{ fontSize: 20 }} />,
-			color: '#6c5ce7'
+			color: theme.palette.accent.main
 		}
 	];
 

@@ -10,7 +10,40 @@ import type {
 } from '../../models/timesheet';
 
 function extractErrorMessage(error: any, fallback: string): string {
-	return error?.response?.data?.error?.message || error?.response?.data?.detail || error?.message || fallback;
+	const data = error?.response?.data;
+
+	// The app's own error middleware: { error: { message: "..." } }
+	if (typeof data?.error?.message === 'string' && data.error.message) {
+		return data.error.message;
+	}
+
+	// FastAPI's built-in request validation errors arrive as an array of
+	// { loc: [...], msg: "..." } objects under `detail`, not a string -- stringify
+	// them into a readable sentence instead of leaking the raw shape into a toast.
+	if (Array.isArray(data?.detail)) {
+		const messages = data.detail
+			.map((item: any) => {
+				if (typeof item === 'string') return item;
+				const field = Array.isArray(item?.loc) ? item.loc[item.loc.length - 1] : undefined;
+				if (!item?.msg) return null;
+				return typeof field === 'string' ? `${field}: ${item.msg}` : item.msg;
+			})
+			.filter(Boolean);
+		if (messages.length) return messages.join('; ');
+	}
+
+	if (typeof data?.detail === 'string' && data.detail) {
+		return data.detail;
+	}
+
+	// A raw axios message ("Request failed with status code 400") isn't useful to a
+	// user -- only fall back to it when there's no server response at all (network
+	// failure, timeout), where the message itself is already readable.
+	if (!error?.response && typeof error?.message === 'string' && error.message) {
+		return error.message;
+	}
+
+	return fallback;
 }
 
 interface TimesheetState {

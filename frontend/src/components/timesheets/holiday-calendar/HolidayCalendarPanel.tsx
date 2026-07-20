@@ -88,36 +88,25 @@ const HolidayCalendarPanel: React.FC = () => {
 	];
 
 	const getTypeChip = (holidayType: string) => {
-		const configs: Record<string, { bg: string; color: string; label: string }> = {
-			public: {
-				bg: isDark ? 'rgba(16, 185, 129, 0.15)' : '#E6F4EA',
-				color: isDark ? '#10B981' : '#047857',
-				label: 'Public Holiday'
-			},
-			org: {
-				bg: isDark ? 'rgba(99, 102, 241, 0.15)' : '#EEF2FF',
-				color: isDark ? '#8F93FB' : '#4F46E5',
-				label: 'Company Holiday'
-			},
-			custom: {
-				bg: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FFF9E6',
-				color: isDark ? '#F59E0B' : '#B45309',
-				label: 'Override Day'
-			}
+		const configs: Record<string, { main: string; dark: string; label: string }> = {
+			public: { main: theme.palette.success.main, dark: theme.palette.success.dark, label: 'Public Holiday' },
+			org: { main: theme.palette.primary.main, dark: theme.palette.primary.dark, label: 'Company Holiday' },
+			custom: { main: theme.palette.warning.main, dark: theme.palette.warning.dark, label: 'Override Day' }
 		};
-		const c = configs[holidayType] || { bg: 'action.selected', color: 'text.secondary', label: holidayType };
+		const c = configs[holidayType];
 		return (
 			<Chip
-				label={c.label}
+				label={c?.label ?? holidayType}
 				size="small"
 				sx={{
-					bgcolor: c.bg,
-					color: c.color,
+					bgcolor: c ? alpha(c.main, isDark ? 0.15 : 0.12) : 'action.selected',
+					color: c ? (isDark ? c.main : c.dark) : 'text.secondary',
 					fontWeight: 800,
 					fontSize: '0.75rem',
 					borderRadius: '6px',
 					px: 0.5,
-					border: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)'}`
+					border: '1px solid',
+					borderColor: 'divider'
 				}}
 			/>
 		);
@@ -143,17 +132,17 @@ const HolidayCalendarPanel: React.FC = () => {
 								width: 44,
 								height: 44,
 								borderRadius: '10px',
-								bgcolor: isDark ? 'rgba(99, 102, 241, 0.12)' : '#EEF2FF',
+								bgcolor: alpha(theme.palette.primary.main, isDark ? 0.12 : 0.08),
 								color: 'primary.main',
 								border: '1px solid',
-								borderColor: isDark ? 'rgba(99, 102, 241, 0.2)' : '#E0E7FF',
+								borderColor: alpha(theme.palette.primary.main, isDark ? 0.2 : 0.12),
 								flexShrink: 0
 							}}
 						>
-							<Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.62rem', textTransform: 'uppercase', lineHeight: 1, color: isDark ? '#A78BFA' : '#6366F1' }}>
+							<Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.62rem', textTransform: 'uppercase', lineHeight: 1, color: isDark ? 'primary.light' : 'primary.main' }}>
 								{monthStr}
 							</Typography>
-							<Typography variant="body2" sx={{ fontWeight: 900, fontSize: '1.05rem', lineHeight: 1.1, color: isDark ? '#FFF' : '#1E1B4B' }}>
+							<Typography variant="body2" sx={{ fontWeight: 900, fontSize: '1.05rem', lineHeight: 1.1, color: 'text.primary' }}>
 								{dayStr}
 							</Typography>
 						</Box>
@@ -185,9 +174,9 @@ const HolidayCalendarPanel: React.FC = () => {
 								size="small"
 								onClick={() => setDeleteTarget(h)}
 								sx={{
-									bgcolor: isDark ? 'rgba(239, 68, 68, 0.1)' : '#FDF2F2',
+									bgcolor: alpha(theme.palette.error.main, isDark ? 0.1 : 0.08),
 									color: 'error.main',
-									'&:hover': { bgcolor: isDark ? 'rgba(239, 68, 68, 0.2)' : '#FDE8E8' }
+									'&:hover': { bgcolor: alpha(theme.palette.error.main, isDark ? 0.2 : 0.16) }
 								}}
 							>
 								<DeleteIcon fontSize="small" />

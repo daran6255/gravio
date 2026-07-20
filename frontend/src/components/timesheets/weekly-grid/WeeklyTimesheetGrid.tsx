@@ -124,14 +124,14 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 							px: 3,
 							py: 1,
 							background: theme.gradients.brandDiagonal,
-							boxShadow: '0 4px 14px 0 rgba(139, 124, 246, 0.4)',
+							boxShadow: `0 4px 14px 0 ${alpha(theme.palette.primary.main, 0.4)}`,
 							border: 'none',
 							textTransform: 'none',
 							fontWeight: 700,
 							transition: 'all 0.2s ease',
 							'&:hover': {
 								background: theme.gradients.brandDiagonalHover,
-								boxShadow: '0 6px 20px 0 rgba(139, 124, 246, 0.6)',
+								boxShadow: `0 6px 20px 0 ${alpha(theme.palette.primary.main, 0.6)}`,
 								transform: 'translateY(-1px)',
 							},
 						})}
