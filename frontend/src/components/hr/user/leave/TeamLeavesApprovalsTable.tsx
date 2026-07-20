@@ -9,17 +9,16 @@ import {
 	IconButton,
 	Tooltip,
 	TextField,
-	Button,
 	Dialog,
 	DialogTitle,
 	DialogContent,
 	DialogActions,
-	CircularProgress,
 	useTheme,
 	alpha,
 	Tabs,
 	Tab
 } from '@mui/material';
+import { SubmitButton, CancelButton } from '../../../common/button';
 import {
 	EventAvailable as LeaveIcon,
 	HourglassTop as PendingIcon,
@@ -431,18 +430,16 @@ export const TeamLeavesApprovalsTable: React.FC = () => {
 					</Stack>
 				</DialogContent>
 				<DialogActions sx={{ px: 3, pb: 2.5 }}>
-					<Button onClick={handleCloseResolveDialog} disabled={submitting}>
-						Cancel
-					</Button>
-					<Button
-						variant="contained"
+					<CancelButton onClick={handleCloseResolveDialog} disabled={submitting} />
+					<SubmitButton
 						color={statusType === 'approved' ? 'success' : 'error'}
 						onClick={handleConfirmResolve}
-						disabled={submitting || (statusType === 'rejected' && !managerNotes.trim())}
-						sx={{ color: statusType === 'approved' ? 'white' : 'inherit', fontWeight: 700 }}
+						loading={submitting}
+						disabled={statusType === 'rejected' && !managerNotes.trim()}
+						sx={{ color: statusType === 'approved' ? 'white' : 'inherit' }}
 					>
-						{submitting ? <CircularProgress size={18} color="inherit" /> : statusType === 'approved' ? 'Approve' : 'Reject'}
-					</Button>
+						{statusType === 'approved' ? 'Approve' : 'Reject'}
+					</SubmitButton>
 				</DialogActions>
 			</Dialog>
 		</Stack>

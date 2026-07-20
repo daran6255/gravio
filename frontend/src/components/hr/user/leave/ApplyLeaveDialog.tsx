@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
-	Box, Button, Checkbox, FormControl, FormControlLabel, InputLabel, MenuItem,
+	Box, Checkbox, FormControl, FormControlLabel, InputLabel, MenuItem,
 	Select, Stack, TextField, Typography, alpha, useTheme,
 } from '@mui/material';
 import BaseDialog from '../../../common/dialogbox/BaseDialog';
+import { SubmitButton, CancelButton } from '../../../common/button';
 import { useAppDispatch } from '../../../../store/hooks';
 import { createLeaveRequest, fetchMyLeaveBalances } from '../../../../store/slices/hrSlice';
 import type { HRLeaveBalanceResponse, HRLeaveRequestCreate, HRLeaveTypeListItem } from '../../../../models/hr';
@@ -77,30 +78,15 @@ const ApplyLeaveDialog: React.FC<ApplyLeaveDialogProps> = ({ open, onClose, onSa
 			loading={saving}
 			actions={
 				<>
-					<Button
-						onClick={onClose}
-						disabled={saving}
-						sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '10px', color: 'text.secondary' }}
-					>
-						Cancel
-					</Button>
-					<Button
-						variant="contained"
+					<CancelButton onClick={onClose} disabled={saving} sx={{ borderRadius: '10px', color: 'text.secondary' }} />
+					<SubmitButton
 						onClick={handleSave}
-						disabled={saving || !canSave}
-						sx={{
-							textTransform: 'none',
-							fontWeight: 700,
-							borderRadius: '10px',
-							px: 3,
-							color: 'white',
-							boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`,
-							background: theme.gradients.brand,
-							'&:hover': { boxShadow: `0 8px 20px ${alpha(theme.palette.primary.main, 0.35)}` },
-						}}
+						loading={saving}
+						disabled={!canSave}
+						sx={{ borderRadius: '10px', px: 3 }}
 					>
-						{saving ? 'Submitting…' : 'Submit Application'}
-					</Button>
+						Submit Application
+					</SubmitButton>
 				</>
 			}
 		>
