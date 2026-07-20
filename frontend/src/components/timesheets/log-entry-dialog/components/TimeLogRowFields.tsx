@@ -1,12 +1,17 @@
 import React from 'react';
-import { Button, TextField, MenuItem, Stack, Box, ToggleButtonGroup, ToggleButton, IconButton, Typography, Divider } from '@mui/material';
-import { Add as AddIcon, DeleteOutline as DeleteIcon, SettingsOutlined as ManageIcon } from '@mui/icons-material';
+import { Button, TextField, MenuItem, Stack, Box, IconButton, Typography, Divider } from '@mui/material';
+import {
+	Add as AddIcon,
+	DeleteOutline as DeleteIcon,
+	SettingsOutlined as ManageIcon
+} from '@mui/icons-material';
 import { DatePicker } from '../../../common/form';
+import RichTextEditor from '../../../common/form/RichTextEditor';
 import type { ProjectTask } from '../../../../models/projects/projectTask';
 import type { Project } from '../../../../models/projects/project';
 import type { TimesheetCategory } from '../../../../models/timesheet';
 import type { RowDraft } from '../types';
-import { ADD_NEW_CATEGORY } from '../utils';
+import { ADD_NEW_CATEGORY, countWords } from '../utils';
 
 interface TimeLogRowFieldsProps {
 	row: RowDraft;
@@ -27,9 +32,7 @@ interface TimeLogRowFieldsProps {
 	onManageCategories: () => void;
 }
 
-// Renders the fields for a single row draft in the log-time form: the
-// project/task-vs-general toggle, the project/task/category selects, and the
-// date/hours/billing-type/notes fields.
+// Renders the fields for a single row draft in the log-time form.
 export const TimeLogRowFields: React.FC<TimeLogRowFieldsProps> = ({
 	row,
 	rowIndex,
@@ -48,6 +51,10 @@ export const TimeLogRowFields: React.FC<TimeLogRowFieldsProps> = ({
 	onRemoveRow,
 	onManageCategories
 }) => {
+	const parsedHours = parseFloat(row.hours);
+	const hasHoursError = row.hours !== '' && (isNaN(parsedHours) || parsedHours <= 0 || parsedHours > 24);
+	const hasNotesError = countWords(row.notes) > 150;
+
 	return (
 		<React.Fragment>
 			{rowIndex > 0 && <Divider />}
@@ -63,26 +70,12 @@ export const TimeLogRowFields: React.FC<TimeLogRowFieldsProps> = ({
 					</Stack>
 				)}
 
-				{hasProjectModule ? (
-					<ToggleButtonGroup
-						value={row.logAgainst}
-						exclusive
-						onChange={(_, val) =>
-							val && updateRow(row.key, { logAgainst: val, projectId: '', taskId: '', categoryId: '' })
-						}
-						fullWidth
-						size="small"
-						disabled={submitting}
-					>
-						<ToggleButton value="project_task">Task</ToggleButton>
-						<ToggleButton value="general">General</ToggleButton>
-					</ToggleButtonGroup>
-				) : (
-					row.logAgainst === 'general' && (
-						<Typography variant="caption" color="text.secondary">
+				{!hasProjectModule && rowIndex === 0 && (
+					<Box sx={{ bgcolor: 'action.hover', p: 1.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+						<Typography variant="caption" color="text.secondary" display="block">
 							Logging general/internal time. Project-based logging isn't available on your organization's plan.
 						</Typography>
-					)
+					</Box>
 				)}
 
 				{row.logAgainst !== 'general' && (
@@ -187,13 +180,19 @@ export const TimeLogRowFields: React.FC<TimeLogRowFieldsProps> = ({
 					<TextField
 						label="Hours"
 						type="number"
-						inputProps={{ step: 0.25, min: 0.25, max: 24 }}
+						inputProps={{ step: 0.25, min: 0.1, max: 24 }}
 						value={row.hours}
 						onChange={(e) => updateRow(row.key, { hours: e.target.value })}
 						fullWidth
 						required
 						disabled={submitting}
 						placeholder="e.g. 1.5"
+						error={hasHoursError}
+						helperText={
+							hasHoursError
+								? 'Hours must be between 0.1 and 24.0'
+								: 'Use decimal format (e.g. 1.5 = 1h 30m, 8.0 = 8h)'
+						}
 					/>
 				</Stack>
 
@@ -205,22 +204,35 @@ export const TimeLogRowFields: React.FC<TimeLogRowFieldsProps> = ({
 					fullWidth
 					required
 					disabled={submitting}
+					helperText="Select 'Billable' for client billing or 'Non-Billable' for internal hours"
 				>
 					<MenuItem value="billable">Billable</MenuItem>
 					<MenuItem value="non_billable">Non-Billable</MenuItem>
 				</TextField>
 
-				<TextField
-					label="Notes / Description"
-					multiline
-					rows={2}
-					value={row.notes}
-					onChange={(e) => updateRow(row.key, { notes: e.target.value })}
-					fullWidth
-					disabled={submitting}
-					placeholder="What did you work on?"
-				/>
+				<Box>
+					<RichTextEditor
+						label="Notes / Description"
+						value={row.notes}
+						onChange={(val) => updateRow(row.key, { notes: val })}
+						placeholder="What did you work on?"
+						maxWords={150}
+						variant="simple"
+						minHeight={100}
+						error={hasNotesError}
+					/>
+					<Typography
+						variant="caption"
+						color={hasNotesError ? 'error.main' : 'text.secondary'}
+						sx={{ display: 'block', mt: 0.5 }}
+					>
+						{hasNotesError
+							? 'Description exceeds the 150-word limit. Please shorten it.'
+							: "Describe your activity (e.g. 'Created new UI components' or 'Attended sync meeting')"}
+					</Typography>
+				</Box>
 			</Stack>
 		</React.Fragment>
 	);
 };
+

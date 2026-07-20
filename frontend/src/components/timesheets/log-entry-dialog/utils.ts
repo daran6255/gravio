@@ -12,7 +12,7 @@ export const CATEGORY_COLORS = [
 let rowKeySeq = 0;
 export const nextRowKey = () => `row_${Date.now()}_${rowKeySeq++}`;
 
-export const makeEmptyRow = (defaultDate?: string, defaultLogAgainst: LogAgainst = 'project_task'): RowDraft => ({
+export const makeEmptyRow = (defaultDate?: string, defaultLogAgainst: LogAgainst | '' = ''): RowDraft => ({
 	key: nextRowKey(),
 	logAgainst: defaultLogAgainst,
 	projectId: '',
@@ -34,7 +34,23 @@ export const buildLogPayload = (row: RowDraft) => ({
 	billing_type: row.billingType
 });
 
+export const countWords = (html: string): number => {
+	if (!html) return 0;
+	if (typeof document === 'undefined') {
+		// Server/test environment fallback: strip html tags
+		const text = html.replace(/<[^>]*>/g, ' ').trim();
+		return text ? text.split(/\s+/).length : 0;
+	}
+	const temp = document.createElement('div');
+	temp.innerHTML = html;
+	const text = (temp.textContent || temp.innerText || '').trim();
+	return text ? text.split(/\s+/).length : 0;
+};
+
 export const validateRow = (row: RowDraft): string | null => {
+	if (!row.logAgainst) {
+		return 'Choose whether this time is for a project task or general/internal work';
+	}
 	const hrs = parseFloat(row.hours);
 	if (isNaN(hrs) || hrs <= 0 || hrs > 24) {
 		return 'Hours must be between 0.1 and 24.0';
@@ -50,6 +66,9 @@ export const validateRow = (row: RowDraft): string | null => {
 	}
 	if (row.logAgainst === 'general' && !row.categoryId) {
 		return 'Category is required';
+	}
+	if (row.notes && countWords(row.notes) > 150) {
+		return 'Description must be 150 words or less';
 	}
 	return null;
 };

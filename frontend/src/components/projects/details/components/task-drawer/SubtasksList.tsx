@@ -172,7 +172,7 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 
 	const handleSelectAssignee = async (assigneeId: number | null) => {
 		if (assigneeMenuAnchor) {
-			await onUpdateSubtask(assigneeMenuAnchor.task.public_id, { assignee_id: assigneeId });
+			await onUpdateSubtask(assigneeMenuAnchor.task.public_id, { assignee_id: assigneeId ?? undefined });
 			setAssigneeMenuAnchor(null);
 		}
 	};

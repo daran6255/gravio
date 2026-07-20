@@ -22,7 +22,7 @@ export const useTimeLogRows = ({ open, log, defaultDate, hasProjectModule, curre
 	const dispatch = useAppDispatch();
 	const { projects, projectTaskOptions, projectTaskOptionsLoading } = useAppSelector((state) => state.projects);
 
-	const [rows, setRows] = useState<RowDraft[]>([makeEmptyRow(defaultDate, hasProjectModule ? 'project_task' : 'general')]);
+	const [rows, setRows] = useState<RowDraft[]>([makeEmptyRow(defaultDate, hasProjectModule ? '' : 'general')]);
 	const [error, setError] = useState<string | null>(null);
 
 	// Module is off for this org, so the sibling-tasks endpoint (also module-gated)
@@ -115,7 +115,7 @@ export const useTimeLogRows = ({ open, log, defaultDate, hasProjectModule, curre
 				}
 			}
 		} else {
-			setRows([makeEmptyRow(defaultDate, hasProjectModule ? 'project_task' : 'general')]);
+			setRows([makeEmptyRow(defaultDate, hasProjectModule ? '' : 'general')]);
 		}
 	}, [open, log, defaultDate, hasProjectModule, dispatch]);
 
@@ -139,7 +139,8 @@ export const useTimeLogRows = ({ open, log, defaultDate, hasProjectModule, curre
 	};
 
 	const handleAddRow = () => {
-		setRows((prev) => [...prev, makeEmptyRow(defaultDate, hasProjectModule ? 'project_task' : 'general')]);
+		const currentMode = rows[0]?.logAgainst || (hasProjectModule ? '' : 'general');
+		setRows((prev) => [...prev, makeEmptyRow(defaultDate, currentMode)]);
 	};
 
 	const handleRemoveRow = (key: string) => {

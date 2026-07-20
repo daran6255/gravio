@@ -12,7 +12,9 @@ export type LogAgainst = 'project_task' | 'project_only' | 'general';
 
 export interface RowDraft {
 	key: string;
-	logAgainst: LogAgainst;
+	// '' means the user hasn't answered the "project task or general?" question yet --
+	// the row starts here so the form doesn't render both field sets at once.
+	logAgainst: LogAgainst | '';
 	projectId: number | '';
 	taskId: number | '';
 	categoryId: number | '';

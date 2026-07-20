@@ -15,6 +15,7 @@ interface RichTextEditorProps {
 	maxWords?: number;
 	/** Set to false when embedding inside an already-bordered container to avoid a double frame. */
 	bordered?: boolean;
+	error?: boolean;
 	mentionSuggestions?: {
 		users: Array<{ id: number; username?: string; full_name?: string; email: string }>;
 		documents?: Array<{ id: number; public_id: string; file_name: string }>;
@@ -57,6 +58,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 	variant = 'standard',
 	maxWords,
 	bordered = true,
+	error = false,
 	mentionSuggestions,
 }) => {
 	const theme = useTheme();
@@ -103,7 +105,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 	};
 
 	const handleChange = (html: string) => {
-		if (maxWords && countWords(html) > maxWords) return;
 		onChange(html);
 
 		// Run mention check on change
@@ -180,7 +181,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 					borderRadius: bordered ? '10px' : 0,
 					overflow: 'hidden',
 					border: bordered ? '1px solid' : 'none',
-					borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)',
+					borderColor: error
+						? theme.palette.error.main
+						: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)',
 					'& .ql-toolbar.ql-snow': {
 						borderColor: 'transparent',
 						borderBottom: '1px solid',
@@ -232,7 +235,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 					},
 					...(bordered && {
 						'&:focus-within': {
-							borderColor: alpha(theme.palette.primary.main, 0.6),
+							borderColor: error
+								? theme.palette.error.main
+								: alpha(theme.palette.primary.main, 0.6),
 						},
 					}),
 				}}
