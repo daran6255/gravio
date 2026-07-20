@@ -11,7 +11,8 @@ import {
 	type SxProps,
 	type Theme
 } from '@mui/material';
-import { Search, FilterList, Refresh, Add } from '@mui/icons-material';
+import { Search, FilterList, Refresh } from '@mui/icons-material';
+import { AddButton } from '../button';
 
 export interface DataTableHeaderProps {
 	searchTerm: string;
@@ -147,27 +148,9 @@ const DataTableHeader: React.FC<DataTableHeaderProps> = memo(({
 				</Box>
 
 				{canCreate && onCreateClick && (
-					<Button
-						variant="contained"
-						startIcon={<Add />}
-						onClick={onCreateClick}
-						sx={[
-							{
-								color: 'white',
-								textTransform: 'none',
-								fontWeight: 700,
-								borderRadius: '10px',
-								boxShadow: 'none',
-								background: theme.gradients.brand,
-								'&:hover': {
-									boxShadow: '0 4px 12px rgba(139,124,246,0.3)',
-								}
-							},
-							...(Array.isArray(createButtonSx) ? createButtonSx : [createButtonSx ?? {}]),
-						]}
-					>
+					<AddButton onClick={onCreateClick} sx={createButtonSx}>
 						{createButtonText}
-					</Button>
+					</AddButton>
 				)}
 			</Box>
 			<style>

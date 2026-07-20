@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Box, Typography, Stack, Button, useTheme, alpha } from '@mui/material';
-import { History, Add, Close } from '@mui/icons-material';
+import { Box, Typography, Stack, useTheme, alpha } from '@mui/material';
+import { History, Close } from '@mui/icons-material';
+import { AddButton, CancelButton } from '../../../../common/button';
 import { NotesComposer, NotesTimeline } from '../../../shared';
 import { fetchEntityActivities } from '../../../../../store/slices/crmSlice';
 import { useAppDispatch } from '../../../../../store/hooks';
@@ -49,27 +50,23 @@ export const CompanyNotesTab: React.FC<CompanyNotesTabProps> = ({ company, activ
 						{activities.length} logged
 					</Box>
 				</Stack>
-				<Button
-					startIcon={addOpen ? <Close /> : <Add />}
-					onClick={() => setAddOpen((v) => !v)}
-					variant={addOpen ? 'outlined' : 'contained'}
-					size="small"
-					sx={{
-						borderRadius: '8px',
-						textTransform: 'none',
-						fontWeight: 700,
-						py: 0.5,
-						px: 1.5,
-						fontSize: '0.75rem',
-						flexShrink: 0,
-						...(!addOpen && {
-							background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
-							boxShadow: '0 2px 8px rgba(139, 124, 246, 0.25)',
-						}),
-					}}
-				>
-					{addOpen ? 'Cancel' : 'Add Activity'}
-				</Button>
+				{addOpen ? (
+					<CancelButton
+						startIcon={<Close />}
+						onClick={() => setAddOpen(false)}
+						variant="outlined"
+						size="small"
+						sx={{ borderRadius: '8px', py: 0.5, px: 1.5, fontSize: '0.75rem', flexShrink: 0 }}
+					/>
+				) : (
+					<AddButton
+						onClick={() => setAddOpen(true)}
+						size="small"
+						sx={{ borderRadius: '8px', py: 0.5, px: 1.5, fontSize: '0.75rem', flexShrink: 0 }}
+					>
+						Add Activity
+					</AddButton>
+				)}
 			</Stack>
 
 			{addOpen && (

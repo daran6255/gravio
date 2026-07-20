@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Stack, Typography, Button } from '@mui/material';
-import { Add, Close } from '@mui/icons-material';
+import { Box, Stack, Typography } from '@mui/material';
+import { Close } from '@mui/icons-material';
+import { AddButton, CancelButton } from '../../../../common/button';
 import { NotesComposer, NotesTimeline } from '../../../shared';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
 import { fetchEntityActivities, clearActivities } from '../../../../../store/slices/crmSlice';
@@ -37,27 +38,23 @@ export const DealNotesTab: React.FC<DealNotesTabProps> = ({ deal }) => {
 			<Box>
 				<Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
 					<Typography sx={sectionTitleSx}>Activity History</Typography>
-					<Button
-						startIcon={addOpen ? <Close /> : <Add />}
-						onClick={() => setAddOpen((v) => !v)}
-						variant={addOpen ? 'outlined' : 'contained'}
-						size="small"
-						sx={{
-							borderRadius: '8px',
-							textTransform: 'none',
-							fontWeight: 700,
-							py: 0.5,
-							px: 1.5,
-							fontSize: '0.75rem',
-							flexShrink: 0,
-							...(!addOpen && {
-								background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
-								boxShadow: '0 2px 8px rgba(139, 124, 246, 0.25)',
-							}),
-						}}
-					>
-						{addOpen ? 'Cancel' : 'Add Activity'}
-					</Button>
+					{addOpen ? (
+						<CancelButton
+							startIcon={<Close />}
+							onClick={() => setAddOpen(false)}
+							variant="outlined"
+							size="small"
+							sx={{ borderRadius: '8px', py: 0.5, px: 1.5, fontSize: '0.75rem', flexShrink: 0 }}
+						/>
+					) : (
+						<AddButton
+							onClick={() => setAddOpen(true)}
+							size="small"
+							sx={{ borderRadius: '8px', py: 0.5, px: 1.5, fontSize: '0.75rem', flexShrink: 0 }}
+						>
+							Add Activity
+						</AddButton>
+					)}
 				</Box>
 
 				{addOpen && (

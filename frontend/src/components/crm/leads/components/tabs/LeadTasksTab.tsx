@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
 	Box, Typography, Stack, Chip, LinearProgress, TextField, MenuItem,
-	Button, IconButton, Tooltip, CircularProgress, useTheme, alpha,
+	IconButton, Tooltip, CircularProgress, useTheme, alpha,
 	Collapse, Menu,
 } from '@mui/material';
 import {
-	CheckCircle, RadioButtonUnchecked, Delete, Add, ExpandMore, ExpandLess,
+	CheckCircle, RadioButtonUnchecked, Delete, ExpandMore, ExpandLess,
 	Assignment, Description, Groups, Call, RateReview, FactCheck,
 	Schedule, WarningAmber, NotificationsActiveOutlined, Lock,
 } from '@mui/icons-material';
 import { DatePicker } from '../../../../common/form';
+import { AddButton, CancelButton, SubmitButton } from '../../../../common/button';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
 import { fetchLeadTasks, createLeadTask, updateLeadTask, deleteLeadTask, fetchActiveReminders } from '../../../../../store/slices/crmSlice';
 import useToast from '../../../../../hooks/useToast';
@@ -320,25 +321,13 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 						/>
 					</Tooltip>
 				) : !addOpen && (
-					<Button
-						startIcon={<Add />}
+					<AddButton
 						onClick={() => setAddOpen(true)}
-						variant="contained"
 						size="small"
-						sx={{
-							borderRadius: '8px',
-							textTransform: 'none',
-							fontWeight: 700,
-							py: 0.5,
-							px: 1.5,
-							fontSize: '0.75rem',
-							flexShrink: 0,
-							background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
-							boxShadow: '0 2px 8px rgba(139, 124, 246, 0.25)',
-						}}
+						sx={{ borderRadius: '8px', py: 0.5, px: 1.5, fontSize: '0.75rem', flexShrink: 0 }}
 					>
 						Add Task
-					</Button>
+					</AddButton>
 				)}
 			</Stack>
 
@@ -419,33 +408,16 @@ export const LeadTasksTab: React.FC<LeadTasksTabProps> = ({ lead }) => {
 							sx={INPUT_FIELD_SX}
 						/>
 						<Stack direction="row" spacing={1} justifyContent="flex-end">
-							<Button size="small" onClick={() => { setAddOpen(false); setNewTitle(''); }} sx={{ textTransform: 'none', fontWeight: 600 }}>
-								Cancel
-							</Button>
-							<Button
+							<CancelButton size="small" onClick={() => { setAddOpen(false); setNewTitle(''); }} sx={{ fontWeight: 600 }} />
+							<SubmitButton
 								size="small"
-								variant="contained"
 								onClick={handleAddTask}
-								disabled={!newTitle.trim() || leadTaskMutating}
-								sx={{
-									textTransform: 'none',
-									fontWeight: 700,
-									borderRadius: '8px',
-									minWidth: 80,
-									background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
-									boxShadow: '0 2px 8px rgba(139, 124, 246, 0.25)',
-									'&:hover': {
-										background: 'linear-gradient(135deg, #7c6cf0 0%, #5548c9 100%)',
-										boxShadow: '0 4px 12px rgba(139, 124, 246, 0.35)',
-									},
-									'&.Mui-disabled': {
-										background: 'none',
-										boxShadow: 'none',
-									},
-								}}
+								disabled={!newTitle.trim()}
+								loading={leadTaskMutating}
+								sx={{ borderRadius: '8px', minWidth: 80 }}
 							>
-								{leadTaskMutating ? <CircularProgress size={16} color="inherit" /> : 'Add'}
-							</Button>
+								Add
+							</SubmitButton>
 						</Stack>
 					</Stack>
 				</Box>

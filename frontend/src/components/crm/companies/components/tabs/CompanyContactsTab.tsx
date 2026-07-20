@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Box, Typography, Grid, Tooltip, IconButton, useTheme, Button, Stack, alpha } from '@mui/material';
-import { Person, ContentCopy, Add, Phone, Star, Edit } from '@mui/icons-material';
+import { Box, Typography, Grid, Tooltip, IconButton, useTheme, Stack, alpha } from '@mui/material';
+import { Person, ContentCopy, Phone, Star, Edit } from '@mui/icons-material';
+import { AddButton } from '../../../../common/button';
 import type { Contact } from '../../../../../models/crm/contact';
 import type { Company } from '../../../../../models/crm/company';
 import { fetchLinkedContacts } from '../../../../../store/slices/crmSlice';
@@ -53,24 +54,13 @@ export const CompanyContactsTab: React.FC<CompanyContactsTabProps> = ({
 				<Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'text.primary' }}>
 					Linked Contacts ({linkedContacts.length})
 				</Typography>
-				<Button
-					variant="contained"
+				<AddButton
 					size="small"
-					startIcon={<Add />}
 					onClick={() => setDialogOpen(true)}
-					sx={{
-						borderRadius: '8px',
-						textTransform: 'none',
-						fontWeight: 700,
-						py: 0.5,
-						px: 1.5,
-						fontSize: '0.75rem',
-						background: 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
-						boxShadow: '0 2px 8px rgba(139, 124, 246, 0.25)',
-					}}
+					sx={{ borderRadius: '8px', py: 0.5, px: 1.5, fontSize: '0.75rem' }}
 				>
 					Add Contact
-				</Button>
+				</AddButton>
 			</Stack>
 
 			{linkedContactsLoading ? (
