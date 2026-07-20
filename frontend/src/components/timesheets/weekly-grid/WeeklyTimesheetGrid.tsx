@@ -115,11 +115,26 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 
 				<Stack direction="row" spacing={2} width={{ xs: '100%', sm: 'auto' }}>
 					<Button
-						variant="outlined"
+						variant="contained"
 						startIcon={<AddIcon />}
 						onClick={onAddRow}
 						disabled={isLocked || isWeekClosed}
-						sx={{ borderRadius: 4, fontWeight: 600 }}
+						sx={(theme) => ({
+							borderRadius: '10px',
+							px: 3,
+							py: 1,
+							background: theme.gradients.brandDiagonal,
+							boxShadow: '0 4px 14px 0 rgba(139, 124, 246, 0.4)',
+							border: 'none',
+							textTransform: 'none',
+							fontWeight: 700,
+							transition: 'all 0.2s ease',
+							'&:hover': {
+								background: theme.gradients.brandDiagonalHover,
+								boxShadow: '0 6px 20px 0 rgba(139, 124, 246, 0.6)',
+								transform: 'translateY(-1px)',
+							},
+						})}
 					>
 						Add Row
 					</Button>

@@ -396,10 +396,27 @@ const TimeLogEntryFormDialog: React.FC<TimeLogEntryFormDialogProps> = ({
 
 						{!isEdit && (
 							<Button
+								variant="contained"
 								startIcon={<AddIcon />}
 								onClick={handleAddRow}
 								disabled={submitting}
-								sx={{ alignSelf: 'flex-start', fontWeight: 600, borderRadius: 4 }}
+								sx={(theme) => ({
+									alignSelf: 'flex-start',
+									fontWeight: 700,
+									borderRadius: '10px',
+									px: 3,
+									py: 1,
+									background: theme.gradients.brandDiagonal,
+									boxShadow: '0 4px 14px 0 rgba(139, 124, 246, 0.4)',
+									border: 'none',
+									textTransform: 'none',
+									transition: 'all 0.2s ease',
+									'&:hover': {
+										background: theme.gradients.brandDiagonalHover,
+										boxShadow: '0 6px 20px 0 rgba(139, 124, 246, 0.6)',
+										transform: 'translateY(-1px)',
+									},
+								})}
 							>
 								Add Another Row
 							</Button>
