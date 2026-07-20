@@ -8,7 +8,6 @@ import {
 	Stack,
 	TextField,
 	MenuItem,
-	Button,
 	Autocomplete,
 	useTheme,
 	alpha,
@@ -23,6 +22,7 @@ import {
 } from '@mui/icons-material';
 import { NumericFormat } from 'react-number-format';
 import { DatePicker, RichTextEditor } from '../../../common/form';
+import { CancelButton, SubmitButton } from '../../../common/button';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { searchCompanyOptions } from '../../../../store/slices/crmSlice';
 import { getWorldCurrencies, getCurrencySymbol } from '../../../../utils/currency';
@@ -278,12 +278,10 @@ export const ProjectEditDrawer: React.FC<ProjectEditDrawerProps> = ({
 
 				<Box display="flex" justifyContent="flex-end">
 					<Stack direction="row" spacing={1.5}>
-						<Button variant="text" onClick={onClose} sx={{ color: 'text.secondary' }}>
-							Cancel
-						</Button>
-						<Button
-							variant="contained"
-							disabled={submitting || !isValid}
+						<CancelButton onClick={onClose} sx={{ color: 'text.secondary' }} />
+						<SubmitButton
+							loading={submitting}
+							disabled={!isValid}
 							onClick={handleSave}
 							sx={{
 								color: theme.palette.primary.contrastText,
@@ -291,8 +289,8 @@ export const ProjectEditDrawer: React.FC<ProjectEditDrawerProps> = ({
 								'&:hover': { boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}` },
 							}}
 						>
-							{submitting ? 'Saving...' : 'Save Changes'}
-						</Button>
+							Save Changes
+						</SubmitButton>
 					</Stack>
 				</Box>
 			</Box>

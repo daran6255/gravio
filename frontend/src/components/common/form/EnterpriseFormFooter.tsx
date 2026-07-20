@@ -8,6 +8,7 @@ import {
 	CircularProgress
 } from '@mui/material';
 import { NavigateBefore, NavigateNext, Save, Delete as DeleteIcon } from '@mui/icons-material';
+import { SubmitButton, CancelButton } from '../button';
 
 interface EnterpriseFormFooterProps {
 	activeStep: number;
@@ -60,11 +61,10 @@ const EnterpriseFormFooter: React.FC<EnterpriseFormFooterProps> = ({
 			zIndex: 10
 		}}>
 			<Box sx={{ display: 'flex', gap: 1.5 }}>
-				<Button
+				<CancelButton
 					variant="outlined"
 					onClick={onCancel}
 					sx={{
-						textTransform: 'none',
 						fontWeight: 600,
 						px: 3,
 						borderRadius: '10px',
@@ -77,7 +77,7 @@ const EnterpriseFormFooter: React.FC<EnterpriseFormFooterProps> = ({
 					}}
 				>
 					{mode === 'view' ? 'Close' : 'Cancel'}
-				</Button>
+				</CancelButton>
 
 				{mode === 'edit' && onDelete && (
 					<Button
@@ -130,14 +130,12 @@ const EnterpriseFormFooter: React.FC<EnterpriseFormFooterProps> = ({
 
 					{mode !== 'view' && (
 						isLastStep ? (
-							<Button
-								variant="contained"
-								startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : <Save />}
+							<SubmitButton
+								startIcon={isSubmitting ? undefined : <Save />}
 								onClick={onSave}
-								disabled={isSubmitting || saveDisabled}
+								loading={isSubmitting}
+								disabled={saveDisabled}
 								sx={{
-									textTransform: 'none',
-									fontWeight: 700,
 									borderRadius: '10px',
 									px: 4,
 									color: '#fff',
@@ -152,8 +150,8 @@ const EnterpriseFormFooter: React.FC<EnterpriseFormFooterProps> = ({
 									}
 								}}
 							>
-								{isSubmitting ? 'Saving...' : (mode === 'create' ? 'Create' : saveButtonText)}
-							</Button>
+								{mode === 'create' ? 'Create' : saveButtonText}
+							</SubmitButton>
 						) : (
 							<Button
 								variant="contained"

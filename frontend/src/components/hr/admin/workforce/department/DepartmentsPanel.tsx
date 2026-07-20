@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Box, Typography, Stack, Grid, TextField, InputAdornment, Button, CircularProgress, alpha, useTheme, type Theme } from '@mui/material';
+import { AddButton } from '../../../../common/button';
 import {
 	AccountTreeOutlined as DeptIcon,
 	Edit as EditIcon,
 	Delete as DeleteIcon,
 	Search as SearchIcon,
-	Add as AddIcon,
 	AutoAwesome as SeedIcon,
 	PersonOutline as PersonIcon,
 } from '@mui/icons-material';
@@ -117,14 +117,9 @@ export const DepartmentsPanel: React.FC = () => {
 						),
 					}}
 				/>
-				<Button
-					variant="contained"
-					startIcon={<AddIcon />}
+				<AddButton
 					onClick={() => { setEditTarget(null); setDialogOpen(true); }}
 					sx={{
-						color: 'white',
-						textTransform: 'none',
-						fontWeight: 700,
 						borderRadius: '12px',
 						px: 2.5,
 						boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`,
@@ -133,7 +128,7 @@ export const DepartmentsPanel: React.FC = () => {
 					}}
 				>
 					New Department
-				</Button>
+				</AddButton>
 			</Stack>
 
 			{!loading && filtered.length === 0 ? (

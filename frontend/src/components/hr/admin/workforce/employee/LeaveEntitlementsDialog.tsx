@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-	Button, TextField, Stack, FormControl, InputLabel, Select, MenuItem,
+	TextField, Stack, FormControl, InputLabel, Select, MenuItem,
 	CircularProgress, Typography, Table, TableBody, TableCell, TableContainer,
 	TableHead, TableRow, Paper, Box, alpha, useTheme
 } from '@mui/material';
 import { BaseDialog } from '../../../../common/dialogbox';
+import { CancelButton, SubmitButton } from '../../../../common/button';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
 import { fetchEmployeeLeaveBalances, updateLeaveBalance } from '../../../../../store/slices/hrSlice';
 import type { HREmployeeListItem } from '../../../../../models/hr';
@@ -88,17 +89,14 @@ export const LeaveEntitlementsDialog: React.FC<LeaveEntitlementsDialogProps> = (
 			loading={saving}
 			actions={
 				<>
-					<Button onClick={onClose} disabled={saving} sx={{ borderRadius: 3 }}>
-						Cancel
-					</Button>
-					<Button
-						variant="contained"
+					<CancelButton onClick={onClose} disabled={saving} />
+					<SubmitButton
 						onClick={handleSave}
-						disabled={saving || !hasChanges}
-						sx={{ borderRadius: 3, fontWeight: 700 }}
+						loading={saving}
+						disabled={!hasChanges}
 					>
-						{saving ? <CircularProgress size={20} color="inherit" /> : 'Save Entitlements'}
-					</Button>
+						Save Entitlements
+					</SubmitButton>
 				</>
 			}
 		>

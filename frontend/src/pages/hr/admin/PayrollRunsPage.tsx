@@ -14,6 +14,7 @@ import {
 	AttachMoney as MoneyIcon,
 } from '@mui/icons-material';
 import PageHeader from '../../../components/common/page-header';
+import { CancelButton, SubmitButton } from '../../../components/common/button';
 import { responsiveStyles } from '../../../theme';
 import { hrPayslipApi } from '../../../services/hrService';
 import {
@@ -370,8 +371,8 @@ const PayrollRunsPage: React.FC = () => {
 					</Stack>
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={() => setOpenCreateDialog(false)}>Cancel</Button>
-					<Button variant="contained" onClick={handleCreateRun}>Create Run</Button>
+					<CancelButton onClick={() => setOpenCreateDialog(false)} />
+					<SubmitButton onClick={handleCreateRun}>Create Run</SubmitButton>
 				</DialogActions>
 			</Dialog>
 
@@ -437,8 +438,8 @@ const PayrollRunsPage: React.FC = () => {
 					</Stack>
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={() => setOpenVarDialog(false)}>Cancel</Button>
-					<Button variant="contained" onClick={handleSaveVariablePay}>Apply & Re-calculate</Button>
+					<CancelButton onClick={() => setOpenVarDialog(false)} />
+					<SubmitButton onClick={handleSaveVariablePay}>Apply & Re-calculate</SubmitButton>
 				</DialogActions>
 			</Dialog>
 		</Container>

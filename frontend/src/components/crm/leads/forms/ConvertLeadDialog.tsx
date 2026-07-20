@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, TextField, MenuItem, Button, Stack, CircularProgress, Alert, Typography } from '@mui/material';
+import { Box, TextField, MenuItem, Stack, CircularProgress, Alert, Typography } from '@mui/material';
 import BaseDialog from '../../../common/dialogbox/BaseDialog';
+import { CancelButton, SubmitButton } from '../../../common/button';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchPipelines, convertLead } from '../../../../store/slices/crmSlice';
 import type { Lead } from '../../../../models/crm/lead';
@@ -75,17 +76,15 @@ export const ConvertLeadDialog: React.FC<ConvertLeadDialogProps> = ({ open, onCl
 			loading={convertLoading}
 			actions={
 				<>
-					<Button onClick={onClose} disabled={convertLoading} sx={{ textTransform: 'none', fontWeight: 600 }}>
-						Cancel
-					</Button>
-					<Button
-						variant="contained"
+					<CancelButton onClick={onClose} disabled={convertLoading} sx={{ fontWeight: 600 }} />
+					<SubmitButton
 						onClick={handleConvert}
-						disabled={convertLoading || pipelineId === '' || stageId === ''}
-						sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px', px: 3 }}
+						loading={convertLoading}
+						disabled={pipelineId === '' || stageId === ''}
+						sx={{ borderRadius: '10px', px: 3 }}
 					>
-						{convertLoading ? <CircularProgress size={20} color="inherit" /> : 'Convert'}
-					</Button>
+						Convert
+					</SubmitButton>
 				</>
 			}
 		>

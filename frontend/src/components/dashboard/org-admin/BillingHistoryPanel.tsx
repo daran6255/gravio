@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { Card, CardContent, Typography, Box, useTheme, Link, Chip, Button, alpha } from '@mui/material';
+import { Card, CardContent, Typography, Box, useTheme, Link, Chip, alpha } from '@mui/material';
 import { Receipt, ChevronRight, Download } from '@mui/icons-material';
 import { useAppSelector } from '../../../store/hooks';
+import { AddButton } from '../../common/button';
 
 export const BillingHistoryPanel: React.FC = () => {
 	const theme = useTheme();
@@ -118,26 +119,14 @@ Thank you for your business!
 				</Box>
 
 				<Box sx={{ mt: 'auto' }}>
-					<Button
-						variant="contained"
+					<AddButton
 						fullWidth
 						disabled={!isPaid}
 						onClick={downloadInvoice}
 						startIcon={<Download />}
-						sx={{
-							textTransform: 'none',
-							fontWeight: 700,
-							borderRadius: '10px',
-							background: theme.gradients.brandDiagonal,
-							color: '#fff',
-							boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)',
-							'&:hover': {
-								background: theme.gradients.brandDiagonalHover,
-							},
-						}}
 					>
 						Download Invoice
-					</Button>
+					</AddButton>
 				</Box>
 			</CardContent>
 		</Card>

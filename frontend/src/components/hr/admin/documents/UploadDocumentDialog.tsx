@@ -4,6 +4,7 @@ import {
 } from '@mui/material';
 import { UploadFileOutlined as UploadIcon } from '@mui/icons-material';
 import BaseDialog from '../../../common/dialogbox/BaseDialog';
+import { CancelButton, SubmitButton } from '../../../common/button';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { uploadDocument } from '../../../../store/slices/hrSlice';
 import useToast from '../../../../hooks/useToast';
@@ -84,22 +85,20 @@ const UploadDocumentDialog: React.FC<UploadDocumentDialogProps> = ({ open, onClo
 			loading={saving}
 			actions={
 				<>
-					<Button onClick={onClose} disabled={saving} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '10px', color: 'text.secondary' }}>
-						Cancel
-					</Button>
-					<Button
-						variant="contained"
+					<CancelButton onClick={onClose} disabled={saving} sx={{ borderRadius: '10px', fontWeight: 600, color: 'text.secondary' }} />
+					<SubmitButton
 						onClick={handleSave}
-						disabled={saving || !canSave}
+						loading={saving}
+						disabled={!canSave}
 						sx={{
-							textTransform: 'none', fontWeight: 700, borderRadius: '10px', px: 3, color: 'white',
+							borderRadius: '10px', px: 3, color: 'white',
 							boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`,
 							background: theme.gradients.brand,
 							'&:hover': { boxShadow: `0 8px 20px ${alpha(theme.palette.primary.main, 0.35)}` },
 						}}
 					>
-						{saving ? 'Uploading…' : 'Upload Document'}
-					</Button>
+						Upload Document
+					</SubmitButton>
 				</>
 			}
 		>

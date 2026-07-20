@@ -3,7 +3,6 @@ import {
 	TableRow,
 	TableCell,
 	Typography,
-	Button,
 	IconButton,
 	Box,
 	Collapse,
@@ -25,6 +24,7 @@ import type { ProjectTimeLog } from '../../../models/timesheet';
 import TimesheetStatusBadge from '../shared/TimesheetStatusBadge';
 import { formatHoursDisplay } from '../weekly-grid';
 import { BaseDialog, ConfirmationDialog } from '../../common/dialogbox';
+import { CancelButton, SubmitButton } from '../../common/button';
 import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../common/table';
 import { useTeamApprovals, groupLogsByProject, type ProjectGroup } from './hooks/useTeamApprovals';
 
@@ -297,18 +297,14 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 				maxWidth="xs"
 				actions={
 					<>
-						<Button onClick={handleCloseRejectDialog} variant="outlined" sx={{ borderRadius: 3 }}>
-							Cancel
-						</Button>
-						<Button
+						<CancelButton onClick={handleCloseRejectDialog} variant="outlined" />
+						<SubmitButton
 							onClick={handleConfirmReject}
-							variant="contained"
 							color="error"
 							disabled={!rejectionReason.trim()}
-							sx={{ borderRadius: 3, fontWeight: 700 }}
 						>
 							Reject Timesheet
-						</Button>
+						</SubmitButton>
 					</>
 				}
 			>

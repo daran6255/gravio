@@ -9,7 +9,6 @@ import {
 	Autocomplete,
 	TextField,
 	InputAdornment,
-	Button,
 	CircularProgress,
 } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
@@ -23,6 +22,7 @@ import { updateProfile } from '../../store/slices/authSlice';
 import useToast from '../../hooks/useToast';
 import { getWorldCurrencies } from '../../utils/currency';
 import { BROWSER_TIMEZONE, getTimezoneOptions } from '../../utils/timezone';
+import { AddButton } from '../common/button';
 
 interface ProfileSetupDialogProps {
 	open: boolean;
@@ -162,21 +162,15 @@ const ProfileSetupDialog: React.FC<ProfileSetupDialogProps> = ({ open }) => {
 				</Box>
 			</DialogContent>
 			<DialogActions sx={{ px: 3, pb: 3, pt: 1 }}>
-				<Button
+				<AddButton
 					fullWidth
+					hideIcon
 					disabled={!canSubmit || saving}
 					onClick={handleSubmit}
 					sx={{
-						textTransform: 'none',
-						fontWeight: 700,
 						borderRadius: theme.layout.radius.button,
 						py: 1.1,
 						color: theme.palette.primary.contrastText,
-						background: theme.gradients.brandDiagonal,
-						boxShadow: `0 4px 14px 0 ${alpha(theme.palette.primary.main, 0.4)}`,
-						'&:hover': {
-							background: theme.gradients.brandDiagonalHover,
-						},
 						'&.Mui-disabled': {
 							color: alpha(theme.palette.primary.contrastText, 0.6),
 							background: alpha(theme.palette.primary.main, 0.4),
@@ -184,7 +178,7 @@ const ProfileSetupDialog: React.FC<ProfileSetupDialogProps> = ({ open }) => {
 					}}
 				>
 					{saving ? <CircularProgress size={20} sx={{ color: theme.palette.primary.contrastText }} /> : 'Save & Continue'}
-				</Button>
+				</AddButton>
 			</DialogActions>
 		</Dialog>
 	);

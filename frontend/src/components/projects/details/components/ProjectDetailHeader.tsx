@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Typography, Stack, IconButton, Button, Avatar, LinearProgress, Chip, Divider, Tooltip, Collapse, useTheme, alpha } from '@mui/material';
+import { Box, Typography, Stack, IconButton, Avatar, LinearProgress, Chip, Divider, Tooltip, Collapse, useTheme, alpha } from '@mui/material';
 import {
 	ArrowBackOutlined,
 	PersonOutline,
@@ -12,11 +12,11 @@ import {
 	WarningAmberOutlined,
 	GroupsOutlined,
 	ExpandMoreOutlined,
-	AddOutlined,
 	SettingsOutlined,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import StatusBadge, { getStatusTone } from '../../../common/badge/StatusBadge';
+import { AddButton } from '../../../common/button';
 import useDateTime from '../../../../hooks/useDateTime';
 import { formatMoney } from '../../../../utils/currency';
 import type { Project } from '../../../../models/projects/project';
@@ -201,26 +201,9 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 					</Stack>
 
 					<Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
-						<Button
-							variant="contained"
-							size="small"
-							startIcon={<AddOutlined />}
-							onClick={onAddTask}
-							sx={(theme) => ({
-								color: '#ffffff', textTransform: 'none', fontWeight: 700, borderRadius: '10px', px: 2.25, py: 0.75,
-								background: theme.gradients.brandDiagonal,
-								boxShadow: '0 4px 14px 0 rgba(139, 124, 246, 0.4)',
-								border: 'none',
-								transition: 'all 0.2s ease',
-								'&:hover': {
-									background: theme.gradients.brandDiagonalHover,
-									boxShadow: '0 6px 20px 0 rgba(139, 124, 246, 0.6)',
-									transform: 'translateY(-1px)',
-								},
-							})}
-						>
+						<AddButton size="small" onClick={onAddTask} sx={{ px: 2.25, py: 0.75 }}>
 							Add Task
-						</Button>
+						</AddButton>
 						<Tooltip title="Manage task stages">
 							<IconButton
 								onClick={onManageStages}

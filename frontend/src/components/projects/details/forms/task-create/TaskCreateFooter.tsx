@@ -1,5 +1,6 @@
 import React from 'react';
-import { DialogActions, Stack, Button, Checkbox, FormControlLabel, Typography, useTheme } from '@mui/material';
+import { DialogActions, Stack, Checkbox, FormControlLabel, Typography, useTheme } from '@mui/material';
+import { CancelButton, SubmitButton } from '../../../../common/button';
 import type { ProjectTask } from '../../../../../models/projects/projectTask';
 
 interface TaskCreateFooterProps {
@@ -55,11 +56,10 @@ export const TaskCreateFooter: React.FC<TaskCreateFooterProps> = ({
 
 			{/* Cancel and Create buttons */}
 			<Stack direction="row" spacing={1.5}>
-				<Button
+				<CancelButton
 					onClick={onClose}
 					disabled={submitting}
 					sx={{
-						textTransform: 'none',
 						fontWeight: 700,
 						fontSize: '0.825rem',
 						borderRadius: '6px',
@@ -71,18 +71,14 @@ export const TaskCreateFooter: React.FC<TaskCreateFooterProps> = ({
 						bgcolor: theme.palette.action.hover,
 						'&:hover': { bgcolor: theme.palette.action.selected },
 					}}
-				>
-					Cancel
-				</Button>
-				<Button
-					variant="contained"
+				/>
+				<SubmitButton
 					onClick={handleCreate}
-					disabled={submitting || !isValid}
+					loading={submitting}
+					disabled={!isValid}
 					disableElevation
 					sx={{
 						color: theme.palette.success.contrastText,
-						textTransform: 'none',
-						fontWeight: 700,
 						fontSize: '0.825rem',
 						px: 3,
 						py: 0.75,
@@ -93,7 +89,7 @@ export const TaskCreateFooter: React.FC<TaskCreateFooterProps> = ({
 					}}
 				>
 					{parentTask ? 'Create sub-task' : 'Create task'}
-				</Button>
+				</SubmitButton>
 			</Stack>
 		</DialogActions>
 	);

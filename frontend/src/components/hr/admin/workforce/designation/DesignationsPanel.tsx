@@ -3,9 +3,9 @@ import {
 	Box, Typography, Stack, Grid, TextField, InputAdornment, Button, FormControl, Select, MenuItem,
 	CircularProgress, alpha, useTheme,
 } from '@mui/material';
+import { AddButton } from '../../../../common/button';
 import {
 	Search as SearchIcon,
-	Add as AddIcon,
 	Edit as EditIcon,
 	Delete as DeleteIcon,
 	WorkOutline as DesignationIcon,
@@ -169,14 +169,9 @@ export const DesignationsPanel: React.FC = () => {
 							Total Titles
 						</Typography>
 					</Box>
-					<Button
-						variant="contained"
-						startIcon={<AddIcon />}
+					<AddButton
 						onClick={() => { setEditTarget(null); setDialogOpen(true); }}
 						sx={{
-							color: 'white',
-							textTransform: 'none',
-							fontWeight: 700,
 							borderRadius: '12px',
 							px: 2.5,
 							boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`,
@@ -185,7 +180,7 @@ export const DesignationsPanel: React.FC = () => {
 						}}
 					>
 						New Designation
-					</Button>
+					</AddButton>
 				</Stack>
 			</Stack>
 

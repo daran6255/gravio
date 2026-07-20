@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Box, Container, Grid, Stack, Button } from '@mui/material';
-import { HelpOutline } from '@mui/icons-material';
+import { Box, Container, Grid, Stack } from '@mui/material';
 import { responsiveStyles } from '../../theme';
 import PageHeader from '../../components/common/page-header';
+import { HelpGuideButton } from '../../components/common/button';
 import { WelcomeBanner } from '../../components/common/guide';
 import { useDismissibleBanner } from '../../hooks/useDismissibleBanner';
 import { COMPANIES_GUIDE_CONTENT } from '../../data/companiesGuideData';
@@ -84,13 +84,9 @@ const CompaniesPage: React.FC = () => {
 					title="Companies"
 					subtitle="Account records for your sales pipeline"
 					action={
-						<Button
-							variant="outlined"
-							startIcon={<HelpOutline />}
+						<HelpGuideButton
 							onClick={() => setGuideOpen(true)}
 							sx={{
-								textTransform: 'none',
-								fontWeight: 700,
 								borderRadius: '8px',
 								borderColor: 'divider',
 								color: 'text.secondary',
@@ -100,9 +96,7 @@ const CompaniesPage: React.FC = () => {
 									color: 'primary.main',
 								}
 							}}
-						>
-							Help Guide
-						</Button>
+						/>
 					}
 				/>
 

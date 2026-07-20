@@ -39,6 +39,7 @@ import {
 	ArrowDownward
 } from '@mui/icons-material';
 import { DatePicker, RichTextEditor } from '../../../common/form';
+import { CancelButton, SubmitButton } from '../../../common/button';
 import useToast from '../../../../hooks/useToast';
 import type { ProjectCreate, ProjectStatus } from '../../../../models/projects/project';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
@@ -1059,17 +1060,14 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 				<Box display="flex" justifyContent="space-between" alignItems="center">
 					{activeStep === 0 ? (
 						<>
-							<Button variant="outlined" onClick={onClose}>
-								Cancel
-							</Button>
-							<Button
-								variant="contained"
+							<CancelButton onClick={onClose} variant="outlined" />
+							<SubmitButton
 								endIcon={<ArrowForward />}
 								disabled={selectedCategory !== 'Blank' && !selectedTemplate}
 								onClick={handleNext}
 							>
 								Next: Preview Template
-							</Button>
+							</SubmitButton>
 						</>
 					) : activeStep === 1 ? (
 						<>
@@ -1086,16 +1084,14 @@ export const ProjectCreateDrawer: React.FC<ProjectCreateDrawerProps> = ({
 								Back
 							</Button>
 							<Stack direction="row" spacing={1.5}>
-								<Button variant="text" onClick={onClose} sx={{ color: 'text.secondary' }}>
-									Cancel
-								</Button>
-								<Button
-									variant="contained"
-									disabled={submitting || !isValid}
+								<CancelButton onClick={onClose} sx={{ color: 'text.secondary' }} />
+								<SubmitButton
+									loading={submitting}
+									disabled={!isValid}
 									onClick={handleSave}
 								>
-									{submitting ? 'Creating...' : 'Create Project'}
-								</Button>
+									Create Project
+								</SubmitButton>
 							</Stack>
 						</>
 					)}

@@ -1,7 +1,6 @@
 import React from 'react';
-import { Box, Container, Button, Grid } from '@mui/material';
+import { Box, Container, Grid } from '@mui/material';
 import {
-	Add as AddIcon,
 	People as PeopleIcon,
 	CheckCircleOutline as CheckCircleOutlineIcon,
 	MailOutline as MailOutlineIcon,
@@ -9,6 +8,7 @@ import {
 } from '@mui/icons-material';
 import { responsiveStyles } from '../../theme';
 import PageHeader from '../../components/common/page-header';
+import { AddButton } from '../../components/common/button';
 import {
 	OrgManagementTable,
 	OrgManagementModals,
@@ -113,30 +113,9 @@ const OrgManagement: React.FC = () => {
 	];
 
 	const headerAction = (
-		<Button
-			variant="contained"
-			startIcon={<AddIcon />}
-			onClick={handleAddUser}
-			sx={(theme) => ({
-				borderRadius: '10px',
-				fontWeight: 700,
-				textTransform: 'none',
-				px: 3,
-				py: 1,
-				color: '#ffffff',
-				background: theme.gradients.brandDiagonal,
-				boxShadow: '0 4px 14px 0 rgba(139, 124, 246, 0.4)',
-				border: 'none',
-				transition: 'all 0.2s ease',
-				'&:hover': {
-					background: theme.gradients.brandDiagonalHover,
-					boxShadow: '0 6px 20px 0 rgba(139, 124, 246, 0.6)',
-					transform: 'translateY(-1px)',
-				}
-			})}
-		>
+		<AddButton onClick={handleAddUser}>
 			Invite Teammate
-		</Button>
+		</AddButton>
 	);
 
 	return (

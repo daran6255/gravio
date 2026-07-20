@@ -8,7 +8,6 @@ import {
 	IconButton,
 	Tooltip,
 	Popover,
-	CircularProgress,
 	useTheme,
 	alpha,
 	Avatar,
@@ -26,6 +25,7 @@ import {
 import dayjs from 'dayjs';
 import { BaseDialog } from '../../../common/dialogbox';
 import { RichTextEditor, DatePicker } from '../../../common/form';
+import { CancelButton, SubmitButton } from '../../../common/button';
 import { SetReminderDialog } from '../../../crm/shared';
 import useToast from '../../../../hooks/useToast';
 import type { ProjectTask, ProjectTaskCreate, ProjectTaskUpdate, ProjectTaskStatus, ProjectTaskTag, BillingType } from '../../../../models/projects/projectTask';
@@ -159,22 +159,19 @@ export const ProjectTaskFormDialog: React.FC<ProjectTaskFormDialogProps> = ({
 								</IconButton>
 							</Tooltip>
 						)}
-						<Button onClick={onClose} disabled={submitting} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '10px' }}>
-							Cancel
-						</Button>
-						<Button
-							variant="contained"
+						<CancelButton onClick={onClose} disabled={submitting} sx={{ fontWeight: 600, borderRadius: '10px' }} />
+						<SubmitButton
 							onClick={handleSave}
-							disabled={submitting}
+							loading={submitting}
 							sx={{
-								color: theme.palette.primary.contrastText, textTransform: 'none', fontWeight: 700, px: 4, minWidth: 140, borderRadius: '10px', boxShadow: 'none',
+								color: theme.palette.primary.contrastText, px: 4, minWidth: 140, borderRadius: '10px', boxShadow: 'none',
 								background: theme.gradients.brand,
 								'&:hover': { boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}` },
 								'&.Mui-disabled': { background: theme.palette.action.disabledBackground },
 							}}
 						>
-							{submitting ? <CircularProgress size={18} color="inherit" /> : isEdit ? 'Save Changes' : 'Create'}
-						</Button>
+							{isEdit ? 'Save Changes' : 'Create'}
+						</SubmitButton>
 					</>
 				}
 			>

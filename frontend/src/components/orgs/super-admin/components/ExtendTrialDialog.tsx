@@ -1,7 +1,8 @@
 import React from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Typography, TextField, Button, InputAdornment } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Typography, TextField, InputAdornment } from '@mui/material';
 import { CalendarToday } from '@mui/icons-material';
 import type { Organization } from '../../../../models/auth';
+import { SubmitButton, CancelButton } from '../../../common/button';
 
 interface ExtendTrialDialogProps {
 	open: boolean;
@@ -42,10 +43,8 @@ export const ExtendTrialDialog: React.FC<ExtendTrialDialogProps> = ({
 				/>
 			</DialogContent>
 			<DialogActions sx={{ px: 3, pb: 3 }}>
-				<Button onClick={onClose} color="inherit">Cancel</Button>
-				<Button onClick={onConfirm} variant="contained" disabled={extendLoading}>
-					{extendLoading ? 'Extending...' : 'Extend'}
-				</Button>
+				<CancelButton onClick={onClose} color="inherit" />
+				<SubmitButton onClick={onConfirm} loading={extendLoading}>Extend</SubmitButton>
 			</DialogActions>
 		</Dialog>
 	);

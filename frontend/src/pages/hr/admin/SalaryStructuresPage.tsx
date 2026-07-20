@@ -13,6 +13,7 @@ import {
 	AssignmentInd as AssignmentIcon
 } from '@mui/icons-material';
 import PageHeader from '../../../components/common/page-header';
+import { CancelButton, SubmitButton } from '../../../components/common/button';
 import { responsiveStyles } from '../../../theme';
 import {
 	fetchPayrollStructures, fetchPayrollComponents, fetchEmployees,
@@ -404,8 +405,8 @@ const SalaryStructuresPage: React.FC = () => {
 					</Stack>
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={() => setOpenStructDialog(false)}>Cancel</Button>
-					<Button variant="contained" onClick={handleSaveStructure}>Save Structure</Button>
+					<CancelButton onClick={() => setOpenStructDialog(false)} />
+					<SubmitButton onClick={handleSaveStructure}>Save Structure</SubmitButton>
 				</DialogActions>
 			</Dialog>
 
@@ -459,8 +460,8 @@ const SalaryStructuresPage: React.FC = () => {
 					</Stack>
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={() => setOpenAllocDialog(false)}>Cancel</Button>
-					<Button variant="contained" onClick={handleSaveAllocation}>Assign & Save</Button>
+					<CancelButton onClick={() => setOpenAllocDialog(false)} />
+					<SubmitButton onClick={handleSaveAllocation}>Assign & Save</SubmitButton>
 				</DialogActions>
 			</Dialog>
 		</Container>

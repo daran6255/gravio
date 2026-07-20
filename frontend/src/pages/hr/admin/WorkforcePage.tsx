@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Box, Container, Stack, IconButton } from '@mui/material';
+import { Box, Container, Stack } from '@mui/material';
 import { HelpOutline as HelpIcon } from '@mui/icons-material';
 import PageHeader from '../../../components/common/page-header';
 import WorkforcePanel, { WorkforceTabs, type WorkforceTab } from '../../../components/hr/admin/workforce';
 import { responsiveStyles } from '../../../theme';
 import { HelpGuideDrawer } from '../../../components/common/guide/HelpGuideDrawer';
+import { HelpGuideButton } from '../../../components/common/button';
 
 const hrAdminGuideContent = {
 	icon: HelpIcon,
@@ -80,12 +81,7 @@ const WorkforcePage: React.FC = () => {
 						action={
 							<Stack direction="row" spacing={1.5} alignItems="center">
 								<WorkforceTabs value={tab} onChange={setTab} />
-								<IconButton
-									onClick={() => setGuideOpen(true)}
-									sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}
-								>
-									<HelpIcon />
-								</IconButton>
+								<HelpGuideButton compact onClick={() => setGuideOpen(true)} />
 							</Stack>
 						}
 					/>

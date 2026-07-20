@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Button, FormControl, InputLabel, MenuItem, Select, Stack, Typography, alpha, useTheme } from '@mui/material';
+import { Box, FormControl, InputLabel, MenuItem, Select, Stack, Typography, alpha, useTheme } from '@mui/material';
 import BaseDialog from '../../../common/dialogbox/BaseDialog';
+import { CancelButton, SubmitButton } from '../../../common/button';
 import { useAppDispatch } from '../../../../store/hooks';
 import { launchChecklistInstance } from '../../../../store/slices/hrSlice';
 import type { ChecklistExitReason, HREmployeeListItem, HRChecklistTemplate } from '../../../../models/hr';
@@ -63,22 +64,20 @@ const LaunchChecklistDialog: React.FC<LaunchChecklistDialogProps> = ({ open, onC
 			loading={saving}
 			actions={
 				<>
-					<Button onClick={onClose} disabled={saving} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '10px', color: 'text.secondary' }}>
-						Cancel
-					</Button>
-					<Button
-						variant="contained"
+					<CancelButton onClick={onClose} disabled={saving} sx={{ borderRadius: '10px', fontWeight: 600, color: 'text.secondary' }} />
+					<SubmitButton
 						onClick={handleLaunch}
-						disabled={saving || !employeeId || !templateId}
+						loading={saving}
+						disabled={!employeeId || !templateId}
 						sx={{
-							textTransform: 'none', fontWeight: 700, borderRadius: '10px', px: 3, color: 'white',
+							borderRadius: '10px', px: 3, color: 'white',
 							boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`,
 							background: theme.gradients.brand,
 							'&:hover': { boxShadow: `0 8px 20px ${alpha(theme.palette.primary.main, 0.35)}` },
 						}}
 					>
-						{saving ? 'Launching…' : 'Launch Tracker'}
-					</Button>
+						Launch Tracker
+					</SubmitButton>
 				</>
 			}
 		>

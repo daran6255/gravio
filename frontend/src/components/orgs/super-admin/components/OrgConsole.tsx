@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, Container, Button, TableRow, TableCell, Typography, LinearProgress, useTheme, Grid, Tabs, Tab, Chip, Stack, alpha } from '@mui/material';
-import { Add as AddIcon, Block, CheckCircleOutline, CalendarToday, DeleteOutline } from '@mui/icons-material';
+import { Box, Container, TableRow, TableCell, Typography, LinearProgress, useTheme, Grid, Tabs, Tab, Chip, Stack, alpha } from '@mui/material';
+import { Block, CheckCircleOutline, CalendarToday, DeleteOutline } from '@mui/icons-material';
 import { responsiveStyles } from '../../../../theme';
 import type { Organization } from '../../../../models/auth';
 import { useOrgConsole } from '../hooks/useOrgConsole';
@@ -13,6 +13,7 @@ import PageHeader from '../../../common/page-header';
 import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../../common/table';
 import { ConfirmationDialog } from '../../../common/dialogbox';
 import StatusBadge from '../../../common/badge/StatusBadge';
+import { AddButton } from '../../../common/button';
 
 const buildColumns = (accountTypeFilter: 'all' | 'organization' | 'individual'): ColumnDefinition<Organization>[] => [
 	{ id: 'name', label: accountTypeFilter === 'individual' ? 'Name' : 'Organization', sortable: false },
@@ -213,29 +214,12 @@ export const OrgConsole: React.FC = () => {
 					title="Organizations Console"
 					subtitle="Manage global infrastructure entities and subscription tiers."
 					action={
-						<Button
-							variant="contained"
-							startIcon={<AddIcon />}
+						<AddButton
 							onClick={() => setCreateDialogOpen(true)}
-							sx={{
-								textTransform: 'none',
-								fontWeight: 700,
-								px: 3.5,
-								py: 1.25,
-								borderRadius: '12px',
-								color: '#ffffff',
-								background: theme.gradients.brandDiagonal,
-								boxShadow: '0 4px 14px 0 rgba(139, 124, 246, 0.4)',
-								transition: 'all 0.2s ease',
-								'&:hover': {
-									background: theme.gradients.brandDiagonalHover,
-									boxShadow: '0 6px 20px 0 rgba(139, 124, 246, 0.6)',
-									transform: 'translateY(-1px)'
-								}
-							}}
+							sx={{ px: 3.5, py: 1.25, borderRadius: '12px' }}
 						>
 							Create Organization
-						</Button>
+						</AddButton>
 					}
 				/>
 

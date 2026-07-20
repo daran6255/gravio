@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
 	Button, TextField, Stack, FormControl, InputLabel, Select, MenuItem,
-	CircularProgress, Autocomplete, ButtonGroup, Typography, Box, alpha, useTheme,
+	Autocomplete, ButtonGroup, Typography, Box, alpha, useTheme,
 } from '@mui/material';
 import { PersonSearch as ExistingIcon, PersonAdd as NewHireIcon, Badge as BadgeIcon } from '@mui/icons-material';
 import { BaseDialog } from '../../../../common/dialogbox';
+import { CancelButton, SubmitButton } from '../../../../common/button';
 import { DatePicker } from '../../../../common/form';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
 import { createEmployee, updateEmployee } from '../../../../../store/slices/hrSlice';
@@ -131,15 +132,14 @@ export const EmployeeDialog: React.FC<EmployeeDialogProps> = ({ open, onClose, o
 			loading={saving}
 			actions={
 				<>
-					<Button onClick={onClose} disabled={saving} sx={{ borderRadius: 3 }}>Cancel</Button>
-					<Button
-						variant="contained"
+					<CancelButton onClick={onClose} disabled={saving} />
+					<SubmitButton
 						onClick={handleSave}
-						disabled={saving || !canSave}
-						sx={{ borderRadius: 3, fontWeight: 700 }}
+						loading={saving}
+						disabled={!canSave}
 					>
-						{saving ? <CircularProgress size={20} color="inherit" /> : isEditing ? 'Save Changes' : 'Create'}
-					</Button>
+						{isEditing ? 'Save Changes' : 'Create'}
+					</SubmitButton>
 				</>
 			}
 		>

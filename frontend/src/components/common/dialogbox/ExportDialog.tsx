@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
-import { 
-	Button, 
-	Typography, 
-	Box, 
-	alpha, 
-	useTheme, 
+import {
+	Typography,
+	Box,
+	alpha,
+	useTheme,
 	Stack,
 	Paper,
 	CircularProgress,
 	LinearProgress
 } from '@mui/material';
-import { 
-	TableChartRounded as ExcelIcon, 
+import {
+	TableChartRounded as ExcelIcon,
 	ArticleRounded as CsvIcon,
 	FileDownloadDoneRounded as SuccessIcon,
 	InfoOutlined
 } from '@mui/icons-material';
 import BaseDialog from './BaseDialog';
 import type { ExportDialogProps } from './types';
+import { SubmitButton, CancelButton } from '../button';
 
 /**
  * ExportDialog - High-fidelity Enterprise Data Extraction
@@ -47,21 +47,16 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
 
 	const actions = (
 		<Box sx={{ display: 'flex', gap: 1.5 }}>
-			<Button 
-				onClick={onClose} 
+			<CancelButton
+				onClick={onClose}
 				disabled={loading}
-				sx={{ textTransform: 'none', color: 'text.secondary', fontWeight: 600 }}
-			>
-				Cancel
-			</Button>
-			<Button
-				variant="contained"
+				sx={{ color: 'text.secondary', fontWeight: 600 }}
+			/>
+			<SubmitButton
 				onClick={handleExport}
-				disabled={loading}
+				loading={loading}
 				sx={{
 					color: 'white',
-					textTransform: 'none',
-					fontWeight: 700,
 					px: 4,
 					borderRadius: '10px',
 					boxShadow: 'none',
@@ -71,8 +66,8 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
 					'&.Mui-disabled': { background: theme.palette.action.disabledBackground }
 				}}
 			>
-				{loading ? <CircularProgress size={20} color="inherit" /> : 'Start Export'}
-			</Button>
+				Start Export
+			</SubmitButton>
 		</Box>
 	);
 

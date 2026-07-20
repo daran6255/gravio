@@ -24,6 +24,7 @@ import {
 } from '@mui/icons-material';
 import BaseDialog from './BaseDialog';
 import type { ImportDialogProps } from './types';
+import { SubmitButton, CancelButton } from '../button';
 
 const ImportDialog: React.FC<ImportDialogProps> = ({
 	open,
@@ -197,22 +198,20 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
 				</Link>
 			) : <Box />}
 			<Box sx={{ display: 'flex', gap: 1.5 }}>
-				<Button
+				<CancelButton
 					onClick={handleClose}
 					disabled={loading}
-					sx={{ textTransform: 'none', color: 'text.secondary', fontWeight: 600, borderRadius: '10px' }}
+					sx={{ color: 'text.secondary', fontWeight: 600, borderRadius: '10px' }}
 				>
 					{result ? 'Dismiss' : 'Cancel'}
-				</Button>
+				</CancelButton>
 				{!result && (
-					<Button
-						variant="contained"
-						disabled={!selectedFile || loading}
+					<SubmitButton
+						disabled={!selectedFile}
+						loading={loading}
 						onClick={handleConfirmImport}
 						sx={{
 							color: 'white',
-							textTransform: 'none',
-							fontWeight: 700,
 							px: 4,
 							borderRadius: '10px',
 							boxShadow: 'none',
@@ -221,8 +220,8 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
 							'&.Mui-disabled': { background: theme.palette.action.disabledBackground }
 						}}
 					>
-						{loading ? 'Processing...' : 'Begin Ingestion'}
-					</Button>
+						Begin Ingestion
+					</SubmitButton>
 				)}
 			</Box>
 		</Box>

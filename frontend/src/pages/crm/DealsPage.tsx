@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Box, Container, Button, MenuItem, TextField, InputAdornment } from '@mui/material';
-import { Settings, Add, Search as SearchIcon, HelpOutline } from '@mui/icons-material';
+import { Settings, Search as SearchIcon } from '@mui/icons-material';
 import { responsiveStyles, fieldWidth } from '../../theme';
 import PageHeader from '../../components/common/page-header';
+import { AddButton, HelpGuideButton } from '../../components/common/button';
 import { WelcomeBanner } from '../../components/common/guide';
 import { useDismissibleBanner } from '../../hooks/useDismissibleBanner';
 import { DEALS_GUIDE_CONTENT } from '../../data/dealsGuideData';
@@ -67,13 +68,9 @@ const DealsPage: React.FC = () => {
 
 	const headerAction = (
 		<Box sx={responsiveStyles.headerActionRow}>
-			<Button
-				variant="outlined"
-				startIcon={<HelpOutline />}
+			<HelpGuideButton
 				onClick={() => setGuideOpen(true)}
 				sx={{
-					textTransform: 'none',
-					fontWeight: 700,
 					borderRadius: '8px',
 					borderColor: 'divider',
 					color: 'text.secondary',
@@ -83,9 +80,7 @@ const DealsPage: React.FC = () => {
 						color: 'primary.main',
 					}
 				}}
-			>
-				Help Guide
-			</Button>
+			/>
 			{pipelines.length > 1 && (
 				<TextField
 					select
@@ -109,25 +104,21 @@ const DealsPage: React.FC = () => {
 					Manage Stages
 				</Button>
 			)}
-			<Button
-				variant="contained"
-				startIcon={<Add />}
+			<AddButton
 				onClick={handleCreateClick}
 				sx={(theme) => ({
-					color: 'white',
-					textTransform: 'none',
-					fontWeight: 700,
-					borderRadius: '10px',
 					height: 40,
 					boxShadow: 'none',
 					background: theme.gradients.brand,
 					'&:hover': {
+						background: theme.gradients.brand,
 						boxShadow: '0 4px 12px rgba(139,124,246,0.3)',
+						transform: 'none',
 					}
 				})}
 			>
 				New Deal
-			</Button>
+			</AddButton>
 		</Box>
 	);
 

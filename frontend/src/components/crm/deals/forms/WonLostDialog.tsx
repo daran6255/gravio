@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { TextField, Button, CircularProgress, Stack } from '@mui/material';
+import { TextField, Stack } from '@mui/material';
 import BaseDialog from '../../../common/dialogbox/BaseDialog';
+import { CancelButton, SubmitButton } from '../../../common/button';
 import { useAppDispatch } from '../../../../store/hooks';
 import { updateDeal } from '../../../../store/slices/crmSlice';
 import useToast from '../../../../hooks/useToast';
@@ -52,18 +53,15 @@ export const WonLostDialog: React.FC<WonLostDialogProps> = ({ open, onClose, dea
 			loading={submitting}
 			actions={
 				<>
-					<Button onClick={onClose} disabled={submitting} sx={{ textTransform: 'none', fontWeight: 600 }}>
-						Cancel
-					</Button>
-					<Button
-						variant="contained"
+					<CancelButton onClick={onClose} disabled={submitting} sx={{ fontWeight: 600 }} />
+					<SubmitButton
 						color="error"
 						onClick={handleConfirm}
-						disabled={submitting}
-						sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px', px: 3 }}
+						loading={submitting}
+						sx={{ borderRadius: '10px', px: 3 }}
 					>
-						{submitting ? <CircularProgress size={20} color="inherit" /> : 'Mark as Lost'}
-					</Button>
+						Mark as Lost
+					</SubmitButton>
 				</>
 			}
 		>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Container, Stack, Skeleton, Button, alpha, useTheme } from '@mui/material';
-import { Add as AddIcon, PlayArrow as LaunchIcon } from '@mui/icons-material';
+import { PlayArrow as LaunchIcon } from '@mui/icons-material';
 import PageHeader from '../../../components/common/page-header';
+import { AddButton } from '../../../components/common/button';
 import { responsiveStyles } from '../../../theme';
 import {
 	fetchChecklistTemplates, createChecklistTemplate, deleteChecklistTemplate,
@@ -161,19 +162,17 @@ const ChecklistPage: React.FC = () => {
 									Launch Checklist
 								</Button>
 								{isAdminOrHR && (
-									<Button
-										variant="contained"
-										startIcon={<AddIcon />}
+									<AddButton
 										onClick={() => handleOpenTemplateDialog()}
 										sx={{
-											borderRadius: '10px', px: 2.5, fontWeight: 700, textTransform: 'none', color: 'white',
+											borderRadius: '10px', px: 2.5,
 											boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`,
 											background: theme.gradients.brand,
 											'&:hover': { boxShadow: `0 8px 20px ${alpha(theme.palette.primary.main, 0.35)}` },
 										}}
 									>
 										New Template
-									</Button>
+									</AddButton>
 								)}
 							</Stack>
 						}

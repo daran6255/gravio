@@ -8,7 +8,6 @@ import {
 	Typography,
 	TextField,
 	MenuItem,
-	Button,
 	CircularProgress,
 	Alert,
 	Autocomplete,
@@ -27,6 +26,7 @@ import { fetchCurrentUser } from '../../../store/slices/authSlice';
 import userService from '../../../services/userService';
 import useToast from '../../../hooks/useToast';
 import useLocationSearch from '../../../hooks/useLocationSearch';
+import { SubmitButton, CancelButton } from '../../common/button';
 
 interface ConvertToTeamDialogProps {
 	open: boolean;
@@ -249,31 +249,26 @@ const ConvertToTeamDialog: React.FC<ConvertToTeamDialogProps> = ({ open, onClose
 					</Box>
 				</DialogContent>
 				<DialogActions sx={{ px: 3, pb: 3, pt: 0, justifyContent: 'space-between' }}>
-					<Button
+					<CancelButton
 						variant="text"
 						onClick={handleClose}
 						disabled={submitting}
-						sx={{ textTransform: 'none', fontWeight: 700 }}
-					>
-						Cancel
-					</Button>
-					<Button
+						sx={{ fontWeight: 700 }}
+					/>
+					<SubmitButton
 						type="submit"
-						variant="contained"
-						disabled={submitting}
+						loading={submitting}
+						startIcon={submitting ? undefined : <TeamIcon />}
 						sx={{
-							textTransform: 'none',
-							fontWeight: 700,
 							px: 3,
 							borderRadius: 2.5,
 							background: theme.gradients?.brand ?? 'linear-gradient(135deg, #8B7CF6 0%, #6052d9 100%)',
 							boxShadow: 'none',
 							'&:hover': { boxShadow: 'none' },
 						}}
-						startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : <TeamIcon />}
 					>
-						{submitting ? 'Converting...' : 'Convert Account'}
-					</Button>
+						Convert Account
+					</SubmitButton>
 				</DialogActions>
 			</form>
 		</Dialog>

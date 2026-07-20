@@ -23,7 +23,6 @@ import {
 	TextField,
 	Alert,
 	InputAdornment,
-	CircularProgress,
 	Tabs,
 	Tab
 } from '@mui/material';
@@ -42,6 +41,7 @@ import userService from '../../services/userService';
 import useToast from '../../hooks/useToast';
 import PageHeader from '../../components/common/page-header';
 import ConvertToTeamDialog from '../../components/settings/profile/ConvertToTeamDialog';
+import { SubmitButton, CancelButton } from '../../components/common/button';
 
 interface PlanDetail {
 	tier: 'free' | 'basic' | 'pro' | 'enterprise';
@@ -749,32 +749,27 @@ const BillingSettings: React.FC = () => {
 							</Box>
 						</DialogContent>
 						<DialogActions sx={{ px: 3, pb: 3, pt: 0, justifyContent: 'space-between' }}>
-							<Button 
-								variant="text" 
+							<CancelButton
+								variant="text"
 								onClick={() => setPaymentDialogOpen(false)}
 								disabled={processingPayment}
-								sx={{ textTransform: 'none', fontWeight: 700 }}
-							>
-								Cancel
-							</Button>
-							<Button
+								sx={{ fontWeight: 700 }}
+							/>
+							<SubmitButton
 								type="submit"
-								variant="contained"
 								color="primary"
-								disabled={processingPayment}
-								sx={{ 
-									textTransform: 'none', 
-									fontWeight: 700, 
+								loading={processingPayment}
+								startIcon={processingPayment ? undefined : <LockIcon />}
+								sx={{
 									px: 3,
 									borderRadius: 2.5,
 									background: theme.gradients.brand,
 									boxShadow: 'none',
 									'&:hover': { boxShadow: 'none' }
 								}}
-								startIcon={processingPayment ? <CircularProgress size={18} color="inherit" /> : <LockIcon />}
 							>
-								{processingPayment ? 'Processing Payment...' : `Pay & Upgrade`}
-							</Button>
+								Pay & Upgrade
+							</SubmitButton>
 						</DialogActions>
 					</form>
 				</Dialog>

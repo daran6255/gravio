@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import {
-	Box, Button, Chip, FormControl, Grid, IconButton, InputLabel, MenuItem,
+	Box, Chip, FormControl, Grid, IconButton, InputLabel, MenuItem,
 	Select, Stack, TextField, Typography, alpha, useTheme,
 } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon } from '@mui/icons-material';
 import BaseDialog from '../../../common/dialogbox/BaseDialog';
+import { AddButton, CancelButton, SubmitButton } from '../../../common/button';
 import { useAppDispatch } from '../../../../store/hooks';
 import { createChecklistTemplate, updateChecklistTemplate } from '../../../../store/slices/hrSlice';
 import type { ChecklistType, HRChecklistTemplate } from '../../../../models/hr';
@@ -111,22 +112,20 @@ const TemplateDialog: React.FC<TemplateDialogProps> = ({ open, onClose, onSaved,
 			loading={saving}
 			actions={
 				<>
-					<Button onClick={onClose} disabled={saving} sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '10px', color: 'text.secondary' }}>
-						Cancel
-					</Button>
-					<Button
-						variant="contained"
+					<CancelButton onClick={onClose} disabled={saving} sx={{ borderRadius: '10px', fontWeight: 600, color: 'text.secondary' }} />
+					<SubmitButton
 						onClick={handleSave}
-						disabled={saving || !name.trim()}
+						loading={saving}
+						disabled={!name.trim()}
 						sx={{
-							textTransform: 'none', fontWeight: 700, borderRadius: '10px', px: 3, color: 'white',
+							borderRadius: '10px', px: 3, color: 'white',
 							boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`,
 							background: theme.gradients.brand,
 							'&:hover': { boxShadow: `0 8px 20px ${alpha(theme.palette.primary.main, 0.35)}` },
 						}}
 					>
-						{saving ? 'Saving…' : 'Save Template'}
-					</Button>
+						Save Template
+					</SubmitButton>
 				</>
 			}
 		>
@@ -192,9 +191,9 @@ const TemplateDialog: React.FC<TemplateDialogProps> = ({ open, onClose, onSaved,
 								/>
 							</Grid>
 							<Grid size={{ xs: 12, sm: 2 }}>
-								<Button variant="contained" fullWidth startIcon={<AddIcon />} onClick={handleAddTask} sx={{ borderRadius: '10px' }}>
+								<AddButton fullWidth onClick={handleAddTask} sx={{ borderRadius: '10px' }}>
 									Add
-								</Button>
+								</AddButton>
 							</Grid>
 						</Grid>
 					</Box>

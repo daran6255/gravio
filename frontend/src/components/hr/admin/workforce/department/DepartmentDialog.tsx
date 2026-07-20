@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Button, TextField, Stack, Select, MenuItem, FormControl, InputLabel, CircularProgress } from '@mui/material';
+import { TextField, Stack, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 import { BaseDialog } from '../../../../common/dialogbox';
+import { CancelButton, SubmitButton } from '../../../../common/button';
 import { useAppDispatch } from '../../../../../store/hooks';
 import { createDepartment, updateDepartment } from '../../../../../store/slices/hrSlice';
 import type { HRDepartmentListItem, HRDepartmentCreate, HRDepartmentUpdate } from '../../../../../models/hr';
@@ -66,15 +67,14 @@ export const DepartmentDialog: React.FC<DepartmentDialogProps> = ({ open, onClos
 			loading={saving}
 			actions={
 				<>
-					<Button onClick={onClose} disabled={saving} sx={{ borderRadius: 3 }}>Cancel</Button>
-					<Button
-						variant="contained"
+					<CancelButton onClick={onClose} disabled={saving} />
+					<SubmitButton
 						onClick={handleSave}
-						disabled={saving || !form.name.trim()}
-						sx={{ borderRadius: 3, fontWeight: 700 }}
+						loading={saving}
+						disabled={!form.name.trim()}
 					>
-						{saving ? <CircularProgress size={20} color="inherit" /> : existing ? 'Update' : 'Create'}
-					</Button>
+						{existing ? 'Update' : 'Create'}
+					</SubmitButton>
 				</>
 			}
 		>

@@ -4,7 +4,6 @@ import {
 	TableRow,
 	TableCell,
 	Stack,
-	Button,
 	Chip,
 	TextField,
 	Box,
@@ -27,6 +26,7 @@ import {
 } from '@mui/icons-material';
 import { useWeekUnlockRequests, type UnlockRequestFilter } from './hooks/useWeekUnlockRequests';
 import { BaseDialog } from '../../common/dialogbox';
+import { CancelButton, SubmitButton } from '../../common/button';
 import { DataTable, type ColumnDefinition } from '../../common/table';
 import EnterpriseAvatar from '../../common/avatar/Avatar';
 import type { TimesheetWeekUnlockRequest } from '../../../models/timesheet';
@@ -295,12 +295,10 @@ const WeekUnlockRequestsPanel: React.FC<WeekUnlockRequestsPanelProps> = ({ reque
 				maxWidth="xs"
 				actions={
 					<>
-						<Button onClick={() => setDenyTarget(null)} variant="outlined" sx={{ borderRadius: 3 }}>
-							Cancel
-						</Button>
-						<Button onClick={handleConfirmDeny} variant="contained" color="error" sx={{ borderRadius: 3, fontWeight: 700 }}>
+						<CancelButton onClick={() => setDenyTarget(null)} variant="outlined" />
+						<SubmitButton onClick={handleConfirmDeny} color="error">
 							Deny Request
-						</Button>
+						</SubmitButton>
 					</>
 				}
 			>

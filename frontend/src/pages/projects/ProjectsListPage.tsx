@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Box, Container, Grid, Stack, Button } from '@mui/material';
+import { Box, Container, Grid, Stack } from '@mui/material';
 import { HelpOutline as HelpIcon } from '@mui/icons-material';
 import { responsiveStyles } from '../../theme';
 import PageHeader from '../../components/common/page-header';
+import { HelpGuideButton } from '../../components/common/button';
 import { ConfirmationDialog } from '../../components/common/dialogbox';
 import { WelcomeBanner } from '../../components/common/guide/WelcomeBanner';
 import { HelpGuideDrawer } from '../../components/common/guide/HelpGuideDrawer';
@@ -128,15 +129,7 @@ const ProjectsListPage: React.FC = () => {
 					title="Projects"
 					subtitle="Delivery projects converted from Won deals"
 					action={
-						<Button
-							variant="outlined"
-							size="small"
-							startIcon={<HelpIcon />}
-							onClick={() => setGuideOpen(true)}
-							sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700 }}
-						>
-							Help Guide
-						</Button>
+						<HelpGuideButton onClick={() => setGuideOpen(true)} sx={{ borderRadius: '8px' }} />
 					}
 				/>
 

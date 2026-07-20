@@ -6,7 +6,6 @@ import {
 	IconButton,
 	Stack,
 	Typography,
-	CircularProgress,
 	Alert,
 	Tooltip,
 	Chip,
@@ -16,6 +15,7 @@ import {
 } from '@mui/material';
 import { Add, DeleteOutline, ArrowUpward, ArrowDownward, AutoAwesomeOutlined, WorkspacesOutlined } from '@mui/icons-material';
 import BaseDialog from '../dialogbox/BaseDialog';
+import { SubmitButton, CancelButton } from '../button';
 
 export interface StageItem {
 	id?: number | string;
@@ -151,16 +151,11 @@ export const StageManagementDialog: React.FC<StageManagementDialogProps> = ({
 			loading={loading}
 			actions={
 				<>
-					<Button onClick={onClose} disabled={loading} sx={{ textTransform: 'none', fontWeight: 600 }}>
-						Cancel
-					</Button>
-					<Button
-						variant="contained"
+					<CancelButton onClick={onClose} disabled={loading} sx={{ fontWeight: 600 }} />
+					<SubmitButton
 						onClick={handleSaveClick}
-						disabled={loading}
+						loading={loading}
 						sx={{
-							textTransform: 'none',
-							fontWeight: 700,
 							borderRadius: '10px',
 							px: 3,
 							background: 'linear-gradient(90deg, #8B7CF6 0%, #4EA8FF 100%)',
@@ -169,8 +164,8 @@ export const StageManagementDialog: React.FC<StageManagementDialogProps> = ({
 							'&:hover': { boxShadow: '0 4px 12px rgba(139,124,246,0.3)' }
 						}}
 					>
-						{loading ? <CircularProgress size={20} color="inherit" /> : 'Save Changes'}
-					</Button>
+						Save Changes
+					</SubmitButton>
 				</>
 			}
 		>

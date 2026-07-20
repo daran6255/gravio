@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Box, Container, Grid, Stack, Button } from '@mui/material';
-import { HelpOutline, FileUploadOutlined, LockOutlined } from '@mui/icons-material';
+import { FileUploadOutlined, LockOutlined } from '@mui/icons-material';
 import PageHeader from '../../components/common/page-header';
+import { HelpGuideButton } from '../../components/common/button';
 import { WelcomeBanner } from '../../components/common/guide';
 import { responsiveStyles } from '../../theme';
 import { PremiumTooltip } from '../../components/common/PremiumTooltip';
@@ -125,13 +126,9 @@ const LeadsPage: React.FC = () => {
 									</Button>
 								</span>
 							</PremiumTooltip>
-							<Button
-								variant="outlined"
-								startIcon={<HelpOutline />}
+							<HelpGuideButton
 								onClick={() => setGuideOpen(true)}
 								sx={{
-									textTransform: 'none',
-									fontWeight: 700,
 									borderRadius: '8px',
 									borderColor: 'divider',
 									color: 'text.secondary',
@@ -141,9 +138,7 @@ const LeadsPage: React.FC = () => {
 										color: 'primary.main',
 									}
 								}}
-							>
-								Help Guide
-							</Button>
+							/>
 						</Stack>
 					}
 				/>
