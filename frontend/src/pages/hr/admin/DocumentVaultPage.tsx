@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Container, Stack, Skeleton, alpha, useTheme } from '@mui/material';
-import { CloudUploadOutlined as UploadIcon } from '@mui/icons-material';
+import { Box, Container, Stack, Skeleton } from '@mui/material';
 import PageHeader from '../../../components/common/page-header';
-import { AddButton } from '../../../components/common/button';
 import { responsiveStyles } from '../../../theme';
 import { fetchDocuments, fetchEmployees } from '../../../store/slices/hrSlice';
 import useToast from '../../../hooks/useToast';
@@ -15,7 +13,6 @@ import {
 } from '../../../components/hr/admin/documents';
 
 const DocumentVaultPage: React.FC = () => {
-	const theme = useTheme();
 	const dispatch = useAppDispatch();
 	const { error } = useToast();
 	const currentUser = useAppSelector((state) => state.auth.user);
@@ -45,20 +42,6 @@ const DocumentVaultPage: React.FC = () => {
 					<PageHeader
 						title="Document Vault"
 						subtitle="Securely store, verify, and track employee identity and compliance documents."
-						action={
-							<AddButton
-								startIcon={<UploadIcon />}
-								onClick={() => setUploadDialogOpen(true)}
-								sx={{
-									borderRadius: '10px', px: 2.5,
-									boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`,
-									background: theme.gradients.brand,
-									'&:hover': { boxShadow: `0 8px 20px ${alpha(theme.palette.primary.main, 0.35)}` },
-								}}
-							>
-								Upload Document
-							</AddButton>
-						}
 					/>
 
 					{loading ? (
