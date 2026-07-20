@@ -265,9 +265,17 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 
 	return (
 		<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
-			<Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.75rem', mb: 0.5 }}>
-				Add a comment
-			</Typography>
+			<Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.5 }}>
+				<Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.75rem' }}>
+					Add a comment
+				</Typography>
+				<Stack direction="row" alignItems="center" spacing={0.5}>
+					<AutoAwesome sx={{ fontSize: 13, color: 'text.disabled' }} />
+					<Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>
+						Type @aria to ask your AI co-worker about this task
+					</Typography>
+				</Stack>
+			</Stack>
 
 			{/* Hidden file input */}
 			<input
