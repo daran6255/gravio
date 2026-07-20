@@ -7,4 +7,7 @@ exists but isn't imported here is silently invisible to the planner.
 """
 
 from app.ai.mcp.tools import productivity  # noqa: F401
+from app.ai.mcp.tools import crm  # noqa: F401
+from app.ai.mcp.tools import projects  # noqa: F401
+from app.ai.mcp.tools import timesheets  # noqa: F401
 

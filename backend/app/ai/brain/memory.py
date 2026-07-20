@@ -8,8 +8,9 @@ the accuracy of the planner and extraction services.
 """
 
 import logging
+import string
 from typing import Any, TYPE_CHECKING
-from sqlalchemy import select, text
+from sqlalchemy import or_, select
 from app.ai.models.ai_task_log import AITaskLog, AITaskStatus
 
 if TYPE_CHECKING:
@@ -31,17 +32,21 @@ class BrainMemory:
         For now, we use a simple keyword match on task_name, but this can be upgraded 
         to vector search (pgvector) in the future.
         """
-        # Extract potential keywords from hint
-        keywords = [w for w in task_hint.split() if len(w) > 4]
+        # Extract potential keywords from hint. Stripped of surrounding punctuation (a quoted
+        # task name like "'Requirements Analysis'" would otherwise leave a stray leading/
+        # trailing quote on each word) and bound as query parameters below, not interpolated
+        # into raw SQL — task_hint is arbitrary user chat text, so string-building a WHERE
+        # clause from it directly was both a SQL injection risk and broke outright on any word
+        # containing a quote character (Postgres syntax error, which poisoned the whole
+        # request's DB transaction since nothing here rolled it back).
+        keywords = [kw for w in task_hint.split() if len(kw := w.strip(string.punctuation)) > 4]
         if not keywords:
             return []
 
-        search_clause = " OR ".join([f"task_name ILIKE '%{kw}%'" for kw in keywords[:3]])
-        
         try:
             result = await self._db.execute(
                 select(AITaskLog)
-                .where(text(search_clause))
+                .where(or_(*[AITaskLog.task_name.ilike(f"%{kw}%") for kw in keywords[:3]]))
                 .where(AITaskLog.status == AITaskStatus.COMPLETED)
                 .order_by(AITaskLog.created_at.desc())
                 .limit(limit)

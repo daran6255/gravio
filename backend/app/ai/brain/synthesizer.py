@@ -29,30 +29,30 @@ class Synthesizer:
         if not results:
             return planned_response or "I've processed your request."
 
-        full_content = ""
+        reveal_content = None
         response_lines = []
 
         for req, res in results:
             if res.success:
                 # Use the tool's own message — already human-readable
                 response_lines.append(res.message)
-                
-                # Check for REVEAL_DATA (Special analytics mapping)
-                if res.data and res.data.get("REVEAL_DATA"):
-                    reveal = res.data["REVEAL_DATA"]
-                    mapped = self._map_reveal_data(reveal, res.message)
-                    if mapped:
-                        full_content = mapped
-                elif not full_content:
-                    full_content = res.message
+
+                # Check for REVEAL_DATA (Special analytics mapping) — first one found wins
+                if reveal_content is None and res.data and res.data.get("REVEAL_DATA"):
+                    reveal_content = self._map_reveal_data(res.data["REVEAL_DATA"], res.message)
             else:
                 response_lines.append(f"⚠️ Tool '{req.tool_name}' encountered an issue: {res.message}")
 
-        # If multiple tools and no reveal data, join all messages
-        if len(results) > 1 and not full_content:
-            full_content = "\n\n".join(response_lines)
-            
-        return full_content or planned_response or "Task completed."
+        if reveal_content:
+            return reveal_content
+
+        # Every successful (and failed) tool's message is reported — a plan with several tool
+        # calls (e.g. search, then log an activity, then create a task) must confirm all of
+        # them, not just whichever ran first.
+        if response_lines:
+            return "\n\n".join(response_lines) if len(response_lines) > 1 else response_lines[0]
+
+        return planned_response or "Task completed."
 
     def _map_reveal_data(self, reveal: str, original_message: str) -> str | None:
         """

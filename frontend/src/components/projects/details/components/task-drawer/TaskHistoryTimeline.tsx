@@ -381,7 +381,12 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 
 					{taskHistory.map((h) => {
 						const { Icon, color } = resolveEvent(h);
-						const name = actorName(h.changed_by_user_id);
+						// A comment with no author is ARIA's own reply (see the @ARIA-mention
+						// handling in the comments endpoint) -- everything else with a null
+						// actor is a genuinely unattributable event, not ARIA.
+						const name = h.action === 'comment' && h.changed_by_user_id == null
+							? 'ARIA'
+							: actorName(h.changed_by_user_id);
 						const nameColor = getAvatarColor(name, theme);
 
 						return renderRow(

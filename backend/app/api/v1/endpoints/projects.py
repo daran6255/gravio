@@ -7,6 +7,7 @@ with parent_task_id set.
 """
 
 import os
+import re
 import uuid
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, status, UploadFile, File
@@ -346,6 +347,13 @@ async def get_task_history_endpoint(
     )
 
 
+# Matches the plain "@aria " text CommentsSection.tsx inserts when a user picks ARIA from the
+# same mention-suggestion list used for @user (see RichTextEditor.tsx / CommentsSection.tsx --
+# mentions there are just styled substrings, not structured nodes, so detecting one server-side
+# is a plain text match).
+ARIA_MENTION_RE = re.compile(r"@aria\b", re.IGNORECASE)
+
+
 @router_tasks.post(
     "/{task_public_id}/comments",
     response_model=AuditLogResponse,
@@ -371,6 +379,34 @@ async def create_task_comment_endpoint(
     )
     await db.commit()
     await db.refresh(comment_log)
+
+    # If ARIA was @mentioned, run the rest of the comment text as an agentic instruction
+    # scoped to this task and post the reply as a follow-up comment (changed_by_user_id=None
+    # marks it as system/AI-authored). Runs synchronously -- same tradeoff as the existing
+    # /ai/chat and /ai/tasks/run endpoints, which also block on the LLM call.
+    if ARIA_MENTION_RE.search(payload.content):
+        from app.ai.brain.engine import AIEngine
+        from app.ai.schemas.requests import AITaskRunRequest
+
+        instruction = ARIA_MENTION_RE.sub("", payload.content).strip()
+        engine = AIEngine(db, current_user)
+        result = await engine.run(AITaskRunRequest(
+            trigger_type="manual",
+            task_hint=instruction or f"Help with the task '{task.title}'.",
+            input_data={"entity_type": "project_task", "entity_id": task.id, "task_title": task.title},
+        ))
+        reply_text = result.summary or (f"⚠️ {result.error}" if result.error else None)
+        if reply_text:
+            await AuditService.record(
+                db,
+                entity_type="project_task",
+                entity_id=task.id,
+                action="comment",
+                changed_by_user_id=None,
+                new_value=reply_text,
+            )
+            await db.commit()
+
     return comment_log
 
 

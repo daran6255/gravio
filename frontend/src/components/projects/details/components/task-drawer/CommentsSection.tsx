@@ -23,6 +23,7 @@ import {
 	AlternateEmail,
 	SentimentSatisfiedAltOutlined,
 	AttachFile,
+	AutoAwesome,
 } from '@mui/icons-material';
 import type { ProjectTask, ProjectTaskFile } from '../../../../../models/projects/projectTask';
 import type { CRMOwnerOption } from '../../../../../models/crm/owner';
@@ -89,7 +90,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 		setIsMentionOpen(false);
 	};
 
-	const handleSelectMention = (type: 'user' | 'file' | 'task', item: any) => {
+	const handleSelectMention = (type: 'user' | 'file' | 'task' | 'aria', item: any) => {
 		const input = inputRef.current;
 		if (!input) return;
 
@@ -97,7 +98,9 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 		const text = commentText;
 
 		let insertionText = '';
-		if (type === 'user') {
+		if (type === 'aria') {
+			insertionText = `@aria `;
+		} else if (type === 'user') {
 			insertionText = `@${item.email.split('@')[0]} `;
 		} else if (type === 'file') {
 			insertionText = `[📄 ${item.file_name}](/api/v1/project-tasks/${task.public_id}/files/${item.public_id}/download) `;
@@ -222,6 +225,11 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 			}
 		}
 	};
+
+	// Matches ARIA_MENTION_RE (`@aria\b`) server-side -- selecting this inserts "@aria "
+	// exactly like picking a real user inserts "@username ", so the backend's plain-text
+	// detection in the task-comments endpoint picks it up with no extra wiring.
+	const ariaMentionMatches = 'aria'.includes(mentionSearch.toLowerCase());
 
 	// Filter mention options
 	const filteredUsers = useMemo(() => {
@@ -446,7 +454,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 
 			{/* Mentions Popover */}
 			<Popover
-				open={isMentionOpen && (filteredUsers.length > 0 || filteredFiles.length > 0 || filteredTasks.length > 0)}
+				open={isMentionOpen && (ariaMentionMatches || filteredUsers.length > 0 || filteredFiles.length > 0 || filteredTasks.length > 0)}
 				anchorEl={inputRef.current}
 				onClose={() => setIsMentionOpen(false)}
 				anchorOrigin={{
@@ -473,6 +481,37 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 				}}
 			>
 				<Box sx={{ p: 1 }}>
+					{ariaMentionMatches && (
+						<Box>
+							<MenuItem
+								onClick={() => handleSelectMention('aria', null)}
+								sx={{ borderRadius: '4px', py: 0.5 }}
+							>
+								<Stack direction="row" alignItems="center" spacing={1}>
+									<Box
+										sx={{
+											width: 20,
+											height: 20,
+											borderRadius: '6px',
+											background: theme.gradients.brandDiagonal,
+											display: 'flex',
+											alignItems: 'center',
+											justifyContent: 'center',
+										}}
+									>
+										<AutoAwesome sx={{ fontSize: 12, color: '#fff' }} />
+									</Box>
+									<Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
+										ARIA
+									</Typography>
+									<Typography variant="caption" sx={{ color: 'text.disabled' }}>
+										ask your AI co-worker
+									</Typography>
+								</Stack>
+							</MenuItem>
+						</Box>
+					)}
+
 					{filteredUsers.length > 0 && (
 						<Box>
 							<Typography variant="caption" sx={{ px: 1.5, py: 0.5, display: 'block', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.65rem' }}>

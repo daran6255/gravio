@@ -78,9 +78,19 @@ class ListMyOpenTasksTool(BaseTool):
             }
             for t in tasks
         ]
+        # The Synthesizer relays this message verbatim (it's a fast deterministic formatter,
+        # not a second LLM call) — so the task list has to be spelled out here.
+        lines = [
+            f"- {t.title} ({t.project.name}, {t.status.name}"
+            + (f", due {t.due_date.isoformat()}" if t.due_date else "")
+            + ")"
+            for t in tasks
+        ]
+        message = f"You have {len(tasks)} open task(s):\n" + "\n".join(lines)
+
         return ToolResult(
             success=True,
-            message=f"Found {len(tasks)} open task(s) assigned to you.",
+            message=message,
             data={"tasks": task_summaries},
         )
 

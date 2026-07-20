@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from datetime import date
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from app.ai.brain.exceptions import (
@@ -102,7 +103,12 @@ class Planner:
         past_examples: list[dict] | None = None,
     ) -> str:
         parts = []
-        
+
+        # Without this, the model has no way to resolve a relative date ("today",
+        # "yesterday", "next Tuesday") to an actual calendar date -- needed by any tool
+        # that takes a date parameter (e.g. log_time, create_crm_lead_task).
+        parts.append(f"## Current Date\n{date.today().isoformat()}\n")
+
         if past_examples:
             parts.append("## Learning from Experience (Previous Successes)")
             parts.append("The following are examples of how similar tasks were successfully executed in the past. Use them to maintain consistency.")

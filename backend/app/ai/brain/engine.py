@@ -180,17 +180,23 @@ class AIEngine:
 
         # ── 2. Execution Phase ────────────────────────────────────────────────
         response, results = await self._execute_task_with_plan(plan, journal)
-        
+
         # ── 3. Synthesis Phase ────────────────────────────────────────────────
-        if results and response.status == "completed":
-             synthesis = self._synthesizer.synthesize_tool_results(
-                 results=results,
-                 planned_response=plan.response_to_user
-             )
-             await journal.finalize(status=AITaskStatus.COMPLETED, summary=synthesis)
-             return self._build_response(journal, status="completed")
-                 
-        return response
+        # An approval-gated run has already returned its own response and must not be
+        # finalized here (it isn't done yet). Everything else — including a zero-tool-call
+        # plan, which the planner prompt explicitly allows for a pure conversational/
+        # analytical answer via `steps: []` — must still synthesize and finalize, or the
+        # LLM's answer is silently dropped and the journal is left stuck un-finalized.
+        if response.status == "awaiting_approval":
+            return response
+
+        synthesis = self._synthesizer.synthesize_tool_results(
+            results=results,
+            planned_response=plan.response_to_user
+        )
+        final_status = AITaskStatus.COMPLETED if response.status == "completed" else AITaskStatus.PARTIALLY_COMPLETED
+        await journal.finalize(status=final_status, summary=synthesis)
+        return self._build_response(journal, status=response.status)
 
     async def _execute_task_with_plan(
         self,
