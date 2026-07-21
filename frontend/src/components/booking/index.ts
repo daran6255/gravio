@@ -11,3 +11,4 @@ export { default as PublicPreviewCard } from './setup/PublicPreviewCard';
 export { default as NewMeetingDialog } from './meetings/NewMeetingDialog';
 export { default as RescheduleMeetingDialog } from './meetings/RescheduleMeetingDialog';
 export { default as WeekCalendarView } from './meetings/WeekCalendarView';
+export { default as UpcomingMeetingsPanel } from './meetings/UpcomingMeetingsPanel';

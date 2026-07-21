@@ -3,7 +3,7 @@ import { Box, Container, Button, TextField } from '@mui/material';
 import PageHeader from '../../components/common/page-header';
 import { responsiveStyles } from '../../theme';
 import ConfirmationDialog from '../../components/common/dialogbox/ConfirmationDialog';
-import { NewMeetingDialog, RescheduleMeetingDialog, WeekCalendarView } from '../../components/booking';
+import { NewMeetingDialog, RescheduleMeetingDialog, WeekCalendarView, UpcomingMeetingsPanel } from '../../components/booking';
 import useToast from '../../hooks/useToast';
 import bookingService from '../../services/bookingService';
 import type { ScheduledMeetingHost } from '../../models/booking/meeting';
@@ -98,15 +98,22 @@ const MyMeetingsPage: React.FC = () => {
 				}
 			/>
 
-			<WeekCalendarView
-				bookingPage={primaryPage}
-				meetings={calendarMeetings}
-				exceptions={exceptions}
-				onSlotClick={(dateStr, timeStr) => { setNewMeetingDate(dateStr); setNewMeetingTime(timeStr); setNewMeetingOpen(true); }}
-				onToggleBlockDay={handleToggleBlockDay}
-				onReschedule={setRescheduleTarget}
-				onCancel={setCancelTarget}
-			/>
+			<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '3fr 1fr' }, gap: 3, alignItems: 'start' }}>
+				<WeekCalendarView
+					bookingPage={primaryPage}
+					meetings={calendarMeetings}
+					exceptions={exceptions}
+					onSlotClick={(dateStr, timeStr) => { setNewMeetingDate(dateStr); setNewMeetingTime(timeStr); setNewMeetingOpen(true); }}
+					onToggleBlockDay={handleToggleBlockDay}
+					onReschedule={setRescheduleTarget}
+					onCancel={setCancelTarget}
+				/>
+				<UpcomingMeetingsPanel
+					meetings={calendarMeetings}
+					onReschedule={setRescheduleTarget}
+					onCancel={setCancelTarget}
+				/>
+			</Box>
 
 			<NewMeetingDialog
 				open={newMeetingOpen}
