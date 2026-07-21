@@ -276,10 +276,11 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, onCr
 						<GroupsOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
 						<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>PARTICIPANTS</Typography>
 					</Stack>
-					<Stack spacing={1.5}>
+					<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
 						{orgMembers.length > 0 && (
 							<Autocomplete
 								multiple
+								fullWidth
 								size="small"
 								options={orgMembers}
 								getOptionLabel={(o) => o.full_name || o.email}
@@ -299,6 +300,7 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, onCr
 						<Autocomplete
 							multiple
 							freeSolo
+							fullWidth
 							size="small"
 							options={[]}
 							value={guestEmails}

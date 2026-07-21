@@ -9,7 +9,7 @@ const HOUR_HEIGHT = 52;
 const DEFAULT_START_HOUR = 7;
 const DEFAULT_END_HOUR = 20;
 
-const LOCATION_INFO: Record<MeetingLocationType, { icon: React.ReactElement; label: string }> = {
+const LOCATION_INFO: Record<MeetingLocationType, { icon: React.ReactElement<{ sx?: object }>; label: string }> = {
 	google_meet: { icon: <VideocamOutlined sx={{ fontSize: 18 }} />, label: 'Video call' },
 	offline: { icon: <PlaceOutlined sx={{ fontSize: 18 }} />, label: 'In person' },
 	phone: { icon: <PhoneOutlined sx={{ fontSize: 18 }} />, label: 'Phone call' },
@@ -226,7 +226,9 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 								const rawHeight = timeToY(end.hour() * 60 + end.minute()) - top;
 								const height = Math.max(22, rawHeight - 2);
 								const compact = height < 38;
+								const roomy = height >= 56;
 								const isBeingDragged = dragState?.meeting.public_id === m.public_id;
+								const locationIcon = React.cloneElement(LOCATION_INFO[m.location_type].icon, { sx: { fontSize: 12 } });
 								return (
 									<Box
 										key={m.public_id}
@@ -240,29 +242,36 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 											flexDirection: compact ? 'row' : 'column',
 											alignItems: compact ? 'center' : 'flex-start',
 											justifyContent: compact ? 'flex-start' : 'center',
-											gap: compact ? 0.5 : 0,
-											bgcolor: 'primary.main',
-											backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0) 60%)',
-											color: '#fff', borderRadius: '8px', pl: 1, pr: 0.75, py: compact ? 0 : 0.5,
+											gap: compact ? 0.6 : 0.15,
+											background: (t) => t.gradients.brandDiagonal,
+											color: '#fff', borderRadius: '10px', pl: 1.1, pr: 0.85, py: compact ? 0 : 0.6,
 											overflow: 'hidden', cursor: 'grab',
-											borderLeft: '3px solid rgba(255,255,255,0.55)',
-											boxShadow: '0 1px 2px rgba(15,23,42,0.15), 0 4px 10px rgba(139,124,246,0.35)',
+											border: '1px solid rgba(255,255,255,0.22)',
+											boxShadow: '0 1px 3px rgba(15,23,42,0.18), 0 3px 10px rgba(139,124,246,0.38)',
 											zIndex: 1,
 											opacity: isBeingDragged ? 0.35 : 1,
-											transition: 'box-shadow 0.15s ease, filter 0.15s ease, opacity 0.15s ease',
+											transition: 'transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease',
 											'&:hover': {
-												filter: 'brightness(1.06)',
-												boxShadow: '0 2px 6px rgba(15,23,42,0.2), 0 8px 20px rgba(139,124,246,0.5)',
+												transform: 'translateY(-1px)',
+												boxShadow: '0 3px 6px rgba(15,23,42,0.22), 0 8px 18px rgba(139,124,246,0.5)',
 												zIndex: 3,
 											},
 										}}
 									>
-										<Typography variant="caption" sx={{ fontWeight: 700, lineHeight: 1.2, fontSize: '0.7rem', flexShrink: 0 }} noWrap>
-											{start.format('h:mm A')}
-										</Typography>
-										<Typography variant="caption" sx={{ lineHeight: 1.2, fontSize: '0.7rem', opacity: 0.92, minWidth: 0 }} noWrap>
+										<Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0, flexShrink: 0 }}>
+											{!compact && locationIcon}
+											<Typography variant="caption" sx={{ fontWeight: 800, lineHeight: 1.25, fontSize: '0.7rem', flexShrink: 0 }} noWrap>
+												{start.format('h:mm A')}
+											</Typography>
+										</Stack>
+										<Typography variant="caption" sx={{ lineHeight: 1.25, fontSize: '0.72rem', fontWeight: 600, opacity: 0.96, minWidth: 0 }} noWrap>
 											{compact ? `· ${m.client_name}` : m.client_name}
 										</Typography>
+										{roomy && (
+											<Typography variant="caption" sx={{ lineHeight: 1.2, fontSize: '0.62rem', opacity: 0.8, minWidth: 0 }} noWrap>
+												{LOCATION_INFO[m.location_type].label}
+											</Typography>
+										)}
 									</Box>
 								);
 							})}
