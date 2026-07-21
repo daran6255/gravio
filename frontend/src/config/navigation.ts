@@ -73,11 +73,6 @@ export const topNavigation: NavigationItem[] = [
 				icon: LeaveIcon,
 			},
 			{
-				label: 'Booking',
-				path: '/booking/setup',
-				icon: BookingSetupIcon,
-			},
-			{
 				label: 'Meetings',
 				path: '/booking/meetings',
 				icon: MeetingsIcon,
@@ -187,6 +182,7 @@ export const settingsNavigation: NavigationItem[] = [
 	{ label: 'Preferences', icon: PreferencesIcon, sectionId: 'settings-preferences' },
 	{ label: 'Security', icon: SecurityIcon, sectionId: 'settings-security' },
 	{ label: 'Notifications', icon: NotificationsIcon, sectionId: 'settings-notifications' },
+	{ label: 'Booking', icon: BookingSetupIcon, sectionId: 'settings-booking' },
 ];
 
 /**

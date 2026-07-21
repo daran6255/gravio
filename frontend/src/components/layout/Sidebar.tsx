@@ -206,7 +206,7 @@ const Sidebar: React.FC = () => {
 	React.useEffect(() => {
 		if (!isSettingsRoute) return;
 
-		const sectionIds = ['settings-profile', 'settings-preferences', 'settings-security', 'settings-notifications'];
+		const sectionIds = ['settings-profile', 'settings-preferences', 'settings-security', 'settings-notifications', 'settings-booking'];
 
 		const observer = new IntersectionObserver(
 			(entries) => {

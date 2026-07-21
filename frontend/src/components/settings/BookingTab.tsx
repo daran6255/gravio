@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Stack, Switch, CircularProgress } from '@mui/material';
 import { SaveOutlined, CalendarMonthOutlined } from '@mui/icons-material';
-import PageHeader from '../../components/common/page-header';
-import { SubmitButton, HelpGuideButton } from '../../components/common/button';
-import { WelcomeBanner } from '../../components/common/guide';
-import HelpGuideDrawer from '../../components/common/guide/HelpGuideDrawer';
-import StatusBadge from '../../components/common/badge/StatusBadge';
+import PageHeader from '../common/page-header';
+import { SubmitButton, HelpGuideButton } from '../common/button';
+import { WelcomeBanner } from '../common/guide';
+import HelpGuideDrawer from '../common/guide/HelpGuideDrawer';
+import StatusBadge from '../common/badge/StatusBadge';
 import useToast from '../../hooks/useToast';
 import { useDismissibleBanner } from '../../hooks/useDismissibleBanner';
 import { useAppSelector } from '../../store/hooks';
@@ -20,14 +20,14 @@ import {
 	ExceptionsCard,
 	PublicPreviewCard,
 	AmbientGlow,
-} from '../../components/booking';
+} from '../booking';
 import type { BookingPage, BookingLocationType, WeeklyAvailability, TimeRange, BookingAvailabilityException } from '../../models/booking/bookingPage';
 import type { GoogleConnectionStatusResponse } from '../../models/booking/googleIntegration';
 
 const DAY_KEYS: (keyof WeeklyAvailability)[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 const DEFAULT_RANGE: TimeRange = ['09:00', '17:00'];
 
-const BookingSetupPage: React.FC = () => {
+const BookingTab: React.FC = () => {
 	const toast = useToast();
 	const user = useAppSelector((state) => state.auth.user);
 	const { show: showWelcome, dismiss: dismissWelcome } = useDismissibleBanner('booking_setup_welcome_dismissed');
@@ -363,4 +363,4 @@ const BookingSetupPage: React.FC = () => {
 	);
 };
 
-export default BookingSetupPage;
+export default BookingTab;
