@@ -2,6 +2,8 @@ export type MeetingStatus = 'scheduled' | 'completed' | 'cancelled';
 export type CancelledBy = 'host' | 'client' | 'system';
 export type MeetingLocationType = 'google_meet' | 'offline' | 'phone';
 
+export type RecurrenceRule = 'daily' | 'weekly' | 'biweekly' | 'monthly';
+
 /** Matches backend's ScheduledMeetingResponse. */
 export interface ScheduledMeeting {
 	id: number;
@@ -22,11 +24,35 @@ export interface ScheduledMeeting {
 	status: MeetingStatus;
 	cancelled_by?: CancelledBy;
 	cancellation_reason?: string;
+	outcome_notes?: string;
+	recurrence_rule?: RecurrenceRule;
+	recurrence_end_date?: string;
+	recurrence_group_id?: string;
+	/** Only populated by the manager/admin team-meetings endpoint. */
+	host_name?: string;
+	host_email?: string;
+	/** Only meaningful on the create response for a recurring series. */
+	occurrences_created?: number;
 }
 
 /** There's only one response shape now (no separate public/host split) — kept as
  * a distinct name since components already import it that way. */
 export type ScheduledMeetingHost = ScheduledMeeting;
+
+/** Matches backend's PublicMeetingView — the slim, no-login view of a meeting via
+ * its manage-link token. */
+export interface PublicMeetingView {
+	public_id: string;
+	meeting_title?: string;
+	host_name: string;
+	start_time: string;
+	end_time: string;
+	attendee_timezone: string;
+	location_type: MeetingLocationType;
+	location_detail?: string;
+	status: MeetingStatus;
+	recurrence_group_id?: string;
+}
 
 /** Matches backend's OrgMemberOption — a teammate selectable in the "invite a
  * teammate" picker on the New Meeting form. */
@@ -52,6 +78,8 @@ export interface ScheduleMeetingRequest {
 	participant_user_ids?: number[];
 	guest_emails?: string[];
 	idempotency_key: string;
+	recurrence_rule?: RecurrenceRule;
+	recurrence_end_date?: string;
 }
 
 /** Kept as a distinct name for the same reason as ScheduledMeetingHost above. */

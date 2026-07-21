@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Stack, Typography, IconButton, Button, Popover, Divider, useTheme, alpha } from '@mui/material';
-import { ChevronLeft, ChevronRight, VideocamOutlined, PlaceOutlined, PhoneOutlined, Close as CloseIcon, EditOutlined, CloseOutlined, CalendarMonthOutlined } from '@mui/icons-material';
+import { ChevronLeft, ChevronRight, VideocamOutlined, PlaceOutlined, PhoneOutlined, Close as CloseIcon, EditOutlined, CloseOutlined, CalendarMonthOutlined, CheckCircleOutline } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import EnterpriseAvatar from '../../common/avatar/Avatar';
 import { responsiveStyles } from '../../../theme';
@@ -18,12 +18,13 @@ interface WeekCalendarViewProps {
 	onSlotClick: (dateStr: string, timeStr: string) => void;
 	onReschedule: (meeting: ScheduledMeetingHost) => void;
 	onCancel: (meeting: ScheduledMeetingHost) => void;
+	onComplete: (meeting: ScheduledMeetingHost) => void;
 	/** Drag a meeting card onto a new day/time — receives the ISO start time for the drop slot. */
 	onMoveMeeting: (meeting: ScheduledMeetingHost, newStartTimeISO: string) => void;
 }
 
 const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
-	meetings, onSlotClick, onReschedule, onCancel, onMoveMeeting,
+	meetings, onSlotClick, onReschedule, onCancel, onComplete, onMoveMeeting,
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
@@ -294,6 +295,16 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 									}}
 								>
 									Join Meeting
+								</Button>
+							)}
+							{dayjs(popoverMeeting.start_time).isBefore(now) && (
+								<Button
+									fullWidth size="small" variant="outlined" color="success"
+									startIcon={<CheckCircleOutline sx={{ fontSize: 15 }} />}
+									onClick={() => { onComplete(popoverMeeting); closePopover(); }}
+									sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2.5 }}
+								>
+									Mark Completed
 								</Button>
 							)}
 							<Stack direction="row" spacing={1}>

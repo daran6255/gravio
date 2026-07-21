@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import enum
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import (
+    Date,
     DateTime,
     Enum,
     ForeignKey,
@@ -47,6 +48,13 @@ class CancelledBy(str, enum.Enum):
     HOST = "host"
     CLIENT = "client"
     SYSTEM = "system"
+
+
+class RecurrenceRule(str, enum.Enum):
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    BIWEEKLY = "biweekly"
+    MONTHLY = "monthly"
 
 
 class ScheduledMeeting(BaseModel, TenantAwareMixin):
@@ -107,6 +115,27 @@ class ScheduledMeeting(BaseModel, TenantAwareMixin):
     # RFC5545 SEQUENCE — bumped on every reschedule/cancel so calendar clients
     # (Outlook/Apple/Google) correctly replace rather than duplicate a prior invite.
     sequence: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    # Free-form notes a host adds after the meeting happens (see app/services/booking.py
+    # complete_meeting) — independent of status so a host can annotate without re-triggering
+    # a state transition.
+    outcome_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Recurrence: null rule means a one-off meeting. Recurring meetings are materialized
+    # as one row per occurrence at creation time (not expanded virtually at read time), so
+    # each occurrence can be individually rescheduled/cancelled/completed like any other
+    # meeting. All occurrences in one series share recurrence_group_id (the first
+    # occurrence's own public_id).
+    recurrence_rule: Mapped[Optional[RecurrenceRule]] = mapped_column(
+        Enum(RecurrenceRule, values_callable=lambda x: [e.value for e in x]), nullable=True
+    )
+    recurrence_end_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    recurrence_group_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid, nullable=True, index=True)
+
+    # Dedup markers for the client-reminder poller (app/services/meeting_scheduler.py) —
+    # set once each reminder is sent so a restarted/duplicated poller never double-sends.
+    client_reminder_24h_sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    client_reminder_1h_sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     host: Mapped["User"] = relationship("User", foreign_keys=[host_user_id])
     lead: Mapped[Optional["CRMLead"]] = relationship("CRMLead", foreign_keys=[lead_id])

@@ -1,12 +1,14 @@
 """Pydantic validation schemas for Meetings."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
-from app.models.booking import CancelledBy, MeetingLocationType, MeetingStatus
+from app.models.booking import CancelledBy, MeetingLocationType, MeetingStatus, RecurrenceRule
+
+MAX_RECURRING_OCCURRENCES = 52
 
 
 # --- Scheduling Schemas ---
@@ -30,6 +32,10 @@ class ScheduleMeetingRequest(BaseModel):
         ..., min_length=8, max_length=100,
         description="Client-generated UUID; resubmitting the same key returns the original meeting instead of creating a duplicate",
     )
+    recurrence_rule: Optional[RecurrenceRule] = Field(
+        None, description="If set, generates one occurrence per interval up to recurrence_end_date (inclusive)"
+    )
+    recurrence_end_date: Optional[date] = Field(None, description="Required when recurrence_rule is set")
 
     @field_validator("start_time", "end_time")
     @classmethod
@@ -60,6 +66,15 @@ class ScheduleMeetingRequest(BaseModel):
             raise ValueError("location_detail (the address) is required when location_type is 'offline'")
         return self
 
+    @model_validator(mode="after")
+    def _validate_recurrence(self) -> "ScheduleMeetingRequest":
+        if self.recurrence_rule is not None:
+            if self.recurrence_end_date is None:
+                raise ValueError("recurrence_end_date is required when recurrence_rule is set")
+            if self.recurrence_end_date < self.start_time.date():
+                raise ValueError("recurrence_end_date must be on or after the first occurrence's date")
+        return self
+
 
 class ScheduledMeetingResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -81,6 +96,17 @@ class ScheduledMeetingResponse(BaseModel):
     status: MeetingStatus
     cancelled_by: Optional[CancelledBy] = None
     cancellation_reason: Optional[str] = None
+    outcome_notes: Optional[str] = None
+    recurrence_rule: Optional[RecurrenceRule] = None
+    recurrence_end_date: Optional[date] = None
+    recurrence_group_id: Optional[uuid.UUID] = None
+    # Populated only by the /bookings/meetings/team endpoint (gap 7) — a host viewing
+    # their own meetings already knows who they are, so these stay unset there.
+    host_name: Optional[str] = None
+    host_email: Optional[str] = None
+    # Non-persisted — set only on the create response for a recurring series, so the
+    # frontend can toast "created 8 of 10 occurrences" when some were skipped.
+    occurrences_created: int = 1
 
 
 class RescheduleMeetingRequest(BaseModel):
@@ -96,6 +122,29 @@ class RescheduleMeetingRequest(BaseModel):
 
 class CancelMeetingRequest(BaseModel):
     reason: Optional[str] = Field(None, max_length=500)
+
+
+class CompleteMeetingRequest(BaseModel):
+    outcome_notes: Optional[str] = Field(None, max_length=2000)
+
+
+class PublicMeetingView(BaseModel):
+    """Deliberately slim — what an unauthenticated client sees via a manage link.
+    Excludes internal ids (lead_id, participant_user_ids) that don't belong in front
+    of someone who only has a token, not a login."""
+    model_config = ConfigDict(from_attributes=True)
+    public_id: uuid.UUID
+    meeting_title: Optional[str] = None
+    # Not a column on ScheduledMeeting — always set explicitly after model_validate()
+    # in the endpoint (see _public_meeting_view in api/v1/endpoints/booking.py).
+    host_name: Optional[str] = None
+    start_time: datetime
+    end_time: datetime
+    attendee_timezone: str
+    location_type: MeetingLocationType
+    location_detail: Optional[str] = None
+    status: MeetingStatus
+    recurrence_group_id: Optional[uuid.UUID] = None
 
 
 # --- Org Member Options (for the "invite a teammate" picker) ---

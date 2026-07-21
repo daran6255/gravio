@@ -14,7 +14,8 @@ import BillingSettings from '../pages/settings/BillingSettings';
 import { LeadsPage, DealsPage, CompaniesPage, TasksPage } from '../pages/crm';
 import { ProjectsListPage, ProjectDetailPage } from '../pages/projects';
 import TimesheetPage from '../pages/timesheets/TimesheetPage';
-import { MyMeetingsPage } from '../pages/booking';
+import { MyMeetingsPage, TeamMeetingsPage } from '../pages/booking';
+import ManageMeetingPage from '../pages/booking/public/ManageMeetingPage';
 // HR Admin Pages
 import EmployeesPage from '../pages/hr/admin/EmployeesPage';
 import DepartmentsPage from '../pages/hr/admin/DepartmentsPage';
@@ -56,6 +57,9 @@ const AppRouter: React.FC = () => {
 			<Route path="/success" element={<SuccessPage />} />
 			<Route path="/maintenance" element={<MaintenancePage />} />
 
+			{/* Public — a client manages their own meeting via a tokenized email link, no login */}
+			<Route path="/meetings/manage" element={<ManageMeetingPage />} />
+
 			<Route element={<ProtectedRoute />}>
 				{/* Protected Routes */}
 				<Route element={<MainLayout />}>
@@ -80,6 +84,7 @@ const AppRouter: React.FC = () => {
 
 					{/* Meetings */}
 					<Route path="booking/meetings" element={<MyMeetingsPage />} />
+					<Route path="booking/meetings/team" element={<TeamMeetingsPage />} />
 
 					{/* Project Management */}
 					<Route path="projects" element={<ProjectsListPage />} />
@@ -128,6 +133,7 @@ const AppRouter: React.FC = () => {
 					<Route path="org/:orgId/crm/tasks" element={<TasksPage />} />
 
 					<Route path="org/:orgId/booking/meetings" element={<MyMeetingsPage />} />
+					<Route path="org/:orgId/booking/meetings/team" element={<TeamMeetingsPage />} />
 
 					<Route path="org/:orgId/projects" element={<ProjectsListPage />} />
 					<Route path="org/:orgId/projects/:publicId" element={<ProjectDetailPage />} />

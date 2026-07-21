@@ -8,7 +8,7 @@ import BaseDialog from '../../common/dialogbox/BaseDialog';
 import { SubmitButton, CancelButton } from '../../common/button';
 import RichTextEditor from '../../common/form/RichTextEditor';
 import { useNewMeetingDialog, BROWSER_TZ, contactLabel } from './hooks/useNewMeetingDialog';
-import type { ScheduledMeetingHost, MeetingLocationType } from '../../../models/booking/meeting';
+import type { ScheduledMeetingHost, MeetingLocationType, RecurrenceRule } from '../../../models/booking/meeting';
 
 interface NewMeetingDialogProps {
 	open: boolean;
@@ -21,6 +21,14 @@ interface NewMeetingDialogProps {
 }
 
 const DURATIONS = [15, 30, 45, 60, 90, 120];
+
+const REPEAT_OPTIONS: { value: RecurrenceRule | ''; label: string }[] = [
+	{ value: '', label: "Doesn't repeat" },
+	{ value: 'daily', label: 'Daily' },
+	{ value: 'weekly', label: 'Weekly' },
+	{ value: 'biweekly', label: 'Every 2 weeks' },
+	{ value: 'monthly', label: 'Monthly' },
+];
 
 const LOCATION_OPTIONS: { value: MeetingLocationType; label: string; icon: React.ReactElement; detailLabel: string; detailPlaceholder: string }[] = [
 	{ value: 'google_meet', label: 'Video call', icon: <VideocamOutlined sx={{ fontSize: 18 }} />, detailLabel: 'Meeting link', detailPlaceholder: 'Click "Generate" for an instant link, or paste your own' },
@@ -54,6 +62,10 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = (props) => {
 		setLocationType,
 		locationDetail,
 		setLocationDetail,
+		recurrenceRule,
+		setRecurrenceRule,
+		recurrenceEndDate,
+		setRecurrenceEndDate,
 		submitting,
 		orgMembers,
 		participants,
@@ -151,6 +163,22 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = (props) => {
 					>
 						{DURATIONS.map((d) => <MenuItem key={d} value={d}>{d} minutes</MenuItem>)}
 					</TextField>
+				</Stack>
+
+				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+					<TextField
+						select label="Repeat" fullWidth size="small"
+						value={recurrenceRule} onChange={(e) => setRecurrenceRule(e.target.value as RecurrenceRule | '')}
+					>
+						{REPEAT_OPTIONS.map((opt) => <MenuItem key={opt.value || 'none'} value={opt.value}>{opt.label}</MenuItem>)}
+					</TextField>
+					{recurrenceRule && (
+						<TextField
+							label="Ends on" type="date" fullWidth size="small" value={recurrenceEndDate}
+							onChange={(e) => setRecurrenceEndDate(e.target.value)}
+							InputLabelProps={{ shrink: true }}
+						/>
+					)}
 				</Stack>
 
 				<TextField

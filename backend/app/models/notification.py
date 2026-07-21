@@ -29,6 +29,8 @@ class NotificationType(str, enum.Enum):
     LEAD_TASK_COMPLETED = "lead_task_completed"
     REMINDER_DUE = "reminder_due"
     TRIAL_EXTENSION_REQUESTED = "trial_extension_requested"
+    MEETING_RESCHEDULED_BY_CLIENT = "meeting_rescheduled_by_client"
+    MEETING_CANCELLED_BY_CLIENT = "meeting_cancelled_by_client"
 
 
 class Notification(BaseModel, TenantAwareMixin):

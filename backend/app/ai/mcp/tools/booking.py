@@ -89,7 +89,7 @@ class ScheduleMeetingTool(BaseTool):
             # client-side double-submit risk here since the LLM calls this tool once per plan step.
             idempotency_key=f"ai-{uuid.uuid4()}",
         )
-        meeting = await booking_service.create_meeting(db, host=user, payload=payload)
+        meeting, _occurrences_created = await booking_service.create_meeting(db, host=user, payload=payload)
 
         return ToolResult(
             success=True,

@@ -3,7 +3,7 @@ import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { searchContactOptions } from '../../../../store/slices/crmSlice';
 import bookingService from '../../../../services/bookingService';
 import useToast from '../../../../hooks/useToast';
-import type { ScheduledMeetingHost, OrgMemberOption, MeetingLocationType } from '../../../../models/booking/meeting';
+import type { ScheduledMeetingHost, OrgMemberOption, MeetingLocationType, RecurrenceRule } from '../../../../models/booking/meeting';
 import type { Contact } from '../../../../models/crm/contact';
 
 export const BROWSER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -58,6 +58,8 @@ export const useNewMeetingDialog = ({ open, initialDate, initialTime, onCreated,
 	const [durationMinutes, setDurationMinutes] = useState(30);
 	const [locationType, setLocationType] = useState<MeetingLocationType>('google_meet');
 	const [locationDetail, setLocationDetail] = useState('');
+	const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRule | ''>('');
+	const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
 	const [submitting, setSubmitting] = useState(false);
 
 	const [orgMembers, setOrgMembers] = useState<OrgMemberOption[]>([]);
@@ -74,6 +76,8 @@ export const useNewMeetingDialog = ({ open, initialDate, initialTime, onCreated,
 			setGuestEmails([]);
 			setLocationType('google_meet');
 			setLocationDetail('');
+			setRecurrenceRule('');
+			setRecurrenceEndDate('');
 			setDurationMinutes(30);
 			setSelectedDate(initialDate || new Date().toISOString().slice(0, 10));
 			setSelectedTime(initialTime || '09:00');
@@ -130,6 +134,10 @@ export const useNewMeetingDialog = ({ open, initialDate, initialTime, onCreated,
 			toast.error('Add an address for an in-person meeting.');
 			return;
 		}
+		if (recurrenceRule && !recurrenceEndDate) {
+			toast.error('Pick an end date for the repeating series.');
+			return;
+		}
 		const startTime = buildStartTime();
 		const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
 		setSubmitting(true);
@@ -148,8 +156,15 @@ export const useNewMeetingDialog = ({ open, initialDate, initialTime, onCreated,
 				idempotency_key: idempotencyKey,
 				participant_user_ids: participants.map((p) => p.id),
 				guest_emails: guestEmails,
+				recurrence_rule: recurrenceRule || undefined,
+				recurrence_end_date: recurrenceRule ? recurrenceEndDate : undefined,
 			});
-			toast.success('Meeting created — a calendar invite has been sent.');
+			const created = meeting.occurrences_created ?? 1;
+			toast.success(
+				created > 1
+					? `Created ${created} occurrence${created === 1 ? '' : 's'} of this meeting — invites have been sent.`
+					: 'Meeting created — a calendar invite has been sent.'
+			);
 			onCreated(meeting);
 			onClose();
 		} catch (err: any) {
@@ -183,6 +198,10 @@ export const useNewMeetingDialog = ({ open, initialDate, initialTime, onCreated,
 		setLocationType,
 		locationDetail,
 		setLocationDetail,
+		recurrenceRule,
+		setRecurrenceRule,
+		recurrenceEndDate,
+		setRecurrenceEndDate,
 		submitting,
 		orgMembers,
 		participants,

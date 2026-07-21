@@ -122,6 +122,42 @@ def decode_reset_token(token: str) -> Optional[int]:
         return None
 
 
+# ── Meeting Manage Token (client self-service reschedule/cancel) ───────────────
+#
+# Regenerated fresh every time a confirmation email goes out (create + reschedule),
+# so the link in a client's inbox is always long-lived relative to the meeting.
+# Deliberately a signed JWT (not a DB-stored token) so it needs no extra table or
+# lookup — the same convention as the invite/reset tokens above.
+
+_MEETING_MANAGE_SECRET = settings.SECRET_KEY + "_meeting_manage"
+_MEETING_MANAGE_ALGORITHM = "HS256"
+_MEETING_MANAGE_EXPIRE_DAYS = 60
+
+
+def create_meeting_manage_token(public_id) -> str:
+    """Generate a signed token letting the holder view/reschedule/cancel one specific
+    meeting (identified by its public_id) without logging in."""
+    expire = datetime.now(timezone.utc) + timedelta(days=_MEETING_MANAGE_EXPIRE_DAYS)
+    payload = {
+        "sub": str(public_id),
+        "type": "meeting_manage",
+        "exp": expire,
+    }
+    return jwt.encode(payload, _MEETING_MANAGE_SECRET, algorithm=_MEETING_MANAGE_ALGORITHM)
+
+
+def decode_meeting_manage_token(token: str) -> Optional[str]:
+    """Decode a meeting-manage token and return the meeting's public_id (as a string),
+    or None if invalid/expired."""
+    try:
+        payload = jwt.decode(token, _MEETING_MANAGE_SECRET, algorithms=[_MEETING_MANAGE_ALGORITHM])
+        if payload.get("type") != "meeting_manage":
+            return None
+        return payload.get("sub")
+    except JWTError:
+        return None
+
+
 # ── Sending ────────────────────────────────────────────────────────────────────
 
 async def send_verification_email(
@@ -243,15 +279,18 @@ async def send_booking_confirmation_email(
     maps_url: Optional[str],
     ics_bytes: bytes,
     ics_method: str = "REQUEST",
+    manage_link: Optional[str] = None,
 ) -> None:
     """Meeting confirmation/reschedule email, with a self-contained .ics attachment
     so the client gets a working calendar invite regardless of location type (see
-    app/services/booking.py and app/utils/ics.py)."""
+    app/services/booking.py and app/utils/ics.py). manage_link, when given, is a
+    tokenized "view/reschedule/cancel this meeting" link the client can use without
+    logging in (see create_meeting_manage_token above)."""
     subject = f"Confirmed: {meeting_title}"
     if not settings.SMTP_HOST:
         logger.info(
             f"[EMAIL - DEV] Meeting confirmation for '{client_name}' ({to_email}) — {meeting_title} at "
-            f"{start_time_display} ({attendee_timezone})."
+            f"{start_time_display} ({attendee_timezone}). Manage link: {manage_link}"
         )
         return
 
@@ -266,6 +305,7 @@ async def send_booking_confirmation_email(
         meet_link=meet_link,
         location_text=location_text,
         maps_url=maps_url,
+        manage_link=manage_link,
         year=datetime.now().year,
     )
     await _send_via_smtp(
@@ -308,6 +348,45 @@ async def send_booking_cancelled_email(
         to_email, subject, html_body,
         attachments=[("cancel.ics", ics_bytes, 'calendar;method=CANCEL')],
     )
+
+
+async def send_meeting_reminder_email(
+    *,
+    to_email: str,
+    client_name: str,
+    meeting_title: str,
+    lead_time_label: str,
+    start_time_display: str,
+    attendee_timezone: str,
+    meet_link: Optional[str],
+    location_text: Optional[str],
+    manage_link: Optional[str],
+) -> None:
+    """Client-facing "your meeting is coming up" reminder — fired by the meeting
+    maintenance poller (app/services/meeting_scheduler.py), not a request handler.
+    lead_time_label is a short phrase like "tomorrow" or "in 1 hour"."""
+    subject = f"Reminder: {meeting_title} {lead_time_label}"
+    if not settings.SMTP_HOST:
+        logger.info(
+            f"[EMAIL - DEV] Meeting reminder for '{client_name}' ({to_email}) — {meeting_title} "
+            f"{lead_time_label} ({start_time_display} {attendee_timezone})."
+        )
+        return
+
+    html_body = render_template(
+        "email/meeting_reminder.html",
+        app_name=settings.APP_NAME,
+        client_name=client_name,
+        meeting_title=meeting_title,
+        lead_time_label=lead_time_label,
+        start_time_display=start_time_display,
+        attendee_timezone=attendee_timezone,
+        meet_link=meet_link,
+        location_text=location_text,
+        manage_link=manage_link,
+        year=datetime.now().year,
+    )
+    await _send_via_smtp(to_email, subject, html_body)
 
 
 async def _send_via_smtp(
