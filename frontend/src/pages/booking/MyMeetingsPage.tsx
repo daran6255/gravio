@@ -65,6 +65,16 @@ const MyMeetingsPage: React.FC = () => {
 		}
 	};
 
+	const handleMoveMeeting = async (meeting: ScheduledMeetingHost, newStartTimeISO: string) => {
+		try {
+			await bookingService.hostRescheduleMeeting(meeting.public_id, newStartTimeISO);
+			toast.success('Meeting rescheduled.');
+			loadCalendarMeetings();
+		} catch (err: any) {
+			toast.error(err?.response?.data?.error?.message || 'That time is no longer available. Please pick another.');
+		}
+	};
+
 	const handleToggleBlockDay = async (dateStr: string, currentlyBlocked: boolean) => {
 		if (!primaryPage) return;
 		try {
@@ -107,6 +117,7 @@ const MyMeetingsPage: React.FC = () => {
 					onToggleBlockDay={handleToggleBlockDay}
 					onReschedule={setRescheduleTarget}
 					onCancel={setCancelTarget}
+					onMoveMeeting={handleMoveMeeting}
 				/>
 				<UpcomingMeetingsPanel
 					meetings={calendarMeetings}

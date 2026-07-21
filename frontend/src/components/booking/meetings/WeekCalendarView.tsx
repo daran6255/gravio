@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Stack, Typography, IconButton, Button, Popover, Divider, Tooltip, useTheme } from '@mui/material';
-import { ChevronLeft, ChevronRight, VideocamOutlined, BlockOutlined, LockOpenOutlined } from '@mui/icons-material';
+import { Box, Stack, Typography, IconButton, Button, Popover, Divider, Tooltip, useTheme, alpha } from '@mui/material';
+import { ChevronLeft, ChevronRight, VideocamOutlined, BlockOutlined, LockOpenOutlined, Close as CloseIcon, EditOutlined, CloseOutlined, CalendarMonthOutlined } from '@mui/icons-material';
 import dayjs, { type Dayjs } from 'dayjs';
 import StatusBadge from '../../common/badge/StatusBadge';
+import EnterpriseAvatar from '../../common/avatar/Avatar';
 import type { BookingPage, BookingAvailabilityException, WeeklyAvailability } from '../../../models/booking/bookingPage';
 import type { ScheduledMeetingHost } from '../../../models/booking/meeting';
 
@@ -24,6 +25,8 @@ interface WeekCalendarViewProps {
 	onToggleBlockDay: (dateStr: string, currentlyBlocked: boolean) => void;
 	onReschedule: (meeting: ScheduledMeetingHost) => void;
 	onCancel: (meeting: ScheduledMeetingHost) => void;
+	/** Drag a meeting card onto a new day/time — receives the ISO start time for the drop slot. */
+	onMoveMeeting: (meeting: ScheduledMeetingHost, newStartTimeISO: string) => void;
 }
 
 function timeStrToMinutes(t: string): number {
@@ -31,14 +34,24 @@ function timeStrToMinutes(t: string): number {
 	return h * 60 + m;
 }
 
+/** Everything needed to render both the dragged card's ghost and the drop-target preview,
+ * kept as one object so drag-start/drag-over/drop/drag-end all agree on a single source of truth. */
+interface DragState {
+	meeting: ScheduledMeetingHost;
+	durationMinutes: number;
+	overDateStr: string | null;
+	overMinutes: number | null;
+}
+
 const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
-	bookingPage, meetings, exceptions, onSlotClick, onToggleBlockDay, onReschedule, onCancel,
+	bookingPage, meetings, exceptions, onSlotClick, onToggleBlockDay, onReschedule, onCancel, onMoveMeeting,
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const [weekStart, setWeekStart] = useState<Dayjs>(dayjs().startOf('day').subtract(dayjs().day(), 'day'));
 	const [popoverAnchor, setPopoverAnchor] = useState<HTMLElement | null>(null);
 	const [popoverMeeting, setPopoverMeeting] = useState<ScheduledMeetingHost | null>(null);
+	const [dragState, setDragState] = useState<DragState | null>(null);
 
 	const cardSx = {
 		p: { xs: 2.5, sm: 3 }, borderRadius: '20px',
@@ -92,6 +105,55 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 		const h = Math.floor(rounded / 60);
 		const m = rounded % 60;
 		onSlotClick(day.format('YYYY-MM-DD'), `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+	};
+
+	const slotMinutesFromPointer = (e: React.DragEvent<HTMLDivElement>) => {
+		const rect = e.currentTarget.getBoundingClientRect();
+		const offsetY = e.clientY - rect.top;
+		const rawMinutes = startHour * 60 + (offsetY / HOUR_HEIGHT) * 60;
+		return Math.max(0, Math.round(rawMinutes / 15) * 15);
+	};
+
+	const handleMeetingDragStart = (e: React.DragEvent<HTMLDivElement>, m: ScheduledMeetingHost) => {
+		e.stopPropagation();
+		e.dataTransfer.effectAllowed = 'move';
+		e.dataTransfer.setData('text/plain', m.public_id);
+		setDragState({
+			meeting: m,
+			durationMinutes: dayjs(m.end_time).diff(dayjs(m.start_time), 'minute'),
+			overDateStr: null,
+			overMinutes: null,
+		});
+	};
+
+	const handleMeetingDragEnd = () => setDragState(null);
+
+	const handleDayColumnDragOver = (day: Dayjs, e: React.DragEvent<HTMLDivElement>) => {
+		if (!dragState) return;
+		const dateStr = day.format('YYYY-MM-DD');
+		const isPast = day.isBefore(now, 'day');
+		const isBlocked = !!exceptionByDate.get(dateStr)?.is_blocked;
+		// Don't call preventDefault for a day we won't accept a drop on — the browser then shows
+		// its own "not allowed" cursor for free, and onDrop simply never fires here.
+		if (isPast || isBlocked) return;
+		e.preventDefault();
+		e.dataTransfer.dropEffect = 'move';
+		const minutes = slotMinutesFromPointer(e);
+		if (dragState.overDateStr !== dateStr || dragState.overMinutes !== minutes) {
+			setDragState((prev) => (prev ? { ...prev, overDateStr: dateStr, overMinutes: minutes } : prev));
+		}
+	};
+
+	const handleDayColumnDrop = (day: Dayjs, e: React.DragEvent<HTMLDivElement>) => {
+		e.preventDefault();
+		e.stopPropagation();
+		if (!dragState) return;
+		const minutes = slotMinutesFromPointer(e);
+		const newStart = day.startOf('day').add(minutes, 'minute');
+		const { meeting } = dragState;
+		setDragState(null);
+		if (newStart.isSame(dayjs(meeting.start_time))) return;
+		onMoveMeeting(meeting, newStart.toISOString());
 	};
 
 	return (
@@ -186,6 +248,8 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 						<Box
 							key={dateStr}
 							onClick={(e) => !isBlocked && !isPast && handleDayColumnClick(day, e)}
+							onDragOver={(e) => handleDayColumnDragOver(day, e)}
+							onDrop={(e) => handleDayColumnDrop(day, e)}
 							sx={{
 								position: 'relative', height: gridHeight, borderLeft: '1px solid', borderColor: 'divider',
 								cursor: isBlocked || isPast ? 'default' : 'pointer', opacity: isPast ? 0.5 : 1,
@@ -235,29 +299,68 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 								const start = dayjs(m.start_time);
 								const end = dayjs(m.end_time);
 								const top = timeToY(start.hour() * 60 + start.minute());
-								const height = Math.max(20, timeToY(end.hour() * 60 + end.minute()) - top);
+								const rawHeight = timeToY(end.hour() * 60 + end.minute()) - top;
+								const height = Math.max(22, rawHeight - 2);
+								const compact = height < 38;
+								const isBeingDragged = dragState?.meeting.public_id === m.public_id;
 								return (
 									<Box
 										key={m.public_id}
+										draggable
+										onDragStart={(e) => handleMeetingDragStart(e, m)}
+										onDragEnd={handleMeetingDragEnd}
 										onClick={(e) => { e.stopPropagation(); setPopoverAnchor(e.currentTarget); setPopoverMeeting(m); }}
 										sx={{
-											position: 'absolute', left: 2, right: 2, top, height,
-											bgcolor: 'primary.main', color: '#fff', borderRadius: 1.5, px: 0.75, py: 0.25,
-											overflow: 'hidden', cursor: 'pointer', boxShadow: '0 2px 8px rgba(139,124,246,0.4)',
-											border: '1px solid rgba(255,255,255,0.2)', zIndex: 1,
-											transition: 'transform 0.15s ease',
-											'&:hover': { transform: 'scale(1.02)', zIndex: 3 },
+											position: 'absolute', left: 3, right: 3, top: top + 1, height,
+											display: 'flex',
+											flexDirection: compact ? 'row' : 'column',
+											alignItems: compact ? 'center' : 'flex-start',
+											justifyContent: compact ? 'flex-start' : 'center',
+											gap: compact ? 0.5 : 0,
+											bgcolor: 'primary.main',
+											backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0) 60%)',
+											color: '#fff', borderRadius: '8px', pl: 1, pr: 0.75, py: compact ? 0 : 0.5,
+											overflow: 'hidden', cursor: 'grab',
+											borderLeft: '3px solid rgba(255,255,255,0.55)',
+											boxShadow: '0 1px 2px rgba(15,23,42,0.15), 0 4px 10px rgba(139,124,246,0.35)',
+											zIndex: 1,
+											opacity: isBeingDragged ? 0.35 : 1,
+											transition: 'box-shadow 0.15s ease, filter 0.15s ease, opacity 0.15s ease',
+											'&:hover': {
+												filter: 'brightness(1.06)',
+												boxShadow: '0 2px 6px rgba(15,23,42,0.2), 0 8px 20px rgba(139,124,246,0.5)',
+												zIndex: 3,
+											},
 										}}
 									>
-										<Typography variant="caption" sx={{ fontWeight: 700, display: 'block', lineHeight: 1.2, fontSize: '0.68rem' }} noWrap>
+										<Typography variant="caption" sx={{ fontWeight: 700, lineHeight: 1.2, fontSize: '0.7rem', flexShrink: 0 }} noWrap>
 											{start.format('h:mm A')}
 										</Typography>
-										<Typography variant="caption" sx={{ display: 'block', lineHeight: 1.2, fontSize: '0.68rem' }} noWrap>
-											{m.client_name}
+										<Typography variant="caption" sx={{ lineHeight: 1.2, fontSize: '0.7rem', opacity: 0.92, minWidth: 0 }} noWrap>
+											{compact ? `· ${m.client_name}` : m.client_name}
 										</Typography>
 									</Box>
 								);
 							})}
+
+							{/* Drop-target preview — where the dragged meeting would land in this column */}
+							{dragState && dragState.overDateStr === dateStr && dragState.overMinutes !== null && (
+								<Box
+									sx={{
+										position: 'absolute', left: 3, right: 3,
+										top: timeToY(dragState.overMinutes) + 1,
+										height: Math.max(22, (dragState.durationMinutes / 60) * HOUR_HEIGHT - 2),
+										borderRadius: '8px', border: '2px dashed', borderColor: 'primary.main',
+										bgcolor: alpha(theme.palette.primary.main, 0.12),
+										zIndex: 2, pointerEvents: 'none',
+										display: 'flex', alignItems: 'center', px: 1,
+									}}
+								>
+									<Typography variant="caption" fontWeight={700} color="primary.main" noWrap>
+										{dayjs().startOf('day').add(dragState.overMinutes, 'minute').format('h:mm A')}
+									</Typography>
+								</Box>
+							)}
 						</Box>
 					);
 				})}
@@ -268,27 +371,86 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 				anchorEl={popoverAnchor}
 				onClose={() => setPopoverAnchor(null)}
 				anchorOrigin={{ vertical: 'center', horizontal: 'right' }}
+				transformOrigin={{ vertical: 'center', horizontal: 'left' }}
+				slotProps={{
+					paper: {
+						sx: {
+							borderRadius: '18px',
+							border: '1px solid', borderColor: 'divider',
+							boxShadow: isDark ? '0 12px 32px rgba(0,0,0,0.45)' : '0 12px 32px rgba(15,23,42,0.16)',
+							mt: 1,
+						},
+					},
+				}}
 			>
 				{popoverMeeting && (
-					<Box sx={{ p: 2, width: 260 }}>
-						<Typography variant="body2" fontWeight={700}>{popoverMeeting.client_name}</Typography>
-						<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>{popoverMeeting.client_email}</Typography>
-						<Typography variant="caption" sx={{ display: 'block', mb: 1 }}>
-							{dayjs(popoverMeeting.start_time).format('dddd, MMM D · h:mm A')} – {dayjs(popoverMeeting.end_time).format('h:mm A')}
-						</Typography>
-						<StatusBadge type="googleSync" status={popoverMeeting.calendar_sync_status} label={SYNC_LABEL[popoverMeeting.calendar_sync_status] || popoverMeeting.calendar_sync_status} />
-						<Divider sx={{ my: 1.5 }} />
-						<Stack spacing={1}>
+					<Box sx={{ width: 300 }}>
+						<Box sx={{ p: 2.5, pb: 2 }}>
+							<Stack direction="row" alignItems="flex-start" justifyContent="space-between">
+								<Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0 }}>
+									<EnterpriseAvatar name={popoverMeeting.client_name} size={40} />
+									<Box sx={{ minWidth: 0 }}>
+										<Typography variant="subtitle2" fontWeight={800} noWrap>{popoverMeeting.client_name}</Typography>
+										<Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+											{popoverMeeting.client_email}
+										</Typography>
+									</Box>
+								</Stack>
+								<IconButton size="small" onClick={() => setPopoverAnchor(null)} sx={{ mt: -0.5, mr: -0.5 }}>
+									<CloseIcon sx={{ fontSize: 16 }} />
+								</IconButton>
+							</Stack>
+
+							<Stack direction="row" spacing={1.25} alignItems="center" sx={{ mt: 2, p: 1.25, borderRadius: '12px', bgcolor: 'action.hover' }}>
+								<CalendarMonthOutlined sx={{ fontSize: 18, color: 'text.secondary' }} />
+								<Box sx={{ minWidth: 0 }}>
+									<Typography variant="caption" fontWeight={700} sx={{ display: 'block' }} noWrap>
+										{dayjs(popoverMeeting.start_time).format('dddd, MMM D')}
+									</Typography>
+									<Typography variant="caption" color="text.secondary" noWrap>
+										{dayjs(popoverMeeting.start_time).format('h:mm A')} – {dayjs(popoverMeeting.end_time).format('h:mm A')}
+									</Typography>
+								</Box>
+							</Stack>
+
+							<Box sx={{ mt: 1.5 }}>
+								<StatusBadge type="googleSync" status={popoverMeeting.calendar_sync_status} label={SYNC_LABEL[popoverMeeting.calendar_sync_status] || popoverMeeting.calendar_sync_status} />
+							</Box>
+						</Box>
+
+						<Divider />
+
+						<Stack spacing={1} sx={{ p: 2 }}>
 							{popoverMeeting.google_meet_link && (
-								<Button size="small" variant="outlined" startIcon={<VideocamOutlined sx={{ fontSize: 15 }} />} component="a" href={popoverMeeting.google_meet_link} target="_blank" rel="noreferrer" sx={{ textTransform: 'none' }}>
+								<Button
+									fullWidth variant="contained"
+									startIcon={<VideocamOutlined sx={{ fontSize: 16 }} />}
+									component="a" href={popoverMeeting.google_meet_link} target="_blank" rel="noreferrer"
+									sx={{
+										textTransform: 'none', fontWeight: 700, borderRadius: 2.5,
+										background: (t) => t.gradients.brandDiagonal,
+										boxShadow: (t) => `0 4px 12px 0 ${t.palette.primary.main}4d`,
+										'&:hover': { background: (t) => t.gradients.brandDiagonalHover },
+									}}
+								>
 									Join Meeting
 								</Button>
 							)}
 							<Stack direction="row" spacing={1}>
-								<Button size="small" fullWidth onClick={() => { onReschedule(popoverMeeting); setPopoverAnchor(null); }} sx={{ textTransform: 'none' }}>
+								<Button
+									fullWidth size="small" variant="outlined"
+									startIcon={<EditOutlined sx={{ fontSize: 15 }} />}
+									onClick={() => { onReschedule(popoverMeeting); setPopoverAnchor(null); }}
+									sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2.5 }}
+								>
 									Reschedule
 								</Button>
-								<Button size="small" fullWidth color="error" onClick={() => { onCancel(popoverMeeting); setPopoverAnchor(null); }} sx={{ textTransform: 'none' }}>
+								<Button
+									fullWidth size="small" variant="outlined" color="error"
+									startIcon={<CloseOutlined sx={{ fontSize: 15 }} />}
+									onClick={() => { onCancel(popoverMeeting); setPopoverAnchor(null); }}
+									sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2.5 }}
+								>
 									Cancel
 								</Button>
 							</Stack>
