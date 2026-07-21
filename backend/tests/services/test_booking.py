@@ -56,6 +56,13 @@ async def host_setup(db_session: AsyncSession):
     return org, host, page
 
 
+def _as_utc(dt: datetime) -> datetime:
+    """SQLite (used for this test DB, unlike production's Postgres) doesn't round-trip
+    tzinfo on DateTime(timezone=True) columns — normalize before comparing/reusing a
+    value read back from the ORM."""
+    return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
+
+
 def _future_slot(hours: int = 2) -> datetime:
     # Truncate to the minute so it aligns with the 30-min slot grid the test page uses.
     now = datetime.now(timezone.utc) + timedelta(hours=hours)
@@ -81,8 +88,8 @@ class TestCreateBooking:
         await db_session.commit()
 
         assert meeting.status == MeetingStatus.SCHEDULED
-        assert meeting.start_time == start
-        assert meeting.end_time == start + timedelta(minutes=30)
+        assert _as_utc(meeting.start_time) == start
+        assert _as_utc(meeting.end_time) == start + timedelta(minutes=30)
         assert meeting.calendar_sync_status.value == "not_applicable"  # no Google connection for this host
         assert meeting.lead_id is not None
         assert meeting.manage_token
@@ -157,7 +164,7 @@ class TestCancelAndReschedule:
         rescheduled = await booking_service.reschedule_booking(db_session, meeting=meeting, new_start_time=new_start)
         await db_session.commit()
 
-        assert rescheduled.start_time == new_start
+        assert _as_utc(rescheduled.start_time) == new_start
         assert rescheduled.sequence == original_sequence + 1
 
     async def test_reschedule_into_conflict_is_rejected(self, db_session: AsyncSession, host_setup):
@@ -170,7 +177,7 @@ class TestCancelAndReschedule:
         await db_session.commit()
 
         with pytest.raises(ConflictError):
-            await booking_service.reschedule_booking(db_session, meeting=second, new_start_time=first.start_time)
+            await booking_service.reschedule_booking(db_session, meeting=second, new_start_time=_as_utc(first.start_time))
 
 
 class TestIcsBuilder:
