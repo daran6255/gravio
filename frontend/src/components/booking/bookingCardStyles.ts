@@ -3,7 +3,12 @@ import { useTheme, alpha } from '@mui/material';
 /** Shared card/field styling for the Booking Page Settings screen — mirrors the
  * "premium" glass-morphism language used by StatCard/BaseDialog elsewhere in the
  * app (soft gradient surface, blur, glow-on-hover, generous radius) rather than a
- * flatter one-off look, so this module reads as part of the same product. */
+ * flatter one-off look, so this module reads as part of the same product.
+ *
+ * `accent` also drives a subtle hover lift + colored glow (StatCard's own recipe:
+ * translateY + a color-matched shadow) and the `.glow-bubble` corner decoration —
+ * pass a different accent per card so the page reads as color-coded sections
+ * rather than one flat wall of purple. */
 export const useBookingCardStyles = (accent: string = '#8B7CF6') => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
@@ -27,7 +32,33 @@ export const useBookingCardStyles = (accent: string = '#8B7CF6') => {
 			? '0 8px 32px 0 rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.05)'
 			: '0 8px 32px 0 rgba(139, 124, 246, 0.05), inset 0 1px 0 0 rgba(255, 255, 255, 0.8)',
 		p: { xs: 2.5, sm: 3 },
-		transition: 'box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s',
+		transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s',
+		'&:hover': {
+			transform: 'translateY(-3px)',
+			borderColor: alpha(accent, isDark ? 0.3 : 0.25),
+			boxShadow: isDark
+				? `0 16px 40px 0 rgba(0, 0, 0, 0.4), 0 0 24px 0 ${alpha(accent, 0.18)}`
+				: `0 16px 40px 0 ${alpha(accent, 0.12)}, 0 0 20px 0 ${alpha(accent, 0.08)}`,
+			'& .glow-bubble': { transform: 'scale(1.2)', opacity: 0.22 },
+		},
+	};
+
+	/** Decorative radial-gradient blob for a card's corner — render as the first
+	 * child of a `position: relative` card with `overflow: hidden` (cardSx already
+	 * sets both). Purely visual, `pointerEvents: 'none'`. */
+	const glowBubbleSx = {
+		position: 'absolute' as const,
+		top: -40,
+		right: -40,
+		width: 140,
+		height: 140,
+		borderRadius: '50%',
+		background: `radial-gradient(circle, ${alpha(accent, 0.3)} 0%, rgba(255,255,255,0) 70%)`,
+		filter: 'blur(15px)',
+		opacity: 0.14,
+		zIndex: 0,
+		pointerEvents: 'none' as const,
+		transition: 'all 0.4s ease-in-out',
 	};
 
 	const fieldSx = (readOnly?: boolean) => ({
@@ -50,5 +81,5 @@ export const useBookingCardStyles = (accent: string = '#8B7CF6') => {
 
 	const fieldLabelSx = { color: mutedColor, fontWeight: 700, display: 'block' as const, mb: 0.75, fontSize: '0.7rem', textTransform: 'uppercase' as const, letterSpacing: '0.04em' };
 
-	return { theme, isDark, cardBg, cardBorder, labelColor, mutedColor, iconColor, cardSx, fieldSx, fieldLabelSx };
+	return { theme, isDark, cardBg, cardBorder, labelColor, mutedColor, iconColor, cardSx, glowBubbleSx, fieldSx, fieldLabelSx };
 };

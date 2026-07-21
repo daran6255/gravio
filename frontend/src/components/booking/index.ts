@@ -7,4 +7,6 @@ export { default as ExceptionsCard } from './ExceptionsCard';
 export { default as PublicPreviewCard } from './PublicPreviewCard';
 export { default as NewMeetingDialog } from './NewMeetingDialog';
 export { default as RescheduleMeetingDialog } from './RescheduleMeetingDialog';
+export { default as WeekCalendarView } from './WeekCalendarView';
+export { default as AmbientGlow } from './AmbientGlow';
 export { useBookingCardStyles } from './bookingCardStyles';

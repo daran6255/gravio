@@ -6,22 +6,25 @@ interface PageHeaderProps {
 	subtitle?: string;
 	action?: React.ReactNode;
 	mb?: number;
+	/** Renders the title with the brand gradient clipped to the text, for pages that
+	 * want a bolder "hero" feel — opt-in so existing pages are unaffected. */
+	titleGradient?: boolean;
 }
 
 /**
  * Common Page Header Component
  * Standardized header for all modules with consistent AWS-style typography and responsive layout.
  */
-const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, action, mb = 4 }) => {
+const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, action, mb = 4, titleGradient }) => {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
 	return (
 		<Box sx={{ mb }}>
-			<Stack 
-				direction={isMobile ? "column" : "row"} 
-				justifyContent="space-between" 
-				alignItems={isMobile ? "flex-start" : "center"} 
+			<Stack
+				direction={isMobile ? "column" : "row"}
+				justifyContent="space-between"
+				alignItems={isMobile ? "flex-start" : "center"}
 				spacing={2}
 			>
 				<Box>
@@ -29,10 +32,17 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, action, mb = 4
 						variant={isMobile ? "h5" : "h4"}
 						component="h1"
 						sx={{
-							fontWeight: 500,
+							fontWeight: titleGradient ? 800 : 500,
 							color: 'text.primary',
 							mb: 0.5,
-							letterSpacing: '-0.02em'
+							letterSpacing: '-0.02em',
+							...(titleGradient && {
+								backgroundImage: theme.gradients.brand,
+								backgroundClip: 'text',
+								WebkitBackgroundClip: 'text',
+								WebkitTextFillColor: 'transparent',
+								display: 'inline-block',
+							}),
 						}}
 					>
 						{title}

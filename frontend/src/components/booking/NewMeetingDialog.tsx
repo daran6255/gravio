@@ -14,16 +14,26 @@ interface NewMeetingDialogProps {
 	onClose: () => void;
 	bookingPages: BookingPage[];
 	onCreated: (meeting: ScheduledMeetingHost) => void;
+	/** Pre-select a date (YYYY-MM-DD) — e.g. when opened from a calendar day click. */
+	initialDate?: string;
+	/** Auto-select the slot closest to this "HH:MM" time once loaded — e.g. when
+	 * opened by clicking a specific spot in the week grid. */
+	initialTime?: string;
 }
 
 const BROWSER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
+function timeStrToMinutes(t: string): number {
+	const [h, m] = t.split(':').map(Number);
+	return h * 60 + m;
+}
 
 function generateIdempotencyKey(): string {
 	if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
 	return `key-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, bookingPages, onCreated }) => {
+const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, bookingPages, onCreated, initialDate, initialTime }) => {
 	const toast = useToast();
 	const navigate = useNavigate();
 
@@ -46,19 +56,35 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, book
 			setClientName('');
 			setClientEmail('');
 			setNotes('');
-			setSelectedDate(new Date().toISOString().slice(0, 10));
+			setSelectedDate(initialDate || new Date().toISOString().slice(0, 10));
 			setSelectedSlot(null);
 		}
-	}, [open, bookingPages]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [open, bookingPages, initialDate]);
 
 	useEffect(() => {
 		if (!open || !selectedPage) return;
 		setSlotsLoading(true);
 		setSelectedSlot(null);
 		bookingService.getAvailableSlots(selectedPage.slug, selectedDate, BROWSER_TZ)
-			.then((res) => setSlots(res.slots))
+			.then((res) => {
+				setSlots(res.slots);
+				// Auto-select the slot closest to where the user clicked in the week
+				// grid, so a single click there is usually all it takes.
+				if (initialTime && selectedDate === initialDate && res.slots.length > 0) {
+					const targetMinutes = timeStrToMinutes(initialTime);
+					const nearest = res.slots.reduce((best, s) => {
+						const d = new Date(s.start_time);
+						const mins = d.getHours() * 60 + d.getMinutes();
+						const bestMins = best ? new Date(best.start_time).getHours() * 60 + new Date(best.start_time).getMinutes() : Infinity;
+						return Math.abs(mins - targetMinutes) < Math.abs(bestMins - targetMinutes) ? s : best;
+					}, res.slots[0]);
+					setSelectedSlot(nearest);
+				}
+			})
 			.catch(() => setSlots([]))
 			.finally(() => setSlotsLoading(false));
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [open, selectedPage, selectedDate]);
 
 	const idempotencyKey = useMemo(generateIdempotencyKey, [open]);

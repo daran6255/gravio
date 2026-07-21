@@ -16,6 +16,8 @@ interface SchedulingControlsCardProps {
 	setMaxBookingsPerDay: (v: number | '') => void;
 }
 
+const ACCENT = '#10b981';
+
 const FieldLabel: React.FC<{ label: string; help: string; sx: Record<string, unknown> }> = ({ label, help, sx }) => (
 	<Stack direction="row" spacing={0.4} alignItems="center" sx={{ mb: 0.75 }}>
 		<Box component="span" sx={{ ...sx, mb: 0 }}>{label}</Box>
@@ -29,36 +31,40 @@ const SchedulingControlsCard: React.FC<SchedulingControlsCardProps> = ({
 	bufferBefore, setBufferBefore, bufferAfter, setBufferAfter,
 	minNoticeMinutes, setMinNoticeMinutes, maxBookingsPerDay, setMaxBookingsPerDay,
 }) => {
-	const { cardSx, fieldSx, fieldLabelSx } = useBookingCardStyles();
+	const { cardSx, glowBubbleSx, fieldSx, fieldLabelSx } = useBookingCardStyles(ACCENT);
 
 	return (
 		<Box sx={cardSx}>
-			<SectionHeader
-				icon={<TuneOutlined sx={{ fontSize: 16 }} />}
-				title="Scheduling Controls"
-				helpText="Fine-tune the booking experience: padding around meetings, how much notice you need, and daily limits."
-			/>
-			<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
-				<Box>
-					<FieldLabel label="Buffer Before (min)" help="No one can book a slot starting less than this many minutes after your previous meeting ends." sx={fieldLabelSx} />
-					<TextField fullWidth size="small" type="number" value={bufferBefore} onChange={(e) => setBufferBefore(Number(e.target.value))} sx={fieldSx()} inputProps={{ min: 0 }} />
-				</Box>
-				<Box>
-					<FieldLabel label="Minimum Notice (min)" help="How far in advance a client must book — e.g. 60 means the earliest bookable slot is always at least an hour from now." sx={fieldLabelSx} />
-					<TextField fullWidth size="small" type="number" value={minNoticeMinutes} onChange={(e) => setMinNoticeMinutes(Number(e.target.value))} sx={fieldSx()} inputProps={{ min: 0 }} />
-				</Box>
-				<Box>
-					<FieldLabel label="Buffer After (min)" help="Padding time reserved right after each meeting, so back-to-back bookings can't be made." sx={fieldLabelSx} />
-					<TextField fullWidth size="small" type="number" value={bufferAfter} onChange={(e) => setBufferAfter(Number(e.target.value))} sx={fieldSx()} inputProps={{ min: 0 }} />
-				</Box>
-				<Box>
-					<FieldLabel label="Max Bookings/Day" help="Caps how many meetings can be booked through this page on any single day. Leave blank for no limit." sx={fieldLabelSx} />
-					<TextField
-						fullWidth size="small" type="number" placeholder="No limit"
-						value={maxBookingsPerDay}
-						onChange={(e) => setMaxBookingsPerDay(e.target.value === '' ? '' : Number(e.target.value))}
-						sx={fieldSx()} inputProps={{ min: 1 }}
-					/>
+			<Box className="glow-bubble" sx={glowBubbleSx} />
+			<Box sx={{ position: 'relative', zIndex: 1 }}>
+				<SectionHeader
+					icon={<TuneOutlined sx={{ fontSize: 16 }} />}
+					title="Scheduling Controls"
+					color={ACCENT}
+					helpText="Fine-tune the booking experience: padding around meetings, how much notice you need, and daily limits."
+				/>
+				<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
+					<Box>
+						<FieldLabel label="Buffer Before (min)" help="No one can book a slot starting less than this many minutes after your previous meeting ends." sx={fieldLabelSx} />
+						<TextField fullWidth size="small" type="number" value={bufferBefore} onChange={(e) => setBufferBefore(Number(e.target.value))} sx={fieldSx()} inputProps={{ min: 0 }} />
+					</Box>
+					<Box>
+						<FieldLabel label="Minimum Notice (min)" help="How far in advance a client must book — e.g. 60 means the earliest bookable slot is always at least an hour from now." sx={fieldLabelSx} />
+						<TextField fullWidth size="small" type="number" value={minNoticeMinutes} onChange={(e) => setMinNoticeMinutes(Number(e.target.value))} sx={fieldSx()} inputProps={{ min: 0 }} />
+					</Box>
+					<Box>
+						<FieldLabel label="Buffer After (min)" help="Padding time reserved right after each meeting, so back-to-back bookings can't be made." sx={fieldLabelSx} />
+						<TextField fullWidth size="small" type="number" value={bufferAfter} onChange={(e) => setBufferAfter(Number(e.target.value))} sx={fieldSx()} inputProps={{ min: 0 }} />
+					</Box>
+					<Box>
+						<FieldLabel label="Max Bookings/Day" help="Caps how many meetings can be booked through this page on any single day. Leave blank for no limit." sx={fieldLabelSx} />
+						<TextField
+							fullWidth size="small" type="number" placeholder="No limit"
+							value={maxBookingsPerDay}
+							onChange={(e) => setMaxBookingsPerDay(e.target.value === '' ? '' : Number(e.target.value))}
+							sx={fieldSx()} inputProps={{ min: 1 }}
+						/>
+					</Box>
 				</Box>
 			</Box>
 		</Box>

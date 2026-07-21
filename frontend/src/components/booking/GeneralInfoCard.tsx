@@ -22,6 +22,7 @@ interface GeneralInfoCardProps {
 	setLocationType: (v: BookingLocationType) => void;
 }
 
+const ACCENT = '#8B7CF6';
 const DURATIONS = [15, 30, 45, 60, 90];
 
 const LOCATION_OPTIONS: { value: BookingLocationType; label: string; icon: React.ReactNode }[] = [
@@ -35,7 +36,7 @@ const GeneralInfoCard: React.FC<GeneralInfoCardProps> = ({
 	title, setTitle, description, setDescription,
 	durationMinutes, setDurationMinutes, locationType, setLocationType,
 }) => {
-	const { cardSx, fieldSx, fieldLabelSx } = useBookingCardStyles();
+	const { cardSx, glowBubbleSx, fieldSx, fieldLabelSx } = useBookingCardStyles(ACCENT);
 	const toast = useToast();
 	const [copied, setCopied] = React.useState(false);
 
@@ -48,9 +49,12 @@ const GeneralInfoCard: React.FC<GeneralInfoCardProps> = ({
 
 	return (
 		<Box sx={cardSx}>
+			<Box className="glow-bubble" sx={glowBubbleSx} />
+			<Box sx={{ position: 'relative', zIndex: 1 }}>
 			<SectionHeader
 				icon={<InfoOutlined sx={{ fontSize: 16 }} />}
 				title="General Information"
+				color={ACCENT}
 				helpText="The basics clients see: your public link, meeting name, how long it runs, and how it happens (online, in person, or by phone)."
 			/>
 			<Stack spacing={2.5}>
@@ -139,6 +143,7 @@ const GeneralInfoCard: React.FC<GeneralInfoCardProps> = ({
 					</Box>
 				</Stack>
 			</Stack>
+		</Box>
 		</Box>
 	);
 };
