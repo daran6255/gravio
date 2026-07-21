@@ -230,18 +230,125 @@ async def send_reminder_email(
     )
 
 
-async def _send_via_smtp(to_email: str, subject: str, html_body: str) -> None:
-    """Internal helper — send an HTML email using aiosmtplib."""
+async def send_booking_confirmation_email(
+    *,
+    to_email: str,
+    client_name: str,
+    meeting_title: str,
+    heading: str,
+    start_time_display: str,
+    attendee_timezone: str,
+    meet_link: Optional[str],
+    location_text: Optional[str],
+    maps_url: Optional[str],
+    fallback_note: Optional[str],
+    manage_url: str,
+    ics_bytes: bytes,
+    ics_method: str = "REQUEST",
+) -> None:
+    """Booking confirmation/reschedule email — always sent regardless of Google
+    Calendar sync status, with a self-contained .ics attachment so the client gets
+    a working calendar invite even when Google isn't connected (see
+    app/services/booking.py and app/utils/ics.py)."""
+    subject = f"Confirmed: {meeting_title}"
+    if not settings.SMTP_HOST:
+        logger.info(
+            f"[EMAIL - DEV] Booking confirmation for '{client_name}' ({to_email}) — {meeting_title} at "
+            f"{start_time_display} ({attendee_timezone}). Manage: {manage_url}"
+        )
+        return
+
+    html_body = render_template(
+        "email/booking_confirmation.html",
+        app_name=settings.APP_NAME,
+        heading=heading,
+        client_name=client_name,
+        meeting_title=meeting_title,
+        start_time_display=start_time_display,
+        attendee_timezone=attendee_timezone,
+        meet_link=meet_link,
+        location_text=location_text,
+        maps_url=maps_url,
+        fallback_note=fallback_note,
+        manage_url=manage_url,
+        year=datetime.now().year,
+    )
+    await _send_via_smtp(
+        to_email, subject, html_body,
+        attachments=[("invite.ics", ics_bytes, f'calendar;method={ics_method}')],
+    )
+
+
+async def send_booking_cancelled_email(
+    *,
+    to_email: str,
+    client_name: str,
+    meeting_title: str,
+    start_time_display: str,
+    attendee_timezone: str,
+    reason: Optional[str],
+    ics_bytes: bytes,
+) -> None:
+    """Cancellation notice — carries a METHOD:CANCEL .ics so calendar clients remove
+    the event automatically, independent of whether Google Calendar sync worked."""
+    subject = f"Cancelled: {meeting_title}"
+    if not settings.SMTP_HOST:
+        logger.info(
+            f"[EMAIL - DEV] Booking cancellation for '{client_name}' ({to_email}) — {meeting_title} "
+            f"(was {start_time_display} {attendee_timezone}). Reason: {reason or 'none given'}"
+        )
+        return
+
+    html_body = render_template(
+        "email/booking_cancelled.html",
+        app_name=settings.APP_NAME,
+        client_name=client_name,
+        meeting_title=meeting_title,
+        start_time_display=start_time_display,
+        attendee_timezone=attendee_timezone,
+        reason=reason,
+        year=datetime.now().year,
+    )
+    await _send_via_smtp(
+        to_email, subject, html_body,
+        attachments=[("cancel.ics", ics_bytes, 'calendar;method=CANCEL')],
+    )
+
+
+async def _send_via_smtp(
+    to_email: str,
+    subject: str,
+    html_body: str,
+    attachments: Optional[list[tuple[str, bytes, str]]] = None,
+) -> None:
+    """Internal helper — send an HTML email using aiosmtplib.
+
+    attachments: list of (filename, content_bytes, mime_subtype), e.g.
+    [("invite.ics", ics_bytes, "calendar;method=REQUEST")] — used by the booking
+    scheduler to attach a .ics invite/cancellation to confirmation emails.
+    """
     try:
         import aiosmtplib
+        from email.mime.base import MIMEBase
         from email.mime.multipart import MIMEMultipart
         from email.mime.text import MIMEText
 
-        msg = MIMEMultipart("alternative")
+        msg = MIMEMultipart("mixed")
         msg["Subject"] = subject
         msg["From"] = f"{settings.EMAILS_FROM_NAME or settings.APP_NAME} <{settings.EMAILS_FROM_EMAIL}>"
         msg["To"] = to_email
-        msg.attach(MIMEText(html_body, "html"))
+
+        body_part = MIMEMultipart("alternative")
+        body_part.attach(MIMEText(html_body, "html"))
+        msg.attach(body_part)
+
+        for filename, content, mime_subtype in (attachments or []):
+            part = MIMEBase("application", mime_subtype)
+            part.set_payload(content)
+            from email import encoders
+            encoders.encode_base64(part)
+            part.add_header("Content-Disposition", f'attachment; filename="{filename}"')
+            msg.attach(part)
 
         await aiosmtplib.send(
             msg,

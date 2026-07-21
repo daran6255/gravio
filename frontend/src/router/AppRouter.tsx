@@ -14,6 +14,9 @@ import BillingSettings from '../pages/settings/BillingSettings';
 import { LeadsPage, DealsPage, CompaniesPage, TasksPage } from '../pages/crm';
 import { ProjectsListPage, ProjectDetailPage } from '../pages/projects';
 import TimesheetPage from '../pages/timesheets/TimesheetPage';
+import { BookingSetupPage, MyMeetingsPage } from '../pages/booking';
+import PublicBookingPage from '../pages/public/PublicBookingPage';
+import ManageBookingPage from '../pages/public/ManageBookingPage';
 // HR Admin Pages
 import WorkforcePage from '../pages/hr/admin/WorkforcePage';
 import ChecklistPage from '../pages/hr/admin/ChecklistPage';
@@ -52,6 +55,10 @@ const AppRouter: React.FC = () => {
 			<Route path="/success" element={<SuccessPage />} />
 			<Route path="/maintenance" element={<MaintenancePage />} />
 
+			{/* Public Booking Scheduler — no auth, no app chrome */}
+			<Route path="/book/manage/:token" element={<ManageBookingPage />} />
+			<Route path="/book/:slug" element={<PublicBookingPage />} />
+
 			<Route element={<ProtectedRoute />}>
 				{/* Protected Routes */}
 				<Route element={<MainLayout />}>
@@ -73,6 +80,10 @@ const AppRouter: React.FC = () => {
 					<Route path="crm/deals" element={<DealsPage />} />
 					<Route path="crm/companies" element={<CompaniesPage />} />
 					<Route path="crm/tasks" element={<TasksPage />} />
+
+					{/* Calendar & Appointment Booking Scheduler */}
+					<Route path="booking/setup" element={<BookingSetupPage />} />
+					<Route path="booking/meetings" element={<MyMeetingsPage />} />
 
 					{/* Project Management */}
 					<Route path="projects" element={<ProjectsListPage />} />
@@ -115,6 +126,9 @@ const AppRouter: React.FC = () => {
 					<Route path="org/:orgId/crm/deals" element={<DealsPage />} />
 					<Route path="org/:orgId/crm/companies" element={<CompaniesPage />} />
 					<Route path="org/:orgId/crm/tasks" element={<TasksPage />} />
+
+					<Route path="org/:orgId/booking/setup" element={<BookingSetupPage />} />
+					<Route path="org/:orgId/booking/meetings" element={<MyMeetingsPage />} />
 
 					<Route path="org/:orgId/projects" element={<ProjectsListPage />} />
 					<Route path="org/:orgId/projects/:publicId" element={<ProjectDetailPage />} />

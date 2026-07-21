@@ -64,3 +64,11 @@ router.include_router(hr_router)
 #                             GET /api/v1/ai/usage
 from app.api.v1.endpoints.ai import router as ai_router
 router.include_router(ai_router)
+
+# Calendar & Appointment Booking Scheduler →  /api/v1/bookings/...
+from app.api.v1.endpoints.booking import router as booking_router
+router.include_router(booking_router)
+
+# Google Calendar connect/disconnect        →  /api/v1/integrations/google/...
+from app.api.v1.endpoints.google_integration import router as google_integration_router
+router.include_router(google_integration_router)

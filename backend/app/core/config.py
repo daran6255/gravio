@@ -125,7 +125,29 @@ class Settings(BaseSettings):
 
     # CRM
     LEAD_STALE_DAYS: int = 14
-    
+
+    # ── Calendar & Appointment Booking Scheduler ────────────────────────────────
+    # Google OAuth Client (per-user "Connect Google Calendar" flow). Left unset by
+    # default so the app boots and the booking feature runs in fully-degraded
+    # (ICS-only, no Google sync) mode until an admin provisions these — see
+    # backend/documentation/GOOGLE_CALENDAR_SETUP.md.
+    GOOGLE_CLIENT_ID: Optional[str] = None
+    GOOGLE_CLIENT_SECRET: Optional[str] = None
+    GOOGLE_OAUTH_REDIRECT_URI: Optional[str] = None
+    GOOGLE_CALENDAR_SCOPES: List[str] = [
+        "https://www.googleapis.com/auth/calendar.events",
+        "https://www.googleapis.com/auth/userinfo.email",
+    ]
+
+    # Background retry loop for Google Calendar sync (mirrors the reminder scheduler's
+    # fixed-interval asyncio task pattern, not a new scheduler dependency)
+    BOOKING_SYNC_RETRY_INTERVAL_SECONDS: int = 120
+    BOOKING_SYNC_MAX_ATTEMPTS: int = 5
+
+    # Public booking page defaults
+    BOOKING_DEFAULT_MIN_NOTICE_MINUTES: int = 60
+    BOOKING_DEFAULT_MAX_ADVANCE_DAYS: int = 60
+
     # Email (optional - for future use)
     SMTP_TLS: bool = True
     SMTP_PORT: Optional[int] = None

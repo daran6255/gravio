@@ -1,0 +1,14 @@
+{% extends "email/base_email.html" %}
+{% block content %}
+                            <h2 style="margin:0 0 16px; font-family:'Inter',Arial,sans-serif; font-size:20px; font-weight:700; color:#0B0D12;">
+                                Meeting Cancelled
+                            </h2>
+                            <p style="margin:0 0 20px; font-family:'Inter',Arial,sans-serif; font-size:14px; line-height:1.6; color:rgba(11,13,18,0.7);">
+                                Hello {{ client_name }},<br/><br/>
+                                Your meeting "{{ meeting_title }}" originally scheduled for {{ start_time_display }} ({{ attendee_timezone }}) has been cancelled.
+                                {% if reason %}<br/><br/><strong>Reason:</strong> {{ reason }}{% endif %}
+                            </p>
+                            <p style="margin:0; font-family:'Inter',Arial,sans-serif; font-size:12px; line-height:1.5; color:rgba(11,13,18,0.45);">
+                                A cancellation notice (.ics) is attached to remove this event from your calendar automatically.
+                            </p>
+{% endblock %}

@@ -16,6 +16,7 @@ from app.middleware.error_handler import ErrorHandlerMiddleware
 from app.middleware.timezone import TimezoneMiddleware
 from app.middleware.garbage_collector import GarbageCollectorMiddleware, memory_monitor_task
 from app.services.reminder_scheduler import reminder_check_task
+from app.services.booking_sync_worker import booking_sync_check_task
 from app.api.v1.router import router as v1_router
 from loguru import logger
 from fastapi.exceptions import RequestValidationError
@@ -34,9 +35,13 @@ async def lifespan(app: FastAPI):
     # Start the CRM reminder scheduler background task
     reminder_task = asyncio.create_task(reminder_check_task(interval_seconds=60))
 
+    # Start the booking scheduler's Google Calendar sync-retry background task
+    booking_sync_task = asyncio.create_task(booking_sync_check_task())
+
     # Stashed on app.state so /health can report whether these are still alive
     app.state.monitor_task = monitor_task
     app.state.reminder_task = reminder_task
+    app.state.booking_sync_task = booking_sync_task
 
     # You can uncomment this to create tables on startup (not recommended for production)
     # await init_db()
@@ -60,6 +65,13 @@ async def lifespan(app: FastAPI):
     reminder_task.cancel()
     try:
         await reminder_task
+    except asyncio.CancelledError:
+        pass
+
+    # Cancel booking calendar-sync task
+    booking_sync_task.cancel()
+    try:
+        await booking_sync_task
     except asyncio.CancelledError:
         pass
 

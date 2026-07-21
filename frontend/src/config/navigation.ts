@@ -17,6 +17,8 @@ import {
 	CalendarMonthOutlined as LeaveIcon,
 	PlaylistAddCheck as OnboardingIcon,
 	FolderShared as DocumentsIcon,
+	EventAvailableOutlined as BookingSetupIcon,
+	VideocamOutlined as MeetingsIcon,
 } from '@mui/icons-material';
 import type { SvgIconComponent } from '@mui/icons-material';
 
@@ -66,6 +68,16 @@ export const topNavigation: NavigationItem[] = [
 				label: 'Leaves',
 				path: '/hr/user/leaves',
 				icon: LeaveIcon,
+			},
+			{
+				label: 'Booking Page',
+				path: '/booking/setup',
+				icon: BookingSetupIcon,
+			},
+			{
+				label: 'Meetings',
+				path: '/booking/meetings',
+				icon: MeetingsIcon,
 			},
 			{
 				label: 'Billing',

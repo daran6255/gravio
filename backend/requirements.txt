@@ -52,3 +52,10 @@ PyPDF2==3.0.1
 
 # Excel import
 openpyxl==3.1.2
+
+# Booking Scheduler — Google Calendar/Meet integration
+google-api-python-client==2.126.0
+google-auth==2.29.0
+google-auth-oauthlib==1.2.0
+cryptography==42.0.5
+icalendar==5.0.12

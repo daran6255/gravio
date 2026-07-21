@@ -37,6 +37,7 @@ class LeadSource(str, enum.Enum):
     LINKEDIN = "linkedin"
     AD = "ad"
     EVENT = "event"
+    BOOKING_PAGE = "booking_page"
     OTHER = "other"
 
 
