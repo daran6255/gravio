@@ -19,7 +19,6 @@ import {
 	WeeklyHoursCard,
 	ExceptionsCard,
 	PublicPreviewCard,
-	AmbientGlow,
 } from '../booking';
 import type { BookingPage, BookingLocationType, WeeklyAvailability, TimeRange, BookingAvailabilityException } from '../../models/booking/bookingPage';
 import type { GoogleConnectionStatusResponse } from '../../models/booking/googleIntegration';
@@ -256,9 +255,7 @@ const BookingTab: React.FC = () => {
 	const publicUrl = page ? `${publicUrlPrefix}${page.slug}` : null;
 
 	return (
-		<Box sx={{ position: 'relative' }}>
-			<AmbientGlow />
-			<Box sx={{ position: 'relative', zIndex: 1 }}>
+		<Box>
 			{showWelcome && (
 				<WelcomeBanner
 					icon={CalendarMonthOutlined}
@@ -355,7 +352,6 @@ const BookingTab: React.FC = () => {
 						publicUrl={publicUrl}
 					/>
 				</Stack>
-			</Box>
 			</Box>
 
 			<HelpGuideDrawer open={guideOpen} onClose={() => setGuideOpen(false)} content={BOOKING_GUIDE_CONTENT} />

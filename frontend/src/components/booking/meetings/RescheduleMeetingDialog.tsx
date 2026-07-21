@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Stack, TextField, Typography, CircularProgress, Button } from '@mui/material';
 import { EventOutlined } from '@mui/icons-material';
-import BaseDialog from '../common/dialogbox/BaseDialog';
-import { SubmitButton, CancelButton } from '../common/button';
-import bookingService from '../../services/bookingService';
-import useToast from '../../hooks/useToast';
-import type { BookingPage } from '../../models/booking/bookingPage';
-import type { AvailableSlot, ScheduledMeetingHost } from '../../models/booking/meeting';
+import BaseDialog from '../../common/dialogbox/BaseDialog';
+import { SubmitButton, CancelButton } from '../../common/button';
+import bookingService from '../../../services/bookingService';
+import useToast from '../../../hooks/useToast';
+import type { BookingPage } from '../../../models/booking/bookingPage';
+import type { AvailableSlot, ScheduledMeetingHost } from '../../../models/booking/meeting';
 
 interface RescheduleMeetingDialogProps {
 	open: boolean;

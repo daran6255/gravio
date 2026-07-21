@@ -1,8 +1,7 @@
 import React from 'react';
-import { Box, Typography, Stack, alpha } from '@mui/material';
+import { Box, Typography, Stack, alpha, useTheme } from '@mui/material';
 import { HelpOutline } from '@mui/icons-material';
-import PremiumTooltip from '../common/PremiumTooltip';
-import { useBookingCardStyles } from './bookingCardStyles';
+import PremiumTooltip from '../../common/PremiumTooltip';
 
 interface SectionHeaderProps {
 	icon: React.ReactNode;
@@ -16,7 +15,8 @@ interface SectionHeaderProps {
 }
 
 const SectionHeader: React.FC<SectionHeaderProps> = ({ icon, title, helpText, color = '#8B7CF6', action }) => {
-	const { isDark } = useBookingCardStyles();
+	const theme = useTheme();
+	const isDark = theme.palette.mode === 'dark';
 
 	return (
 		<Stack direction="row" spacing={1.25} alignItems="center" justifyContent="space-between" sx={{ mb: 2.5 }}>
@@ -27,7 +27,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({ icon, title, helpText, co
 				<Stack direction="row" spacing={0.5} alignItems="center">
 					<Typography
 						variant="body2"
-						sx={{ fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: isDark ? '#F4F5F7' : '#1e293b' }}
+						sx={{ fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'text.primary' }}
 					>
 						{title}
 					</Typography>

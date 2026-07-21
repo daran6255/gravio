@@ -1,11 +1,10 @@
 import React from 'react';
-import { Box, Stack, TextField, MenuItem, InputAdornment, IconButton } from '@mui/material';
+import { Box, Stack, TextField, MenuItem, InputAdornment, IconButton, useTheme } from '@mui/material';
 import { InfoOutlined, LinkOutlined, ContentCopyOutlined, CheckOutlined, VideocamOutlined, PlaceOutlined, PhoneOutlined } from '@mui/icons-material';
 import SectionHeader from './SectionHeader';
-import PremiumTooltip from '../common/PremiumTooltip';
-import { useBookingCardStyles } from './bookingCardStyles';
-import type { BookingLocationType } from '../../models/booking/bookingPage';
-import useToast from '../../hooks/useToast';
+import PremiumTooltip from '../../common/PremiumTooltip';
+import type { BookingLocationType } from '../../../models/booking/bookingPage';
+import useToast from '../../../hooks/useToast';
 
 interface GeneralInfoCardProps {
 	slug: string;
@@ -31,14 +30,24 @@ const LOCATION_OPTIONS: { value: BookingLocationType; label: string; icon: React
 	{ value: 'phone', label: 'Phone Call', icon: <PhoneOutlined sx={{ fontSize: 18 }} /> },
 ];
 
+const fieldLabelSx = { color: 'text.secondary', fontWeight: 700, display: 'block' as const, mb: 0.75, fontSize: '0.7rem', textTransform: 'uppercase' as const, letterSpacing: '0.04em' };
+
 const GeneralInfoCard: React.FC<GeneralInfoCardProps> = ({
 	slug, setSlug, slugLocked, publicUrlPrefix,
 	title, setTitle, description, setDescription,
 	durationMinutes, setDurationMinutes, locationType, setLocationType,
 }) => {
-	const { cardSx, glowBubbleSx, fieldSx, fieldLabelSx } = useBookingCardStyles(ACCENT);
+	const theme = useTheme();
+	const isDark = theme.palette.mode === 'dark';
 	const toast = useToast();
 	const [copied, setCopied] = React.useState(false);
+
+	const cardSx = {
+		p: { xs: 2.5, sm: 3 }, borderRadius: '20px',
+		bgcolor: 'background.paper',
+		border: '1px solid', borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)',
+		boxShadow: isDark ? '0 1px 2px rgba(0,0,0,0.4), 0 8px 20px rgba(0,0,0,0.2)' : '0 1px 2px rgba(15,23,42,0.04), 0 8px 20px rgba(15,23,42,0.05)',
+	};
 
 	const handleCopyLink = () => {
 		navigator.clipboard.writeText(`${publicUrlPrefix}${slug || ''}`);
@@ -49,8 +58,6 @@ const GeneralInfoCard: React.FC<GeneralInfoCardProps> = ({
 
 	return (
 		<Box sx={cardSx}>
-			<Box className="glow-bubble" sx={glowBubbleSx} />
-			<Box sx={{ position: 'relative', zIndex: 1 }}>
 			<SectionHeader
 				icon={<InfoOutlined sx={{ fontSize: 16 }} />}
 				title="General Information"
@@ -66,7 +73,6 @@ const GeneralInfoCard: React.FC<GeneralInfoCardProps> = ({
 						value={slug}
 						onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
 						disabled={slugLocked}
-						sx={fieldSx(slugLocked)}
 						placeholder="your-name-consulting"
 						InputProps={{
 							startAdornment: (
@@ -98,7 +104,7 @@ const GeneralInfoCard: React.FC<GeneralInfoCardProps> = ({
 				<Box>
 					<Box component="span" sx={fieldLabelSx}>Meeting title</Box>
 					<TextField
-						fullWidth size="small" value={title} onChange={(e) => setTitle(e.target.value)} sx={fieldSx()}
+						fullWidth size="small" value={title} onChange={(e) => setTitle(e.target.value)}
 						placeholder="e.g. 30 Minute Discovery Call"
 					/>
 				</Box>
@@ -109,7 +115,6 @@ const GeneralInfoCard: React.FC<GeneralInfoCardProps> = ({
 						fullWidth multiline minRows={2} size="small"
 						value={description} onChange={(e) => setDescription(e.target.value)}
 						placeholder="What should the client expect from this meeting?"
-						sx={fieldSx()}
 					/>
 				</Box>
 
@@ -119,7 +124,6 @@ const GeneralInfoCard: React.FC<GeneralInfoCardProps> = ({
 						<TextField
 							select fullWidth size="small"
 							value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))}
-							sx={fieldSx()}
 						>
 							{DURATIONS.map((d) => <MenuItem key={d} value={d}>{d} minutes</MenuItem>)}
 						</TextField>
@@ -129,7 +133,6 @@ const GeneralInfoCard: React.FC<GeneralInfoCardProps> = ({
 						<TextField
 							select fullWidth size="small"
 							value={locationType} onChange={(e) => setLocationType(e.target.value as BookingLocationType)}
-							sx={fieldSx()}
 						>
 							{LOCATION_OPTIONS.map((opt) => (
 								<MenuItem key={opt.value} value={opt.value}>
@@ -143,7 +146,6 @@ const GeneralInfoCard: React.FC<GeneralInfoCardProps> = ({
 					</Box>
 				</Stack>
 			</Stack>
-		</Box>
 		</Box>
 	);
 };

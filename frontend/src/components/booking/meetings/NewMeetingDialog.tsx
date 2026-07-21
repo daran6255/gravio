@@ -2,12 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Stack, TextField, MenuItem, Typography, Button, CircularProgress, Divider } from '@mui/material';
 import { EventOutlined } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import BaseDialog from '../common/dialogbox/BaseDialog';
-import { SubmitButton, CancelButton } from '../common/button';
-import bookingService from '../../services/bookingService';
-import useToast from '../../hooks/useToast';
-import type { BookingPage } from '../../models/booking/bookingPage';
-import type { AvailableSlot, ScheduledMeetingHost } from '../../models/booking/meeting';
+import BaseDialog from '../../common/dialogbox/BaseDialog';
+import { SubmitButton, CancelButton } from '../../common/button';
+import bookingService from '../../../services/bookingService';
+import useToast from '../../../hooks/useToast';
+import type { BookingPage } from '../../../models/booking/bookingPage';
+import type { AvailableSlot, ScheduledMeetingHost } from '../../../models/booking/meeting';
 
 interface NewMeetingDialogProps {
 	open: boolean;

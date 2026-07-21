@@ -3,7 +3,7 @@ import { Box, Container, Button, TextField } from '@mui/material';
 import PageHeader from '../../components/common/page-header';
 import { responsiveStyles } from '../../theme';
 import ConfirmationDialog from '../../components/common/dialogbox/ConfirmationDialog';
-import { NewMeetingDialog, RescheduleMeetingDialog, WeekCalendarView, AmbientGlow } from '../../components/booking';
+import { NewMeetingDialog, RescheduleMeetingDialog, WeekCalendarView } from '../../components/booking';
 import useToast from '../../hooks/useToast';
 import bookingService from '../../services/bookingService';
 import type { ScheduledMeetingHost } from '../../models/booking/meeting';
@@ -83,11 +83,8 @@ const MyMeetingsPage: React.FC = () => {
 	};
 
 	return (
-		<Box component="main" sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
+		<Box component="main" sx={{ bgcolor: 'background.default' }}>
 			<Container maxWidth={false} sx={responsiveStyles.pageContainer}>
-			<Box sx={{ position: 'relative' }}>
-			<AmbientGlow />
-			<Box sx={{ position: 'relative', zIndex: 1 }}>
 			<PageHeader
 				title="Meetings Overview"
 				subtitle="Manage your upcoming and past bookings, calendar sync, and client interactions."
@@ -147,8 +144,6 @@ const MyMeetingsPage: React.FC = () => {
 					onChange={(e) => setCancelReason(e.target.value)}
 				/>
 			</ConfirmationDialog>
-			</Box>
-			</Box>
 			</Container>
 		</Box>
 	);
