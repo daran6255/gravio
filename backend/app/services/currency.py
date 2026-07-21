@@ -36,25 +36,31 @@ class CurrencyConversionService:
         # whenever the exact date isn't available yet rather than giving up entirely.
         date_candidates = [date_str] if date_str == "latest" else [date_str, "latest"]
 
+        # Only the dated candidate failing to publish yet is expected/routine — logged at
+        # debug so it doesn't read as an ongoing error every time "today" isn't up yet.
+        # Exhausting every candidate (including "latest") is the real failure worth a warning.
         for date_candidate in date_candidates:
+            is_expected_miss = date_candidate == date_str and "latest" in date_candidates
+            log = logger.debug if is_expected_miss else logger.warning
             for url_template in CURRENCY_API_URLS:
                 url = url_template.format(date=date_candidate, from_currency=from_lower)
                 try:
                     async with httpx.AsyncClient(timeout=5.0) as client:
                         resp = await client.get(url)
                         if not resp.is_success:
-                            logger.warning(f"Currency rate lookup failed ({from_currency}->{to_currency} on {on_date}) via {url}: {resp.status_code}")
+                            log(f"Currency rate lookup failed ({from_currency}->{to_currency} on {on_date}) via {url}: {resp.status_code}")
                             continue
                         data = resp.json()
                         raw_rate = data.get(from_lower, {}).get(to_lower)
                         if raw_rate is None:
-                            logger.warning(f"Currency rate lookup missing pair ({from_currency}->{to_currency} on {on_date}) via {url}")
+                            log(f"Currency rate lookup missing pair ({from_currency}->{to_currency} on {on_date}) via {url}")
                             continue
                         return Decimal(str(raw_rate))
                 except (httpx.HTTPError, InvalidOperation, ValueError) as exc:
-                    logger.warning(f"Currency rate lookup errored ({from_currency}->{to_currency} on {on_date}) via {url}: {exc}")
+                    log(f"Currency rate lookup errored ({from_currency}->{to_currency} on {on_date}) via {url}: {exc}")
                     continue
 
+        logger.warning(f"Currency rate lookup exhausted all sources ({from_currency}->{to_currency} on {on_date}) — no rate available.")
         return None
 
     @staticmethod
