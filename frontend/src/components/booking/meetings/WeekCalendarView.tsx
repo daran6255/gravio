@@ -3,6 +3,7 @@ import { Box, Stack, Typography, IconButton, Button, Popover, Divider, useTheme,
 import { ChevronLeft, ChevronRight, VideocamOutlined, PlaceOutlined, PhoneOutlined, Close as CloseIcon, EditOutlined, CloseOutlined, CalendarMonthOutlined } from '@mui/icons-material';
 import dayjs, { type Dayjs } from 'dayjs';
 import EnterpriseAvatar from '../../common/avatar/Avatar';
+import { responsiveStyles } from '../../../theme';
 import type { ScheduledMeetingHost, MeetingLocationType } from '../../../models/booking/meeting';
 
 const HOUR_HEIGHT = 52;
@@ -153,8 +154,10 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 				<Typography variant="caption" color="text.secondary">Click any slot to schedule a meeting, or drag a meeting to move it.</Typography>
 			</Stack>
 
-			{/* Grid */}
-			<Box sx={{ display: 'grid', gridTemplateColumns: '52px repeat(7, 1fr)', overflowX: 'auto' }}>
+			{/* Grid — horizontally scrollable below its comfortable minimum width instead
+			    of squeezing 7 day columns unreadably thin on narrower screens */}
+			<Box sx={responsiveStyles.scrollX}>
+			<Box sx={{ display: 'grid', gridTemplateColumns: '52px repeat(7, minmax(96px, 1fr))', minWidth: 740 }}>
 				{/* Header row */}
 				<Box />
 				{days.map((day) => {
@@ -297,6 +300,7 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 						</Box>
 					);
 				})}
+			</Box>
 			</Box>
 
 			<Popover

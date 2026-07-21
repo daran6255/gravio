@@ -75,7 +75,7 @@ const MyMeetingsPage: React.FC = () => {
 				}
 			/>
 
-			<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '3fr 1fr' }, gap: 3, alignItems: 'start' }}>
+			<Box sx={responsiveStyles.contentWithSidebar}>
 				<WeekCalendarView
 					meetings={calendarMeetings}
 					onSlotClick={(dateStr, timeStr) => { setNewMeetingDate(dateStr); setNewMeetingTime(timeStr); setNewMeetingOpen(true); }}

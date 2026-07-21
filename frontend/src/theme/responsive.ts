@@ -149,6 +149,17 @@ export const responsiveStyles = {
 		gap: { xs: 1.5, sm: 2 },
 		gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
 	},
+	/** Main content + a side panel (e.g. a calendar + an "upcoming" rail): stays
+	 * single-column through phone/tablet/laptop/small-desktop and only splits at xl
+	 * (1536px+), where there's genuinely enough width for both without squeezing
+	 * the main content — a straight lg-and-up proportional split gets cramped on
+	 * common 1280–1440px laptop screens. */
+	contentWithSidebar: {
+		display: 'grid',
+		gap: { xs: 2, md: 3 },
+		gridTemplateColumns: { xs: '1fr', xl: '3fr 1fr' },
+		alignItems: 'start',
+	},
 	/** Toolbar/header rows: stack vertically on phones */
 	headerRow: {
 		display: 'flex',
