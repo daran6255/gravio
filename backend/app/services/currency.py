@@ -30,23 +30,30 @@ class CurrencyConversionService:
         to_lower = to_currency.lower()
         date_str = on_date.isoformat()
 
-        for url_template in CURRENCY_API_URLS:
-            url = url_template.format(date=date_str, from_currency=from_lower)
-            try:
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    resp = await client.get(url)
-                    if not resp.is_success:
-                        logger.warning(f"Currency rate lookup failed ({from_currency}->{to_currency} on {on_date}) via {url}: {resp.status_code}")
-                        continue
-                    data = resp.json()
-                    raw_rate = data.get(from_lower, {}).get(to_lower)
-                    if raw_rate is None:
-                        logger.warning(f"Currency rate lookup missing pair ({from_currency}->{to_currency} on {on_date}) via {url}")
-                        continue
-                    return Decimal(str(raw_rate))
-            except (httpx.HTTPError, InvalidOperation, ValueError) as exc:
-                logger.warning(f"Currency rate lookup errored ({from_currency}->{to_currency} on {on_date}) via {url}: {exc}")
-                continue
+        # The dated release for "today" (and sometimes the last day or two) frequently
+        # 404s because upstream publishes each day's snapshot with a delay — "latest"
+        # always resolves to whatever snapshot is newest, so it's tried as a fallback
+        # whenever the exact date isn't available yet rather than giving up entirely.
+        date_candidates = [date_str] if date_str == "latest" else [date_str, "latest"]
+
+        for date_candidate in date_candidates:
+            for url_template in CURRENCY_API_URLS:
+                url = url_template.format(date=date_candidate, from_currency=from_lower)
+                try:
+                    async with httpx.AsyncClient(timeout=5.0) as client:
+                        resp = await client.get(url)
+                        if not resp.is_success:
+                            logger.warning(f"Currency rate lookup failed ({from_currency}->{to_currency} on {on_date}) via {url}: {resp.status_code}")
+                            continue
+                        data = resp.json()
+                        raw_rate = data.get(from_lower, {}).get(to_lower)
+                        if raw_rate is None:
+                            logger.warning(f"Currency rate lookup missing pair ({from_currency}->{to_currency} on {on_date}) via {url}")
+                            continue
+                        return Decimal(str(raw_rate))
+                except (httpx.HTTPError, InvalidOperation, ValueError) as exc:
+                    logger.warning(f"Currency rate lookup errored ({from_currency}->{to_currency} on {on_date}) via {url}: {exc}")
+                    continue
 
         return None
 
