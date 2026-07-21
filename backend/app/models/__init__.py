@@ -48,14 +48,9 @@ from app.models.timesheet import (
     WeekUnlockStatus,
 )
 from app.models.booking import (
-    GoogleOAuthConnection,
-    BookingPage,
-    BookingAvailabilityException,
     ScheduledMeeting,
-    GoogleConnectionStatus,
-    BookingLocationType,
+    MeetingLocationType,
     MeetingStatus,
-    CalendarSyncStatus,
     CancelledBy,
 )
 from app.models.hr import (
@@ -160,14 +155,9 @@ __all__ = [
     "HREmployeeDocument",
     "ChecklistType",
     "ChecklistStatus",
-    "GoogleOAuthConnection",
-    "BookingPage",
-    "BookingAvailabilityException",
     "ScheduledMeeting",
-    "GoogleConnectionStatus",
-    "BookingLocationType",
+    "MeetingLocationType",
     "MeetingStatus",
-    "CalendarSyncStatus",
     "CancelledBy",
 ]
 

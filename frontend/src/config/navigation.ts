@@ -17,7 +17,6 @@ import {
 	CalendarMonthOutlined as LeaveIcon,
 	PlaylistAddCheck as OnboardingIcon,
 	FolderShared as DocumentsIcon,
-	EventAvailableOutlined as BookingSetupIcon,
 	VideocamOutlined as MeetingsIcon,
 	AccountTreeOutlined as DepartmentsIcon,
 	WorkOutlined as DesignationsIcon,
@@ -182,7 +181,6 @@ export const settingsNavigation: NavigationItem[] = [
 	{ label: 'Preferences', icon: PreferencesIcon, sectionId: 'settings-preferences' },
 	{ label: 'Security', icon: SecurityIcon, sectionId: 'settings-security' },
 	{ label: 'Notifications', icon: NotificationsIcon, sectionId: 'settings-notifications' },
-	{ label: 'Booking', icon: BookingSetupIcon, sectionId: 'settings-booking' },
 ];
 
 /**

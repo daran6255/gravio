@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-	Box, Stack, TextField, MenuItem, Typography, Button, CircularProgress, Divider,
-	Autocomplete, Chip,
+	Box, Stack, TextField, MenuItem, Typography, Divider,
+	Autocomplete, Chip, CircularProgress,
 } from '@mui/material';
-import { EventOutlined, VideocamOutlined, PlaceOutlined, PhoneOutlined, GroupsOutlined } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { VideocamOutlined, PlaceOutlined, PhoneOutlined, GroupsOutlined } from '@mui/icons-material';
 import BaseDialog from '../../common/dialogbox/BaseDialog';
 import { SubmitButton, CancelButton } from '../../common/button';
 import RichTextEditor from '../../common/form/RichTextEditor';
@@ -12,35 +11,28 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { searchContactOptions } from '../../../store/slices/crmSlice';
 import bookingService from '../../../services/bookingService';
 import useToast from '../../../hooks/useToast';
-import type { BookingPage, BookingLocationType } from '../../../models/booking/bookingPage';
-import type { AvailableSlot, ScheduledMeetingHost, OrgMemberOption } from '../../../models/booking/meeting';
+import type { ScheduledMeetingHost, OrgMemberOption, MeetingLocationType } from '../../../models/booking/meeting';
 import type { Contact } from '../../../models/crm/contact';
 
 interface NewMeetingDialogProps {
 	open: boolean;
 	onClose: () => void;
-	bookingPages: BookingPage[];
 	onCreated: (meeting: ScheduledMeetingHost) => void;
 	/** Pre-select a date (YYYY-MM-DD) — e.g. when opened from a calendar day click. */
 	initialDate?: string;
-	/** Auto-select the slot closest to this "HH:MM" time once loaded — e.g. when
-	 * opened by clicking a specific spot in the week grid. */
+	/** Pre-select a time ("HH:MM") — e.g. when opened by clicking a specific spot in the week grid. */
 	initialTime?: string;
 }
 
 const BROWSER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const DURATIONS = [15, 30, 45, 60, 90, 120];
 
-const LOCATION_INFO: Record<BookingLocationType, { icon: React.ReactElement; label: string }> = {
-	google_meet: { icon: <VideocamOutlined sx={{ fontSize: 18 }} />, label: 'Google Meet — link generated automatically when this meeting is created' },
-	offline: { icon: <PlaceOutlined sx={{ fontSize: 18 }} />, label: 'In person' },
-	phone: { icon: <PhoneOutlined sx={{ fontSize: 18 }} />, label: 'Phone call' },
-};
-
-function timeStrToMinutes(t: string): number {
-	const [h, m] = t.split(':').map(Number);
-	return h * 60 + m;
-}
+const LOCATION_OPTIONS: { value: MeetingLocationType; label: string; icon: React.ReactElement; detailLabel: string; detailPlaceholder: string }[] = [
+	{ value: 'google_meet', label: 'Video call', icon: <VideocamOutlined sx={{ fontSize: 18 }} />, detailLabel: 'Meeting link (optional)', detailPlaceholder: 'Paste your Google Meet / Zoom / Teams link' },
+	{ value: 'offline', label: 'In person', icon: <PlaceOutlined sx={{ fontSize: 18 }} />, detailLabel: 'Address', detailPlaceholder: '123 Main Street, Suite 4, San Francisco, CA' },
+	{ value: 'phone', label: 'Phone call', icon: <PhoneOutlined sx={{ fontSize: 18 }} />, detailLabel: 'Phone number', detailPlaceholder: '+1 (555) 123-4567' },
+];
 
 function generateIdempotencyKey(): string {
 	if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
@@ -51,69 +43,43 @@ function contactLabel(contact: Contact): string {
 	return `${contact.first_name} ${contact.last_name || ''}`.trim();
 }
 
-const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, bookingPages, onCreated, initialDate, initialTime }) => {
+const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, onCreated, initialDate, initialTime }) => {
 	const toast = useToast();
-	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
 	const { contactOptions, contactOptionsLoading } = useAppSelector((state) => state.crm);
 
-	const [selectedPageId, setSelectedPageId] = useState(bookingPages[0]?.public_id || '');
 	const [meetingTitle, setMeetingTitle] = useState('');
 	const [clientName, setClientName] = useState('');
 	const [clientEmail, setClientEmail] = useState('');
 	const [attendeeTimezone, setAttendeeTimezone] = useState(BROWSER_TZ);
 	const [notes, setNotes] = useState('');
 	const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
-	const [slots, setSlots] = useState<AvailableSlot[]>([]);
-	const [slotsLoading, setSlotsLoading] = useState(false);
-	const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
+	const [selectedTime, setSelectedTime] = useState('09:00');
+	const [durationMinutes, setDurationMinutes] = useState(30);
+	const [locationType, setLocationType] = useState<MeetingLocationType>('google_meet');
+	const [locationDetail, setLocationDetail] = useState('');
 	const [submitting, setSubmitting] = useState(false);
 
 	const [orgMembers, setOrgMembers] = useState<OrgMemberOption[]>([]);
 	const [participants, setParticipants] = useState<OrgMemberOption[]>([]);
 	const [guestEmails, setGuestEmails] = useState<string[]>([]);
 
-	const selectedPage = bookingPages.find((p) => p.public_id === selectedPageId) || null;
-
 	useEffect(() => {
 		if (open) {
-			setSelectedPageId(bookingPages[0]?.public_id || '');
 			setMeetingTitle('');
 			setClientName('');
 			setClientEmail('');
 			setNotes('');
 			setParticipants([]);
 			setGuestEmails([]);
+			setLocationType('google_meet');
+			setLocationDetail('');
+			setDurationMinutes(30);
 			setSelectedDate(initialDate || new Date().toISOString().slice(0, 10));
-			setSelectedSlot(null);
+			setSelectedTime(initialTime || '09:00');
 			bookingService.listOrgMembers().then(setOrgMembers).catch(() => setOrgMembers([]));
 		}
-	}, [open, bookingPages, initialDate]);
-
-	useEffect(() => {
-		if (!open || !selectedPage) return;
-		setSlotsLoading(true);
-		setSelectedSlot(null);
-		bookingService.getAvailableSlots(selectedPage.slug, selectedDate, BROWSER_TZ)
-			.then((res) => {
-				setSlots(res.slots);
-				// Auto-select the slot closest to where the user clicked in the week
-				// grid, so a single click there is usually all it takes.
-				if (initialTime && selectedDate === initialDate && res.slots.length > 0) {
-					const targetMinutes = timeStrToMinutes(initialTime);
-					const nearest = res.slots.reduce((best, s) => {
-						const d = new Date(s.start_time);
-						const mins = d.getHours() * 60 + d.getMinutes();
-						const bestMins = best ? new Date(best.start_time).getHours() * 60 + new Date(best.start_time).getMinutes() : Infinity;
-						return Math.abs(mins - targetMinutes) < Math.abs(bestMins - targetMinutes) ? s : best;
-					}, res.slots[0]);
-					setSelectedSlot(nearest);
-				}
-			})
-			.catch(() => setSlots([]))
-			.finally(() => setSlotsLoading(false));
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [open, selectedPage, selectedDate]);
+	}, [open, initialDate, initialTime]);
 
 	const idempotencyKey = useMemo(generateIdempotencyKey, [open]);
 
@@ -133,25 +99,37 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, book
 		if (valid.length) setGuestEmails((prev) => [...prev, ...valid]);
 	};
 
+	const buildStartTime = (): Date => {
+		const [h, m] = selectedTime.split(':').map(Number);
+		const d = new Date(`${selectedDate}T00:00:00`);
+		d.setHours(h, m, 0, 0);
+		return d;
+	};
+
 	const handleSubmit = async () => {
-		if (!selectedPage) {
-			toast.error('Select a booking page first.');
+		if (!clientName.trim() || !clientEmail.trim()) {
+			toast.error('Fill in the client\'s name and email.');
 			return;
 		}
-		if (!selectedSlot || !clientName.trim() || !clientEmail.trim()) {
-			toast.error('Pick a time and fill in the client\'s name and email.');
+		if (locationType === 'offline' && !locationDetail.trim()) {
+			toast.error('Add an address for an in-person meeting.');
 			return;
 		}
+		const startTime = buildStartTime();
+		const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
 		setSubmitting(true);
 		try {
 			const meeting = await bookingService.hostCreateMeeting({
-				booking_page_public_id: selectedPage.public_id,
-				start_time: selectedSlot.start_time,
+				start_time: startTime.toISOString(),
+				end_time: endTime.toISOString(),
 				meeting_title: meetingTitle.trim() || undefined,
 				client_name: clientName,
 				client_email: clientEmail,
+				host_timezone: BROWSER_TZ,
 				attendee_timezone: attendeeTimezone,
 				meeting_notes: notes || undefined,
+				location_type: locationType,
+				location_detail: locationDetail.trim() || undefined,
 				idempotency_key: idempotencyKey,
 				participant_user_ids: participants.map((p) => p.id),
 				guest_emails: guestEmails,
@@ -160,64 +138,34 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, book
 			onCreated(meeting);
 			onClose();
 		} catch (err: any) {
-			toast.error(err?.response?.data?.error?.message || 'That time is no longer available. Please pick another.');
-			if (selectedPage) {
-				const res = await bookingService.getAvailableSlots(selectedPage.slug, selectedDate, BROWSER_TZ);
-				setSlots(res.slots);
-				setSelectedSlot(null);
-			}
+			toast.error(err?.response?.data?.error?.message || 'You already have a meeting scheduled during this time.');
 		} finally {
 			setSubmitting(false);
 		}
 	};
 
-	if (bookingPages.length === 0) {
-		return (
-			<BaseDialog open={open} onClose={onClose} title="New Meeting" maxWidth="xs">
-				<Stack spacing={2} alignItems="center" sx={{ textAlign: 'center', py: 2 }}>
-					<Typography variant="body2" color="text.secondary">
-						You need a booking page before you can create a meeting.
-					</Typography>
-					<Button variant="contained" onClick={() => { onClose(); navigate('/booking/setup'); }}>
-						Set Up Booking Page
-					</Button>
-				</Stack>
-			</BaseDialog>
-		);
-	}
-
-	const locationInfo = selectedPage ? LOCATION_INFO[selectedPage.location_type] : null;
-	const locationDetail = selectedPage?.location_type === 'offline' ? (selectedPage.offline_address || 'Address not set') : locationInfo?.label;
+	const selectedLocation = LOCATION_OPTIONS.find((o) => o.value === locationType) || LOCATION_OPTIONS[0];
 
 	return (
 		<BaseDialog
 			open={open}
 			onClose={onClose}
 			title="New Meeting"
-			subtitle="Book a meeting directly — the client still gets a calendar invite automatically"
+			subtitle="Schedule a meeting directly — the client still gets a calendar invite automatically"
 			maxWidth="md"
 			loading={submitting}
 			actions={
 				<>
 					<CancelButton onClick={onClose} disabled={submitting} />
-					<SubmitButton onClick={handleSubmit} loading={submitting} disabled={!selectedSlot}>Create Meeting</SubmitButton>
+					<SubmitButton onClick={handleSubmit} loading={submitting}>Create Meeting</SubmitButton>
 				</>
 			}
 		>
 			<Stack spacing={2.5}>
-				{bookingPages.length > 1 && (
-					<TextField
-						select label="Booking page" fullWidth size="small"
-						value={selectedPageId} onChange={(e) => setSelectedPageId(e.target.value)}
-					>
-						{bookingPages.map((p) => <MenuItem key={p.public_id} value={p.public_id}>{p.title}</MenuItem>)}
-					</TextField>
-				)}
-
 				<TextField
 					label="Meeting title" fullWidth size="small"
 					value={meetingTitle} onChange={(e) => setMeetingTitle(e.target.value)}
-					placeholder={selectedPage ? `${selectedPage.title} with ${clientName || 'client'}` : 'e.g. Discovery Call'}
+					placeholder={clientName ? `Meeting with ${clientName}` : 'e.g. Discovery Call'}
 				/>
 
 				{/* Client — pick from CRM contacts, or type a brand-new client's name */}
@@ -271,60 +219,56 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, book
 						label="Date" type="date" fullWidth size="small" value={selectedDate}
 						onChange={(e) => setSelectedDate(e.target.value)}
 						InputLabelProps={{ shrink: true }}
-						inputProps={{ min: new Date().toISOString().slice(0, 10) }}
 					/>
 					<TextField
-						select label="Client timezone" fullWidth size="small"
-						value={attendeeTimezone} onChange={(e) => setAttendeeTimezone(e.target.value)}
+						label="Start time" type="time" fullWidth size="small" value={selectedTime}
+						onChange={(e) => setSelectedTime(e.target.value)}
+						InputLabelProps={{ shrink: true }}
+					/>
+					<TextField
+						select label="Duration" fullWidth size="small"
+						value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))}
 					>
-						{(Intl.supportedValuesOf?.('timeZone') || [BROWSER_TZ]).map((tz: string) => (
-							<MenuItem key={tz} value={tz}>{tz}</MenuItem>
-						))}
+						{DURATIONS.map((d) => <MenuItem key={d} value={d}>{d} minutes</MenuItem>)}
 					</TextField>
 				</Stack>
 
+				<TextField
+					select label="Client timezone" fullWidth size="small"
+					value={attendeeTimezone} onChange={(e) => setAttendeeTimezone(e.target.value)}
+				>
+					{(Intl.supportedValuesOf?.('timeZone') || [BROWSER_TZ]).map((tz: string) => (
+						<MenuItem key={tz} value={tz}>{tz}</MenuItem>
+					))}
+				</TextField>
+
+				{/* Location — the host fills this in directly since there's no calendar-provider link generation */}
 				<Box>
-					<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 1 }}>
-						AVAILABLE TIMES
-					</Typography>
-					{slotsLoading ? (
-						<CircularProgress size={22} />
-					) : slots.length === 0 ? (
-						<Typography variant="body2" color="text.secondary">No open times on this date.</Typography>
-					) : (
-						<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-							{slots.map((s) => (
-								<Button
-									key={s.start_time}
-									size="small"
-									variant={selectedSlot?.start_time === s.start_time ? 'contained' : 'outlined'}
-									onClick={() => setSelectedSlot(s)}
-									sx={{ borderRadius: 2, textTransform: 'none' }}
-								>
-									{new Date(s.start_time).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
-								</Button>
-							))}
-						</Box>
-					)}
-				</Box>
-
-				{selectedSlot && (
-					<Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'success.main', fontWeight: 700 }}>
-						<EventOutlined sx={{ fontSize: 14 }} />
-						{new Date(selectedSlot.start_time).toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'short' })}
-					</Typography>
-				)}
-
-				{/* Location — informational, driven by the selected booking page's own setup */}
-				{locationInfo && (
-					<Stack
-						direction="row" spacing={1.25} alignItems="center"
-						sx={{ p: 1.25, borderRadius: '10px', bgcolor: 'action.hover', color: 'text.secondary' }}
-					>
-						{locationInfo.icon}
-						<Typography variant="caption" sx={{ fontWeight: 600 }}>{locationDetail}</Typography>
+					<Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 1 }}>
+						{selectedLocation.icon}
+						<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>LOCATION</Typography>
 					</Stack>
-				)}
+					<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+						<TextField
+							select label="Meeting type" fullWidth size="small"
+							value={locationType} onChange={(e) => setLocationType(e.target.value as MeetingLocationType)}
+						>
+							{LOCATION_OPTIONS.map((opt) => (
+								<MenuItem key={opt.value} value={opt.value}>
+									<Stack direction="row" spacing={1} alignItems="center">
+										{opt.icon}
+										<span>{opt.label}</span>
+									</Stack>
+								</MenuItem>
+							))}
+						</TextField>
+						<TextField
+							label={selectedLocation.detailLabel} fullWidth size="small"
+							value={locationDetail} onChange={(e) => setLocationDetail(e.target.value)}
+							placeholder={selectedLocation.detailPlaceholder}
+						/>
+					</Stack>
+				</Box>
 
 				{/* Participants — invite teammates (their own calendar gets the invite too) and any extra external guests */}
 				<Box>

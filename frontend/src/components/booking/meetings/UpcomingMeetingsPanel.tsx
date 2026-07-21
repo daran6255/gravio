@@ -3,15 +3,7 @@ import { Box, Stack, Typography, IconButton, Tooltip, Chip, Divider, useTheme } 
 import { VideocamOutlined, EditOutlined, CloseOutlined, EventBusyOutlined } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import EnterpriseAvatar from '../../common/avatar/Avatar';
-import StatusBadge from '../../common/badge/StatusBadge';
 import type { ScheduledMeetingHost } from '../../../models/booking/meeting';
-
-const SYNC_LABEL: Record<string, string> = {
-	not_applicable: 'Manual Link',
-	pending: 'Syncing…',
-	synced: 'Synced',
-	failed: 'Sync Failed',
-};
 
 interface UpcomingMeetingsPanelProps {
 	meetings: ScheduledMeetingHost[];
@@ -79,14 +71,11 @@ const UpcomingMeetingsPanel: React.FC<UpcomingMeetingsPanelProps> = ({ meetings,
 								<Typography variant="caption" color="text.secondary" noWrap>
 									{dayjs(m.start_time).format('MMM D · h:mm A')}
 								</Typography>
-								<Box sx={{ mt: 0.5 }}>
-									<StatusBadge type="googleSync" status={m.calendar_sync_status} label={SYNC_LABEL[m.calendar_sync_status] || m.calendar_sync_status} />
-								</Box>
 							</Box>
 							<Stack direction="row" spacing={0.25}>
-								{m.google_meet_link && (
+								{m.location_type === 'google_meet' && m.location_detail && (
 									<Tooltip title="Join meeting">
-										<IconButton size="small" component="a" href={m.google_meet_link} target="_blank" rel="noreferrer">
+										<IconButton size="small" component="a" href={m.location_detail} target="_blank" rel="noreferrer">
 											<VideocamOutlined sx={{ fontSize: 16 }} />
 										</IconButton>
 									</Tooltip>

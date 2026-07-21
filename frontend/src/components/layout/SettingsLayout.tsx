@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { SettingsProvider, useSettingsContext } from '../../context/SettingsContext';
-import { ProfileTab, PreferencesTab, SecurityTab, NotificationsTab, BookingTab } from '../settings';
+import { ProfileTab, PreferencesTab, SecurityTab, NotificationsTab } from '../settings';
 
 /**
  * Inner layout that has access to SettingsContext for the unsaved-changes bar.
@@ -62,11 +62,6 @@ const SettingsLayoutInner: React.FC = () => {
 						{/* Notifications Section */}
 						<Box id="settings-notifications" sx={{ mb: 6, scrollMarginTop: '88px' }}>
 							<NotificationsTab />
-						</Box>
-
-						{/* Booking Section */}
-						<Box id="settings-booking" sx={{ mb: 6, scrollMarginTop: '88px' }}>
-							<BookingTab />
 						</Box>
 					</Box>
 				</Box>

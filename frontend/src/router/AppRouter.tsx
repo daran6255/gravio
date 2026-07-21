@@ -15,8 +15,6 @@ import { LeadsPage, DealsPage, CompaniesPage, TasksPage } from '../pages/crm';
 import { ProjectsListPage, ProjectDetailPage } from '../pages/projects';
 import TimesheetPage from '../pages/timesheets/TimesheetPage';
 import { MyMeetingsPage } from '../pages/booking';
-import PublicBookingPage from '../pages/public/PublicBookingPage';
-import ManageBookingPage from '../pages/public/ManageBookingPage';
 // HR Admin Pages
 import EmployeesPage from '../pages/hr/admin/EmployeesPage';
 import DepartmentsPage from '../pages/hr/admin/DepartmentsPage';
@@ -58,10 +56,6 @@ const AppRouter: React.FC = () => {
 			<Route path="/success" element={<SuccessPage />} />
 			<Route path="/maintenance" element={<MaintenancePage />} />
 
-			{/* Public Booking Scheduler — no auth, no app chrome */}
-			<Route path="/book/manage/:token" element={<ManageBookingPage />} />
-			<Route path="/book/:slug" element={<PublicBookingPage />} />
-
 			<Route element={<ProtectedRoute />}>
 				{/* Protected Routes */}
 				<Route element={<MainLayout />}>
@@ -84,9 +78,7 @@ const AppRouter: React.FC = () => {
 					<Route path="crm/companies" element={<CompaniesPage />} />
 					<Route path="crm/tasks" element={<TasksPage />} />
 
-					{/* Calendar & Appointment Booking Scheduler */}
-					{/* Booking Setup now lives inside Settings */}
-					<Route path="booking/setup" element={<Navigate to="/settings" replace />} />
+					{/* Meetings */}
 					<Route path="booking/meetings" element={<MyMeetingsPage />} />
 
 					{/* Project Management */}
@@ -135,7 +127,6 @@ const AppRouter: React.FC = () => {
 					<Route path="org/:orgId/crm/companies" element={<CompaniesPage />} />
 					<Route path="org/:orgId/crm/tasks" element={<TasksPage />} />
 
-					<Route path="org/:orgId/booking/setup" element={<Navigate to="../settings" replace />} />
 					<Route path="org/:orgId/booking/meetings" element={<MyMeetingsPage />} />
 
 					<Route path="org/:orgId/projects" element={<ProjectsListPage />} />

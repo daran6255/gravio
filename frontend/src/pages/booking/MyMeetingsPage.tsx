@@ -7,14 +7,11 @@ import { NewMeetingDialog, RescheduleMeetingDialog, WeekCalendarView, UpcomingMe
 import useToast from '../../hooks/useToast';
 import bookingService from '../../services/bookingService';
 import type { ScheduledMeetingHost } from '../../models/booking/meeting';
-import type { BookingPage, BookingAvailabilityException } from '../../models/booking/bookingPage';
 
 const MyMeetingsPage: React.FC = () => {
 	const toast = useToast();
 
-	const [bookingPages, setBookingPages] = useState<BookingPage[]>([]);
 	const [calendarMeetings, setCalendarMeetings] = useState<ScheduledMeetingHost[]>([]);
-	const [exceptions, setExceptions] = useState<BookingAvailabilityException[]>([]);
 	const [newMeetingOpen, setNewMeetingOpen] = useState(false);
 	const [newMeetingDate, setNewMeetingDate] = useState<string | undefined>(undefined);
 	const [newMeetingTime, setNewMeetingTime] = useState<string | undefined>(undefined);
@@ -22,8 +19,6 @@ const MyMeetingsPage: React.FC = () => {
 	const [cancelTarget, setCancelTarget] = useState<ScheduledMeetingHost | null>(null);
 	const [cancelReason, setCancelReason] = useState('');
 	const [cancelling, setCancelling] = useState(false);
-
-	const primaryPage = bookingPages[0] || null;
 
 	const loadCalendarMeetings = async () => {
 		try {
@@ -34,20 +29,9 @@ const MyMeetingsPage: React.FC = () => {
 		}
 	};
 
-	const loadExceptions = () => {
-		if (!primaryPage) return;
-		bookingService.listMyBookingPageExceptions(primaryPage.public_id).then(setExceptions).catch(() => {});
-	};
-
 	useEffect(() => {
-		bookingService.listMyBookingPages().then(setBookingPages).catch(() => {});
 		loadCalendarMeetings();
 	}, []);
-
-	useEffect(() => {
-		loadExceptions();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [primaryPage]);
 
 	const handleCancelConfirm = async () => {
 		if (!cancelTarget) return;
@@ -71,24 +55,7 @@ const MyMeetingsPage: React.FC = () => {
 			toast.success('Meeting rescheduled.');
 			loadCalendarMeetings();
 		} catch (err: any) {
-			toast.error(err?.response?.data?.error?.message || 'That time is no longer available. Please pick another.');
-		}
-	};
-
-	const handleToggleBlockDay = async (dateStr: string, currentlyBlocked: boolean) => {
-		if (!primaryPage) return;
-		try {
-			if (currentlyBlocked) {
-				const existing = exceptions.find((e) => e.date === dateStr);
-				if (existing) await bookingService.deleteMyBookingPageException(primaryPage.public_id, existing.id);
-				toast.success('Day unblocked.');
-			} else {
-				await bookingService.createMyBookingPageException(primaryPage.public_id, { date: dateStr, is_blocked: true });
-				toast.success('Day blocked — no new bookings can land here.');
-			}
-			loadExceptions();
-		} catch {
-			toast.error('Failed to update this date.');
+			toast.error(err?.response?.data?.error?.message || 'You already have a meeting scheduled during this time.');
 		}
 	};
 
@@ -97,7 +64,7 @@ const MyMeetingsPage: React.FC = () => {
 			<Container maxWidth={false} sx={responsiveStyles.pageContainer}>
 			<PageHeader
 				title="Meetings Overview"
-				subtitle="Manage your upcoming and past bookings, calendar sync, and client interactions."
+				subtitle="Manage your upcoming and past meetings and client interactions."
 				action={
 					<Button
 						variant="contained" onClick={() => { setNewMeetingDate(undefined); setNewMeetingTime(undefined); setNewMeetingOpen(true); }}
@@ -110,11 +77,8 @@ const MyMeetingsPage: React.FC = () => {
 
 			<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '3fr 1fr' }, gap: 3, alignItems: 'start' }}>
 				<WeekCalendarView
-					bookingPage={primaryPage}
 					meetings={calendarMeetings}
-					exceptions={exceptions}
 					onSlotClick={(dateStr, timeStr) => { setNewMeetingDate(dateStr); setNewMeetingTime(timeStr); setNewMeetingOpen(true); }}
-					onToggleBlockDay={handleToggleBlockDay}
 					onReschedule={setRescheduleTarget}
 					onCancel={setCancelTarget}
 					onMoveMeeting={handleMoveMeeting}
@@ -129,7 +93,6 @@ const MyMeetingsPage: React.FC = () => {
 			<NewMeetingDialog
 				open={newMeetingOpen}
 				onClose={() => setNewMeetingOpen(false)}
-				bookingPages={bookingPages}
 				onCreated={() => loadCalendarMeetings()}
 				initialDate={newMeetingDate}
 				initialTime={newMeetingTime}
@@ -139,7 +102,6 @@ const MyMeetingsPage: React.FC = () => {
 				open={!!rescheduleTarget}
 				onClose={() => setRescheduleTarget(null)}
 				meeting={rescheduleTarget}
-				bookingPages={bookingPages}
 				onRescheduled={() => loadCalendarMeetings()}
 			/>
 

@@ -1,37 +1,27 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Stack, Typography, IconButton, Button, Popover, Divider, Tooltip, useTheme, alpha } from '@mui/material';
-import { ChevronLeft, ChevronRight, VideocamOutlined, BlockOutlined, LockOpenOutlined, Close as CloseIcon, EditOutlined, CloseOutlined, CalendarMonthOutlined } from '@mui/icons-material';
+import { Box, Stack, Typography, IconButton, Button, Popover, Divider, useTheme, alpha } from '@mui/material';
+import { ChevronLeft, ChevronRight, VideocamOutlined, PlaceOutlined, PhoneOutlined, Close as CloseIcon, EditOutlined, CloseOutlined, CalendarMonthOutlined } from '@mui/icons-material';
 import dayjs, { type Dayjs } from 'dayjs';
-import StatusBadge from '../../common/badge/StatusBadge';
 import EnterpriseAvatar from '../../common/avatar/Avatar';
-import type { BookingPage, BookingAvailabilityException, WeeklyAvailability } from '../../../models/booking/bookingPage';
-import type { ScheduledMeetingHost } from '../../../models/booking/meeting';
+import type { ScheduledMeetingHost, MeetingLocationType } from '../../../models/booking/meeting';
 
-const DAY_KEYS: (keyof WeeklyAvailability)[] = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 const HOUR_HEIGHT = 52;
+const DEFAULT_START_HOUR = 7;
+const DEFAULT_END_HOUR = 20;
 
-const SYNC_LABEL: Record<string, string> = {
-	not_applicable: 'Manual Link',
-	pending: 'Syncing to Google…',
-	synced: 'Synced',
-	failed: 'Sync Failed',
+const LOCATION_INFO: Record<MeetingLocationType, { icon: React.ReactElement; label: string }> = {
+	google_meet: { icon: <VideocamOutlined sx={{ fontSize: 18 }} />, label: 'Video call' },
+	offline: { icon: <PlaceOutlined sx={{ fontSize: 18 }} />, label: 'In person' },
+	phone: { icon: <PhoneOutlined sx={{ fontSize: 18 }} />, label: 'Phone call' },
 };
 
 interface WeekCalendarViewProps {
-	bookingPage: BookingPage | null;
 	meetings: ScheduledMeetingHost[];
-	exceptions: BookingAvailabilityException[];
 	onSlotClick: (dateStr: string, timeStr: string) => void;
-	onToggleBlockDay: (dateStr: string, currentlyBlocked: boolean) => void;
 	onReschedule: (meeting: ScheduledMeetingHost) => void;
 	onCancel: (meeting: ScheduledMeetingHost) => void;
 	/** Drag a meeting card onto a new day/time — receives the ISO start time for the drop slot. */
 	onMoveMeeting: (meeting: ScheduledMeetingHost, newStartTimeISO: string) => void;
-}
-
-function timeStrToMinutes(t: string): number {
-	const [h, m] = t.split(':').map(Number);
-	return h * 60 + m;
 }
 
 /** Everything needed to render both the dragged card's ghost and the drop-target preview,
@@ -44,7 +34,7 @@ interface DragState {
 }
 
 const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
-	bookingPage, meetings, exceptions, onSlotClick, onToggleBlockDay, onReschedule, onCancel, onMoveMeeting,
+	meetings, onSlotClick, onReschedule, onCancel, onMoveMeeting,
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
@@ -60,18 +50,18 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 		boxShadow: isDark ? '0 1px 2px rgba(0,0,0,0.4), 0 8px 20px rgba(0,0,0,0.2)' : '0 1px 2px rgba(15,23,42,0.04), 0 8px 20px rgba(15,23,42,0.05)',
 	};
 
-	const availability = bookingPage?.availability || {};
-
+	// The visible hour range expands to fit any meeting outside the default 7am-8pm
+	// window, rather than being derived from a per-host availability config.
 	const { startHour, endHour } = useMemo(() => {
-		const allRanges = Object.values(availability).flat();
-		if (allRanges.length === 0) return { startHour: 7, endHour: 20 };
-		const starts = allRanges.map((r) => Number(r[0].split(':')[0]));
-		const ends = allRanges.map((r) => Number(r[1].split(':')[0]) + (Number(r[1].split(':')[1]) > 0 ? 1 : 0));
-		return {
-			startHour: Math.max(0, Math.min(...starts) - 1),
-			endHour: Math.min(24, Math.max(...ends) + 1),
-		};
-	}, [availability]);
+		let start = DEFAULT_START_HOUR;
+		let end = DEFAULT_END_HOUR;
+		for (const m of meetings) {
+			if (m.status !== 'scheduled') continue;
+			start = Math.min(start, dayjs(m.start_time).hour());
+			end = Math.max(end, dayjs(m.end_time).hour() + (dayjs(m.end_time).minute() > 0 ? 1 : 0));
+		}
+		return { startHour: Math.max(0, start), endHour: Math.min(24, end) };
+	}, [meetings]);
 
 	const hours = useMemo(() => Array.from({ length: endHour - startHour }, (_, i) => startHour + i), [startHour, endHour]);
 	const gridHeight = hours.length * HOUR_HEIGHT;
@@ -91,13 +81,10 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 		return map;
 	}, [meetings]);
 
-	const exceptionByDate = useMemo(() => new Map(exceptions.map((e) => [e.date, e])), [exceptions]);
-
 	const now = dayjs();
 	const weekLabel = `${weekStart.format('MMM D')} – ${weekStart.add(6, 'day').format('MMM D, YYYY')}`;
 
 	const handleDayColumnClick = (day: Dayjs, e: React.MouseEvent<HTMLDivElement>) => {
-		if (day.isBefore(now, 'day')) return;
 		const rect = e.currentTarget.getBoundingClientRect();
 		const offsetY = e.clientY - rect.top;
 		const rawMinutes = startHour * 60 + (offsetY / HOUR_HEIGHT) * 60;
@@ -130,14 +117,9 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 
 	const handleDayColumnDragOver = (day: Dayjs, e: React.DragEvent<HTMLDivElement>) => {
 		if (!dragState) return;
-		const dateStr = day.format('YYYY-MM-DD');
-		const isPast = day.isBefore(now, 'day');
-		const isBlocked = !!exceptionByDate.get(dateStr)?.is_blocked;
-		// Don't call preventDefault for a day we won't accept a drop on — the browser then shows
-		// its own "not allowed" cursor for free, and onDrop simply never fires here.
-		if (isPast || isBlocked) return;
 		e.preventDefault();
 		e.dataTransfer.dropEffect = 'move';
+		const dateStr = day.format('YYYY-MM-DD');
 		const minutes = slotMinutesFromPointer(e);
 		if (dragState.overDateStr !== dateStr || dragState.overMinutes !== minutes) {
 			setDragState((prev) => (prev ? { ...prev, overDateStr: dateStr, overMinutes: minutes } : prev));
@@ -168,20 +150,7 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 					<IconButton size="small" onClick={() => setWeekStart((w) => w.add(7, 'day'))}><ChevronRight /></IconButton>
 					<Typography variant="body2" fontWeight={700} sx={{ ml: 1 }}>{weekLabel}</Typography>
 				</Stack>
-				<Stack direction="row" spacing={2}>
-					<Stack direction="row" spacing={0.75} alignItems="center">
-						<Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: 'primary.main' }} />
-						<Typography variant="caption" color="text.secondary">Scheduled</Typography>
-					</Stack>
-					<Stack direction="row" spacing={0.75} alignItems="center">
-						<Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: 'success.main', opacity: 0.3 }} />
-						<Typography variant="caption" color="text.secondary">Available hours</Typography>
-					</Stack>
-					<Stack direction="row" spacing={0.75} alignItems="center">
-						<Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: 'error.main' }} />
-						<Typography variant="caption" color="text.secondary">Blocked</Typography>
-					</Stack>
-				</Stack>
+				<Typography variant="caption" color="text.secondary">Click any slot to schedule a meeting, or drag a meeting to move it.</Typography>
 			</Stack>
 
 			{/* Grid */}
@@ -191,7 +160,7 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 				{days.map((day) => {
 					const isToday = day.isSame(now, 'day');
 					return (
-						<Box key={day.format('YYYY-MM-DD')} sx={{ textAlign: 'center', pb: 1, position: 'relative' }}>
+						<Box key={day.format('YYYY-MM-DD')} sx={{ textAlign: 'center', pb: 1 }}>
 							<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.65rem' }}>
 								{day.format('ddd')}
 							</Typography>
@@ -203,20 +172,6 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 							>
 								{day.format('D')}
 							</Box>
-							<Tooltip title={exceptionByDate.get(day.format('YYYY-MM-DD'))?.is_blocked ? 'Unblock this day' : 'Block this day'}>
-								<span>
-									<IconButton
-										size="small"
-										disabled={day.isBefore(now, 'day') || !bookingPage}
-										onClick={() => onToggleBlockDay(day.format('YYYY-MM-DD'), !!exceptionByDate.get(day.format('YYYY-MM-DD'))?.is_blocked)}
-										sx={{ position: 'absolute', top: 0, right: 4, opacity: 0.5, '&:hover': { opacity: 1 } }}
-									>
-										{exceptionByDate.get(day.format('YYYY-MM-DD'))?.is_blocked
-											? <LockOpenOutlined sx={{ fontSize: 14 }} />
-											: <BlockOutlined sx={{ fontSize: 14 }} />}
-									</IconButton>
-								</span>
-							</Tooltip>
 						</Box>
 					);
 				})}
@@ -237,55 +192,24 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 				{/* Day columns */}
 				{days.map((day) => {
 					const dateStr = day.format('YYYY-MM-DD');
-					const dayKey = DAY_KEYS[day.day()];
-					const exception = exceptionByDate.get(dateStr);
-					const isBlocked = !!exception?.is_blocked;
-					const ranges = exception?.custom_slots ?? availability[dayKey] ?? [];
 					const dayMeetings = meetingsByDate.get(dateStr) || [];
 					const isPast = day.isBefore(now, 'day');
 
 					return (
 						<Box
 							key={dateStr}
-							onClick={(e) => !isBlocked && !isPast && handleDayColumnClick(day, e)}
+							onClick={(e) => handleDayColumnClick(day, e)}
 							onDragOver={(e) => handleDayColumnDragOver(day, e)}
 							onDrop={(e) => handleDayColumnDrop(day, e)}
 							sx={{
 								position: 'relative', height: gridHeight, borderLeft: '1px solid', borderColor: 'divider',
-								cursor: isBlocked || isPast ? 'default' : 'pointer', opacity: isPast ? 0.5 : 1,
+								cursor: 'pointer', opacity: isPast ? 0.5 : 1,
 							}}
 						>
 							{/* Hour gridlines */}
 							{hours.map((h) => (
 								<Box key={h} sx={{ position: 'absolute', top: (h - startHour) * HOUR_HEIGHT, left: 0, right: 0, borderTop: '1px solid', borderColor: 'divider' }} />
 							))}
-
-							{/* Available-hours shading */}
-							{!isBlocked && ranges.map((r, i) => (
-								<Box
-									key={i}
-									sx={{
-										position: 'absolute', left: 2, right: 2,
-										top: timeToY(timeStrToMinutes(r[0])), height: Math.max(4, timeToY(timeStrToMinutes(r[1])) - timeToY(timeStrToMinutes(r[0]))),
-										bgcolor: 'success.main', opacity: isDark ? 0.06 : 0.05, borderRadius: 1, pointerEvents: 'none',
-									}}
-								/>
-							))}
-
-							{/* Blocked overlay */}
-							{isBlocked && (
-								<Box
-									sx={{
-										position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-										background: `repeating-linear-gradient(135deg, ${isDark ? 'rgba(239,68,68,0.08)' : 'rgba(239,68,68,0.06)'} 0px, ${isDark ? 'rgba(239,68,68,0.08)' : 'rgba(239,68,68,0.06)'} 8px, transparent 8px, transparent 16px)`,
-										pointerEvents: 'none',
-									}}
-								>
-									<Typography variant="caption" sx={{ color: 'error.main', fontWeight: 800, bgcolor: 'background.paper', px: 1, borderRadius: 1 }}>
-										BLOCKED
-									</Typography>
-								</Box>
-							)}
 
 							{/* Current time indicator */}
 							{day.isSame(now, 'day') && now.hour() >= startHour && now.hour() < endHour && (
@@ -413,19 +337,22 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 								</Box>
 							</Stack>
 
-							<Box sx={{ mt: 1.5 }}>
-								<StatusBadge type="googleSync" status={popoverMeeting.calendar_sync_status} label={SYNC_LABEL[popoverMeeting.calendar_sync_status] || popoverMeeting.calendar_sync_status} />
-							</Box>
+							<Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1.5 }}>
+								{LOCATION_INFO[popoverMeeting.location_type].icon}
+								<Typography variant="caption" color="text.secondary" noWrap>
+									{popoverMeeting.location_detail || LOCATION_INFO[popoverMeeting.location_type].label}
+								</Typography>
+							</Stack>
 						</Box>
 
 						<Divider />
 
 						<Stack spacing={1} sx={{ p: 2 }}>
-							{popoverMeeting.google_meet_link && (
+							{popoverMeeting.location_type === 'google_meet' && popoverMeeting.location_detail && (
 								<Button
 									fullWidth variant="contained"
 									startIcon={<VideocamOutlined sx={{ fontSize: 16 }} />}
-									component="a" href={popoverMeeting.google_meet_link} target="_blank" rel="noreferrer"
+									component="a" href={popoverMeeting.location_detail} target="_blank" rel="noreferrer"
 									sx={{
 										textTransform: 'none', fontWeight: 700, borderRadius: 2.5,
 										background: (t) => t.gradients.brandDiagonal,

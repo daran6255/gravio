@@ -241,20 +241,17 @@ async def send_booking_confirmation_email(
     meet_link: Optional[str],
     location_text: Optional[str],
     maps_url: Optional[str],
-    fallback_note: Optional[str],
-    manage_url: str,
     ics_bytes: bytes,
     ics_method: str = "REQUEST",
 ) -> None:
-    """Booking confirmation/reschedule email — always sent regardless of Google
-    Calendar sync status, with a self-contained .ics attachment so the client gets
-    a working calendar invite even when Google isn't connected (see
+    """Meeting confirmation/reschedule email, with a self-contained .ics attachment
+    so the client gets a working calendar invite regardless of location type (see
     app/services/booking.py and app/utils/ics.py)."""
     subject = f"Confirmed: {meeting_title}"
     if not settings.SMTP_HOST:
         logger.info(
-            f"[EMAIL - DEV] Booking confirmation for '{client_name}' ({to_email}) — {meeting_title} at "
-            f"{start_time_display} ({attendee_timezone}). Manage: {manage_url}"
+            f"[EMAIL - DEV] Meeting confirmation for '{client_name}' ({to_email}) — {meeting_title} at "
+            f"{start_time_display} ({attendee_timezone})."
         )
         return
 
@@ -269,8 +266,6 @@ async def send_booking_confirmation_email(
         meet_link=meet_link,
         location_text=location_text,
         maps_url=maps_url,
-        fallback_note=fallback_note,
-        manage_url=manage_url,
         year=datetime.now().year,
     )
     await _send_via_smtp(
