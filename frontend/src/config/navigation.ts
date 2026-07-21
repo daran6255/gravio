@@ -70,7 +70,7 @@ export const topNavigation: NavigationItem[] = [
 				icon: LeaveIcon,
 			},
 			{
-				label: 'Booking Page',
+				label: 'Booking',
 				path: '/booking/setup',
 				icon: BookingSetupIcon,
 			},

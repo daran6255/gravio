@@ -1,41 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import {
-	Box,
-	Card,
-	Stack,
-	Typography,
-	Chip,
-	Button,
-	TextField,
-	MenuItem,
-	Table,
-	TableHead,
-	TableBody,
-	TableRow,
-	TableCell,
-	TablePagination,
-	CircularProgress,
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	DialogActions,
-} from '@mui/material';
+import { Box, Stack, Typography, TextField, MenuItem, TableRow, TableCell } from '@mui/material';
+import { CancelOutlined, VideocamOutlined } from '@mui/icons-material';
 import PageHeader from '../../components/common/page-header';
+import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../components/common/table';
+import StatusBadge from '../../components/common/badge/StatusBadge';
+import ConfirmationDialog from '../../components/common/dialogbox/ConfirmationDialog';
 import useToast from '../../hooks/useToast';
 import bookingService from '../../services/bookingService';
 import type { ScheduledMeetingHost, MeetingStatus } from '../../models/booking/meeting';
 
-const STATUS_COLOR: Record<MeetingStatus, 'default' | 'success' | 'error'> = {
-	scheduled: 'success',
-	completed: 'default',
-	cancelled: 'error',
-};
-
 const SYNC_LABEL: Record<string, string> = {
 	not_applicable: 'Email invite only',
-	pending: 'Syncing to Google…',
-	synced: 'Synced to Google',
-	failed: 'Google sync failed',
+	pending: 'Syncing…',
+	synced: 'Synced',
+	failed: 'Sync failed',
 };
 
 const MyMeetingsPage: React.FC = () => {
@@ -48,6 +26,7 @@ const MyMeetingsPage: React.FC = () => {
 	const [statusFilter, setStatusFilter] = useState<MeetingStatus | ''>('scheduled');
 	const [cancelTarget, setCancelTarget] = useState<ScheduledMeetingHost | null>(null);
 	const [cancelReason, setCancelReason] = useState('');
+	const [cancelling, setCancelling] = useState(false);
 
 	const load = async () => {
 		setLoading(true);
@@ -73,6 +52,7 @@ const MyMeetingsPage: React.FC = () => {
 
 	const handleCancelConfirm = async () => {
 		if (!cancelTarget) return;
+		setCancelling(true);
 		try {
 			await bookingService.hostCancelMeeting(cancelTarget.public_id, cancelReason || undefined);
 			toast.success('Meeting cancelled.');
@@ -81,104 +61,116 @@ const MyMeetingsPage: React.FC = () => {
 			load();
 		} catch {
 			toast.error('Failed to cancel meeting.');
+		} finally {
+			setCancelling(false);
 		}
+	};
+
+	const columns: ColumnDefinition<ScheduledMeetingHost>[] = [
+		{ id: 'client_name', label: 'Client' },
+		{ id: 'start_time', label: 'When' },
+		{ id: 'google_meet_link', label: 'Meeting Link', hideOnMobile: true },
+		{ id: 'status', label: 'Status' },
+		{ id: 'calendar_sync_status', label: 'Calendar Sync', hideOnMobile: true },
+		{ id: 'actions', label: '', align: 'right', width: 56 },
+	];
+
+	const renderRow = (m: ScheduledMeetingHost) => {
+		const actions: TableMenuAction<ScheduledMeetingHost>[] = [
+			{
+				label: 'Cancel Meeting',
+				icon: <CancelOutlined fontSize="small" />,
+				onClick: () => setCancelTarget(m),
+				color: 'error.main',
+				hidden: m.status !== 'scheduled',
+			},
+		];
+
+		return (
+			<TableRow key={m.public_id} hover>
+				<TableCell>
+					<Typography variant="body2" sx={{ fontWeight: 600 }}>{m.client_name}</Typography>
+					<Typography variant="caption" color="text.secondary">{m.client_email}</Typography>
+				</TableCell>
+				<TableCell>
+					{new Date(m.start_time).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+				</TableCell>
+				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+					{m.google_meet_link ? (
+						<Stack
+							direction="row" spacing={0.5} alignItems="center"
+							component="a" href={m.google_meet_link} target="_blank" rel="noreferrer"
+							sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+						>
+							<VideocamOutlined sx={{ fontSize: 15 }} />
+							<span>Join</span>
+						</Stack>
+					) : (
+						<Typography variant="caption" color="text.secondary">—</Typography>
+					)}
+				</TableCell>
+				<TableCell><StatusBadge type="booking" status={m.status} label={m.status} /></TableCell>
+				<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+					<StatusBadge type="googleSync" status={m.calendar_sync_status} label={SYNC_LABEL[m.calendar_sync_status] || m.calendar_sync_status} />
+				</TableCell>
+				<TableCell align="right" onClick={(e) => e.stopPropagation()}>
+					<Stack direction="row" justifyContent="flex-end">
+						<DataTableActions item={m} actions={actions} tooltipTitle="Meeting Actions" />
+					</Stack>
+				</TableCell>
+			</TableRow>
+		);
 	};
 
 	return (
 		<Box>
-			<PageHeader title="Meetings" subtitle="Meetings booked through your booking page(s)." />
+			<PageHeader title="Meetings" subtitle="Meetings booked through your booking page." />
 
-			<Stack direction="row" spacing={2} sx={{ mb: 2 }}>
-				<TextField
-					select size="small" label="Status" sx={{ width: 200 }}
-					value={statusFilter} onChange={(e) => { setPage(0); setStatusFilter(e.target.value as MeetingStatus | ''); }}
-				>
-					<MenuItem value="">All</MenuItem>
-					<MenuItem value="scheduled">Scheduled</MenuItem>
-					<MenuItem value="completed">Completed</MenuItem>
-					<MenuItem value="cancelled">Cancelled</MenuItem>
-				</TextField>
-			</Stack>
-
-			<Card variant="outlined">
-				{loading ? (
-					<Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
-				) : meetings.length === 0 ? (
-					<Box sx={{ p: 4, textAlign: 'center' }}>
-						<Typography color="text.secondary">No meetings found.</Typography>
-					</Box>
-				) : (
-					<Table>
-						<TableHead>
-							<TableRow>
-								<TableCell>Client</TableCell>
-								<TableCell>When</TableCell>
-								<TableCell>Meeting Link</TableCell>
-								<TableCell>Status</TableCell>
-								<TableCell>Calendar Sync</TableCell>
-								<TableCell align="right">Actions</TableCell>
-							</TableRow>
-						</TableHead>
-						<TableBody>
-							{meetings.map((m) => (
-								<TableRow key={m.public_id} hover>
-									<TableCell>
-										<Typography variant="body2" fontWeight={600}>{m.client_name}</Typography>
-										<Typography variant="caption" color="text.secondary">{m.client_email}</Typography>
-									</TableCell>
-									<TableCell>
-										{new Date(m.start_time).toLocaleString(undefined, {
-											dateStyle: 'medium', timeStyle: 'short',
-										})}
-									</TableCell>
-									<TableCell>
-										{m.google_meet_link ? (
-											<a href={m.google_meet_link} target="_blank" rel="noreferrer">Join</a>
-										) : (
-											<Typography variant="caption" color="text.secondary">—</Typography>
-										)}
-									</TableCell>
-									<TableCell><Chip size="small" color={STATUS_COLOR[m.status]} label={m.status} /></TableCell>
-									<TableCell>
-										<Typography variant="caption" color="text.secondary">
-											{SYNC_LABEL[m.calendar_sync_status] || m.calendar_sync_status}
-										</Typography>
-									</TableCell>
-									<TableCell align="right">
-										{m.status === 'scheduled' && (
-											<Button size="small" color="error" onClick={() => setCancelTarget(m)}>Cancel</Button>
-										)}
-									</TableCell>
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
-				)}
-				<TablePagination
-					component="div"
-					count={total}
-					page={page}
-					onPageChange={(_, p) => setPage(p)}
-					rowsPerPage={rowsPerPage}
-					onRowsPerPageChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(0); }}
-				/>
-			</Card>
-
-			<Dialog open={!!cancelTarget} onClose={() => setCancelTarget(null)}>
-				<DialogTitle>Cancel meeting with {cancelTarget?.client_name}?</DialogTitle>
-				<DialogContent>
+			<DataTable<ScheduledMeetingHost>
+				columns={columns}
+				data={meetings}
+				loading={loading}
+				totalCount={total}
+				page={page}
+				rowsPerPage={rowsPerPage}
+				onPageChange={(_, p) => setPage(p)}
+				onRowsPerPageChange={(newRowsPerPage) => { setRowsPerPage(newRowsPerPage); setPage(0); }}
+				searchTerm=""
+				onRefresh={load}
+				headerActions={
 					<TextField
-						autoFocus fullWidth multiline minRows={2} sx={{ mt: 1 }}
-						label="Reason (optional, shared with the client)"
-						value={cancelReason}
-						onChange={(e) => setCancelReason(e.target.value)}
-					/>
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={() => setCancelTarget(null)}>Back</Button>
-					<Button color="error" variant="contained" onClick={handleCancelConfirm}>Cancel Meeting</Button>
-				</DialogActions>
-			</Dialog>
+						select size="small" label="Status" sx={{ width: 180 }}
+						value={statusFilter} onChange={(e) => { setPage(0); setStatusFilter(e.target.value as MeetingStatus | ''); }}
+					>
+						<MenuItem value="">All</MenuItem>
+						<MenuItem value="scheduled">Scheduled</MenuItem>
+						<MenuItem value="completed">Completed</MenuItem>
+						<MenuItem value="cancelled">Cancelled</MenuItem>
+					</TextField>
+				}
+				renderRow={renderRow}
+				emptyMessage="No meetings yet — share your booking link to start getting bookings."
+			/>
+
+			<ConfirmationDialog
+				open={!!cancelTarget}
+				onClose={() => { setCancelTarget(null); setCancelReason(''); }}
+				onConfirm={handleCancelConfirm}
+				title="Cancel this meeting?"
+				subtitle={cancelTarget ? `With ${cancelTarget.client_name}` : undefined}
+				message="The client will be notified by email and their calendar invite will be cancelled automatically."
+				severity="error"
+				confirmLabel="Cancel Meeting"
+				cancelLabel="Back"
+				loading={cancelling}
+			>
+				<TextField
+					autoFocus fullWidth multiline minRows={2}
+					label="Reason (optional, shared with the client)"
+					value={cancelReason}
+					onChange={(e) => setCancelReason(e.target.value)}
+				/>
+			</ConfirmationDialog>
 		</Box>
 	);
 };

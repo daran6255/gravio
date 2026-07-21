@@ -1,46 +1,42 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-	Box,
-	Card,
-	Stack,
-	Typography,
-	TextField,
-	MenuItem,
-	Switch,
-	FormControlLabel,
-	Button,
-	Divider,
-	Chip,
-	IconButton,
-	InputAdornment,
-	CircularProgress,
-} from '@mui/material';
-import { ContentCopyOutlined, CloudSyncOutlined, LinkOutlined } from '@mui/icons-material';
+import { Box, Stack, Switch, CircularProgress } from '@mui/material';
+import { SaveOutlined, CalendarMonthOutlined } from '@mui/icons-material';
 import PageHeader from '../../components/common/page-header';
+import { SubmitButton, HelpGuideButton } from '../../components/common/button';
+import { WelcomeBanner } from '../../components/common/guide';
+import HelpGuideDrawer from '../../components/common/guide/HelpGuideDrawer';
+import StatusBadge from '../../components/common/badge/StatusBadge';
 import useToast from '../../hooks/useToast';
+import { useDismissibleBanner } from '../../hooks/useDismissibleBanner';
+import { useAppSelector } from '../../store/hooks';
 import bookingService from '../../services/bookingService';
 import googleIntegrationService from '../../services/googleIntegrationService';
-import type { BookingPage, BookingLocationType, WeeklyAvailability, TimeRange } from '../../models/booking/bookingPage';
+import { BOOKING_GUIDE_CONTENT } from '../../data/bookingGuideData';
+import {
+	GeneralInfoCard,
+	LocationDetailsCard,
+	SchedulingControlsCard,
+	WeeklyHoursCard,
+	ExceptionsCard,
+	PublicPreviewCard,
+} from '../../components/booking';
+import type { BookingPage, BookingLocationType, WeeklyAvailability, TimeRange, BookingAvailabilityException } from '../../models/booking/bookingPage';
 import type { GoogleConnectionStatusResponse } from '../../models/booking/googleIntegration';
 
-const DAYS: { key: keyof WeeklyAvailability; label: string }[] = [
-	{ key: 'mon', label: 'Monday' },
-	{ key: 'tue', label: 'Tuesday' },
-	{ key: 'wed', label: 'Wednesday' },
-	{ key: 'thu', label: 'Thursday' },
-	{ key: 'fri', label: 'Friday' },
-	{ key: 'sat', label: 'Saturday' },
-	{ key: 'sun', label: 'Sunday' },
-];
-
+const DAY_KEYS: (keyof WeeklyAvailability)[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 const DEFAULT_RANGE: TimeRange = ['09:00', '17:00'];
-const BROWSER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
 const BookingSetupPage: React.FC = () => {
 	const toast = useToast();
+	const user = useAppSelector((state) => state.auth.user);
+	const { show: showWelcome, dismiss: dismissWelcome } = useDismissibleBanner('booking_setup_welcome_dismissed');
+	const [guideOpen, setGuideOpen] = useState(false);
+
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [page, setPage] = useState<BookingPage | null>(null);
+	const [isActive, setIsActive] = useState(true);
+	const [togglingActive, setTogglingActive] = useState(false);
 
 	const [slug, setSlug] = useState('');
 	const [title, setTitle] = useState('15 Minute Discovery Call');
@@ -49,15 +45,17 @@ const BookingSetupPage: React.FC = () => {
 	const [locationType, setLocationType] = useState<BookingLocationType>('google_meet');
 	const [offlineAddress, setOfflineAddress] = useState('');
 	const [fallbackNote, setFallbackNote] = useState('');
-	const [timezone, setTimezone] = useState(BROWSER_TZ);
 	const [bufferBefore, setBufferBefore] = useState(0);
 	const [bufferAfter, setBufferAfter] = useState(0);
 	const [minNoticeMinutes, setMinNoticeMinutes] = useState(60);
-	const [maxAdvanceDays, setMaxAdvanceDays] = useState(60);
-	const [enabledDays, setEnabledDays] = useState<Record<string, boolean>>({ mon: true, tue: true, wed: true, thu: true, fri: true });
+	const [maxBookingsPerDay, setMaxBookingsPerDay] = useState<number | ''>('');
+
+	const [enabledDays, setEnabledDays] = useState<Record<string, boolean>>({ mon: true, tue: true, wed: true, thu: true, fri: true, sat: false, sun: false });
 	const [dayRanges, setDayRanges] = useState<Record<string, TimeRange>>(
-		Object.fromEntries(DAYS.map((d) => [d.key, DEFAULT_RANGE]))
+		Object.fromEntries(DAY_KEYS.map((d) => [d, DEFAULT_RANGE])) as Record<string, TimeRange>
 	);
+
+	const [exceptions, setExceptions] = useState<BookingAvailabilityException[]>([]);
 
 	const [googleStatus, setGoogleStatus] = useState<GoogleConnectionStatusResponse | null>(null);
 	const [connectingGoogle, setConnectingGoogle] = useState(false);
@@ -68,6 +66,8 @@ const BookingSetupPage: React.FC = () => {
 				const pages = await bookingService.listMyBookingPages();
 				if (pages.length > 0) {
 					applyPage(pages[0]);
+					const exc = await bookingService.listMyBookingPageExceptions(pages[0].public_id);
+					setExceptions(exc);
 				}
 			} catch {
 				toast.error('Failed to load your booking page.');
@@ -75,7 +75,8 @@ const BookingSetupPage: React.FC = () => {
 				setLoading(false);
 			}
 		})();
-		// Query param comes back from the Google OAuth redirect (see backend
+
+		// Query param comes back from the Google OAuth redirect (backend
 		// /integrations/google/callback) — surface it as a toast once.
 		const params = new URLSearchParams(window.location.search);
 		const result = params.get('google_calendar');
@@ -98,6 +99,7 @@ const BookingSetupPage: React.FC = () => {
 
 	const applyPage = (p: BookingPage) => {
 		setPage(p);
+		setIsActive(p.is_active);
 		setSlug(p.slug);
 		setTitle(p.title);
 		setDescription(p.description || '');
@@ -105,17 +107,17 @@ const BookingSetupPage: React.FC = () => {
 		setLocationType(p.location_type);
 		setOfflineAddress(p.offline_address || '');
 		setFallbackNote(p.fallback_meeting_note || '');
-		setTimezone(p.timezone);
 		setBufferBefore(p.buffer_before_minutes);
 		setBufferAfter(p.buffer_after_minutes);
 		setMinNoticeMinutes(p.min_notice_minutes);
-		setMaxAdvanceDays(p.max_advance_days);
+		setMaxBookingsPerDay(p.max_bookings_per_day ?? '');
+
 		const enabled: Record<string, boolean> = {};
 		const ranges: Record<string, TimeRange> = { ...dayRanges };
-		for (const d of DAYS) {
-			const dayRanges2 = p.availability[d.key];
-			enabled[d.key] = !!(dayRanges2 && dayRanges2.length > 0);
-			if (dayRanges2 && dayRanges2.length > 0) ranges[d.key] = dayRanges2[0];
+		for (const d of DAY_KEYS) {
+			const dRanges = p.availability[d];
+			enabled[d] = !!(dRanges && dRanges.length > 0);
+			if (dRanges && dRanges.length > 0) ranges[d] = dRanges[0];
 		}
 		setEnabledDays(enabled);
 		setDayRanges(ranges);
@@ -123,18 +125,13 @@ const BookingSetupPage: React.FC = () => {
 
 	const availability: WeeklyAvailability = useMemo(() => {
 		const result: WeeklyAvailability = {};
-		for (const d of DAYS) {
-			if (enabledDays[d.key]) result[d.key] = [dayRanges[d.key]];
+		for (const d of DAY_KEYS) {
+			if (enabledDays[d]) result[d] = [dayRanges[d]];
 		}
 		return result;
 	}, [enabledDays, dayRanges]);
 
-	const publicUrl = `${window.location.origin}/book/${slug || '{your-link}'}`;
-
-	const handleCopyLink = () => {
-		navigator.clipboard.writeText(publicUrl);
-		toast.success('Link copied to clipboard.');
-	};
+	const publicUrlPrefix = `${window.location.origin}/book/`;
 
 	const handleSave = async () => {
 		if (!slug.trim() || !title.trim()) {
@@ -154,12 +151,13 @@ const BookingSetupPage: React.FC = () => {
 				location_type: locationType,
 				offline_address: locationType === 'offline' ? offlineAddress : undefined,
 				fallback_meeting_note: fallbackNote || undefined,
-				timezone,
+				timezone: page?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
 				availability,
 				buffer_before_minutes: bufferBefore,
 				buffer_after_minutes: bufferAfter,
 				min_notice_minutes: minNoticeMinutes,
-				max_advance_days: maxAdvanceDays,
+				max_advance_days: page?.max_advance_days || 60,
+				max_bookings_per_day: maxBookingsPerDay === '' ? null : maxBookingsPerDay,
 			};
 			if (page) {
 				const updated = await bookingService.updateMyBookingPage(page.public_id, shared);
@@ -173,6 +171,22 @@ const BookingSetupPage: React.FC = () => {
 			toast.error(err?.response?.data?.error?.message || 'Failed to save booking page.');
 		} finally {
 			setSaving(false);
+		}
+	};
+
+	const handleToggleActive = async (checked: boolean) => {
+		setIsActive(checked);
+		if (!page) return; // nothing to persist until the page is first created
+		setTogglingActive(true);
+		try {
+			const updated = await bookingService.updateMyBookingPage(page.public_id, { is_active: checked });
+			applyPage(updated);
+			toast.success(checked ? 'Booking page is now active.' : 'Booking page deactivated — new bookings are paused.');
+		} catch {
+			setIsActive(!checked);
+			toast.error('Failed to update status.');
+		} finally {
+			setTogglingActive(false);
 		}
 	};
 
@@ -197,6 +211,39 @@ const BookingSetupPage: React.FC = () => {
 		}
 	};
 
+	const handleCopyToAll = () => {
+		const source = dayRanges.mon;
+		setDayRanges(Object.fromEntries(DAY_KEYS.map((d) => [d, source])) as Record<string, TimeRange>);
+		setEnabledDays(Object.fromEntries(DAY_KEYS.map((d) => [d, true])));
+		toast.info("Monday's hours copied to every day.");
+	};
+
+	const handleAddException = async (date: string, isBlocked: boolean, customSlots?: [string, string][]) => {
+		if (!page) {
+			toast.error('Save your booking page first before adding exceptions.');
+			return;
+		}
+		try {
+			const created = await bookingService.createMyBookingPageException(page.public_id, {
+				date, is_blocked: isBlocked, custom_slots: customSlots,
+			});
+			setExceptions((prev) => [...prev.filter((e) => e.date !== date), created]);
+			toast.success('Rule added.');
+		} catch (err: any) {
+			toast.error(err?.response?.data?.error?.message || 'Failed to add rule.');
+		}
+	};
+
+	const handleDeleteException = async (id: number) => {
+		if (!page) return;
+		try {
+			await bookingService.deleteMyBookingPageException(page.public_id, id);
+			setExceptions((prev) => prev.filter((e) => e.id !== id));
+		} catch {
+			toast.error('Failed to remove rule.');
+		}
+	};
+
 	if (loading) {
 		return (
 			<Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -205,200 +252,108 @@ const BookingSetupPage: React.FC = () => {
 		);
 	}
 
+	const publicUrl = page ? `${publicUrlPrefix}${page.slug}` : null;
+
 	return (
 		<Box>
-			<PageHeader
-				title="Booking Page"
-				subtitle="Configure your public scheduling link, availability, and video call integration."
-			/>
+			{showWelcome && (
+				<WelcomeBanner
+					icon={CalendarMonthOutlined}
+					title={BOOKING_GUIDE_CONTENT.banner.title}
+					description={BOOKING_GUIDE_CONTENT.banner.description}
+					onExplore={() => setGuideOpen(true)}
+					onDismiss={dismissWelcome}
+				/>
+			)}
 
-			<Stack spacing={3} sx={{ maxWidth: 820 }}>
-				{/* Public link */}
-				<Card variant="outlined" sx={{ p: 3 }}>
-					<Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-						<LinkOutlined fontSize="small" color="action" />
-						<Typography variant="subtitle1" fontWeight={600}>Your booking link</Typography>
-					</Stack>
+			<Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2} sx={{ mb: 3 }}>
+				<PageHeader
+					title="Booking Page Settings"
+					subtitle="Configure how clients schedule time with you."
+					mb={0}
+				/>
+				<Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
 					<Stack direction="row" spacing={1} alignItems="center">
-						<TextField
-							size="small"
-							fullWidth
-							value={slug}
-							onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
-							disabled={!!page}
-							helperText={page ? 'The link cannot be changed after creation.' : 'Lowercase letters, numbers, and hyphens only.'}
-							InputProps={{
-								startAdornment: <InputAdornment position="start">/book/</InputAdornment>,
-							}}
+						<StatusBadge type="booking" status={isActive ? 'active' : 'inactive'} label={isActive ? 'Active' : 'Inactive'} />
+						<Switch
+							checked={isActive}
+							disabled={togglingActive}
+							onChange={(e) => handleToggleActive(e.target.checked)}
+							inputProps={{ 'aria-label': 'Toggle booking page active status' }}
 						/>
-						<IconButton onClick={handleCopyLink} title="Copy link">
-							<ContentCopyOutlined fontSize="small" />
-						</IconButton>
 					</Stack>
-				</Card>
-
-				{/* Meeting details */}
-				<Card variant="outlined" sx={{ p: 3 }}>
-					<Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Meeting details</Typography>
-					<Stack spacing={2}>
-						<TextField label="Title" value={title} onChange={(e) => setTitle(e.target.value)} fullWidth />
-						<TextField
-							label="Description"
-							value={description}
-							onChange={(e) => setDescription(e.target.value)}
-							fullWidth
-							multiline
-							minRows={2}
-						/>
-						<Stack direction="row" spacing={2}>
-							<TextField
-								label="Duration (minutes)"
-								type="number"
-								value={durationMinutes}
-								onChange={(e) => setDurationMinutes(Number(e.target.value))}
-								sx={{ width: 200 }}
-							/>
-							<TextField
-								select
-								label="Meeting type"
-								value={locationType}
-								onChange={(e) => setLocationType(e.target.value as BookingLocationType)}
-								sx={{ width: 260 }}
-							>
-								<MenuItem value="google_meet">Online (Google Meet)</MenuItem>
-								<MenuItem value="offline">In person</MenuItem>
-								<MenuItem value="phone">Phone call</MenuItem>
-							</TextField>
-						</Stack>
-						{locationType === 'offline' && (
-							<TextField
-								label="Address"
-								value={offlineAddress}
-								onChange={(e) => setOfflineAddress(e.target.value)}
-								fullWidth
-								helperText="Shown to the client along with a Google Maps link — no API key required."
-							/>
-						)}
-						{locationType === 'google_meet' && (
-							<TextField
-								label="Fallback note (shown if a Meet link isn't ready yet)"
-								value={fallbackNote}
-								onChange={(e) => setFallbackNote(e.target.value)}
-								fullWidth
-								placeholder="e.g. your personal Meet room link, or 'I'll send the link shortly'"
-							/>
-						)}
-						{locationType === 'phone' && (
-							<TextField
-								label="Phone number"
-								value={fallbackNote}
-								onChange={(e) => setFallbackNote(e.target.value)}
-								fullWidth
-							/>
-						)}
-					</Stack>
-				</Card>
-
-				{/* Availability */}
-				<Card variant="outlined" sx={{ p: 3 }}>
-					<Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Weekly availability</Typography>
-					<TextField
-						select
-						label="Timezone"
-						value={timezone}
-						onChange={(e) => setTimezone(e.target.value)}
-						sx={{ width: 320, mb: 2 }}
-						helperText="All hours below are in this timezone."
+					<HelpGuideButton compact onClick={() => setGuideOpen(true)} />
+					<SubmitButton
+						onClick={handleSave}
+						loading={saving}
+						startIcon={<SaveOutlined />}
+						sx={{
+							background: (t) => t.gradients.brandDiagonal,
+							boxShadow: (t) => `0 4px 14px 0 ${t.palette.primary.main}66`,
+							'&:hover': { background: (t) => t.gradients.brandDiagonalHover },
+						}}
 					>
-						{Intl.supportedValuesOf?.('timeZone')?.map((tz: string) => (
-							<MenuItem key={tz} value={tz}>{tz}</MenuItem>
-						)) || <MenuItem value={BROWSER_TZ}>{BROWSER_TZ}</MenuItem>}
-					</TextField>
-					<Stack spacing={1.5}>
-						{DAYS.map((d) => (
-							<Stack key={d.key} direction="row" spacing={2} alignItems="center">
-								<FormControlLabel
-									sx={{ width: 160 }}
-									control={
-										<Switch
-											checked={!!enabledDays[d.key]}
-											onChange={(e) => setEnabledDays((prev) => ({ ...prev, [d.key]: e.target.checked }))}
-										/>
-									}
-									label={d.label}
-								/>
-								<TextField
-									type="time"
-									size="small"
-									disabled={!enabledDays[d.key]}
-									value={dayRanges[d.key][0]}
-									onChange={(e) => setDayRanges((prev) => ({ ...prev, [d.key]: [e.target.value, prev[d.key][1]] }))}
-								/>
-								<Typography variant="body2">to</Typography>
-								<TextField
-									type="time"
-									size="small"
-									disabled={!enabledDays[d.key]}
-									value={dayRanges[d.key][1]}
-									onChange={(e) => setDayRanges((prev) => ({ ...prev, [d.key]: [prev[d.key][0], e.target.value] }))}
-								/>
-							</Stack>
-						))}
-					</Stack>
-					<Divider sx={{ my: 2 }} />
-					<Stack direction="row" spacing={2} flexWrap="wrap">
-						<TextField
-							label="Buffer before (min)" type="number" size="small" sx={{ width: 170 }}
-							value={bufferBefore} onChange={(e) => setBufferBefore(Number(e.target.value))}
-						/>
-						<TextField
-							label="Buffer after (min)" type="number" size="small" sx={{ width: 170 }}
-							value={bufferAfter} onChange={(e) => setBufferAfter(Number(e.target.value))}
-						/>
-						<TextField
-							label="Minimum notice (min)" type="number" size="small" sx={{ width: 170 }}
-							value={minNoticeMinutes} onChange={(e) => setMinNoticeMinutes(Number(e.target.value))}
-						/>
-						<TextField
-							label="Bookable window (days)" type="number" size="small" sx={{ width: 170 }}
-							value={maxAdvanceDays} onChange={(e) => setMaxAdvanceDays(Number(e.target.value))}
-						/>
-					</Stack>
-				</Card>
-
-				{/* Google Calendar */}
-				<Card variant="outlined" sx={{ p: 3 }}>
-					<Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-						<CloudSyncOutlined fontSize="small" color="action" />
-						<Typography variant="subtitle1" fontWeight={600}>Google Calendar</Typography>
-					</Stack>
-					<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-						Connect your Google account to auto-generate a Meet link and add every booking straight to your
-						calendar. Not connected yet? Bookings still work — clients get a calendar invite by email either way.
-					</Typography>
-					{googleStatus?.status === 'connected' ? (
-						<Stack direction="row" spacing={2} alignItems="center">
-							<Chip color="success" label={`Connected as ${googleStatus.google_email}`} />
-							<Button variant="outlined" color="error" onClick={handleDisconnectGoogle}>Disconnect</Button>
-						</Stack>
-					) : googleStatus?.status === 'error' ? (
-						<Stack direction="row" spacing={2} alignItems="center">
-							<Chip color="error" label="Connection needs attention" />
-							<Button variant="contained" onClick={handleConnectGoogle} disabled={connectingGoogle}>Reconnect</Button>
-						</Stack>
-					) : (
-						<Button variant="contained" onClick={handleConnectGoogle} disabled={connectingGoogle} startIcon={<CloudSyncOutlined />}>
-							Connect Google Calendar
-						</Button>
-					)}
-				</Card>
-
-				<Box>
-					<Button variant="contained" size="large" onClick={handleSave} disabled={saving}>
-						{saving ? 'Saving…' : 'Save Booking Page'}
-					</Button>
-				</Box>
+						Save Changes
+					</SubmitButton>
+				</Stack>
 			</Stack>
+
+			<Box
+				sx={{
+					display: 'grid',
+					gridTemplateColumns: { xs: '1fr', lg: '1.4fr 1fr' },
+					gap: 3,
+					alignItems: 'start',
+				}}
+			>
+				{/* Left column */}
+				<Stack spacing={3}>
+					<GeneralInfoCard
+						slug={slug} setSlug={setSlug} slugLocked={!!page} publicUrlPrefix={publicUrlPrefix}
+						title={title} setTitle={setTitle}
+						description={description} setDescription={setDescription}
+						durationMinutes={durationMinutes} setDurationMinutes={setDurationMinutes}
+						locationType={locationType} setLocationType={setLocationType}
+					/>
+					<LocationDetailsCard
+						locationType={locationType}
+						offlineAddress={offlineAddress} setOfflineAddress={setOfflineAddress}
+						fallbackNote={fallbackNote} setFallbackNote={setFallbackNote}
+						googleStatus={googleStatus} connectingGoogle={connectingGoogle}
+						onConnectGoogle={handleConnectGoogle} onDisconnectGoogle={handleDisconnectGoogle}
+					/>
+					<SchedulingControlsCard
+						bufferBefore={bufferBefore} setBufferBefore={setBufferBefore}
+						bufferAfter={bufferAfter} setBufferAfter={setBufferAfter}
+						minNoticeMinutes={minNoticeMinutes} setMinNoticeMinutes={setMinNoticeMinutes}
+						maxBookingsPerDay={maxBookingsPerDay} setMaxBookingsPerDay={setMaxBookingsPerDay}
+					/>
+				</Stack>
+
+				{/* Right column */}
+				<Stack spacing={3}>
+					<WeeklyHoursCard
+						enabledDays={enabledDays} dayRanges={dayRanges}
+						onToggleDay={(day, enabled) => setEnabledDays((prev) => ({ ...prev, [day]: enabled }))}
+						onChangeRange={(day, range) => setDayRanges((prev) => ({ ...prev, [day]: range }))}
+						onCopyToAll={handleCopyToAll}
+					/>
+					<ExceptionsCard
+						exceptions={exceptions}
+						onAdd={handleAddException}
+						onDelete={handleDeleteException}
+						disabled={!page}
+					/>
+					<PublicPreviewCard
+						hostName={user?.full_name || user?.email || 'You'}
+						hostAvatar={user?.avatar || null}
+						pageTitle={title}
+						publicUrl={publicUrl}
+					/>
+				</Stack>
+			</Box>
+
+			<HelpGuideDrawer open={guideOpen} onClose={() => setGuideOpen(false)} content={BOOKING_GUIDE_CONTENT} />
 		</Box>
 	);
 };

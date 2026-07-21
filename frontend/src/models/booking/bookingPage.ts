@@ -42,7 +42,7 @@ export interface BookingPageCreate {
 	buffer_after_minutes?: number;
 	min_notice_minutes?: number;
 	max_advance_days?: number;
-	max_bookings_per_day?: number;
+	max_bookings_per_day?: number | null;
 }
 
 export type BookingPageUpdate = Partial<Omit<BookingPageCreate, 'slug'>> & { is_active?: boolean };

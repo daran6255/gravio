@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 
-export type BadgeType = 'lead' | 'deal' | 'task' | 'company' | 'project' | 'generic';
+export type BadgeType = 'lead' | 'deal' | 'task' | 'company' | 'project' | 'booking' | 'googleSync' | 'generic';
 
 interface StatusBadgeProps {
 	label: string;
@@ -42,6 +42,20 @@ export const getStatusTone = (status: string, type: BadgeType): StatusTone => {
 		if (['active', 'in_progress'].includes(s)) return 'info';
 		if (['planning', 'on_hold', 'in_testing'].includes(s)) return 'warning';
 		if (['delayed', 'canceled'].includes(s)) return 'error';
+	}
+
+	if (type === 'booking') {
+		if (['scheduled', 'active', 'synced'].includes(s)) return 'success';
+		if (['pending'].includes(s)) return 'warning';
+		if (['cancelled', 'failed', 'error'].includes(s)) return 'error';
+		if (['completed', 'not_applicable', 'inactive'].includes(s)) return 'default';
+	}
+
+	if (type === 'googleSync') {
+		if (s === 'connected' || s === 'synced') return 'success';
+		if (s === 'pending') return 'warning';
+		if (s === 'error' || s === 'failed') return 'error';
+		return 'default'; // disconnected / not_applicable
 	}
 
 	// Company & generic
