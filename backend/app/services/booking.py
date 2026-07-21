@@ -42,7 +42,7 @@ from app.repositories.crm import CRMActivityRepository
 from app.repositories.reminder import CRMReminderRepository
 from app.schemas.booking import ScheduleMeetingRequest
 from app.services import google_calendar
-from app.utils.email import send_booking_cancelled_email, send_booking_confirmation_email
+from app.utils.email import send_booking_cancelled_email, send_booking_confirmation_email, spawn_email_task
 from app.utils.ics import build_meeting_ics
 
 _DAY_KEYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
@@ -274,20 +274,25 @@ async def _send_confirmation(db: AsyncSession, *, host: User, page: BookingPage,
         meeting, page, organizer_email=host.email, organizer_name=host.full_name or host.email, method="REQUEST"
     )
     display_tz = ZoneInfo(meeting.attendee_timezone)
-    await send_booking_confirmation_email(
-        to_email=meeting.client_email,
-        client_name=meeting.client_name,
-        meeting_title=page.title,
-        heading=heading,
-        start_time_display=meeting.start_time.astimezone(display_tz).strftime("%A, %B %d, %Y at %I:%M %p"),
-        attendee_timezone=meeting.attendee_timezone,
-        meet_link=meeting.google_meet_link,
-        location_text=page.offline_address if page.location_type == BookingLocationType.OFFLINE else None,
-        maps_url=_offline_maps_url(page),
-        fallback_note=page.fallback_meeting_note if not meeting.google_meet_link else None,
-        manage_url=_manage_url(meeting),
-        ics_bytes=ics_bytes,
-        ics_method="REQUEST",
+    # Fire-and-forget: the SMTP round trip to an external relay can take seconds to
+    # tens of seconds, and awaiting it here would hold the whole create/reschedule
+    # request (and the frontend UI waiting on its response) hostage until it finishes.
+    spawn_email_task(
+        send_booking_confirmation_email(
+            to_email=meeting.client_email,
+            client_name=meeting.client_name,
+            meeting_title=page.title,
+            heading=heading,
+            start_time_display=meeting.start_time.astimezone(display_tz).strftime("%A, %B %d, %Y at %I:%M %p"),
+            attendee_timezone=meeting.attendee_timezone,
+            meet_link=meeting.google_meet_link,
+            location_text=page.offline_address if page.location_type == BookingLocationType.OFFLINE else None,
+            maps_url=_offline_maps_url(page),
+            fallback_note=page.fallback_meeting_note if not meeting.google_meet_link else None,
+            manage_url=_manage_url(meeting),
+            ics_bytes=ics_bytes,
+            ics_method="REQUEST",
+        )
     )
 
 
@@ -296,14 +301,16 @@ async def _send_cancellation(db: AsyncSession, *, host: User, page: BookingPage,
         meeting, page, organizer_email=host.email, organizer_name=host.full_name or host.email, method="CANCEL"
     )
     display_tz = ZoneInfo(meeting.attendee_timezone)
-    await send_booking_cancelled_email(
-        to_email=meeting.client_email,
-        client_name=meeting.client_name,
-        meeting_title=page.title,
-        start_time_display=meeting.start_time.astimezone(display_tz).strftime("%A, %B %d, %Y at %I:%M %p"),
-        attendee_timezone=meeting.attendee_timezone,
-        reason=meeting.cancellation_reason,
-        ics_bytes=ics_bytes,
+    spawn_email_task(
+        send_booking_cancelled_email(
+            to_email=meeting.client_email,
+            client_name=meeting.client_name,
+            meeting_title=page.title,
+            start_time_display=meeting.start_time.astimezone(display_tz).strftime("%A, %B %d, %Y at %I:%M %p"),
+            attendee_timezone=meeting.attendee_timezone,
+            reason=meeting.cancellation_reason,
+            ics_bytes=ics_bytes,
+        )
     )
 
 
