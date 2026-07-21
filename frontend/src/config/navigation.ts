@@ -13,12 +13,15 @@ import {
 	Handshake as DealsIcon,
 	Assignment as TasksIcon,
 	PendingActions as TimesheetIcon,
-	PeopleAltOutlined as HRIcon,
+	PeopleAltOutlined as EmployeesIcon,
 	CalendarMonthOutlined as LeaveIcon,
 	PlaylistAddCheck as OnboardingIcon,
 	FolderShared as DocumentsIcon,
 	EventAvailableOutlined as BookingSetupIcon,
 	VideocamOutlined as MeetingsIcon,
+	AccountTreeOutlined as DepartmentsIcon,
+	WorkOutlined as DesignationsIcon,
+	SupervisedUserCircleOutlined as ManagersIcon,
 } from '@mui/icons-material';
 import type { SvgIconComponent } from '@mui/icons-material';
 
@@ -124,9 +127,27 @@ export const topNavigation: NavigationItem[] = [
 		roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
 		children: [
 			{
-				label: 'Workforce',
-				path: '/hr/admin/workforce',
-				icon: HRIcon,
+				label: 'Employees',
+				path: '/hr/admin/employees',
+				icon: EmployeesIcon,
+				roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
+			},
+			{
+				label: 'Departments',
+				path: '/hr/admin/departments',
+				icon: DepartmentsIcon,
+				roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
+			},
+			{
+				label: 'Designations',
+				path: '/hr/admin/designations',
+				icon: DesignationsIcon,
+				roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
+			},
+			{
+				label: 'Managers',
+				path: '/hr/admin/managers',
+				icon: ManagersIcon,
 				roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
 			},
 			{
