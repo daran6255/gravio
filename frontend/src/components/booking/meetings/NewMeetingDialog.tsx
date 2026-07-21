@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
 	Box, Stack, TextField, MenuItem, Typography, Divider,
-	Autocomplete, Chip, CircularProgress,
+	Autocomplete, Chip, CircularProgress, Button, InputAdornment, Tooltip,
 } from '@mui/material';
-import { VideocamOutlined, PlaceOutlined, PhoneOutlined, GroupsOutlined } from '@mui/icons-material';
+import { VideocamOutlined, PlaceOutlined, PhoneOutlined, GroupsOutlined, VideoCallOutlined } from '@mui/icons-material';
 import BaseDialog from '../../common/dialogbox/BaseDialog';
 import { SubmitButton, CancelButton } from '../../common/button';
 import RichTextEditor from '../../common/form/RichTextEditor';
@@ -29,7 +29,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DURATIONS = [15, 30, 45, 60, 90, 120];
 
 const LOCATION_OPTIONS: { value: MeetingLocationType; label: string; icon: React.ReactElement; detailLabel: string; detailPlaceholder: string }[] = [
-	{ value: 'google_meet', label: 'Video call', icon: <VideocamOutlined sx={{ fontSize: 18 }} />, detailLabel: 'Meeting link (optional)', detailPlaceholder: 'Paste your Google Meet / Zoom / Teams link' },
+	{ value: 'google_meet', label: 'Video call', icon: <VideocamOutlined sx={{ fontSize: 18 }} />, detailLabel: 'Meeting link', detailPlaceholder: 'Click "Generate" for an instant link, or paste your own' },
 	{ value: 'offline', label: 'In person', icon: <PlaceOutlined sx={{ fontSize: 18 }} />, detailLabel: 'Address', detailPlaceholder: '123 Main Street, Suite 4, San Francisco, CA' },
 	{ value: 'phone', label: 'Phone call', icon: <PhoneOutlined sx={{ fontSize: 18 }} />, detailLabel: 'Phone number', detailPlaceholder: '+1 (555) 123-4567' },
 ];
@@ -37,6 +37,23 @@ const LOCATION_OPTIONS: { value: MeetingLocationType; label: string; icon: React
 function generateIdempotencyKey(): string {
 	if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
 	return `key-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function randomToken(length: number): string {
+	if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID().replace(/-/g, '').slice(0, length);
+	return Math.random().toString(36).slice(2, 2 + length);
+}
+
+/** Instant, keyless video-call room — no OAuth/account tied to any individual
+ * host, no external API call, works the moment anyone opens the link. */
+function generateVideoMeetingLink(seed: string): string {
+	const slug = seed
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/(^-+|-+$)/g, '')
+		.slice(0, 28);
+	const room = ['gravit', slug, randomToken(8)].filter(Boolean).join('-');
+	return `https://meet.jit.si/${room}`;
 }
 
 function contactLabel(contact: Contact): string {
@@ -242,7 +259,7 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, onCr
 					))}
 				</TextField>
 
-				{/* Location — the host fills this in directly since there's no calendar-provider link generation */}
+				{/* Location — video calls can generate an instant, keyless meeting link; other types are filled in manually */}
 				<Box>
 					<Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 1 }}>
 						{selectedLocation.icon}
@@ -266,6 +283,31 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, onCr
 							label={selectedLocation.detailLabel} fullWidth size="small"
 							value={locationDetail} onChange={(e) => setLocationDetail(e.target.value)}
 							placeholder={selectedLocation.detailPlaceholder}
+							InputProps={locationType === 'google_meet' ? {
+								endAdornment: (
+									<InputAdornment position="end">
+										<Tooltip title="Create an instant video-call link — no account or sign-in needed">
+											<Button
+												size="small"
+												startIcon={<VideoCallOutlined sx={{ fontSize: 16 }} />}
+												onClick={async () => {
+													const link = generateVideoMeetingLink(meetingTitle || clientName || 'meeting');
+													setLocationDetail(link);
+													try {
+														await navigator.clipboard.writeText(link);
+														toast.success('Meeting link generated and copied to clipboard.');
+													} catch {
+														toast.success('Meeting link generated.');
+													}
+												}}
+												sx={{ textTransform: 'none', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}
+											>
+												Generate
+											</Button>
+										</Tooltip>
+									</InputAdornment>
+								),
+							} : undefined}
 						/>
 					</Stack>
 				</Box>
