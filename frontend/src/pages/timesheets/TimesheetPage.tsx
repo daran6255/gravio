@@ -24,6 +24,7 @@ import {
 	AccountTreeOutlined as ManagerAllocationIcon,
 	BeachAccessOutlined as HolidayListIcon
 } from '@mui/icons-material';
+import type { SvgIconComponent } from '@mui/icons-material';
 import { WelcomeBanner } from '../../components/common/guide/WelcomeBanner';
 import { HelpGuideDrawer } from '../../components/common/guide/HelpGuideDrawer';
 import { HelpGuideButton } from '../../components/common/button';
@@ -196,7 +197,7 @@ const TimesheetPage: React.FC = () => {
 		return currentUser?.role === 'admin' && !localStorage.getItem('dismissed_timesheet_onboarding');
 	});
 
-	const tabIcons: Record<string, React.ElementType> = {
+	const tabIcons: Record<string, SvgIconComponent> = {
 		'My Timesheet': MyTimesheetIcon,
 		'Team Approvals': TeamApprovalsIcon,
 		'Unlock Requests': UnlockRequestsIcon,
