@@ -35,6 +35,7 @@ from app.schemas.booking import (
     BookingPageResponse,
     BookingPageUpdate,
     CancelMeetingRequest,
+    HostScheduleMeetingRequest,
     RescheduleMeetingRequest,
     ScheduleMeetingRequest,
     ScheduledMeetingHostResponse,
@@ -154,6 +155,7 @@ async def delete_my_booking_page_exception(
 async def list_my_meetings(
     status_filter: Optional[MeetingStatus] = Query(None, alias="status"),
     upcoming_only: bool = Query(False),
+    search: Optional[str] = Query(None, description="Matches against client name or email"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_active_user),
@@ -163,12 +165,32 @@ async def list_my_meetings(
 
     start_after = datetime.now(tz.utc) if upcoming_only else None
     meetings, total = await ScheduledMeetingRepository.list_for_user(
-        db, user_id=current_user.id, status=status_filter, start_after=start_after, page=page, page_size=page_size
+        db, user_id=current_user.id, status=status_filter, start_after=start_after, search=search,
+        page=page, page_size=page_size,
     )
     return PaginatedResponse[ScheduledMeetingHostResponse](
         items=[ScheduledMeetingHostResponse.model_validate(m) for m in meetings],
         total=total, page=page, page_size=page_size,
     )
+
+
+@router.post("/meetings", response_model=ScheduledMeetingHostResponse, status_code=status.HTTP_201_CREATED)
+async def host_create_meeting(
+    payload: HostScheduleMeetingRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> ScheduledMeetingHostResponse:
+    """Lets a host directly book a meeting on their own page (e.g. a call scheduled
+    over the phone) — reuses the exact same conflict-safe, Google-sync-with-fallback
+    path a public visitor's booking goes through, so it's held to the same guarantees."""
+    page = await BookingPageRepository.get_by_public_id(db, payload.booking_page_public_id)
+    if page is None or page.is_deleted:
+        raise NotFoundError("Booking page not found")
+    booking_service.assert_host_owns_page(page, current_user)
+
+    schedule_payload = ScheduleMeetingRequest(**payload.model_dump(exclude={"booking_page_public_id"}))
+    meeting = await booking_service.create_booking(db, page=page, payload=schedule_payload)
+    return ScheduledMeetingHostResponse.model_validate(meeting)
 
 
 @router.post("/meetings/{public_id}/cancel", response_model=ScheduledMeetingHostResponse)
@@ -186,6 +208,24 @@ async def host_cancel_meeting(
         raise NotFoundError("Meeting not found")
     booking_service.assert_host_owns_page(page, current_user)
     meeting = await booking_service.cancel_booking(db, meeting=meeting, cancelled_by=CancelledBy.HOST, reason=payload.reason)
+    return ScheduledMeetingHostResponse.model_validate(meeting)
+
+
+@router.post("/meetings/{public_id}/reschedule", response_model=ScheduledMeetingHostResponse)
+async def host_reschedule_meeting(
+    public_id: uuid.UUID,
+    payload: RescheduleMeetingRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> ScheduledMeetingHostResponse:
+    meeting = await ScheduledMeetingRepository.get_by_public_id(db, public_id)
+    if meeting is None:
+        raise NotFoundError("Meeting not found")
+    page = await BookingPageRepository.get_by_id(db, meeting.booking_page_id)
+    if page is None:
+        raise NotFoundError("Meeting not found")
+    booking_service.assert_host_owns_page(page, current_user)
+    meeting = await booking_service.reschedule_booking(db, meeting=meeting, new_start_time=payload.start_time)
     return ScheduledMeetingHostResponse.model_validate(meeting)
 
 

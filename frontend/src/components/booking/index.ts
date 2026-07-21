@@ -5,4 +5,6 @@ export { default as SchedulingControlsCard } from './SchedulingControlsCard';
 export { default as WeeklyHoursCard } from './WeeklyHoursCard';
 export { default as ExceptionsCard } from './ExceptionsCard';
 export { default as PublicPreviewCard } from './PublicPreviewCard';
+export { default as NewMeetingDialog } from './NewMeetingDialog';
+export { default as RescheduleMeetingDialog } from './RescheduleMeetingDialog';
 export { useBookingCardStyles } from './bookingCardStyles';

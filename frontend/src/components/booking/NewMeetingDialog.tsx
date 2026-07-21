@@ -1,0 +1,203 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { Box, Stack, TextField, MenuItem, Typography, Button, CircularProgress, Divider } from '@mui/material';
+import { EventOutlined } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import BaseDialog from '../common/dialogbox/BaseDialog';
+import { SubmitButton, CancelButton } from '../common/button';
+import bookingService from '../../services/bookingService';
+import useToast from '../../hooks/useToast';
+import type { BookingPage } from '../../models/booking/bookingPage';
+import type { AvailableSlot, ScheduledMeetingHost } from '../../models/booking/meeting';
+
+interface NewMeetingDialogProps {
+	open: boolean;
+	onClose: () => void;
+	bookingPages: BookingPage[];
+	onCreated: (meeting: ScheduledMeetingHost) => void;
+}
+
+const BROWSER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
+function generateIdempotencyKey(): string {
+	if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+	return `key-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, bookingPages, onCreated }) => {
+	const toast = useToast();
+	const navigate = useNavigate();
+
+	const [selectedPageId, setSelectedPageId] = useState(bookingPages[0]?.public_id || '');
+	const [clientName, setClientName] = useState('');
+	const [clientEmail, setClientEmail] = useState('');
+	const [attendeeTimezone, setAttendeeTimezone] = useState(BROWSER_TZ);
+	const [notes, setNotes] = useState('');
+	const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
+	const [slots, setSlots] = useState<AvailableSlot[]>([]);
+	const [slotsLoading, setSlotsLoading] = useState(false);
+	const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
+	const [submitting, setSubmitting] = useState(false);
+
+	const selectedPage = bookingPages.find((p) => p.public_id === selectedPageId) || null;
+
+	useEffect(() => {
+		if (open) {
+			setSelectedPageId(bookingPages[0]?.public_id || '');
+			setClientName('');
+			setClientEmail('');
+			setNotes('');
+			setSelectedDate(new Date().toISOString().slice(0, 10));
+			setSelectedSlot(null);
+		}
+	}, [open, bookingPages]);
+
+	useEffect(() => {
+		if (!open || !selectedPage) return;
+		setSlotsLoading(true);
+		setSelectedSlot(null);
+		bookingService.getAvailableSlots(selectedPage.slug, selectedDate, BROWSER_TZ)
+			.then((res) => setSlots(res.slots))
+			.catch(() => setSlots([]))
+			.finally(() => setSlotsLoading(false));
+	}, [open, selectedPage, selectedDate]);
+
+	const idempotencyKey = useMemo(generateIdempotencyKey, [open]);
+
+	const handleSubmit = async () => {
+		if (!selectedPage) {
+			toast.error('Select a booking page first.');
+			return;
+		}
+		if (!selectedSlot || !clientName.trim() || !clientEmail.trim()) {
+			toast.error('Pick a time and fill in the client\'s name and email.');
+			return;
+		}
+		setSubmitting(true);
+		try {
+			const meeting = await bookingService.hostCreateMeeting({
+				booking_page_public_id: selectedPage.public_id,
+				start_time: selectedSlot.start_time,
+				client_name: clientName,
+				client_email: clientEmail,
+				attendee_timezone: attendeeTimezone,
+				meeting_notes: notes || undefined,
+				idempotency_key: idempotencyKey,
+			});
+			toast.success('Meeting created — a calendar invite has been sent.');
+			onCreated(meeting);
+			onClose();
+		} catch (err: any) {
+			toast.error(err?.response?.data?.error?.message || 'That time is no longer available. Please pick another.');
+			if (selectedPage) {
+				const res = await bookingService.getAvailableSlots(selectedPage.slug, selectedDate, BROWSER_TZ);
+				setSlots(res.slots);
+				setSelectedSlot(null);
+			}
+		} finally {
+			setSubmitting(false);
+		}
+	};
+
+	if (bookingPages.length === 0) {
+		return (
+			<BaseDialog open={open} onClose={onClose} title="New Meeting" maxWidth="xs">
+				<Stack spacing={2} alignItems="center" sx={{ textAlign: 'center', py: 2 }}>
+					<Typography variant="body2" color="text.secondary">
+						You need a booking page before you can create a meeting.
+					</Typography>
+					<Button variant="contained" onClick={() => { onClose(); navigate('/booking/setup'); }}>
+						Set Up Booking Page
+					</Button>
+				</Stack>
+			</BaseDialog>
+		);
+	}
+
+	return (
+		<BaseDialog
+			open={open}
+			onClose={onClose}
+			title="New Meeting"
+			subtitle="Book a meeting directly — the client still gets a calendar invite automatically"
+			maxWidth="sm"
+			loading={submitting}
+			actions={
+				<>
+					<CancelButton onClick={onClose} disabled={submitting} />
+					<SubmitButton onClick={handleSubmit} loading={submitting} disabled={!selectedSlot}>Create Meeting</SubmitButton>
+				</>
+			}
+		>
+			<Stack spacing={2.5}>
+				{bookingPages.length > 1 && (
+					<TextField
+						select label="Booking page" fullWidth size="small"
+						value={selectedPageId} onChange={(e) => setSelectedPageId(e.target.value)}
+					>
+						{bookingPages.map((p) => <MenuItem key={p.public_id} value={p.public_id}>{p.title}</MenuItem>)}
+					</TextField>
+				)}
+
+				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+					<TextField label="Client name" fullWidth size="small" value={clientName} onChange={(e) => setClientName(e.target.value)} />
+					<TextField label="Client email" type="email" fullWidth size="small" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} />
+				</Stack>
+
+				<Divider />
+
+				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+					<TextField
+						label="Date" type="date" fullWidth size="small" value={selectedDate}
+						onChange={(e) => setSelectedDate(e.target.value)}
+						InputLabelProps={{ shrink: true }}
+						inputProps={{ min: new Date().toISOString().slice(0, 10) }}
+					/>
+					<TextField
+						select label="Client timezone" fullWidth size="small"
+						value={attendeeTimezone} onChange={(e) => setAttendeeTimezone(e.target.value)}
+					>
+						{(Intl.supportedValuesOf?.('timeZone') || [BROWSER_TZ]).map((tz: string) => (
+							<MenuItem key={tz} value={tz}>{tz}</MenuItem>
+						))}
+					</TextField>
+				</Stack>
+
+				<Box>
+					<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 1 }}>
+						AVAILABLE TIMES
+					</Typography>
+					{slotsLoading ? (
+						<CircularProgress size={22} />
+					) : slots.length === 0 ? (
+						<Typography variant="body2" color="text.secondary">No open times on this date.</Typography>
+					) : (
+						<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+							{slots.map((s) => (
+								<Button
+									key={s.start_time}
+									size="small"
+									variant={selectedSlot?.start_time === s.start_time ? 'contained' : 'outlined'}
+									onClick={() => setSelectedSlot(s)}
+									sx={{ borderRadius: 2, textTransform: 'none' }}
+								>
+									{new Date(s.start_time).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+								</Button>
+							))}
+						</Box>
+					)}
+				</Box>
+
+				{selectedSlot && (
+					<Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'success.main', fontWeight: 700 }}>
+						<EventOutlined sx={{ fontSize: 14 }} />
+						{new Date(selectedSlot.start_time).toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'short' })}
+					</Typography>
+				)}
+
+				<TextField label="Notes (optional)" fullWidth multiline minRows={2} size="small" value={notes} onChange={(e) => setNotes(e.target.value)} />
+			</Stack>
+		</BaseDialog>
+	);
+};
+
+export default NewMeetingDialog;

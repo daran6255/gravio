@@ -49,3 +49,8 @@ export interface ScheduleMeetingRequest {
 	meeting_notes?: string;
 	idempotency_key: string;
 }
+
+/** Matches backend's HostScheduleMeetingRequest — a host booking a meeting directly. */
+export interface HostScheduleMeetingRequest extends ScheduleMeetingRequest {
+	booking_page_public_id: string;
+}

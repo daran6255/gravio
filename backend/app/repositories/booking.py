@@ -248,7 +248,8 @@ class ScheduledMeetingRepository:
     @staticmethod
     async def list_for_user(
         db: AsyncSession, *, user_id: int, status: Optional[MeetingStatus] = None,
-        start_after: Optional[datetime] = None, page: int = 1, page_size: int = 20,
+        start_after: Optional[datetime] = None, search: Optional[str] = None,
+        page: int = 1, page_size: int = 20,
     ) -> tuple[list[ScheduledMeeting], int]:
         from sqlalchemy import func
 
@@ -257,6 +258,9 @@ class ScheduledMeetingRepository:
             conditions.append(ScheduledMeeting.status == status)
         if start_after is not None:
             conditions.append(ScheduledMeeting.start_time >= start_after)
+        if search:
+            like = f"%{search}%"
+            conditions.append(or_(ScheduledMeeting.client_name.ilike(like), ScheduledMeeting.client_email.ilike(like)))
 
         base = select(ScheduledMeeting).join(BookingPage, ScheduledMeeting.booking_page_id == BookingPage.id).where(*conditions)
 

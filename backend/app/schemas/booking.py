@@ -192,6 +192,12 @@ class ScheduleMeetingRequest(BaseModel):
         return v
 
 
+class HostScheduleMeetingRequest(ScheduleMeetingRequest):
+    """A host directly booking a meeting on one of their own pages (e.g. a call
+    arranged over the phone) — same fields as the public request plus which page."""
+    booking_page_public_id: uuid.UUID
+
+
 class ScheduledMeetingResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
