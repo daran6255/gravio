@@ -63,7 +63,11 @@ const SearchContainer = styled('div')(({ theme }) => ({
 		marginLeft: theme.spacing(3),
 		minWidth: '320px',
 	},
-	[theme.breakpoints.up('lg')]: {
+	// Deliberately stays at the md width through lg (1200–1535px) — that's the
+	// common laptop bucket, and the navbar's right-hand cluster (trial badge,
+	// currency chip, icons, help button) needs the room; the full 400px width
+	// only kicks in at xl (1536px+), where there's genuinely space to spare.
+	[theme.breakpoints.up('xl')]: {
 		minWidth: '400px',
 	},
 }));
@@ -86,6 +90,16 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 	'& .MuiInputBase-input': {
 		padding: theme.spacing(1, 1, 1, 0),
 		paddingLeft: `calc(1em + ${theme.spacing(4)})`,
+		paddingRight: theme.spacing(1),
+		// Reserves room for the absolutely-positioned "Alt + S" hint (hidden below
+		// sm, so it only needs to apply from sm up) — without this, placeholder/
+		// typed text can render underneath the hint pill instead of stopping short.
+		[theme.breakpoints.up('sm')]: {
+			paddingRight: 'calc(1em + 64px)',
+		},
+		overflow: 'hidden',
+		textOverflow: 'ellipsis',
+		whiteSpace: 'nowrap',
 		transition: theme.transitions.create('width'),
 		width: '100%',
 		fontSize: theme.typography.body2.fontSize,
@@ -225,7 +239,7 @@ const GlobalSearch: React.FC = () => {
 					<SearchIcon fontSize="small" />
 				</SearchIconWrapper>
 				<StyledInputBase
-					placeholder={isMobile ? "Search..." : "Search services, features, candidates"}
+					placeholder={isMobile ? "Search..." : "Search services, features"}
 					inputRef={inputRef}
 					value={query}
 					onChange={(e) => {
