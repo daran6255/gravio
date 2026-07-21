@@ -179,13 +179,15 @@ class CalendarSyncResult:
     error: Optional[str] = None
 
 
-def _event_body(meeting: ScheduledMeeting, booking_page: BookingPage) -> dict:
+def _event_body(meeting: ScheduledMeeting, booking_page: BookingPage, extra_attendees: Optional[list[str]] = None) -> dict:
+    attendees = [{"email": meeting.client_email}]
+    attendees.extend({"email": email} for email in (extra_attendees or []))
     body = {
         "summary": f"{booking_page.title} with {meeting.client_name}",
         "description": meeting.meeting_notes or "",
         "start": {"dateTime": meeting.start_time.astimezone(timezone.utc).isoformat()},
         "end": {"dateTime": meeting.end_time.astimezone(timezone.utc).isoformat()},
-        "attendees": [{"email": meeting.client_email}],
+        "attendees": attendees,
     }
     if booking_page.location_type == BookingLocationType.GOOGLE_MEET:
         body["conferenceData"] = {
@@ -200,12 +202,19 @@ def _event_body(meeting: ScheduledMeeting, booking_page: BookingPage) -> dict:
 
 
 async def create_event(
-    db: AsyncSession, connection: GoogleOAuthConnection, meeting: ScheduledMeeting, booking_page: BookingPage
+    db: AsyncSession, connection: GoogleOAuthConnection, meeting: ScheduledMeeting, booking_page: BookingPage,
+    extra_attendees: Optional[list[str]] = None,
 ) -> CalendarSyncResult:
     """Creates the Google Calendar event, generating a Meet link via conferenceData
     when the booking page is an online meeting. Never raises — every failure mode
     (network, quota, revoked consent) is caught and returned as ok=False so the
-    caller can fall back to ICS-only and/or queue a retry."""
+    caller can fall back to ICS-only and/or queue a retry.
+
+    `extra_attendees` (invited teammates + external guests, beyond the primary client)
+    are added to the Google Calendar event's attendee list — Google's own "sendUpdates"
+    notification and per-attendee calendar placement then take care of surfacing this
+    on each attendee's own calendar, with no separate Google connection needed on their
+    end (see app/services/booking.py's _resolve_extra_attendees)."""
     try:
         creds = await _get_valid_credentials(db, connection)
 
@@ -213,7 +222,7 @@ async def create_event(
             service = build("calendar", "v3", credentials=creds, cache_discovery=False)
             return service.events().insert(
                 calendarId="primary",
-                body=_event_body(meeting, booking_page),
+                body=_event_body(meeting, booking_page, extra_attendees),
                 conferenceDataVersion=1,
                 sendUpdates="all",
             ).execute()
@@ -237,23 +246,27 @@ async def create_event(
 
 
 async def patch_event(
-    db: AsyncSession, connection: GoogleOAuthConnection, meeting: ScheduledMeeting, booking_page: BookingPage
+    db: AsyncSession, connection: GoogleOAuthConnection, meeting: ScheduledMeeting, booking_page: BookingPage,
+    extra_attendees: Optional[list[str]] = None,
 ) -> CalendarSyncResult:
     """Updates an already-synced event's time (reschedule). Falls back to create_event
     if the stored google_event_id is missing (e.g. the original sync never completed)."""
     if not meeting.google_event_id:
-        return await create_event(db, connection, meeting, booking_page)
+        return await create_event(db, connection, meeting, booking_page, extra_attendees)
     try:
         creds = await _get_valid_credentials(db, connection)
 
         def _patch():
             service = build("calendar", "v3", credentials=creds, cache_discovery=False)
+            attendees = [{"email": meeting.client_email}]
+            attendees.extend({"email": email} for email in (extra_attendees or []))
             return service.events().patch(
                 calendarId="primary",
                 eventId=meeting.google_event_id,
                 body={
                     "start": {"dateTime": meeting.start_time.astimezone(timezone.utc).isoformat()},
                     "end": {"dateTime": meeting.end_time.astimezone(timezone.utc).isoformat()},
+                    "attendees": attendees,
                 },
                 sendUpdates="all",
             ).execute()

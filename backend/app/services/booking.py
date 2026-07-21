@@ -42,11 +42,22 @@ from app.repositories.crm import CRMActivityRepository
 from app.repositories.reminder import CRMReminderRepository
 from app.schemas.booking import ScheduleMeetingRequest
 from app.services import google_calendar
+from app.services.crm import CRMService
 from app.utils.email import send_booking_cancelled_email, send_booking_confirmation_email, spawn_email_task
 from app.utils.ics import build_meeting_ics
 
 _DAY_KEYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 MEETING_REMINDER_LEAD_MINUTES = 15
+
+
+async def list_org_members(db: AsyncSession, *, organization_id: Optional[int], exclude_user_id: int) -> list[User]:
+    """Active users in the host's organization, for the 'invite a teammate' picker on
+    the New Meeting form — excludes the requesting host themselves. Empty for a solo
+    user with no organization, so the frontend just falls back to guest-only invites."""
+    if organization_id is None:
+        return []
+    members = await CRMService.list_assignable_owners(db, organization_id)
+    return [m for m in members if m.id != exclude_user_id]
 
 
 # ── Availability / slot computation ─────────────────────────────────────────────
@@ -227,6 +238,25 @@ async def _find_or_create_lead(
 
 # ── Google sync (best-effort inline attempt; retried later by the sync worker) ──
 
+async def _resolve_extra_attendees(db: AsyncSession, meeting: ScheduledMeeting) -> list[str]:
+    """Every attendee beyond the primary client: invited teammates' own emails
+    (resolved live from participant_user_ids) plus any free-form guest_emails —
+    deduplicated and never repeating the client's own email."""
+    emails: list[str] = list(meeting.guest_emails or [])
+    if meeting.participant_user_ids:
+        result = await db.execute(select(User.email).where(User.id.in_(meeting.participant_user_ids)))
+        emails.extend(row[0] for row in result.all())
+
+    seen = {meeting.client_email.lower()}
+    deduped: list[str] = []
+    for email in emails:
+        key = email.lower()
+        if key not in seen:
+            seen.add(key)
+            deduped.append(email)
+    return deduped
+
+
 async def _attempt_google_sync(
     db: AsyncSession, *, host: User, page: BookingPage, meeting: ScheduledMeeting, is_reschedule: bool,
 ) -> None:
@@ -240,8 +270,9 @@ async def _attempt_google_sync(
         return
 
     meeting.calendar_sync_status = CalendarSyncStatus.PENDING
+    extra_attendees = await _resolve_extra_attendees(db, meeting)
     result = await (google_calendar.patch_event if is_reschedule else google_calendar.create_event)(
-        db, connection, meeting, page
+        db, connection, meeting, page, extra_attendees
     )
     meeting.calendar_sync_attempts += 1
     if result.ok:
@@ -377,6 +408,11 @@ async def create_booking(db: AsyncSession, *, page: BookingPage, payload: Schedu
             host_timezone=locked_page.timezone,
             attendee_timezone=payload.attendee_timezone,
             idempotency_key=payload.idempotency_key,
+            # Only HostScheduleMeetingRequest (host-created meetings) carries these —
+            # the public self-serve ScheduleMeetingRequest has no concept of internal
+            # teammates or extra guests, so both default to empty for that flow.
+            participant_user_ids=list(getattr(payload, "participant_user_ids", None) or []),
+            guest_emails=[str(email) for email in (getattr(payload, "guest_emails", None) or [])],
         )
         db.add(meeting)
         await db.flush()

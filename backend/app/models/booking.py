@@ -191,6 +191,14 @@ class ScheduledMeeting(BaseModel, TenantAwareMixin):
     client_email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     meeting_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
+    # Host-created meetings only (see HostScheduleMeetingRequest) — internal teammates
+    # invited alongside the client, plus any extra external guests beyond the client.
+    # Snapshotted as plain ids/emails at creation time, same denormalized-at-write
+    # pattern as client_name/client_email above rather than a live join, so a
+    # participant's email/name changing later doesn't retroactively alter past invites.
+    participant_user_ids: Mapped[list[int]] = mapped_column(JSON, nullable=False, default=list)
+    guest_emails: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+
     start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
     end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     host_timezone: Mapped[str] = mapped_column(String(64), nullable=False)

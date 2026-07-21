@@ -1,13 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Stack, TextField, MenuItem, Typography, Button, CircularProgress, Divider } from '@mui/material';
-import { EventOutlined } from '@mui/icons-material';
+import {
+	Box, Stack, TextField, MenuItem, Typography, Button, CircularProgress, Divider,
+	Autocomplete, Chip,
+} from '@mui/material';
+import { EventOutlined, VideocamOutlined, PlaceOutlined, PhoneOutlined, GroupsOutlined } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import BaseDialog from '../../common/dialogbox/BaseDialog';
 import { SubmitButton, CancelButton } from '../../common/button';
+import RichTextEditor from '../../common/form/RichTextEditor';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { searchContactOptions } from '../../../store/slices/crmSlice';
 import bookingService from '../../../services/bookingService';
 import useToast from '../../../hooks/useToast';
-import type { BookingPage } from '../../../models/booking/bookingPage';
-import type { AvailableSlot, ScheduledMeetingHost } from '../../../models/booking/meeting';
+import type { BookingPage, BookingLocationType } from '../../../models/booking/bookingPage';
+import type { AvailableSlot, ScheduledMeetingHost, OrgMemberOption } from '../../../models/booking/meeting';
+import type { Contact } from '../../../models/crm/contact';
 
 interface NewMeetingDialogProps {
 	open: boolean;
@@ -22,6 +29,13 @@ interface NewMeetingDialogProps {
 }
 
 const BROWSER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const LOCATION_INFO: Record<BookingLocationType, { icon: React.ReactElement; label: string }> = {
+	google_meet: { icon: <VideocamOutlined sx={{ fontSize: 18 }} />, label: 'Google Meet — link generated automatically when this meeting is created' },
+	offline: { icon: <PlaceOutlined sx={{ fontSize: 18 }} />, label: 'In person' },
+	phone: { icon: <PhoneOutlined sx={{ fontSize: 18 }} />, label: 'Phone call' },
+};
 
 function timeStrToMinutes(t: string): number {
 	const [h, m] = t.split(':').map(Number);
@@ -33,9 +47,15 @@ function generateIdempotencyKey(): string {
 	return `key-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+function contactLabel(contact: Contact): string {
+	return `${contact.first_name} ${contact.last_name || ''}`.trim();
+}
+
 const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, bookingPages, onCreated, initialDate, initialTime }) => {
 	const toast = useToast();
 	const navigate = useNavigate();
+	const dispatch = useAppDispatch();
+	const { contactOptions, contactOptionsLoading } = useAppSelector((state) => state.crm);
 
 	const [selectedPageId, setSelectedPageId] = useState(bookingPages[0]?.public_id || '');
 	const [clientName, setClientName] = useState('');
@@ -48,6 +68,10 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, book
 	const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
 	const [submitting, setSubmitting] = useState(false);
 
+	const [orgMembers, setOrgMembers] = useState<OrgMemberOption[]>([]);
+	const [participants, setParticipants] = useState<OrgMemberOption[]>([]);
+	const [guestEmails, setGuestEmails] = useState<string[]>([]);
+
 	const selectedPage = bookingPages.find((p) => p.public_id === selectedPageId) || null;
 
 	useEffect(() => {
@@ -56,10 +80,12 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, book
 			setClientName('');
 			setClientEmail('');
 			setNotes('');
+			setParticipants([]);
+			setGuestEmails([]);
 			setSelectedDate(initialDate || new Date().toISOString().slice(0, 10));
 			setSelectedSlot(null);
+			bookingService.listOrgMembers().then(setOrgMembers).catch(() => setOrgMembers([]));
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [open, bookingPages, initialDate]);
 
 	useEffect(() => {
@@ -89,6 +115,22 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, book
 
 	const idempotencyKey = useMemo(generateIdempotencyKey, [open]);
 
+	const handleAddGuestEmails = (raw: string[]) => {
+		const valid: string[] = [];
+		let hadInvalid = false;
+		for (const entry of raw) {
+			const email = entry.trim();
+			if (!email) continue;
+			if (EMAIL_RE.test(email) && !guestEmails.includes(email) && email.toLowerCase() !== clientEmail.toLowerCase()) {
+				valid.push(email);
+			} else if (!EMAIL_RE.test(email)) {
+				hadInvalid = true;
+			}
+		}
+		if (hadInvalid) toast.error('One or more guest emails looked invalid and were skipped.');
+		if (valid.length) setGuestEmails((prev) => [...prev, ...valid]);
+	};
+
 	const handleSubmit = async () => {
 		if (!selectedPage) {
 			toast.error('Select a booking page first.');
@@ -108,6 +150,8 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, book
 				attendee_timezone: attendeeTimezone,
 				meeting_notes: notes || undefined,
 				idempotency_key: idempotencyKey,
+				participant_user_ids: participants.map((p) => p.id),
+				guest_emails: guestEmails,
 			});
 			toast.success('Meeting created — a calendar invite has been sent.');
 			onCreated(meeting);
@@ -139,13 +183,16 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, book
 		);
 	}
 
+	const locationInfo = selectedPage ? LOCATION_INFO[selectedPage.location_type] : null;
+	const locationDetail = selectedPage?.location_type === 'offline' ? (selectedPage.offline_address || 'Address not set') : locationInfo?.label;
+
 	return (
 		<BaseDialog
 			open={open}
 			onClose={onClose}
 			title="New Meeting"
 			subtitle="Book a meeting directly — the client still gets a calendar invite automatically"
-			maxWidth="sm"
+			maxWidth="md"
 			loading={submitting}
 			actions={
 				<>
@@ -164,9 +211,48 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, book
 					</TextField>
 				)}
 
+				{/* Client — pick from CRM contacts, or type a brand-new client's name */}
 				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-					<TextField label="Client name" fullWidth size="small" value={clientName} onChange={(e) => setClientName(e.target.value)} />
-					<TextField label="Client email" type="email" fullWidth size="small" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} />
+					<Autocomplete
+						freeSolo
+						fullWidth
+						options={contactOptions}
+						getOptionLabel={(option) => (typeof option === 'string' ? option : contactLabel(option))}
+						filterOptions={(x) => x}
+						loading={contactOptionsLoading}
+						inputValue={clientName}
+						onInputChange={(_e, value, reason) => {
+							setClientName(value);
+							if (reason === 'input') dispatch(searchContactOptions({ search: value || undefined }));
+						}}
+						onChange={(_e, value) => {
+							if (value && typeof value !== 'string') {
+								setClientName(contactLabel(value));
+								if (value.email) setClientEmail(value.email);
+							}
+						}}
+						renderInput={(params) => (
+							<TextField
+								{...params}
+								label="Client name"
+								size="small"
+								placeholder="Search your clients or type a new name"
+								InputProps={{
+									...params.InputProps,
+									endAdornment: (
+										<>
+											{contactOptionsLoading && <CircularProgress color="inherit" size={16} />}
+											{params.InputProps.endAdornment}
+										</>
+									),
+								}}
+							/>
+						)}
+					/>
+					<TextField
+						label="Client email" type="email" fullWidth size="small"
+						value={clientEmail} onChange={(e) => setClientEmail(e.target.value)}
+					/>
 				</Stack>
 
 				<Divider />
@@ -220,7 +306,75 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, book
 					</Typography>
 				)}
 
-				<TextField label="Notes (optional)" fullWidth multiline minRows={2} size="small" value={notes} onChange={(e) => setNotes(e.target.value)} />
+				{/* Location — informational, driven by the selected booking page's own setup */}
+				{locationInfo && (
+					<Stack
+						direction="row" spacing={1.25} alignItems="center"
+						sx={{ p: 1.25, borderRadius: '10px', bgcolor: 'action.hover', color: 'text.secondary' }}
+					>
+						{locationInfo.icon}
+						<Typography variant="caption" sx={{ fontWeight: 600 }}>{locationDetail}</Typography>
+					</Stack>
+				)}
+
+				{/* Participants — invite teammates (their own calendar gets the invite too) and any extra external guests */}
+				<Box>
+					<Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 1 }}>
+						<GroupsOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
+						<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>PARTICIPANTS</Typography>
+					</Stack>
+					<Stack spacing={1.5}>
+						{orgMembers.length > 0 && (
+							<Autocomplete
+								multiple
+								size="small"
+								options={orgMembers}
+								getOptionLabel={(o) => o.full_name || o.email}
+								isOptionEqualToValue={(o, v) => o.id === v.id}
+								value={participants}
+								onChange={(_e, value) => setParticipants(value)}
+								renderTags={(value, getTagProps) =>
+									value.map((option, index) => (
+										<Chip label={option.full_name || option.email} size="small" {...getTagProps({ index })} />
+									))
+								}
+								renderInput={(params) => (
+									<TextField {...params} label="Invite teammates (optional)" placeholder="Add a colleague" size="small" />
+								)}
+							/>
+						)}
+						<Autocomplete
+							multiple
+							freeSolo
+							size="small"
+							options={[]}
+							value={guestEmails}
+							onChange={(_e, value) => handleAddGuestEmails(value as string[])}
+							renderTags={(value, getTagProps) =>
+								value.map((option, index) => (
+									<Chip label={option} size="small" {...getTagProps({ index })} />
+								))
+							}
+							renderInput={(params) => (
+								<TextField {...params} label="Additional guests (optional)" placeholder="Type an email and press Enter" size="small" />
+							)}
+						/>
+					</Stack>
+				</Box>
+
+				<Box>
+					<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 1 }}>
+						NOTES (OPTIONAL)
+					</Typography>
+					<RichTextEditor
+						value={notes}
+						onChange={setNotes}
+						placeholder="Add context for this meeting…"
+						minHeight={100}
+						variant="simple"
+						error={false}
+					/>
+				</Box>
 			</Stack>
 		</BaseDialog>
 	);

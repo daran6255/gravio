@@ -27,6 +27,16 @@ export interface ScheduledMeetingHost extends ScheduledMeeting {
 	google_event_id?: string;
 	calendar_sync_attempts: number;
 	calendar_sync_last_error?: string;
+	participant_user_ids: number[];
+	guest_emails: string[];
+}
+
+/** Matches backend's OrgMemberOption — a teammate selectable in the "invite a
+ * teammate" picker on the New Meeting form. */
+export interface OrgMemberOption {
+	id: number;
+	full_name?: string;
+	email: string;
 }
 
 export interface AvailableSlot {
@@ -53,4 +63,6 @@ export interface ScheduleMeetingRequest {
 /** Matches backend's HostScheduleMeetingRequest — a host booking a meeting directly. */
 export interface HostScheduleMeetingRequest extends ScheduleMeetingRequest {
 	booking_page_public_id: string;
+	participant_user_ids?: number[];
+	guest_emails?: string[];
 }

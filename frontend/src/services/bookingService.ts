@@ -15,6 +15,7 @@ import type {
 	ScheduleMeetingRequest,
 	HostScheduleMeetingRequest,
 	MeetingStatus,
+	OrgMemberOption,
 } from '../models/booking/meeting';
 
 const bookingService = {
@@ -66,6 +67,10 @@ const bookingService = {
 	},
 	hostCreateMeeting: async (payload: HostScheduleMeetingRequest): Promise<ScheduledMeetingHost> => {
 		const response = await api.post<ScheduledMeetingHost>('/bookings/meetings', payload);
+		return response.data;
+	},
+	listOrgMembers: async (): Promise<OrgMemberOption[]> => {
+		const response = await api.get<OrgMemberOption[]>('/bookings/org-members');
 		return response.data;
 	},
 	hostCancelMeeting: async (publicId: string, reason?: string): Promise<ScheduledMeetingHost> => {

@@ -196,6 +196,13 @@ class HostScheduleMeetingRequest(ScheduleMeetingRequest):
     """A host directly booking a meeting on one of their own pages (e.g. a call
     arranged over the phone) — same fields as the public request plus which page."""
     booking_page_public_id: uuid.UUID
+    # Internal teammates to invite alongside the client — each gets added as a Google
+    # Calendar attendee (see google_calendar._event_body), so the meeting shows up on
+    # their own calendar too, without needing their own Google connection.
+    participant_user_ids: list[int] = Field(default_factory=list)
+    # External guests beyond the primary client — always available regardless of
+    # whether the host's organization has any teammates to pick from.
+    guest_emails: list[EmailStr] = Field(default_factory=list)
 
 
 class ScheduledMeetingResponse(BaseModel):
@@ -223,6 +230,8 @@ class ScheduledMeetingHostResponse(ScheduledMeetingResponse):
     google_event_id: Optional[str] = None
     calendar_sync_attempts: int
     calendar_sync_last_error: Optional[str] = None
+    participant_user_ids: list[int] = Field(default_factory=list)
+    guest_emails: list[str] = Field(default_factory=list)
 
 
 class RescheduleMeetingRequest(BaseModel):
@@ -238,6 +247,15 @@ class RescheduleMeetingRequest(BaseModel):
 
 class CancelMeetingRequest(BaseModel):
     reason: Optional[str] = Field(None, max_length=500)
+
+
+# --- Org Member Options (for the "invite a teammate" picker) ---
+
+class OrgMemberOption(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    full_name: Optional[str] = None
+    email: str
 
 
 # --- Google Integration Schemas ---

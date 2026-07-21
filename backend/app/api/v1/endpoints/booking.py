@@ -36,6 +36,7 @@ from app.schemas.booking import (
     BookingPageUpdate,
     CancelMeetingRequest,
     HostScheduleMeetingRequest,
+    OrgMemberOption,
     RescheduleMeetingRequest,
     ScheduleMeetingRequest,
     ScheduledMeetingHostResponse,
@@ -174,6 +175,22 @@ async def list_my_meetings(
     )
 
 
+@router.get("/org-members", response_model=list[OrgMemberOption])
+async def list_org_members_endpoint(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[OrgMemberOption]:
+    """Teammates a host can invite to a meeting they're creating — any authenticated
+    user with an organization, not gated to a specific role (unlike /crm/owners),
+    since inviting a colleague to your own meeting isn't a CRM permission. Empty for
+    a solo user with no organization; the New Meeting form falls back to guest-only
+    invites in that case."""
+    members = await booking_service.list_org_members(
+        db, organization_id=current_user.organization_id, exclude_user_id=current_user.id
+    )
+    return [OrgMemberOption.model_validate(m) for m in members]
+
+
 @router.post("/meetings", response_model=ScheduledMeetingHostResponse, status_code=status.HTTP_201_CREATED)
 async def host_create_meeting(
     payload: HostScheduleMeetingRequest,
@@ -188,8 +205,10 @@ async def host_create_meeting(
         raise NotFoundError("Booking page not found")
     booking_service.assert_host_owns_page(page, current_user)
 
-    schedule_payload = ScheduleMeetingRequest(**payload.model_dump(exclude={"booking_page_public_id"}))
-    meeting = await booking_service.create_booking(db, page=page, payload=schedule_payload)
+    # Passed straight through (not re-wrapped into the base ScheduleMeetingRequest) so
+    # host-only fields like participant_user_ids/guest_emails survive into create_booking —
+    # HostScheduleMeetingRequest already IS-A ScheduleMeetingRequest, so this is type-safe.
+    meeting = await booking_service.create_booking(db, page=page, payload=payload)
     return ScheduledMeetingHostResponse.model_validate(meeting)
 
 
