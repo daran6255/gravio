@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Stack, TextField, Typography } from '@mui/material';
 import BaseDialog from '../../common/dialogbox/BaseDialog';
 import { SubmitButton, CancelButton } from '../../common/button';
-import bookingService from '../../../services/bookingService';
-import useToast from '../../../hooks/useToast';
+import { useRescheduleMeetingDialog } from './hooks/useRescheduleMeetingDialog';
 import type { ScheduledMeetingHost } from '../../../models/booking/meeting';
 
 interface RescheduleMeetingDialogProps {
@@ -13,39 +12,9 @@ interface RescheduleMeetingDialogProps {
 	onRescheduled: (meeting: ScheduledMeetingHost) => void;
 }
 
-const RescheduleMeetingDialog: React.FC<RescheduleMeetingDialogProps> = ({ open, onClose, meeting, onRescheduled }) => {
-	const toast = useToast();
-
-	const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
-	const [selectedTime, setSelectedTime] = useState('09:00');
-	const [submitting, setSubmitting] = useState(false);
-
-	useEffect(() => {
-		if (open && meeting) {
-			const start = new Date(meeting.start_time);
-			setSelectedDate(start.toISOString().slice(0, 10));
-			setSelectedTime(start.toTimeString().slice(0, 5));
-		}
-	}, [open, meeting]);
-
-	const handleSubmit = async () => {
-		if (!meeting) return;
-		const [h, m] = selectedTime.split(':').map(Number);
-		const newStart = new Date(`${selectedDate}T00:00:00`);
-		newStart.setHours(h, m, 0, 0);
-
-		setSubmitting(true);
-		try {
-			const updated = await bookingService.hostRescheduleMeeting(meeting.public_id, newStart.toISOString());
-			toast.success('Meeting rescheduled — the client has been notified.');
-			onRescheduled(updated);
-			onClose();
-		} catch (err: any) {
-			toast.error(err?.response?.data?.error?.message || 'You already have a meeting scheduled during this time.');
-		} finally {
-			setSubmitting(false);
-		}
-	};
+const RescheduleMeetingDialog: React.FC<RescheduleMeetingDialogProps> = (props) => {
+	const { open, onClose, meeting } = props;
+	const { selectedDate, setSelectedDate, selectedTime, setSelectedTime, submitting, handleSubmit } = useRescheduleMeetingDialog(props);
 
 	if (!meeting) return null;
 
