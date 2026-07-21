@@ -66,7 +66,7 @@ def build_meeting_ics(
 
     event = Event()
     event.add("uid", f"{meeting.public_id}@gravit-booking")
-    event.add("summary", f"{booking_page.title} with {meeting.client_name}")
+    event.add("summary", meeting.meeting_title or f"{booking_page.title} with {meeting.client_name}")
     event.add("dtstart", meeting.start_time.astimezone(timezone.utc))
     event.add("dtend", meeting.end_time.astimezone(timezone.utc))
     event.add("dtstamp", datetime.now(timezone.utc))

@@ -58,6 +58,7 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, book
 	const { contactOptions, contactOptionsLoading } = useAppSelector((state) => state.crm);
 
 	const [selectedPageId, setSelectedPageId] = useState(bookingPages[0]?.public_id || '');
+	const [meetingTitle, setMeetingTitle] = useState('');
 	const [clientName, setClientName] = useState('');
 	const [clientEmail, setClientEmail] = useState('');
 	const [attendeeTimezone, setAttendeeTimezone] = useState(BROWSER_TZ);
@@ -77,6 +78,7 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, book
 	useEffect(() => {
 		if (open) {
 			setSelectedPageId(bookingPages[0]?.public_id || '');
+			setMeetingTitle('');
 			setClientName('');
 			setClientEmail('');
 			setNotes('');
@@ -145,6 +147,7 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, book
 			const meeting = await bookingService.hostCreateMeeting({
 				booking_page_public_id: selectedPage.public_id,
 				start_time: selectedSlot.start_time,
+				meeting_title: meetingTitle.trim() || undefined,
 				client_name: clientName,
 				client_email: clientEmail,
 				attendee_timezone: attendeeTimezone,
@@ -210,6 +213,12 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = ({ open, onClose, book
 						{bookingPages.map((p) => <MenuItem key={p.public_id} value={p.public_id}>{p.title}</MenuItem>)}
 					</TextField>
 				)}
+
+				<TextField
+					label="Meeting title" fullWidth size="small"
+					value={meetingTitle} onChange={(e) => setMeetingTitle(e.target.value)}
+					placeholder={selectedPage ? `${selectedPage.title} with ${clientName || 'client'}` : 'e.g. Discovery Call'}
+				/>
 
 				{/* Client — pick from CRM contacts, or type a brand-new client's name */}
 				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

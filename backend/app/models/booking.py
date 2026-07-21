@@ -189,6 +189,9 @@ class ScheduledMeeting(BaseModel, TenantAwareMixin):
 
     client_name: Mapped[str] = mapped_column(String(150), nullable=False)
     client_email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    # Host-created meetings only — falls back to "{booking_page.title} with {client_name}"
+    # (see google_calendar._event_body) when not set, e.g. for public self-serve bookings.
+    meeting_title: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     meeting_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Host-created meetings only (see HostScheduleMeetingRequest) — internal teammates

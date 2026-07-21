@@ -196,6 +196,8 @@ class HostScheduleMeetingRequest(ScheduleMeetingRequest):
     """A host directly booking a meeting on one of their own pages (e.g. a call
     arranged over the phone) — same fields as the public request plus which page."""
     booking_page_public_id: uuid.UUID
+    # Falls back to "{booking_page.title} with {client_name}" when not set.
+    meeting_title: Optional[str] = Field(None, max_length=200)
     # Internal teammates to invite alongside the client — each gets added as a Google
     # Calendar attendee (see google_calendar._event_body), so the meeting shows up on
     # their own calendar too, without needing their own Google connection.
@@ -211,6 +213,7 @@ class ScheduledMeetingResponse(BaseModel):
     public_id: uuid.UUID
     client_name: str
     client_email: str
+    meeting_title: Optional[str] = None
     meeting_notes: Optional[str] = None
     start_time: datetime
     end_time: datetime

@@ -183,7 +183,7 @@ def _event_body(meeting: ScheduledMeeting, booking_page: BookingPage, extra_atte
     attendees = [{"email": meeting.client_email}]
     attendees.extend({"email": email} for email in (extra_attendees or []))
     body = {
-        "summary": f"{booking_page.title} with {meeting.client_name}",
+        "summary": meeting.meeting_title or f"{booking_page.title} with {meeting.client_name}",
         "description": meeting.meeting_notes or "",
         "start": {"dateTime": meeting.start_time.astimezone(timezone.utc).isoformat()},
         "end": {"dateTime": meeting.end_time.astimezone(timezone.utc).isoformat()},

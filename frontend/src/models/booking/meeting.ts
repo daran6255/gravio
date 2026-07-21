@@ -8,6 +8,7 @@ export interface ScheduledMeeting {
 	public_id: string;
 	client_name: string;
 	client_email: string;
+	meeting_title?: string;
 	meeting_notes?: string;
 	start_time: string;
 	end_time: string;
@@ -63,6 +64,7 @@ export interface ScheduleMeetingRequest {
 /** Matches backend's HostScheduleMeetingRequest — a host booking a meeting directly. */
 export interface HostScheduleMeetingRequest extends ScheduleMeetingRequest {
 	booking_page_public_id: string;
+	meeting_title?: string;
 	participant_user_ids?: number[];
 	guest_emails?: string[];
 }
