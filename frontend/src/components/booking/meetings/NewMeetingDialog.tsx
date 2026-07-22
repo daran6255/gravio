@@ -1,12 +1,10 @@
 import React from 'react';
 import {
-	Box, Stack, TextField, MenuItem, Typography, Divider,
+	Dialog, Box, Stack, TextField, MenuItem, Typography, Alert,
 	Autocomplete, Chip, CircularProgress, Button, InputAdornment, Tooltip,
 } from '@mui/material';
-import { VideocamOutlined, PlaceOutlined, PhoneOutlined, GroupsOutlined, VideoCallOutlined } from '@mui/icons-material';
-import BaseDialog from '../../common/dialogbox/BaseDialog';
-import { SubmitButton, CancelButton } from '../../common/button';
-import RichTextEditor from '../../common/form/RichTextEditor';
+import { VideocamOutlined, PlaceOutlined, PhoneOutlined, VideoCallOutlined } from '@mui/icons-material';
+import { EnterpriseForm, RichTextEditor, type FormStep } from '../../common/form';
 import { useNewMeetingDialog, BROWSER_TZ, contactLabel } from './hooks/useNewMeetingDialog';
 import type { ScheduledMeetingHost, MeetingLocationType, RecurrenceRule } from '../../../models/booking/meeting';
 
@@ -78,127 +76,139 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = (props) => {
 
 	const selectedLocation = LOCATION_OPTIONS.find((o) => o.value === locationType) || LOCATION_OPTIONS[0];
 
-	return (
-		<BaseDialog
-			open={open}
-			onClose={onClose}
-			title="New Meeting"
-			subtitle="Schedule a meeting directly — the client still gets a calendar invite automatically"
-			maxWidth="md"
-			loading={submitting}
-			actions={
-				<>
-					<CancelButton onClick={onClose} disabled={submitting} />
-					<SubmitButton onClick={handleSubmit} loading={submitting}>Create Meeting</SubmitButton>
-				</>
-			}
-		>
-			<Stack spacing={2.5}>
-				<TextField
-					label="Meeting title" fullWidth size="small"
-					value={meetingTitle} onChange={(e) => setMeetingTitle(e.target.value)}
-					placeholder={clientName ? `Meeting with ${clientName}` : 'e.g. Discovery Call'}
-				/>
+	const steps: FormStep[] = [
+		{
+			label: 'Client',
+			description: 'Meeting title and who it\'s with',
+			content: (
+				<Stack spacing={2.5} sx={{ mt: 1 }}>
+					<Alert severity="info" sx={{ borderRadius: 2 }}>
+						Search your existing CRM contacts or type a brand-new client's name — either way, they'll get a calendar invite automatically once the meeting is created.
+					</Alert>
 
-				{/* Client — pick from CRM contacts, or type a brand-new client's name */}
-				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-					<Autocomplete
-						freeSolo
-						fullWidth
-						options={contactOptions}
-						getOptionLabel={(option) => (typeof option === 'string' ? option : contactLabel(option))}
-						filterOptions={(x) => x}
-						loading={contactOptionsLoading}
-						inputValue={clientName}
-						onInputChange={(_e, value, reason) => {
-							setClientName(value);
-							if (reason === 'input') searchContacts(value);
-						}}
-						onChange={(_e, value) => {
-							if (value && typeof value !== 'string') {
-								setClientName(contactLabel(value));
-								if (value.email) setClientEmail(value.email);
-							}
-						}}
-						renderInput={(params) => (
-							<TextField
-								{...params}
-								label="Client name"
-								size="small"
-								placeholder="Search your clients or type a new name"
-								InputProps={{
-									...params.InputProps,
-									endAdornment: (
-										<>
-											{contactOptionsLoading && <CircularProgress color="inherit" size={16} />}
-											{params.InputProps.endAdornment}
-										</>
-									),
-								}}
-							/>
-						)}
-					/>
 					<TextField
-						label="Client email" type="email" fullWidth size="small"
-						value={clientEmail} onChange={(e) => setClientEmail(e.target.value)}
+						label="Meeting title" fullWidth
+						value={meetingTitle} onChange={(e) => setMeetingTitle(e.target.value)}
+						placeholder={clientName ? `Meeting with ${clientName}` : 'e.g. Discovery Call'}
 					/>
-				</Stack>
 
-				<Divider />
-
-				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-					<TextField
-						label="Date" type="date" fullWidth size="small" value={selectedDate}
-						onChange={(e) => setSelectedDate(e.target.value)}
-						InputLabelProps={{ shrink: true }}
-					/>
-					<TextField
-						label="Start time" type="time" fullWidth size="small" value={selectedTime}
-						onChange={(e) => setSelectedTime(e.target.value)}
-						InputLabelProps={{ shrink: true }}
-					/>
-					<TextField
-						select label="Duration" fullWidth size="small"
-						value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))}
-					>
-						{DURATIONS.map((d) => <MenuItem key={d} value={d}>{d} minutes</MenuItem>)}
-					</TextField>
-				</Stack>
-
-				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-					<TextField
-						select label="Repeat" fullWidth size="small"
-						value={recurrenceRule} onChange={(e) => setRecurrenceRule(e.target.value as RecurrenceRule | '')}
-					>
-						{REPEAT_OPTIONS.map((opt) => <MenuItem key={opt.value || 'none'} value={opt.value}>{opt.label}</MenuItem>)}
-					</TextField>
-					{recurrenceRule && (
-						<TextField
-							label="Ends on" type="date" fullWidth size="small" value={recurrenceEndDate}
-							onChange={(e) => setRecurrenceEndDate(e.target.value)}
-							InputLabelProps={{ shrink: true }}
+					{/* Pick from CRM contacts, or type a brand-new client's name */}
+					<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+						<Autocomplete
+							freeSolo
+							fullWidth
+							options={contactOptions}
+							getOptionLabel={(option) => (typeof option === 'string' ? option : contactLabel(option))}
+							filterOptions={(x) => x}
+							loading={contactOptionsLoading}
+							inputValue={clientName}
+							onInputChange={(_e, value, reason) => {
+								setClientName(value);
+								if (reason === 'input') searchContacts(value);
+							}}
+							onChange={(_e, value) => {
+								if (value && typeof value !== 'string') {
+									setClientName(contactLabel(value));
+									if (value.email) setClientEmail(value.email);
+								}
+							}}
+							renderInput={(params) => (
+								<TextField
+									{...params}
+									label="Client name"
+									placeholder="Search your clients or type a new name"
+									InputProps={{
+										...params.InputProps,
+										endAdornment: (
+											<>
+												{contactOptionsLoading && <CircularProgress color="inherit" size={16} />}
+												{params.InputProps.endAdornment}
+											</>
+										),
+									}}
+								/>
+							)}
 						/>
-					)}
-				</Stack>
-
-				<TextField
-					select label="Client timezone" fullWidth size="small"
-					value={attendeeTimezone} onChange={(e) => setAttendeeTimezone(e.target.value)}
-				>
-					{(Intl.supportedValuesOf?.('timeZone') || [BROWSER_TZ]).map((tz: string) => (
-						<MenuItem key={tz} value={tz}>{tz}</MenuItem>
-					))}
-				</TextField>
-
-				{/* Location — video calls can generate an instant, keyless meeting link; other types are filled in manually */}
-				<Box>
-					<Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 1 }}>
-						{selectedLocation.icon}
-						<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>LOCATION</Typography>
+						<TextField
+							label="Client email" type="email" fullWidth
+							value={clientEmail} onChange={(e) => setClientEmail(e.target.value)}
+						/>
 					</Stack>
+				</Stack>
+			),
+		},
+		{
+			label: 'Schedule',
+			description: 'Date, time, recurrence, and timezone',
+			content: (
+				<Stack spacing={2.5} sx={{ mt: 1 }}>
+					<Alert severity="info" sx={{ borderRadius: 2 }}>
+						Date and time are set in your own timezone — the client sees everything converted to the timezone you pick below, so the invite always shows the right local time for them.
+					</Alert>
+
 					<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
 						<TextField
-							select label="Meeting type" fullWidth size="small"
+							label="Date" type="date" fullWidth value={selectedDate}
+							onChange={(e) => setSelectedDate(e.target.value)}
+							InputLabelProps={{ shrink: true }}
+						/>
+						<TextField
+							label="Start time" type="time" fullWidth value={selectedTime}
+							onChange={(e) => setSelectedTime(e.target.value)}
+							InputLabelProps={{ shrink: true }}
+						/>
+						<TextField
+							select label="Duration" fullWidth
+							value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))}
+						>
+							{DURATIONS.map((d) => <MenuItem key={d} value={d}>{d} minutes</MenuItem>)}
+						</TextField>
+					</Stack>
+
+					<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+						<TextField
+							select label="Repeat" fullWidth
+							value={recurrenceRule} onChange={(e) => setRecurrenceRule(e.target.value as RecurrenceRule | '')}
+						>
+							{REPEAT_OPTIONS.map((opt) => <MenuItem key={opt.value || 'none'} value={opt.value}>{opt.label}</MenuItem>)}
+						</TextField>
+						<TextField
+							select label="Client timezone" fullWidth
+							value={attendeeTimezone} onChange={(e) => setAttendeeTimezone(e.target.value)}
+						>
+							{(Intl.supportedValuesOf?.('timeZone') || [BROWSER_TZ]).map((tz: string) => (
+								<MenuItem key={tz} value={tz}>{tz}</MenuItem>
+							))}
+						</TextField>
+					</Stack>
+
+					{recurrenceRule && (
+						<>
+							<TextField
+								label="Ends on" type="date" fullWidth value={recurrenceEndDate}
+								onChange={(e) => setRecurrenceEndDate(e.target.value)}
+								InputLabelProps={{ shrink: true }}
+							/>
+							<Alert severity="info" sx={{ borderRadius: 2 }}>
+								A separate meeting occurrence is created for every date in the series, each with its own invite — the client gets one email per occurrence.
+							</Alert>
+						</>
+					)}
+				</Stack>
+			),
+		},
+		{
+			label: 'Location',
+			description: 'Where it happens, and who else joins',
+			content: (
+				<Stack spacing={2.5} sx={{ mt: 1 }}>
+					<Alert severity="info" sx={{ borderRadius: 2 }}>
+						Teammates you invite get their own calendar invite for this meeting; additional guests just receive the meeting details by email — no account needed for either.
+					</Alert>
+
+					<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+						<TextField
+							select label="Meeting type" fullWidth
 							value={locationType} onChange={(e) => setLocationType(e.target.value as MeetingLocationType)}
 						>
 							{LOCATION_OPTIONS.map((opt) => (
@@ -211,7 +221,7 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = (props) => {
 							))}
 						</TextField>
 						<TextField
-							label={selectedLocation.detailLabel} fullWidth size="small"
+							label={selectedLocation.detailLabel} fullWidth
 							value={locationDetail} onChange={(e) => setLocationDetail(e.target.value)}
 							placeholder={selectedLocation.detailPlaceholder}
 							InputProps={locationType === 'google_meet' ? {
@@ -232,20 +242,12 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = (props) => {
 							} : undefined}
 						/>
 					</Stack>
-				</Box>
 
-				{/* Participants — invite teammates (their own calendar gets the invite too) and any extra external guests */}
-				<Box>
-					<Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 1 }}>
-						<GroupsOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
-						<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>PARTICIPANTS</Typography>
-					</Stack>
 					<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
 						{orgMembers.length > 0 && (
 							<Autocomplete
 								multiple
 								fullWidth
-								size="small"
 								options={orgMembers}
 								getOptionLabel={(o) => o.full_name || o.email}
 								isOptionEqualToValue={(o, v) => o.id === v.id}
@@ -257,7 +259,7 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = (props) => {
 									))
 								}
 								renderInput={(params) => (
-									<TextField {...params} label="Invite teammates (optional)" placeholder="Add a colleague" size="small" />
+									<TextField {...params} label="Invite teammates (optional)" placeholder="Add a colleague" />
 								)}
 							/>
 						)}
@@ -265,7 +267,6 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = (props) => {
 							multiple
 							freeSolo
 							fullWidth
-							size="small"
 							options={[]}
 							value={guestEmails}
 							onChange={(_e, value) => handleAddGuestEmails(value as string[])}
@@ -275,27 +276,59 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = (props) => {
 								))
 							}
 							renderInput={(params) => (
-								<TextField {...params} label="Additional guests (optional)" placeholder="Type an email and press Enter" size="small" />
+								<TextField {...params} label="Additional guests (optional)" placeholder="Type an email and press Enter" />
 							)}
 						/>
 					</Stack>
-				</Box>
+				</Stack>
+			),
+		},
+		{
+			label: 'Notes',
+			description: 'Optional context for this meeting',
+			content: (
+				<Stack spacing={2.5} sx={{ mt: 1 }}>
+					<Alert severity="info" sx={{ borderRadius: 2 }}>
+						Anything you write here is included in the calendar invite sent to the client and any guests — a good place for an agenda or prep instructions.
+					</Alert>
 
-				<Box>
-					<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 1 }}>
-						NOTES (OPTIONAL)
-					</Typography>
-					<RichTextEditor
-						value={notes}
-						onChange={setNotes}
-						placeholder="Add context for this meeting…"
-						minHeight={100}
-						variant="simple"
-						error={false}
-					/>
-				</Box>
-			</Stack>
-		</BaseDialog>
+					<Box>
+						<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 1 }}>
+							NOTES (OPTIONAL)
+						</Typography>
+						<RichTextEditor
+							value={notes}
+							onChange={setNotes}
+							placeholder="Add context for this meeting…"
+							minHeight={100}
+							variant="simple"
+							error={false}
+						/>
+					</Box>
+				</Stack>
+			),
+		},
+	];
+
+	return (
+		<Dialog
+			open={open}
+			onClose={submitting ? undefined : onClose}
+			maxWidth="md"
+			fullWidth
+			PaperProps={{ sx: { borderRadius: 0, boxShadow: 'none', bgcolor: 'transparent' } }}
+		>
+			<EnterpriseForm
+				title="New Meeting"
+				subtitle="Schedule a meeting directly — the client still gets a calendar invite automatically"
+				mode="create"
+				steps={steps}
+				onSave={handleSubmit}
+				onCancel={onClose}
+				isSubmitting={submitting}
+				saveButtonText="Create Meeting"
+			/>
+		</Dialog>
 	);
 };
 
