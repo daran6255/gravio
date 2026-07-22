@@ -31,7 +31,7 @@ PLAN_DEFINITIONS = {
             Module.CRM_MANAGEMENT.value,
             Module.REPORTS_MANAGEMENT.value,
         ],
-        "ai_credits_monthly": 1000,
+        "ai_credits_monthly": 500,
         "user_limit": 20,
     },
     PlanTier.PRO: {
@@ -44,13 +44,13 @@ PLAN_DEFINITIONS = {
             Module.CANDIDATE_MANAGEMENT.value,
             Module.PLACEMENT_MANAGEMENT.value,
         ],
-        "ai_credits_monthly": 5000,
+        "ai_credits_monthly": 1000,
         "user_limit": 50,
     },
     PlanTier.ENTERPRISE: {
         "name": "Enterprise",
         "enabled_modules": [m.value for m in Module],
-        "ai_credits_monthly": 25000,
+        "ai_credits_monthly": 2000,
         "user_limit": None,
     },
 }

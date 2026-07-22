@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
 	Box,
 	Container,
@@ -38,6 +38,7 @@ import {
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { fetchCurrentUser } from '../../store/slices/authSlice';
 import userService from '../../services/userService';
+import plansService from '../../services/plansService';
 import useToast from '../../hooks/useToast';
 import PageHeader from '../../components/common/page-header';
 import ConvertToTeamDialog from '../../components/settings/profile/ConvertToTeamDialog';
@@ -252,6 +253,29 @@ const BillingSettings: React.FC = () => {
 	
 	const accountType = organization?.others?.account_type || 'individual';
 	const [activeTab, setActiveTab] = useState(accountType === 'individual' ? 0 : 1);
+
+	// Real per-tier AI credit grants from the backend (GET /plans), keyed by tier -- the
+	// pricing cards below render this instead of a hand-written aiLimit string so the two
+	// can never drift apart again. Falls back to each card's static `aiLimit` text until this
+	// resolves (or if it fails), so the page never shows a blank/broken value.
+	const [creditsByTier, setCreditsByTier] = useState<Record<string, number>>({});
+	useEffect(() => {
+		plansService.list()
+			.then((plans) => {
+				const map: Record<string, number> = {};
+				plans.forEach((p) => { map[p.tier] = p.ai_credits_monthly; });
+				setCreditsByTier(map);
+			})
+			.catch(() => {});
+	}, []);
+
+	const formatAiLimit = (plan: PlanDetail): string => {
+		const credits = creditsByTier[plan.tier];
+		if (credits == null) return plan.aiLimit;
+		return plan.isTeamPlan
+			? `${credits.toLocaleString()} actions/user/mo`
+			: `${credits.toLocaleString()} actions/mo`;
+	};
 
 	// Percentage of seats used
 	const seatPercentage = userLimit ? Math.min((userCount / userLimit) * 100, 100) : 0;
@@ -505,7 +529,7 @@ const BillingSettings: React.FC = () => {
 											<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
 												<RobotIcon sx={{ fontSize: 16, color: 'primary.main' }} />
 												<Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.72rem' }}>
-													AI Limit: {plan.aiLimit}
+													AI Limit: {formatAiLimit(plan)}
 												</Typography>
 											</Box>
 											{plan.tier === 'free' && isTrial && trialDaysLeft !== null && (
