@@ -1,19 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Container, Button, TextField, Tabs, Tab, RadioGroup, FormControlLabel, Radio, Typography } from '@mui/material';
+import { Box, Container, Button, TextField, Tabs, Tab, RadioGroup, FormControlLabel, Radio, Typography, alpha } from '@mui/material';
+import { CalendarMonthOutlined, HistoryOutlined } from '@mui/icons-material';
 import PageHeader from '../../components/common/page-header';
+import { HelpGuideButton } from '../../components/common/button';
+import { WelcomeBanner } from '../../components/common/guide';
+import { useDismissibleBanner } from '../../hooks/useDismissibleBanner';
 import { responsiveStyles } from '../../theme';
 import ConfirmationDialog from '../../components/common/dialogbox/ConfirmationDialog';
 import {
 	NewMeetingDialog, RescheduleMeetingDialog, CompleteMeetingDialog,
-	WeekCalendarView, UpcomingMeetingsPanel, MeetingHistoryTable,
+	WeekCalendarView, UpcomingMeetingsPanel, MeetingHistoryTable, MeetingsGuideDrawer,
 } from '../../components/booking';
 import { useMeetingHistory } from '../../components/booking/meetings/hooks/useMeetingHistory';
+import { MEETINGS_GUIDE_CONTENT } from '../../data/meetingsGuideData';
 import useToast from '../../hooks/useToast';
 import bookingService from '../../services/bookingService';
 import type { ScheduledMeetingHost } from '../../models/booking/meeting';
 
 const MyMeetingsPage: React.FC = () => {
 	const toast = useToast();
+
+	const [guideOpen, setGuideOpen] = useState(false);
+	const { show: showWelcome, dismiss: handleDismissWelcome } = useDismissibleBanner('dismissedMeetingsWelcome');
 
 	const [activeTab, setActiveTab] = useState<'calendar' | 'history'>('calendar');
 
@@ -87,23 +95,72 @@ const MyMeetingsPage: React.FC = () => {
 				title="Meetings Overview"
 				subtitle="Manage your upcoming and past meetings and client interactions."
 				action={
-					<Button
-						variant="contained" onClick={() => { setNewMeetingDate(undefined); setNewMeetingTime(undefined); setNewMeetingOpen(true); }}
-						sx={{ background: (t) => t.gradients.brandDiagonal, textTransform: 'none', fontWeight: 700, borderRadius: 2, whiteSpace: 'nowrap' }}
-					>
-						+ New Meeting
-					</Button>
+					<Box sx={responsiveStyles.headerActionRow}>
+						<HelpGuideButton onClick={() => setGuideOpen(true)} />
+						<Button
+							variant="contained" onClick={() => { setNewMeetingDate(undefined); setNewMeetingTime(undefined); setNewMeetingOpen(true); }}
+							sx={{ background: (t) => t.gradients.brandDiagonal, textTransform: 'none', fontWeight: 700, borderRadius: 2, whiteSpace: 'nowrap' }}
+						>
+							+ New Meeting
+						</Button>
+					</Box>
 				}
 			/>
 
-			<Tabs
-				value={activeTab}
-				onChange={(_e, value) => setActiveTab(value)}
-				sx={{ mb: 3, borderBottom: '1px solid', borderColor: 'divider' }}
-			>
-				<Tab value="calendar" label="Calendar" sx={{ textTransform: 'none', fontWeight: 700 }} />
-				<Tab value="history" label="History" sx={{ textTransform: 'none', fontWeight: 700 }} />
-			</Tabs>
+			{showWelcome && (
+				<WelcomeBanner
+					icon={MEETINGS_GUIDE_CONTENT.icon}
+					title={MEETINGS_GUIDE_CONTENT.banner.title}
+					description={MEETINGS_GUIDE_CONTENT.banner.description}
+					onExplore={() => setGuideOpen(true)}
+					onDismiss={handleDismissWelcome}
+				/>
+			)}
+
+			<Box sx={{ mb: 3 }}>
+				<Tabs
+					value={activeTab}
+					onChange={(_e, value) => setActiveTab(value)}
+					TabIndicatorProps={{ sx: { display: 'none' } }}
+					sx={{
+						minHeight: 'auto',
+						bgcolor: 'action.hover',
+						borderRadius: '12px',
+						p: 0.5,
+						width: 'fit-content',
+						maxWidth: '100%',
+						'& .MuiTabs-flexContainer': { gap: 0.5 },
+						'& .MuiTab-root': {
+							minHeight: 40,
+							minWidth: 'auto',
+							borderRadius: '9px',
+							fontWeight: 700,
+							fontSize: '0.8125rem',
+							textTransform: 'none',
+							color: 'text.secondary',
+							px: 2,
+							py: 1,
+							transition: 'color 0.2s ease, background-color 0.2s ease',
+						},
+						'& .MuiTab-root .MuiTab-iconWrapper': {
+							marginRight: '6px',
+							fontSize: '1.1rem',
+						},
+						'& .MuiTab-root:hover': {
+							color: 'text.primary',
+							bgcolor: (theme) => alpha(theme.palette.text.primary, 0.04),
+						},
+						'& .Mui-selected': {
+							color: 'primary.main !important',
+							bgcolor: 'background.paper',
+							boxShadow: (theme) => `0 1px 3px 0 ${alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.3 : 0.1)}`,
+						},
+					}}
+				>
+					<Tab value="calendar" label="Calendar" icon={<CalendarMonthOutlined fontSize="small" />} iconPosition="start" disableRipple />
+					<Tab value="history" label="History" icon={<HistoryOutlined fontSize="small" />} iconPosition="start" disableRipple />
+				</Tabs>
+			</Box>
 
 			{activeTab === 'calendar' ? (
 				<Box sx={responsiveStyles.contentWithSidebar}>
@@ -189,6 +246,11 @@ const MyMeetingsPage: React.FC = () => {
 					onChange={(e) => setCancelReason(e.target.value)}
 				/>
 			</ConfirmationDialog>
+
+			<MeetingsGuideDrawer
+				open={guideOpen}
+				onClose={() => setGuideOpen(false)}
+			/>
 			</Container>
 		</Box>
 	);

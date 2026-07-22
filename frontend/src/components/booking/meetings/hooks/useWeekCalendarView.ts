@@ -3,8 +3,6 @@ import dayjs, { type Dayjs } from 'dayjs';
 import type { ScheduledMeetingHost } from '../../../../models/booking/meeting';
 
 export const HOUR_HEIGHT = 52;
-const DEFAULT_START_HOUR = 7;
-const DEFAULT_END_HOUR = 20;
 
 /** Everything needed to render both the dragged card's ghost and the drop-target preview,
  * kept as one object so drag-start/drag-over/drop/drag-end all agree on a single source of truth. */
@@ -27,18 +25,10 @@ export const useWeekCalendarView = ({ meetings, onSlotClick, onMoveMeeting }: Us
 	const [popoverMeeting, setPopoverMeeting] = useState<ScheduledMeetingHost | null>(null);
 	const [dragState, setDragState] = useState<DragState | null>(null);
 
-	// The visible hour range expands to fit any meeting outside the default 7am-8pm
-	// window, rather than being derived from a per-host availability config.
-	const { startHour, endHour } = useMemo(() => {
-		let start = DEFAULT_START_HOUR;
-		let end = DEFAULT_END_HOUR;
-		for (const m of meetings) {
-			if (m.status !== 'scheduled') continue;
-			start = Math.min(start, dayjs(m.start_time).hour());
-			end = Math.max(end, dayjs(m.end_time).hour() + (dayjs(m.end_time).minute() > 0 ? 1 : 0));
-		}
-		return { startHour: Math.max(0, start), endHour: Math.min(24, end) };
-	}, [meetings]);
+	// Full day, midnight to midnight — the grid scrolls internally (see WeekCalendarView)
+	// instead of expanding the page to fit every hour.
+	const startHour = 0;
+	const endHour = 24;
 
 	const hours = useMemo(() => Array.from({ length: endHour - startHour }, (_, i) => startHour + i), [startHour, endHour]);
 	const gridHeight = hours.length * HOUR_HEIGHT;

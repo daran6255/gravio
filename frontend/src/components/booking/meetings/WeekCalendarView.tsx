@@ -76,30 +76,37 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 			</Stack>
 
 			{/* Grid — horizontally scrollable below its comfortable minimum width instead
-			    of squeezing 7 day columns unreadably thin on narrower screens */}
+			    of squeezing 7 day columns unreadably thin on narrower screens. The hour
+			    body covers the full day (12 AM–12 AM), so it scrolls vertically inside a
+			    viewport-bound container instead of stretching the whole page to fit 24 hours. */}
 			<Box sx={responsiveStyles.scrollX}>
-			<Box sx={{ display: 'grid', gridTemplateColumns: '52px repeat(7, minmax(96px, 1fr))', minWidth: 740 }}>
+			<Box sx={{ minWidth: 740 }}>
 				{/* Header row */}
-				<Box />
-				{days.map((day) => {
-					const isToday = day.isSame(now, 'day');
-					return (
-						<Box key={day.format('YYYY-MM-DD')} sx={{ textAlign: 'center', pb: 1 }}>
-							<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.65rem' }}>
-								{day.format('ddd')}
-							</Typography>
-							<Box
-								sx={{
-									width: 30, height: 30, borderRadius: '50%', mx: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center',
-									bgcolor: isToday ? 'primary.main' : 'transparent', color: isToday ? '#fff' : 'text.primary', fontWeight: 700, fontSize: '0.9rem',
-								}}
-							>
-								{day.format('D')}
+				<Box sx={{ display: 'grid', gridTemplateColumns: '52px repeat(7, minmax(96px, 1fr))' }}>
+					<Box />
+					{days.map((day) => {
+						const isToday = day.isSame(now, 'day');
+						return (
+							<Box key={day.format('YYYY-MM-DD')} sx={{ textAlign: 'center', pb: 1 }}>
+								<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.65rem' }}>
+									{day.format('ddd')}
+								</Typography>
+								<Box
+									sx={{
+										width: 30, height: 30, borderRadius: '50%', mx: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center',
+										bgcolor: isToday ? 'primary.main' : 'transparent', color: isToday ? '#fff' : 'text.primary', fontWeight: 700, fontSize: '0.9rem',
+									}}
+								>
+									{day.format('D')}
+								</Box>
 							</Box>
-						</Box>
-					);
-				})}
+						);
+					})}
+				</Box>
 
+				{/* Scrollable hour body — bounded to fit the viewport instead of growing the page */}
+				<Box sx={{ maxHeight: { xs: 'calc(100dvh - 420px)', sm: 'calc(100vh - 460px)' }, minHeight: 320, overflowY: 'auto' }}>
+				<Box sx={{ display: 'grid', gridTemplateColumns: '52px repeat(7, minmax(96px, 1fr))' }}>
 				{/* Time gutter */}
 				<Box sx={{ position: 'relative', height: gridHeight }}>
 					{hours.map((h) => (
@@ -221,6 +228,8 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 						</Box>
 					);
 				})}
+			</Box>
+			</Box>
 			</Box>
 			</Box>
 

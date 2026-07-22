@@ -5,3 +5,4 @@ export { default as CompleteMeetingDialog } from './meetings/CompleteMeetingDial
 export { default as WeekCalendarView } from './meetings/WeekCalendarView';
 export { default as UpcomingMeetingsPanel } from './meetings/UpcomingMeetingsPanel';
 export { default as MeetingHistoryTable } from './meetings/MeetingHistoryTable';
+export { default as MeetingsGuideDrawer } from './meetings/MeetingsGuideDrawer';
