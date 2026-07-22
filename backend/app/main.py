@@ -2,6 +2,7 @@
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, status, Depends
+from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -108,16 +109,20 @@ async def validation_exception_handler(request, exc):
     errors = exc.errors()
     logger.error(f"Validation Error for {request.url}: {errors}")
     first_message = errors[0]["msg"] if errors else "Validation failed for request parameters"
+    # pydantic's raw errors() list embeds the original exception instance inside
+    # ctx.error for value_error entries (e.g. our field_validators' raised
+    # ValueError) — plain JSONResponse can't serialize that, so it must go through
+    # jsonable_encoder (the same helper FastAPI's own default handler uses) first.
     return JSONResponse(
         status_code=422,
-        content={
+        content=jsonable_encoder({
             "success": False,
             "error": {
                 "code": "VALIDATION_ERROR",
                 "message": first_message,
                 "detail": errors,
             },
-        },
+        }),
     )
 
 

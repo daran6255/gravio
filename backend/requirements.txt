@@ -56,3 +56,9 @@ openpyxl==3.1.2
 # Meetings — .ics calendar invite generation
 icalendar==5.0.12
 python-dateutil==2.8.2
+# Bundles the full IANA tz database with the app itself so ZoneInfo lookups (host/
+# attendee timezone validation, meeting reminder math) don't depend on whatever
+# tzdata happens to be installed on the host OS — some minimal/Docker Linux images
+# ship a trimmed system tzdata missing legacy alias names (e.g. "Asia/Calcutta",
+# still reported by some browsers) that are otherwise valid IANA identifiers.
+tzdata==2024.1
