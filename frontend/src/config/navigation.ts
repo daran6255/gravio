@@ -14,7 +14,6 @@ import {
 	Assignment as TasksIcon,
 	PendingActions as TimesheetIcon,
 	PeopleAltOutlined as EmployeesIcon,
-	GroupsOutlined as TeamMeetingsIcon,
 	CalendarMonthOutlined as LeaveIcon,
 	PlaylistAddCheck as OnboardingIcon,
 	FolderShared as DocumentsIcon,
@@ -76,12 +75,6 @@ export const topNavigation: NavigationItem[] = [
 				label: 'Meetings',
 				path: '/booking/meetings',
 				icon: MeetingsIcon,
-			},
-			{
-				label: 'Team Meetings',
-				path: '/booking/meetings/team',
-				icon: TeamMeetingsIcon,
-				roles: ['admin', 'manager'],
 			},
 			{
 				label: 'Billing',
