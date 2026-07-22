@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 class ListMyOpenTasksTool(BaseTool):
     """Lists the current user's open (not-done) project tasks across every project they're
-    assigned to, so ARIA can answer "what's on my plate?" without the user opening the app."""
+    assigned to, so IRIS can answer "what's on my plate?" without the user opening the app."""
 
     definition = ToolDefinition(
         name="list_my_open_tasks",

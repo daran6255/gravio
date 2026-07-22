@@ -1,4 +1,4 @@
-"""AI endpoints — credits/usage, ARIA chat, and one-shot agentic task runs.
+"""AI endpoints — credits/usage, IRIS chat, and one-shot agentic task runs.
 
 Thin route wrappers only: all real logic lives in AIChatService, AIEngine, and
 ai_credit_service/token_utilization_service. Every user-triggered call here goes through
@@ -74,13 +74,13 @@ async def get_token_utilization(
     return await token_utilization_service.get_utilization_summary(db, org.id, period_start, period_end)
 
 
-# ── ARIA Chat ────────────────────────────────────────────────────────────────
+# ── IRIS Chat ────────────────────────────────────────────────────────────────
 
 @router.post(
     "/chat/sessions",
     response_model=AIChatSessionDetail,
     status_code=status.HTTP_201_CREATED,
-    summary="Start a new ARIA chat session",
+    summary="Start a new IRIS chat session",
 )
 async def create_chat_session(
     schema: AIChatSessionCreate,
@@ -94,7 +94,7 @@ async def create_chat_session(
 @router.get(
     "/chat/sessions",
     response_model=list[AIChatSessionRead],
-    summary="List my ARIA chat sessions, most recent first",
+    summary="List my IRIS chat sessions, most recent first",
 )
 async def list_chat_sessions(
     current_user: User = Depends(get_current_user),
@@ -123,7 +123,7 @@ async def get_chat_session(
 
 @router.post(
     "/chat/sessions/{session_id}/messages",
-    summary="Send a message and stream ARIA's response (SSE)",
+    summary="Send a message and stream IRIS's response (SSE)",
 )
 async def send_chat_message(
     session_id: int,

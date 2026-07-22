@@ -64,7 +64,7 @@ class Planner:
             )
         else:
             # Use the new Jinja2 loader
-            system_prompt = loader.render("system/aria_planner.md", {
+            system_prompt = loader.render("system/iris_planner.md", {
                 "tool_block": self._registry.to_prompt_block(categories=allowed_categories)
             })
 

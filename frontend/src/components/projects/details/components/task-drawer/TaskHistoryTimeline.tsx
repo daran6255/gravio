@@ -381,11 +381,11 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
 
 					{taskHistory.map((h) => {
 						const { Icon, color } = resolveEvent(h);
-						// A comment with no author is ARIA's own reply (see the @ARIA-mention
+						// A comment with no author is IRIS's own reply (see the @IRIS-mention
 						// handling in the comments endpoint) -- everything else with a null
-						// actor is a genuinely unattributable event, not ARIA.
+						// actor is a genuinely unattributable event, not IRIS.
 						const name = h.action === 'comment' && h.changed_by_user_id == null
-							? 'ARIA'
+							? 'IRIS'
 							: actorName(h.changed_by_user_id);
 						const nameColor = getAvatarColor(name, theme);
 

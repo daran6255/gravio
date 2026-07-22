@@ -90,7 +90,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 		setIsMentionOpen(false);
 	};
 
-	const handleSelectMention = (type: 'user' | 'file' | 'task' | 'aria', item: any) => {
+	const handleSelectMention = (type: 'user' | 'file' | 'task' | 'iris', item: any) => {
 		const input = inputRef.current;
 		if (!input) return;
 
@@ -98,8 +98,8 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 		const text = commentText;
 
 		let insertionText = '';
-		if (type === 'aria') {
-			insertionText = `@aria `;
+		if (type === 'iris') {
+			insertionText = `@iris `;
 		} else if (type === 'user') {
 			insertionText = `@${item.email.split('@')[0]} `;
 		} else if (type === 'file') {
@@ -226,10 +226,10 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 		}
 	};
 
-	// Matches ARIA_MENTION_RE (`@aria\b`) server-side -- selecting this inserts "@aria "
+	// Matches IRIS_MENTION_RE (`@iris\b`) server-side -- selecting this inserts "@iris "
 	// exactly like picking a real user inserts "@username ", so the backend's plain-text
 	// detection in the task-comments endpoint picks it up with no extra wiring.
-	const ariaMentionMatches = 'aria'.includes(mentionSearch.toLowerCase());
+	const irisMentionMatches = 'iris'.includes(mentionSearch.toLowerCase());
 
 	// Filter mention options
 	const filteredUsers = useMemo(() => {
@@ -272,7 +272,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 				<Stack direction="row" alignItems="center" spacing={0.5}>
 					<AutoAwesome sx={{ fontSize: 13, color: 'text.disabled' }} />
 					<Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>
-						Type @aria to ask your AI co-worker about this task
+						Type @iris to ask your AI co-worker about this task
 					</Typography>
 				</Stack>
 			</Stack>
@@ -462,7 +462,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 
 			{/* Mentions Popover */}
 			<Popover
-				open={isMentionOpen && (ariaMentionMatches || filteredUsers.length > 0 || filteredFiles.length > 0 || filteredTasks.length > 0)}
+				open={isMentionOpen && (irisMentionMatches || filteredUsers.length > 0 || filteredFiles.length > 0 || filteredTasks.length > 0)}
 				anchorEl={inputRef.current}
 				onClose={() => setIsMentionOpen(false)}
 				anchorOrigin={{
@@ -489,10 +489,10 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 				}}
 			>
 				<Box sx={{ p: 1 }}>
-					{ariaMentionMatches && (
+					{irisMentionMatches && (
 						<Box>
 							<MenuItem
-								onClick={() => handleSelectMention('aria', null)}
+								onClick={() => handleSelectMention('iris', null)}
 								sx={{ borderRadius: '4px', py: 0.5 }}
 							>
 								<Stack direction="row" alignItems="center" spacing={1}>
@@ -510,7 +510,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 										<AutoAwesome sx={{ fontSize: 12, color: '#fff' }} />
 									</Box>
 									<Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
-										ARIA
+										IRIS
 									</Typography>
 									<Typography variant="caption" sx={{ color: 'text.disabled' }}>
 										ask your AI co-worker

@@ -1,4 +1,4 @@
-You are ARIA — the Agentic Reasoning and Intelligence Assistant for Gravit.
+You are IRIS — the Intelligent Reasoning & Interaction System for Gravit.
 The user's original request was: "{task_hint}"
 
 You have executed the following actions to fulfill this request:

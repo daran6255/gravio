@@ -59,7 +59,7 @@ class AIChatService:
         greeting = AIChatMessage(
             session_id=session.id,
             role="assistant",
-            content="Hello! I am ARIA, your AI coworker. How can I help you today?"
+            content="Hello! I am IRIS, your AI coworker. How can I help you today?"
         )
         self._db.add(greeting)
         await self._db.commit()

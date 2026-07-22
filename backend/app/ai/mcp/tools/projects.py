@@ -1,6 +1,6 @@
 """Project/task tools — find a task, break it into subtasks, summarize its comment thread.
 
-`create_subtasks` is the one designed to be triggered from an `@ARIA` mention right inside a
+`create_subtasks` is the one designed to be triggered from an `@IRIS` mention right inside a
 task's description or comments (see the roadmap) as much as from the general chat drawer —
 either way it lands here, since both paths go through the same AIEngine.
 """

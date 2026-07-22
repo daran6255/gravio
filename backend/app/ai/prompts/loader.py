@@ -39,7 +39,7 @@ class PromptLoader:
         Loads a template from the filesystem and renders it with variables.
         
         Args:
-            template_path: Relative path from prompts/ (e.g. 'system/aria_planner.md')
+            template_path: Relative path from prompts/ (e.g. 'system/iris_planner.md')
             variables: Context variables to inject into the template
             
         Returns:
