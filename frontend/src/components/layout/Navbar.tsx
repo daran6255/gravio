@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AppBar, Toolbar, IconButton, Box, Button, Chip, Divider, Tooltip } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import {
@@ -9,6 +9,7 @@ import {
 	HourglassEmpty as HourglassIcon,
 	AutoAwesome as PremiumIcon,
 	Warning as WarningIcon,
+	BoltOutlined as CreditsIcon,
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +18,7 @@ import { useColorMode } from '../../theme/ThemeContext';
 import GlobalSearch from '../common/GlobalSearch';
 import NotificationBell from './NotificationBell';
 import { getCurrencySymbol } from '../../utils/currency';
+import aiService, { type AICreditBalance } from '../../services/aiService';
 
 const Navbar: React.FC = () => {
 	const dispatch = useAppDispatch();
@@ -26,6 +28,14 @@ const Navbar: React.FC = () => {
 	const user = useAppSelector((state) => state.auth.user);
 	const sidebarOpen = useAppSelector((state) => state.ui.sidebarOpen);
 	const currentDrawerWidth = sidebarOpen ? theme.layout.drawerWidth : theme.layout.drawerWidthCollapsed;
+
+	// AI credit balance -- only orgs have a wallet (GET /ai/credits 404s for a superuser with
+	// no organization), so this mirrors the same `org` guard the subscription badge uses below.
+	const [aiCredits, setAiCredits] = useState<AICreditBalance | null>(null);
+	useEffect(() => {
+		if (!user?.organization) return;
+		aiService.getCreditBalance().then(setAiCredits).catch(() => setAiCredits(null));
+	}, [user?.organization]);
 
 	// Calculate trial days left
 	const getTrialDaysLeft = (expiryDateStr?: string) => {
@@ -256,6 +266,41 @@ const Navbar: React.FC = () => {
 					<Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center' }}>
 						{renderSubscriptionBadge()}
 					</Box>
+
+					{/* AI Credits remaining this month */}
+					{aiCredits && (() => {
+						const brand = '#8B7CF6';
+						const isOut = aiCredits.balance <= 0;
+						const isLow = !isOut && aiCredits.percent_used >= 90;
+						const accent = isOut ? theme.palette.error.main : isLow ? theme.palette.warning.main : brand;
+						const resetsOn = new Date(aiCredits.period_start);
+						resetsOn.setMonth(resetsOn.getMonth() + 1);
+						return (
+							<Tooltip
+								title={`${aiCredits.balance.toLocaleString()} of ${aiCredits.granted.toLocaleString()} AI credits left this month (${aiCredits.percent_used}% used) — resets ${resetsOn.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
+								arrow
+							>
+								<Chip
+									icon={<CreditsIcon sx={{ fontSize: '1rem', color: `${accent} !important` }} />}
+									label={`${aiCredits.balance.toLocaleString()} credits`}
+									size="small"
+									onClick={() => navigate('/billing')}
+									sx={{
+										...theme.typography.chipLabel,
+										height: theme.layout.badgeHeight,
+										mr: 1.5,
+										flexShrink: 0,
+										cursor: 'pointer',
+										borderRadius: theme.layout.radius.pill,
+										bgcolor: alpha(accent, mode === 'light' ? 0.1 : 0.15),
+										color: accent,
+										border: `1px solid ${alpha(accent, 0.3)}`,
+										display: { xs: 'none', sm: 'inline-flex' },
+									}}
+								/>
+							</Tooltip>
+						);
+					})()}
 
 					{/* Preferred Display Currency */}
 					{user?.currency && (
