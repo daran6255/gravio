@@ -169,6 +169,17 @@ export const triggerUserPasswordReset = createAsyncThunk(
 	}
 );
 
+export const grantUserCredits = createAsyncThunk(
+	'orgAdmin/grantUserCredits',
+	async ({ publicId, amount }: { publicId: string; amount: number }, { rejectWithValue }) => {
+		try {
+			return await orgAdminService.grantUserCredits(publicId, amount);
+		} catch (error: any) {
+			return rejectWithValue(error.response?.data?.error?.message || error.response?.data?.detail || error.message || 'Failed to grant credits');
+		}
+	}
+);
+
 const orgAdminSlice = createSlice({
 	name: 'orgAdmin',
 	initialState,

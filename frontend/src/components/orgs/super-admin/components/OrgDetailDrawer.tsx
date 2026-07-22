@@ -5,7 +5,7 @@ import {
 	Avatar, Skeleton, Typography, IconButton, useTheme, Tabs, Tab,
 	Menu, MenuItem, ListItemIcon
 } from '@mui/material';
-import { Search, MailOutline, Block, CheckCircleOutline, DeleteOutline, EditOutlined, MoreVert, LockOutlined } from '@mui/icons-material';
+import { Search, MailOutline, Block, CheckCircleOutline, DeleteOutline, EditOutlined, MoreVert, LockOutlined, BoltOutlined } from '@mui/icons-material';
 import type { Organization } from '../../../../models/auth';
 import type { TeamMember } from '../../../../models/user';
 import StatusBadge from '../../../common/badge/StatusBadge';
@@ -19,7 +19,7 @@ interface OrgDetailDrawerProps {
 	selectedOrgUsersError: string | null;
 	userSearchTerm: string;
 	setUserSearchTerm: (term: string) => void;
-	onUserAction: (user: TeamMember, type: 'deactivate' | 'reactivate' | 'delete' | 'resendInvite' | 'edit' | 'sendPasswordReset') => void;
+	onUserAction: (user: TeamMember, type: 'deactivate' | 'reactivate' | 'delete' | 'resendInvite' | 'edit' | 'sendPasswordReset' | 'grantCredits') => void;
 	renderRemainingPeriod: (org: Organization) => React.ReactNode;
 }
 
@@ -392,10 +392,17 @@ export const OrgDetailDrawer: React.FC<OrgDetailDrawerProps> = ({
 								</MenuItem>
 							)}
 
-							<MenuItem 
-								onClick={() => { 
-									onUserAction(menuUser, menuUser.is_active ? 'deactivate' : 'reactivate'); 
-									handleMenuClose(); 
+							<MenuItem onClick={() => { onUserAction(menuUser, 'grantCredits'); handleMenuClose(); }}>
+								<ListItemIcon sx={{ minWidth: 'auto', color: 'primary.main' }}>
+									<BoltOutlined fontSize="small" />
+								</ListItemIcon>
+								<ListItemText primary="Grant Credits" />
+							</MenuItem>
+
+							<MenuItem
+								onClick={() => {
+									onUserAction(menuUser, menuUser.is_active ? 'deactivate' : 'reactivate');
+									handleMenuClose();
 								}}
 								sx={{ color: menuUser.is_active ? 'warning.main' : 'success.main' }}
 							>

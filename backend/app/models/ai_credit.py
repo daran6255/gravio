@@ -25,6 +25,7 @@ class AICreditTransactionReason(str, enum.Enum):
     MONTHLY_GRANT = "monthly_grant"
     AI_CALL = "ai_call"
     ADMIN_ADJUSTMENT = "admin_adjustment"
+    PURCHASE = "purchase"
 
 
 class AICreditWallet(BaseModel):

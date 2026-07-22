@@ -11,6 +11,7 @@ import {
 	deleteOrgUser,
 	resendOrgUserInvite,
 	triggerUserPasswordReset,
+	grantUserCredits,
 	deleteOrg
 } from '../../../../store/slices/orgAdminSlice';
 import useToast from '../../../../hooks/useToast';
@@ -61,6 +62,12 @@ export const useOrgConsole = () => {
 	const [targetUser, setTargetUser] = useState<TeamMember | null>(null);
 	const [userActionLoading, setUserActionLoading] = useState(false);
 	const [editOrgUserOpen, setEditOrgUserOpen] = useState(false);
+
+	// Grant AI credits — credits are per-user (not pooled per org), so this targets one
+	// specific person's own wallet.
+	const [grantCreditsOpen, setGrantCreditsOpen] = useState(false);
+	const [grantCreditsAmount, setGrantCreditsAmount] = useState('100');
+	const [grantCreditsLoading, setGrantCreditsLoading] = useState(false);
 
 	// Organization search state
 	const [searchTerm, setSearchTerm] = useState('');
@@ -192,15 +199,38 @@ export const useOrgConsole = () => {
 	};
 
 
-	const handleUserAction = (user: TeamMember, type: 'deactivate' | 'reactivate' | 'delete' | 'resendInvite' | 'edit' | 'sendPasswordReset') => {
+	const handleUserAction = (user: TeamMember, type: 'deactivate' | 'reactivate' | 'delete' | 'resendInvite' | 'edit' | 'sendPasswordReset' | 'grantCredits') => {
 		setTargetUser(user);
 		if (type === 'resendInvite' || type === 'sendPasswordReset') {
 			handleConfirmUserAction(user, type);
 		} else if (type === 'edit') {
 			setEditOrgUserOpen(true);
+		} else if (type === 'grantCredits') {
+			setGrantCreditsAmount('100');
+			setGrantCreditsOpen(true);
 		} else {
 			setUserActionType(type);
 			setUserDialogOpen(true);
+		}
+	};
+
+	const handleConfirmGrantCredits = async () => {
+		if (!targetUser) return;
+		const amount = parseInt(grantCreditsAmount, 10);
+		if (isNaN(amount) || amount <= 0) {
+			toast.error('Please enter a valid number of credits');
+			return;
+		}
+		setGrantCreditsLoading(true);
+		try {
+			await dispatch(grantUserCredits({ publicId: targetUser.public_id, amount })).unwrap();
+			toast.success(`Granted ${amount.toLocaleString()} credits to ${targetUser.full_name || targetUser.username}.`);
+		} catch (error: any) {
+			toast.error(error || 'Failed to grant credits');
+		} finally {
+			setGrantCreditsLoading(false);
+			setGrantCreditsOpen(false);
+			setTargetUser(null);
 		}
 	};
 
@@ -299,6 +329,12 @@ export const useOrgConsole = () => {
 		handleConfirmUserAction,
 		editOrgUserOpen,
 		setEditOrgUserOpen,
+		grantCreditsOpen,
+		setGrantCreditsOpen,
+		grantCreditsAmount,
+		setGrantCreditsAmount,
+		grantCreditsLoading,
+		handleConfirmGrantCredits,
 		deleteDialogOpen,
 		setDeleteDialogOpen,
 		deleteLoading,

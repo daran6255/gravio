@@ -22,7 +22,9 @@ from app.schemas.admin import (
 from app.schemas.common import PaginatedResponse
 from app.schemas.onboarding import OrgPublic, UserPublic
 from app.schemas.user_management import UserListItem
+from app.ai.schemas.ai_credit import AICreditBalanceResponse, AICreditGrantRequest
 from app.services.admin import create_organization, list_organizations, get_admin_stats, delete_organization
+from app.services import ai_credit_service
 from app.middleware.exceptions import NotFoundError
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -306,3 +308,42 @@ async def delete_organization_endpoint(
 ) -> OrgPublic:
     org = await delete_organization(db, public_id=public_id)
     return org
+
+
+@router.post(
+    "/users/{public_id}/credits/grant",
+    response_model=AICreditBalanceResponse,
+    summary="Grant a user extra AI credits (Super Admin)",
+    description=(
+        "Adds credits directly to one user's own wallet -- credits are per-user, not pooled "
+        "per org (see AICreditWallet), so this targets a specific person, not their whole "
+        "organization."
+    ),
+)
+async def grant_user_credits_endpoint(
+    public_id: uuid.UUID,
+    payload: AICreditGrantRequest,
+    current_user: User = Depends(get_current_superuser),
+    db: AsyncSession = Depends(get_db),
+) -> AICreditBalanceResponse:
+    from app.models.organization import Organization
+    from app.models.ai_credit import AICreditTransactionReason
+    from app.repositories.ai_credit import AICreditRepository
+
+    target_user = await UserRepository.get_by_public_id(db, public_id)
+    if not target_user:
+        raise NotFoundError(f"User with ID '{public_id}' not found.")
+    if target_user.organization_id is None:
+        raise NotFoundError("This user is not associated with an organization.")
+
+    org = await db.get(Organization, target_user.organization_id)
+    if org is None:
+        raise NotFoundError("Organization not found.")
+
+    wallet = await ai_credit_service.get_or_create_wallet_for_user(db, org, target_user.id)
+    await AICreditRepository.grant_bonus_credits(
+        db, wallet, amount=payload.amount, user_id=target_user.id,
+        reason=AICreditTransactionReason.ADMIN_ADJUSTMENT,
+    )
+    await db.commit()
+    return AICreditBalanceResponse.from_wallet(wallet)

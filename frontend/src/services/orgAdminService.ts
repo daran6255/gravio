@@ -59,6 +59,14 @@ const orgAdminService = {
 		const response = await api.delete<Organization>(`/admin/organizations/${publicId}`);
 		return response.data;
 	},
+
+	grantUserCredits: async (userPublicId: string, amount: number): Promise<{ balance: number; granted: number }> => {
+		const response = await api.post<{ balance: number; granted: number }>(
+			`/admin/users/${userPublicId}/credits/grant`,
+			{ amount }
+		);
+		return response.data;
+	},
 };
 
 export default orgAdminService;

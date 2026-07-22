@@ -145,8 +145,11 @@ class AICreditRepository:
         user_id: int | None,
     ) -> AICreditTransaction:
         """Reverses a previous AI_CALL deduction (e.g. the LLM call succeeded but every planned
-        tool call it produced failed, so the user got no real value from it). Mirrors `deduct`'s
-        atomic update, just adding instead of subtracting."""
+        tool call it produced failed, so the user got no real value from it). Only touches
+        `balance`, same as `deduct` did -- `granted` (this period's original allotment, the
+        denominator for percent_used) is deliberately untouched, since this is undoing a charge
+        against that same allotment, not adding a new one. Mirrors `deduct`'s atomic update,
+        just adding instead of subtracting."""
         result = await db.execute(
             update(AICreditWallet)
             .where(AICreditWallet.id == wallet.id)
@@ -163,6 +166,45 @@ class AICreditRepository:
             amount=amount,
             balance_after=new_balance,
             reason=AICreditTransactionReason.ADMIN_ADJUSTMENT,
+        )
+        db.add(txn)
+        await db.flush()
+        return txn
+
+    @staticmethod
+    async def grant_bonus_credits(
+        db: AsyncSession,
+        wallet: AICreditWallet,
+        *,
+        amount: int,
+        user_id: int | None,
+        reason: AICreditTransactionReason,
+    ) -> AICreditTransaction:
+        """Adds genuinely new credits to a wallet -- a self-service purchase or a superuser's
+        manual grant -- as opposed to `refund`, which reverses a charge against the existing
+        allotment. Unlike `refund`, this bumps BOTH `balance` and `granted`: the monthly
+        allotment itself grows, so percent_used stays meaningful (a purchase that only touched
+        `balance` could push it above `granted` and make "percent used" go negative)."""
+        result = await db.execute(
+            update(AICreditWallet)
+            .where(AICreditWallet.id == wallet.id)
+            .values(
+                balance=AICreditWallet.balance + amount,
+                granted=AICreditWallet.granted + amount,
+            )
+            .returning(AICreditWallet.balance, AICreditWallet.granted)
+        )
+        new_balance, new_granted = result.one()
+        wallet.balance = new_balance
+        wallet.granted = new_granted
+
+        txn = AICreditTransaction(
+            organization_id=wallet.organization_id,
+            wallet_id=wallet.id,
+            user_id=user_id,
+            amount=amount,
+            balance_after=new_balance,
+            reason=reason,
         )
         db.add(txn)
         await db.flush()

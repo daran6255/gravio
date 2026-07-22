@@ -5,22 +5,48 @@ import {
 	Grid,
 	Card,
 	CardContent,
+	CardActions,
 	Typography,
 	Stack,
+	Button,
+	Chip,
 	LinearProgress,
 	CircularProgress,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions,
+	TextField,
+	Alert,
+	InputAdornment,
 	useTheme,
 	alpha,
 } from '@mui/material';
-import { BoltOutlined, TrendingUpOutlined, ForumOutlined, TokenOutlined } from '@mui/icons-material';
+import { BoltOutlined, TrendingUpOutlined, ForumOutlined, TokenOutlined, CreditCard as CardIcon } from '@mui/icons-material';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import PageHeader from '../../components/common/page-header';
+import useToast from '../../hooks/useToast';
 import aiService, { type AICreditBalance, type AIUsageSummary } from '../../services/aiService';
 
 const prettifyActionType = (actionType: string): string =>
 	actionType
 		.replace(/_/g, ' ')
 		.replace(/\b\w/g, (c) => c.toUpperCase());
+
+const formatINR = (amount: number) => `₹${amount.toLocaleString('en-IN')}`;
+
+interface CreditPackage {
+	credits: number;
+	price: number;
+	popular?: boolean;
+}
+
+const CREDIT_PACKAGES: CreditPackage[] = [
+	{ credits: 100, price: 99 },
+	{ credits: 500, price: 399, popular: true },
+	{ credits: 1000, price: 699 },
+	{ credits: 2500, price: 1499 },
+];
 
 const StatTile: React.FC<{ icon: React.ReactNode; label: string; value: string | number }> = ({ icon, label, value }) => {
 	const theme = useTheme();
@@ -43,10 +69,22 @@ const AICreditsUsagePage: React.FC = () => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const brand = theme.palette.primary.main;
+	const toast = useToast();
 
 	const [balance, setBalance] = useState<AICreditBalance | null>(null);
 	const [usage, setUsage] = useState<AIUsageSummary | null>(null);
 	const [loading, setLoading] = useState(true);
+
+	// Buy-credits mock checkout -- same pattern as plan upgrades in BillingSettings.tsx: a
+	// fake card form + simulated gateway delay, then the real backend call that actually
+	// applies the credit grant once "payment" succeeds.
+	const [selectedPackage, setSelectedPackage] = useState<CreditPackage | null>(null);
+	const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+	const [processingPayment, setProcessingPayment] = useState(false);
+	const [cardNumber, setCardNumber] = useState('');
+	const [cardExpiry, setCardExpiry] = useState('');
+	const [cardCvc, setCardCvc] = useState('');
+	const [cardName, setCardName] = useState('');
 
 	useEffect(() => {
 		Promise.all([aiService.getCreditBalance(), aiService.getUsageSummary('mine')])
@@ -57,6 +95,41 @@ const AICreditsUsagePage: React.FC = () => {
 			.catch(() => {})
 			.finally(() => setLoading(false));
 	}, []);
+
+	const handleBuyClick = (pkg: CreditPackage) => {
+		setSelectedPackage(pkg);
+		setCardNumber('');
+		setCardExpiry('');
+		setCardCvc('');
+		setCardName('');
+		setPaymentDialogOpen(true);
+	};
+
+	const handlePaymentSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!selectedPackage) return;
+		if (!cardNumber || !cardExpiry || !cardCvc || !cardName) {
+			toast.error('Please fill in all card details.');
+			return;
+		}
+
+		setProcessingPayment(true);
+		// Simulate payment gateway delay (2 seconds), matching BillingSettings' checkout flow.
+		setTimeout(async () => {
+			try {
+				const updated = await aiService.purchaseCredits(selectedPackage.credits);
+				setBalance(updated);
+				toast.success(`Payment successful! ${selectedPackage.credits.toLocaleString()} credits added.`);
+				setPaymentDialogOpen(false);
+			} catch (error: any) {
+				toast.error(
+					error?.response?.data?.error?.message || error?.message || 'Payment failed or credits could not be applied.'
+				);
+			} finally {
+				setProcessingPayment(false);
+			}
+		}, 2000);
+	};
 
 	if (loading) {
 		return (
@@ -124,6 +197,60 @@ const AICreditsUsagePage: React.FC = () => {
 							color={(balance?.percent_used ?? 0) >= 90 ? 'error' : (balance?.percent_used ?? 0) >= 70 ? 'warning' : 'primary'}
 							sx={{ height: 8, borderRadius: 4 }}
 						/>
+					</CardContent>
+				</Card>
+
+				{/* Buy more credits */}
+				<Card sx={{ mb: 3, borderRadius: 3, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+					<CardContent sx={{ p: 3, pb: 1.5 }}>
+						<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+							Buy more credits
+						</Typography>
+						<Typography variant="body2" color="text.secondary">
+							Running low before the month resets? Top up your own balance any time.
+						</Typography>
+					</CardContent>
+					<CardContent sx={{ p: 3, pt: 0 }}>
+						<Grid container spacing={2}>
+							{CREDIT_PACKAGES.map((pkg) => (
+								<Grid size={{ xs: 6, sm: 3 }} key={pkg.credits}>
+									<Card
+										variant="outlined"
+										sx={{
+											borderRadius: 2.5,
+											borderColor: pkg.popular ? brand : 'divider',
+											borderWidth: pkg.popular ? 2 : 1,
+											position: 'relative',
+											height: '100%',
+											display: 'flex',
+											flexDirection: 'column',
+										}}
+									>
+										{pkg.popular && (
+											<Chip
+												label="Best value"
+												size="small"
+												sx={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', bgcolor: brand, color: '#fff', fontWeight: 700, fontSize: '0.65rem' }}
+											/>
+										)}
+										<CardContent sx={{ textAlign: 'center', pb: 1, flex: 1 }}>
+											<Typography variant="h6" sx={{ fontWeight: 800 }}>
+												{pkg.credits.toLocaleString()}
+											</Typography>
+											<Typography variant="caption" color="text.secondary">credits</Typography>
+											<Typography variant="body2" sx={{ mt: 1, fontWeight: 700 }}>
+												{formatINR(pkg.price)}
+											</Typography>
+										</CardContent>
+										<CardActions sx={{ p: 1.5, pt: 0 }}>
+											<Button fullWidth size="small" variant={pkg.popular ? 'contained' : 'outlined'} onClick={() => handleBuyClick(pkg)} sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 1.5, boxShadow: 'none' }}>
+												Buy
+											</Button>
+										</CardActions>
+									</Card>
+								</Grid>
+							))}
+						</Grid>
 					</CardContent>
 				</Card>
 
@@ -214,6 +341,135 @@ const AICreditsUsagePage: React.FC = () => {
 						)}
 					</CardContent>
 				</Card>
+
+				{/* Buy Credits — Checkout / Payment Dialog (same mock-gateway pattern as plan
+				    upgrades in BillingSettings.tsx) */}
+				<Dialog
+					open={paymentDialogOpen}
+					onClose={processingPayment ? undefined : () => setPaymentDialogOpen(false)}
+					maxWidth="sm"
+					fullWidth
+					PaperProps={{
+						sx: {
+							borderRadius: 3,
+							overflow: 'hidden',
+							bgcolor: theme.palette.background.paper,
+							border: `1px solid ${theme.palette.divider}`,
+							boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+						},
+					}}
+				>
+					<DialogTitle sx={{ background: theme.gradients?.brand, color: '#ffffff', fontWeight: 800, py: 2.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+						<CardIcon /> Checkout & Payment Gateway
+					</DialogTitle>
+
+					<form onSubmit={handlePaymentSubmit}>
+						<DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+							<Alert severity="info" sx={{ borderRadius: 2 }}>
+								You're buying <strong>{selectedPackage?.credits.toLocaleString()} credits</strong> for your own account.
+							</Alert>
+
+							<Box sx={{ p: 2.5, borderRadius: 2.5, bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)', border: `1px solid ${theme.palette.divider}` }}>
+								<Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+									Order Summary
+								</Typography>
+								<Box display="flex" justifyContent="space-between" mb={1}>
+									<Typography variant="body2" color="text.secondary">
+										{selectedPackage?.credits.toLocaleString()} AI credits
+									</Typography>
+									<Typography variant="body2" sx={{ fontWeight: 700 }}>
+										{formatINR(selectedPackage?.price || 0)}
+									</Typography>
+								</Box>
+								<Box display="flex" justifyContent="space-between" mb={1}>
+									<Typography variant="body2" color="text.secondary">GST (18%)</Typography>
+									<Typography variant="body2" sx={{ fontWeight: 700 }}>
+										{formatINR(Math.round((selectedPackage?.price || 0) * 0.18))}
+									</Typography>
+								</Box>
+								<Box sx={{ borderTop: `1px solid ${theme.palette.divider}`, my: 1.5 }} />
+								<Box display="flex" justifyContent="space-between">
+									<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Total</Typography>
+									<Typography variant="subtitle1" color="primary" sx={{ fontWeight: 800 }}>
+										{formatINR(Math.round((selectedPackage?.price || 0) * 1.18))}
+									</Typography>
+								</Box>
+							</Box>
+
+							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+								<Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+									Payment Details
+								</Typography>
+								<TextField
+									required
+									fullWidth
+									label="Cardholder Name"
+									value={cardName}
+									onChange={(e) => setCardName(e.target.value)}
+									disabled={processingPayment}
+								/>
+								<TextField
+									required
+									fullWidth
+									label="Card Number"
+									placeholder="4111 2222 3333 4444"
+									value={cardNumber}
+									onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim().slice(0, 19))}
+									disabled={processingPayment}
+									InputProps={{
+										startAdornment: (
+											<InputAdornment position="start">
+												<CardIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+											</InputAdornment>
+										),
+									}}
+								/>
+								<Grid container spacing={2}>
+									<Grid size={6}>
+										<TextField
+											required
+											fullWidth
+											label="Expiry Date"
+											placeholder="MM/YY"
+											value={cardExpiry}
+											onChange={(e) => {
+												let val = e.target.value.replace(/\D/g, '');
+												if (val.length > 2) val = `${val.slice(0, 2)}/${val.slice(2, 4)}`;
+												setCardExpiry(val.slice(0, 5));
+											}}
+											disabled={processingPayment}
+										/>
+									</Grid>
+									<Grid size={6}>
+										<TextField
+											required
+											fullWidth
+											label="CVC"
+											placeholder="123"
+											value={cardCvc}
+											onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
+											disabled={processingPayment}
+										/>
+									</Grid>
+								</Grid>
+							</Box>
+						</DialogContent>
+						<DialogActions sx={{ p: 3, pt: 0 }}>
+							<Button onClick={() => setPaymentDialogOpen(false)} disabled={processingPayment} sx={{ textTransform: 'none', fontWeight: 600 }}>
+								Cancel
+							</Button>
+							<Button
+								type="submit"
+								variant="contained"
+								disabled={processingPayment}
+								startIcon={processingPayment ? <CircularProgress size={16} sx={{ color: 'inherit' }} /> : undefined}
+								sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2, boxShadow: 'none' }}
+							>
+								{processingPayment ? 'Processing...' : `Pay ${formatINR(Math.round((selectedPackage?.price || 0) * 1.18))}`}
+							</Button>
+						</DialogActions>
+					</form>
+				</Dialog>
 			</Container>
 		</Box>
 	);

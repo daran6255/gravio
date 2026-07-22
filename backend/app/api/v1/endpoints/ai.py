@@ -19,7 +19,7 @@ from app.middleware.exceptions import NotFoundError
 from app.models.organization import Organization
 from app.models.user import User
 from app.services import ai_credit_service, token_utilization_service
-from app.ai.schemas.ai_credit import AICreditBalanceResponse
+from app.ai.schemas.ai_credit import AICreditBalanceResponse, AICreditPurchaseRequest
 from app.ai.schemas.token_utilization import TokenUtilizationSummary
 from app.ai.schemas.ai_chat import (
     AIChatSessionCreate,
@@ -57,6 +57,35 @@ async def get_credit_balance(
     org = await _get_current_org(current_user, db)
     wallet = await ai_credit_service.get_wallet_status(db, org, current_user.id)
     await db.commit()  # persists a first-time wallet creation / period rollover, if one occurred
+    return AICreditBalanceResponse.from_wallet(wallet)
+
+
+@router.post(
+    "/credits/purchase",
+    response_model=AICreditBalanceResponse,
+    summary="Buy additional AI credits for my own wallet",
+    description=(
+        "Self-service top-up -- adds credits directly to the caller's own wallet for the "
+        "current period. Payment itself is out of scope here (mirrors how plan upgrades work "
+        "elsewhere in this app: the frontend runs its own mock checkout, then calls this once "
+        "'payment' succeeds) -- this endpoint only ever applies the credit grant."
+    ),
+)
+async def purchase_credits(
+    payload: AICreditPurchaseRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> AICreditBalanceResponse:
+    from app.repositories.ai_credit import AICreditRepository
+    from app.models.ai_credit import AICreditTransactionReason
+
+    org = await _get_current_org(current_user, db)
+    wallet = await ai_credit_service.get_or_create_wallet_for_user(db, org, current_user.id)
+    await AICreditRepository.grant_bonus_credits(
+        db, wallet, amount=payload.amount, user_id=current_user.id,
+        reason=AICreditTransactionReason.PURCHASE,
+    )
+    await db.commit()
     return AICreditBalanceResponse.from_wallet(wallet)
 
 

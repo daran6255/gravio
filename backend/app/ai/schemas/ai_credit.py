@@ -5,10 +5,18 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
     from app.models.ai_credit import AICreditWallet
+
+
+class AICreditPurchaseRequest(BaseModel):
+    amount: int = Field(..., gt=0, le=100_000, description="Credits to add to my own wallet")
+
+
+class AICreditGrantRequest(BaseModel):
+    amount: int = Field(..., gt=0, le=1_000_000, description="Credits to grant to the target user")
 
 
 class AICreditBalanceResponse(BaseModel):

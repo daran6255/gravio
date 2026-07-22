@@ -7,6 +7,7 @@ import { useOrgConsole } from '../hooks/useOrgConsole';
 import { OrgStatsPanel, TenantDistribution } from '../stats';
 import { OrgDetailDrawer } from './OrgDetailDrawer';
 import { ExtendTrialDialog } from './ExtendTrialDialog';
+import { GrantCreditsDialog } from './GrantCreditsDialog';
 import { CreateOrgDialog } from '../forms';
 import { EditOrgUserDialog } from '../../shared';
 import PageHeader from '../../../common/page-header';
@@ -40,6 +41,8 @@ export const OrgConsole: React.FC = () => {
 		fetchData, handleOpenExtendTrial, handleConfirmExtendTrial, handleDeactivate,
 		handleReactivate, handleConfirmStatusChange, handleUserAction, handleConfirmUserAction,
 		searchTerm, setSearchTerm, editOrgUserOpen, setEditOrgUserOpen,
+		grantCreditsOpen, setGrantCreditsOpen, grantCreditsAmount, setGrantCreditsAmount,
+		grantCreditsLoading, handleConfirmGrantCredits,
 		deleteDialogOpen, setDeleteDialogOpen, deleteLoading, handleDeleteOrg, handleConfirmDeleteOrg,
 		isSuperuser, accountTypeFilter, setAccountTypeFilter
 	} = useOrgConsole();
@@ -337,6 +340,16 @@ export const OrgConsole: React.FC = () => {
 							handleSelectOrg(selectedOrg);
 						}
 					}}
+				/>
+
+				<GrantCreditsDialog
+					open={grantCreditsOpen}
+					onClose={() => setGrantCreditsOpen(false)}
+					onConfirm={handleConfirmGrantCredits}
+					targetUser={targetUser}
+					amount={grantCreditsAmount}
+					setAmount={setGrantCreditsAmount}
+					loading={grantCreditsLoading}
 				/>
 			</Container>
 		</Box>

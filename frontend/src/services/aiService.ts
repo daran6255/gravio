@@ -48,6 +48,11 @@ const aiService = {
 		const response = await api.get<AIUsageSummary>('/ai/usage', { params: { scope } });
 		return response.data;
 	},
+
+	purchaseCredits: async (amount: number): Promise<AICreditBalance> => {
+		const response = await api.post<AICreditBalance>('/ai/credits/purchase', { amount });
+		return response.data;
+	},
 };
 
 export default aiService;
