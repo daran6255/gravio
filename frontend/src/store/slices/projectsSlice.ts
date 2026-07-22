@@ -321,8 +321,12 @@ export const runIrisAction = createAsyncThunk(
 	) => {
 		try {
 			const comment = await projectService.executeIrisAction(taskPublicId, message);
-			dispatch(fetchTaskHistory(taskPublicId));
-			dispatch(fetchProjectTasks(projectPublicId));
+			// Awaited (not fire-and-forget): callers that show a "done" state right after this
+			// resolves need the store to already reflect IRIS's changes by then, not "soon".
+			await Promise.all([
+				dispatch(fetchTaskHistory(taskPublicId)),
+				dispatch(fetchProjectTasks(projectPublicId)),
+			]);
 			return comment;
 		} catch (error: any) {
 			return rejectWithValue(extractErrorMessage(error, 'IRIS could not complete that action'));

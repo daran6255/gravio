@@ -60,7 +60,7 @@ export const TaskDescriptionCard: React.FC<TaskDescriptionCardProps> = ({
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
-	const { public_id: projectPublicId = '' } = useParams<{ public_id: string }>();
+	const { publicId: projectPublicId = '' } = useParams<{ publicId: string }>();
 
 	const cardBorderColor = isDark ? '#1f6feb' : '#0969da';
 	const borderColor = isDark ? '#30363d' : '#d0d7de';

@@ -52,7 +52,7 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 	const dispatch = useAppDispatch();
 	const theme = useTheme();
 	const bgColor = theme.palette.background.paper;
-	const { public_id: projectPublicId = '' } = useParams<{ public_id: string }>();
+	const { publicId: projectPublicId = '' } = useParams<{ publicId: string }>();
 	const taskFiles = useAppSelector((state) => state.projects.taskFiles);
 
 	const [commentText, setCommentText] = useState('');
