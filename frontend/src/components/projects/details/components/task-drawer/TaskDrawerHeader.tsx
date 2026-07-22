@@ -4,6 +4,7 @@ import {
 	Stack,
 	Typography,
 	IconButton,
+	Button,
 	Popover,
 	Menu,
 	MenuItem,
@@ -166,15 +167,27 @@ export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
 				</Box>
 
 				{/* Header Actions */}
-				<Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
-					<IconButton
+				<Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+					<Button
 						size="small"
-						title="Ask IRIS"
+						startIcon={<AutoAwesome sx={{ fontSize: '15px !important' }} />}
 						onClick={onOpenIris}
-						sx={{ color: '#8B7CF6', '&:hover': { bgcolor: alpha('#8B7CF6', 0.1) } }}
+						title="Ask IRIS, your AI co-worker, to edit this task, break it into subtasks, or answer questions about it"
+						sx={{
+							textTransform: 'none',
+							fontWeight: 700,
+							fontSize: '0.78rem',
+							px: 1.5,
+							py: 0.4,
+							color: '#8B7CF6',
+							bgcolor: alpha('#8B7CF6', 0.1),
+							border: '1px solid',
+							borderColor: alpha('#8B7CF6', 0.3),
+							'&:hover': { bgcolor: alpha('#8B7CF6', 0.18), borderColor: alpha('#8B7CF6', 0.5) },
+						}}
 					>
-						<AutoAwesome fontSize="small" style={{ fontSize: 16 }} />
-					</IconButton>
+						Ask IRIS
+					</Button>
 					<IconButton size="small" title="Delete task" onClick={onDelete} sx={{ color: 'error.main', '&:hover': { bgcolor: theme.palette.action.hover } }}>
 						<DeleteOutline fontSize="small" style={{ fontSize: 16 }} />
 					</IconButton>
