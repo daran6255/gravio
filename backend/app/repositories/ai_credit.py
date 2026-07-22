@@ -135,3 +135,35 @@ class AICreditRepository:
         db.add(txn)
         await db.flush()
         return txn
+
+    @staticmethod
+    async def refund(
+        db: AsyncSession,
+        wallet: AICreditWallet,
+        *,
+        amount: int,
+        user_id: int | None,
+    ) -> AICreditTransaction:
+        """Reverses a previous AI_CALL deduction (e.g. the LLM call succeeded but every planned
+        tool call it produced failed, so the user got no real value from it). Mirrors `deduct`'s
+        atomic update, just adding instead of subtracting."""
+        result = await db.execute(
+            update(AICreditWallet)
+            .where(AICreditWallet.id == wallet.id)
+            .values(balance=AICreditWallet.balance + amount)
+            .returning(AICreditWallet.balance)
+        )
+        new_balance = result.scalar_one()
+        wallet.balance = new_balance
+
+        txn = AICreditTransaction(
+            organization_id=wallet.organization_id,
+            wallet_id=wallet.id,
+            user_id=user_id,
+            amount=amount,
+            balance_after=new_balance,
+            reason=AICreditTransactionReason.ADMIN_ADJUSTMENT,
+        )
+        db.add(txn)
+        await db.flush()
+        return txn

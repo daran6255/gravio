@@ -43,6 +43,11 @@ class MeteredLLMProvider(LLMProvider):
         self._org_id = org_id
         self._user_id = user_id
         self._action_type = action_type
+        # Set after each successful deduct() -- lets a caller that finds out *after the fact*
+        # that this call's real-world work was worthless (e.g. every tool it planned failed)
+        # reverse the charge via refund_last_charge(), without the caller needing to know cost
+        # math or wallet plumbing itself.
+        self._last_deduction: tuple[AICreditWallet, int] | None = None
 
     @property
     def provider_name(self) -> str:
@@ -80,6 +85,7 @@ class MeteredLLMProvider(LLMProvider):
             action_type=self._action_type, user_id=self._user_id,
             tokens_used=tokens_used or None, is_estimated=response.tokens_used is None,
         )
+        self._last_deduction = (wallet, cost)
         return response
 
     async def stream_complete(self, system_prompt, user_message, temperature=0.2, max_tokens=4096) -> AsyncGenerator[str, None]:
@@ -111,3 +117,15 @@ class MeteredLLMProvider(LLMProvider):
             action_type=self._action_type, user_id=self._user_id,
             tokens_used=tokens_used, is_estimated=is_estimated,
         )
+        self._last_deduction = (wallet, cost)
+
+    async def refund_last_charge(self) -> bool:
+        """Reverses the most recent deduct() on this provider instance, once. Returns False
+        (no-op) if nothing has been charged yet or it's already been refunded -- safe to call
+        speculatively without the caller tracking whether a charge actually happened."""
+        if self._last_deduction is None:
+            return False
+        wallet, cost = self._last_deduction
+        self._last_deduction = None
+        await AICreditRepository.refund(self._db, wallet, amount=cost, user_id=self._user_id)
+        return True

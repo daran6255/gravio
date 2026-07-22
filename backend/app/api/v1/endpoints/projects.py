@@ -434,16 +434,31 @@ async def _get_task_with_subtasks(db: AsyncSession, task_public_id: uuid.UUID) -
     return task
 
 
-def _build_iris_input_data(task: ProjectTask) -> dict:
-    """Gives the planner each subtask's exact public_id up front. Without this, an instruction
-    like "mark all subtasks as completed" leaves the LLM knowing only the parent task -- it has
-    to fall back to search_project_tasks' fuzzy, organization-wide title match to find each
-    subtask, which risks resolving to (and silently editing) an unrelated same-titled task in a
-    different project. Handing over the real IDs makes every per-subtask update_project_task
-    call unambiguous."""
+async def _build_iris_input_data(db: AsyncSession, task: ProjectTask) -> dict:
+    """Gives the planner each subtask's exact public_id, and this project's real configured
+    status names, up front.
+
+    Without the subtask IDs, an instruction like "mark all subtasks as completed" leaves the
+    LLM knowing only the parent task -- it has to fall back to search_project_tasks' fuzzy,
+    organization-wide title match to find each subtask, which risks resolving to (and silently
+    editing) an unrelated same-titled task in a different project.
+
+    Without the real status list, the LLM guesses a plausible-sounding status name (e.g. "Done"
+    or "Complete") for update_project_task's `status` param -- statuses are per-project and
+    tenant-configurable (a board might call its done column "Handover", "Closed", "Shipped",
+    anything), so a guessed name almost never matches and the tool call fails outright. That
+    failure is also wasted: the planning call itself already succeeded and was charged, so a
+    plan that's doomed to fail from a bad guess burns credits for nothing (see refund_last_charge
+    in the engine for the case where every step in a plan still ends up failing anyway).
+    """
+    from app.repositories.project import ProjectTaskStatusRepository
+
+    statuses = await ProjectTaskStatusRepository.list_by_project(db, project_id=task.project_id)
+
     return {
         "task_public_id": str(task.public_id),
         "task_title": task.title,
+        "available_statuses": [s.name for s in statuses],
         "subtasks": [
             {
                 "public_id": str(s.public_id),
@@ -480,7 +495,7 @@ async def preview_iris_action(
         plan = await engine.preview(AITaskRunRequest(
             trigger_type="manual",
             task_hint=payload.message,
-            input_data=_build_iris_input_data(task),
+            input_data=await _build_iris_input_data(db, task),
         ))
     except NoPlanGeneratedError:
         raise BadRequestError("IRIS couldn't work out a plan for that -- try rephrasing.")
@@ -525,7 +540,7 @@ async def execute_iris_action(
     result = await engine.run(AITaskRunRequest(
         trigger_type="manual",
         task_hint=payload.message,
-        input_data=_build_iris_input_data(task),
+        input_data=await _build_iris_input_data(db, task),
     ))
     reply_text = result.summary or (f"⚠️ {result.error}" if result.error else "IRIS didn't return a result.")
     comment_log = await AuditService.record(

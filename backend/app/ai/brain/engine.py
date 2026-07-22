@@ -242,10 +242,25 @@ class AIEngine:
         if response.status == "awaiting_approval":
             return response
 
+        # Credit efficiency: the planning call itself already succeeded and was charged
+        # (real tokens, real provider cost) by the time we know whether execution actually
+        # delivered anything. If every single planned step failed (e.g. a status name that
+        # doesn't exist in this project), the user got no real value from this run at all —
+        # refund that charge rather than silently let a fully-failed action cost credits.
+        # A partial success (some steps worked) still delivered real value, so only a
+        # complete wipeout qualifies.
+        refunded = False
+        if journal.log.tools_called > 0 and journal.log.tools_succeeded == 0:
+            refund_fn = getattr(provider, "refund_last_charge", None)
+            if callable(refund_fn):
+                refunded = await refund_fn()
+
         synthesis = self._synthesizer.synthesize_tool_results(
             results=results,
             planned_response=plan.response_to_user
         )
+        if refunded:
+            synthesis += "\n\n_No credits were charged for this — nothing it tried to do succeeded._"
         final_status = AITaskStatus.COMPLETED if response.status == "completed" else AITaskStatus.PARTIALLY_COMPLETED
         await journal.finalize(status=final_status, summary=synthesis)
         return self._build_response(journal, status=response.status)
