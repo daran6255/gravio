@@ -11,7 +11,7 @@
                                 <tr>
                                     <td style="padding:16px; font-family:'Inter',Arial,sans-serif; font-size:14px; color:#0B0D12;">
                                         <strong>When:</strong> {{ start_time_display }} ({{ attendee_timezone }})<br/>
-                                        {% if meet_link %}<strong>Where:</strong> <a href="{{ meet_link }}" style="color:#4EA8FF;">{{ meet_link }}</a><br/>{% endif %}
+                                        {% if meet_link %}<strong>Where:</strong> <a href="{{ meet_link }}" style="color:#4EA8FF;">Join Meeting</a> <span style="color:rgba(11,13,18,0.45); font-size:12px;">(opens 15 minutes before start)</span><br/>{% endif %}
                                         {% if location_text %}<strong>Where:</strong> {{ location_text }}<br/>{% endif %}
                                         {% if maps_url %}<a href="{{ maps_url }}" style="color:#4EA8FF;">View on Google Maps</a><br/>{% endif %}
                                     </td>

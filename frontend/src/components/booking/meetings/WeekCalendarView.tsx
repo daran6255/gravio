@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Stack, Typography, IconButton, Button, Popover, Divider, useTheme, alpha } from '@mui/material';
 import { ChevronLeft, ChevronRight, VideocamOutlined, PlaceOutlined, PhoneOutlined, Close as CloseIcon, EditOutlined, CloseOutlined, CalendarMonthOutlined, CheckCircleOutline, EventBusyOutlined } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import EnterpriseAvatar from '../../common/avatar/Avatar';
 import { responsiveStyles } from '../../../theme';
+import bookingService from '../../../services/bookingService';
+import useToast from '../../../hooks/useToast';
 import { useWeekCalendarView, HOUR_HEIGHT } from './hooks/useWeekCalendarView';
 import { MEETING_PAST_GRACE_MINUTES, type ScheduledMeetingHost, type MeetingLocationType, type MeetingStatus } from '../../../models/booking/meeting';
 
@@ -34,6 +36,8 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const toast = useToast();
+	const [joinLoading, setJoinLoading] = useState(false);
 	const {
 		weekLabel,
 		goToPreviousWeek,
@@ -58,6 +62,22 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 		openPopover,
 		closePopover,
 	} = useWeekCalendarView({ meetings, onSlotClick, onMoveMeeting });
+
+	// Goes through the same join gate a client/guest gets by email (see
+	// bookingService.hostGetMeetingJoinLink) instead of opening the raw video link
+	// directly — one enforcement point for the active-window rule and the
+	// branding-free embed, regardless of who's joining.
+	const handleJoinMeeting = async (meeting: ScheduledMeetingHost) => {
+		setJoinLoading(true);
+		try {
+			const { join_url } = await bookingService.hostGetMeetingJoinLink(meeting.public_id);
+			window.open(join_url, '_blank', 'noopener,noreferrer');
+		} catch {
+			toast.error("Couldn't open the video call — try again in a moment.");
+		} finally {
+			setJoinLoading(false);
+		}
+	};
 
 	const cardSx = {
 		p: { xs: 2.5, sm: 3 }, borderRadius: '20px',
@@ -426,7 +446,8 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 								<Button
 									fullWidth variant="contained"
 									startIcon={<VideocamOutlined sx={{ fontSize: 16 }} />}
-									component="a" href={popoverMeeting.location_detail} target="_blank" rel="noreferrer"
+									onClick={() => handleJoinMeeting(popoverMeeting)}
+									disabled={joinLoading}
 									sx={{
 										textTransform: 'none', fontWeight: 700, borderRadius: 2.5,
 										background: (t) => t.gradients.brandDiagonal,

@@ -89,3 +89,21 @@ export interface ScheduleMeetingRequest {
 
 /** Kept as a distinct name for the same reason as ScheduledMeetingHost above. */
 export type HostScheduleMeetingRequest = ScheduleMeetingRequest;
+
+/** Why a join-gate link isn't (yet/anymore) usable — matches the `reason` values
+ * backend's get_meeting_join_info can return. */
+export type MeetingJoinReason = 'not_started' | 'ended' | 'cancelled' | 'no_video_link';
+
+/** Matches backend's MeetingJoinInfo — what a join-token holder learns about a
+ * meeting's video call: just enough to embed it or explain why not. */
+export interface MeetingJoinInfo {
+	joinable: boolean;
+	reason?: MeetingJoinReason;
+	meeting_title?: string;
+	host_name?: string;
+	start_time: string;
+	end_time: string;
+	/** Only set when joinable — pieces needed to embed via the Jitsi IFrame External API. */
+	jitsi_domain?: string;
+	jitsi_room?: string;
+}

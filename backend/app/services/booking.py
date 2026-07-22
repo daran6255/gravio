@@ -10,6 +10,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
+from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
 from dateutil.relativedelta import relativedelta
@@ -26,11 +27,13 @@ from app.models.user import User
 from app.repositories.booking import ScheduledMeetingRepository
 from app.repositories.crm import CRMActivityRepository
 from app.repositories.reminder import CRMReminderRepository
-from app.schemas.booking import MAX_RECURRING_OCCURRENCES, ScheduleMeetingRequest
+from app.schemas.booking import MAX_RECURRING_OCCURRENCES, MeetingJoinInfo, ScheduleMeetingRequest
 from app.services.crm import CRMService
 from app.services.notification import NotificationService
 from app.utils.email import (
+    create_meeting_join_token,
     create_meeting_manage_token,
+    decode_meeting_join_token,
     decode_meeting_manage_token,
     send_booking_cancelled_email,
     send_booking_confirmation_email,
@@ -44,6 +47,12 @@ MEETING_REMINDER_LEAD_MINUTES = 15
 # just-before reminder above, which is too easy to miss if the host isn't at their
 # desk right that moment.
 MEETING_DAYOF_REMINDER_HOUR = 8
+# The video-call join gate (see get_meeting_join_info): a meeting's link only ever
+# resolves to a live, embeddable call within this window around its scheduled time —
+# outside it, the same link just explains why (not started yet / already ended /
+# cancelled), regardless of who's holding it.
+MEETING_JOIN_LEAD_MINUTES = 15
+MEETING_JOIN_GRACE_MINUTES_AFTER = 15
 _RECURRENCE_STEP = {
     RecurrenceRule.DAILY: relativedelta(days=1),
     RecurrenceRule.WEEKLY: relativedelta(weeks=1),
@@ -147,6 +156,87 @@ def _manage_link(meeting: ScheduledMeeting) -> str:
     return f"{base_url}/meetings/manage?token={token}"
 
 
+def _join_link(meeting: ScheduledMeeting) -> str:
+    """The gate every 'Join Meeting' surface should point to instead of the raw
+    Jitsi URL — see get_meeting_join_info for what actually happens when it's
+    opened. Safe to hand out to the client, invited teammates, and guests alike:
+    the join token carries no reschedule/cancel privilege."""
+    from app.core.config import settings
+
+    token = create_meeting_join_token(meeting.public_id)
+    base_url = settings.FRONTEND_URL or "http://localhost:5173"
+    return f"{base_url}/meetings/join?token={token}"
+
+
+def _parse_jitsi_room(location_detail: str) -> Optional[tuple[str, str]]:
+    """(domain, room) if location_detail looks like a URL we can safely hand to the
+    Jitsi IFrame External API — None for a host-pasted non-URL value or a link to
+    something else entirely, which the join page has no business trying to embed."""
+    try:
+        parsed = urlparse(location_detail)
+    except ValueError:
+        return None
+    room = parsed.path.strip("/")
+    if not parsed.netloc or not room:
+        return None
+    return parsed.netloc, room
+
+
+def get_meeting_join_info(meeting: ScheduledMeeting, *, host_name: Optional[str] = None) -> MeetingJoinInfo:
+    """Resolves whether a meeting's video call can be joined *right now* — the single
+    source of truth both the public join-token endpoint and the host's own
+    join-link endpoint go through, so the rule can never drift between them."""
+    now = datetime.now(timezone.utc)
+    reason: Optional[str] = None
+
+    if meeting.status == MeetingStatus.CANCELLED:
+        reason = "cancelled"
+    elif meeting.status == MeetingStatus.COMPLETED:
+        reason = "ended"
+    elif now < meeting.start_time - timedelta(minutes=MEETING_JOIN_LEAD_MINUTES):
+        reason = "not_started"
+    elif now > meeting.end_time + timedelta(minutes=MEETING_JOIN_GRACE_MINUTES_AFTER):
+        reason = "ended"
+    elif meeting.location_type != MeetingLocationType.GOOGLE_MEET or not meeting.location_detail:
+        reason = "no_video_link"
+
+    jitsi_domain, jitsi_room = (None, None)
+    if reason is None:
+        parsed = _parse_jitsi_room(meeting.location_detail)
+        if parsed is None:
+            reason = "no_video_link"
+        else:
+            jitsi_domain, jitsi_room = parsed
+
+    return MeetingJoinInfo(
+        joinable=reason is None,
+        reason=reason,
+        meeting_title=meeting.meeting_title,
+        host_name=host_name,
+        start_time=meeting.start_time,
+        end_time=meeting.end_time,
+        jitsi_domain=jitsi_domain,
+        jitsi_room=jitsi_room,
+    )
+
+
+async def get_meeting_by_join_token(db: AsyncSession, token: str) -> ScheduledMeeting:
+    """Resolves a join token to its meeting — same anti-enumeration shape as
+    get_meeting_by_manage_token (a malformed/expired token and a since-deleted
+    meeting look identical to the caller)."""
+    public_id_str = decode_meeting_join_token(token)
+    if public_id_str is None:
+        raise NotFoundError("This meeting link is invalid or has expired.")
+    try:
+        public_id = uuid.UUID(public_id_str)
+    except ValueError:
+        raise NotFoundError("This meeting link is invalid or has expired.")
+    meeting = await ScheduledMeetingRepository.get_by_public_id(db, public_id)
+    if meeting is None:
+        raise NotFoundError("This meeting link is invalid or has expired.")
+    return meeting
+
+
 async def _invitee_contacts(db: AsyncSession, meeting: ScheduledMeeting) -> list[tuple[str, str]]:
     """(email, display_name) for every invited teammate and extra guest — everyone
     besides the client who should get a copy of the meeting details/join link."""
@@ -161,13 +251,18 @@ async def _invitee_contacts(db: AsyncSession, meeting: ScheduledMeeting) -> list
 
 
 async def _send_confirmation(db: AsyncSession, *, host: User, meeting: ScheduledMeeting, heading: str) -> None:
+    # meet_link always points at our own join gate, never the raw Jitsi URL — the
+    # gate is what actually enforces "only active for this meeting, and only while
+    # it's happening" (see get_meeting_join_info), and it's also what strips the
+    # Jitsi branding by embedding the call itself rather than opening meet.jit.si.
+    meet_link = _join_link(meeting) if meeting.location_type == MeetingLocationType.GOOGLE_MEET else None
     ics_bytes = build_meeting_ics(
-        meeting, organizer_email=host.email, organizer_name=host.full_name or host.email, method="REQUEST"
+        meeting, organizer_email=host.email, organizer_name=host.full_name or host.email, method="REQUEST",
+        join_link_override=meet_link,
     )
     display_tz = ZoneInfo(meeting.attendee_timezone)
     meeting_title = meeting.meeting_title or f"Meeting with {host.full_name or host.email}"
     start_time_display = meeting.start_time.astimezone(display_tz).strftime("%A, %B %d, %Y at %I:%M %p")
-    meet_link = meeting.location_detail if meeting.location_type == MeetingLocationType.GOOGLE_MEET else None
     location_text = _location_text(meeting)
     maps_url = _maps_url(meeting)
 

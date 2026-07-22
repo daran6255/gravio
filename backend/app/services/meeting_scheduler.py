@@ -17,7 +17,7 @@ from app.core.database import AsyncSessionLocal
 from app.models.booking import MeetingLocationType, MeetingStatus, ScheduledMeeting
 from app.models.user import User
 from app.repositories.booking import ScheduledMeetingRepository
-from app.utils.email import create_meeting_manage_token, send_meeting_reminder_email, spawn_email_task
+from app.utils.email import create_meeting_join_token, create_meeting_manage_token, send_meeting_reminder_email, spawn_email_task
 
 _REMINDER_WINDOWS: list[tuple[str, timedelta, str]] = [
     ("client_reminder_24h_sent_at", timedelta(hours=24), "tomorrow"),
@@ -26,8 +26,19 @@ _REMINDER_WINDOWS: list[tuple[str, timedelta, str]] = [
 
 
 def _location_text(meeting: ScheduledMeeting) -> tuple[str | None, str | None]:
-    """Returns (meet_link, location_text) the same way app/services/booking.py does."""
-    meet_link = meeting.location_detail if meeting.location_type == MeetingLocationType.GOOGLE_MEET else None
+    """Returns (meet_link, location_text). meet_link always points at the app's own
+    join gate (app/services/booking.py's get_meeting_join_info) rather than the raw
+    Jitsi URL — same reasoning as _send_confirmation there: it's what actually
+    enforces the link only working during the meeting, and what lets the join page
+    embed the call without Jitsi's own branding."""
+    from app.core.config import settings
+
+    meet_link = None
+    if meeting.location_type == MeetingLocationType.GOOGLE_MEET and meeting.location_detail:
+        base_url = settings.FRONTEND_URL or "http://localhost:5173"
+        join_token = create_meeting_join_token(meeting.public_id)
+        meet_link = f"{base_url}/meetings/join?token={join_token}"
+
     location_text = None
     if meeting.location_type == MeetingLocationType.OFFLINE:
         location_text = meeting.location_detail

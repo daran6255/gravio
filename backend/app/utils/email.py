@@ -158,6 +158,44 @@ def decode_meeting_manage_token(token: str) -> Optional[str]:
         return None
 
 
+# ── Meeting Join Token (video-call gate) ────────────────────────────────────────
+#
+# Deliberately a *separate* token from the manage token above — this one only ever
+# resolves to "is this meeting joinable right now, and if so what's its Jitsi room"
+# (see get_meeting_join_info in app/services/booking.py). It carries no
+# reschedule/cancel privilege, so it's safe to hand to invited teammates and guests
+# too, not just the client.
+
+_MEETING_JOIN_SECRET = settings.SECRET_KEY + "_meeting_join"
+_MEETING_JOIN_ALGORITHM = "HS256"
+_MEETING_JOIN_EXPIRE_DAYS = 60
+
+
+def create_meeting_join_token(public_id) -> str:
+    """Generate a signed token letting the holder check join-availability and embed
+    the video call for one specific meeting, without logging in and without any
+    reschedule/cancel privilege."""
+    expire = datetime.now(timezone.utc) + timedelta(days=_MEETING_JOIN_EXPIRE_DAYS)
+    payload = {
+        "sub": str(public_id),
+        "type": "meeting_join",
+        "exp": expire,
+    }
+    return jwt.encode(payload, _MEETING_JOIN_SECRET, algorithm=_MEETING_JOIN_ALGORITHM)
+
+
+def decode_meeting_join_token(token: str) -> Optional[str]:
+    """Decode a meeting-join token and return the meeting's public_id (as a string),
+    or None if invalid/expired."""
+    try:
+        payload = jwt.decode(token, _MEETING_JOIN_SECRET, algorithms=[_MEETING_JOIN_ALGORITHM])
+        if payload.get("type") != "meeting_join":
+            return None
+        return payload.get("sub")
+    except JWTError:
+        return None
+
+
 # ── Sending ────────────────────────────────────────────────────────────────────
 
 async def send_verification_email(

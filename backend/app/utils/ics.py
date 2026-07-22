@@ -9,17 +9,19 @@ METHOD:REQUEST/CANCEL + SEQUENCE to correctly add, replace, or remove the event.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Optional
 
 from icalendar import Calendar, Event, vCalAddress, vText
 
 from app.models.booking import MeetingLocationType, ScheduledMeeting
 
 
-def _meeting_description(meeting: ScheduledMeeting) -> str:
+def _meeting_description(meeting: ScheduledMeeting, *, join_link_override: Optional[str] = None) -> str:
     parts: list[str] = []
     if meeting.location_type == MeetingLocationType.GOOGLE_MEET:
-        if meeting.location_detail:
-            parts.append(f"Join: {meeting.location_detail}")
+        link = join_link_override or meeting.location_detail
+        if link:
+            parts.append(f"Join: {link}")
         else:
             parts.append("The organizer will share the video call link shortly.")
     elif meeting.location_type == MeetingLocationType.OFFLINE and meeting.location_detail:
@@ -33,7 +35,9 @@ def _meeting_description(meeting: ScheduledMeeting) -> str:
     return "\n\n".join(parts)
 
 
-def _meeting_location(meeting: ScheduledMeeting) -> str:
+def _meeting_location(meeting: ScheduledMeeting, *, join_link_override: Optional[str] = None) -> str:
+    if meeting.location_type == MeetingLocationType.GOOGLE_MEET and join_link_override:
+        return join_link_override
     return meeting.location_detail or ""
 
 
@@ -43,12 +47,18 @@ def build_meeting_ics(
     organizer_email: str,
     organizer_name: str,
     method: str = "REQUEST",
+    join_link_override: Optional[str] = None,
 ) -> bytes:
     """Builds a VCALENDAR with method REQUEST (create/update) or CANCEL.
 
     `meeting.sequence` must be incremented by the caller before calling this with an
     updated time or with method="CANCEL" — RFC5545 requires a higher SEQUENCE for
     calendar clients to recognize the message supersedes a prior invite.
+
+    join_link_override, when given, replaces the raw location_detail Jitsi URL in
+    the description/location fields (google_meet only) — callers pass the app's own
+    join-gate link so calendar clients show/link to that instead (see
+    app/services/booking.py's _join_link and get_meeting_join_info).
     """
     cal = Calendar()
     cal.add("prodid", "-//Gravit//Meetings//EN")
@@ -64,10 +74,10 @@ def build_meeting_ics(
     event.add("sequence", meeting.sequence)
     event.add("status", "CANCELLED" if method == "CANCEL" else "CONFIRMED")
 
-    description = _meeting_description(meeting)
+    description = _meeting_description(meeting, join_link_override=join_link_override)
     if description:
         event.add("description", description)
-    location = _meeting_location(meeting)
+    location = _meeting_location(meeting, join_link_override=join_link_override)
     if location:
         event.add("location", location)
 

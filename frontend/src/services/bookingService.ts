@@ -6,6 +6,7 @@ import type {
 	MeetingStatus,
 	OrgMemberOption,
 	PublicMeetingView,
+	MeetingJoinInfo,
 } from '../models/booking/meeting';
 
 const bookingService = {
@@ -79,6 +80,19 @@ const bookingService = {
 	},
 	publicCancelMeeting: async (token: string, reason?: string): Promise<PublicMeetingView> => {
 		const response = await api.post<PublicMeetingView>(`/bookings/public/meetings/${token}/cancel`, { reason });
+		return response.data;
+	},
+	/** Resolves a join-gate token (from an email's "Join Meeting" link) to whether the
+	 * video call is currently joinable, and if so, what to embed. */
+	publicGetMeetingJoinInfo: async (token: string): Promise<MeetingJoinInfo> => {
+		const response = await api.get<MeetingJoinInfo>(`/bookings/public/meetings/join/${token}`);
+		return response.data;
+	},
+	/** Mints a fresh join-gate URL for the host's own meeting — used so the host's
+	 * "Join Meeting" button goes through the exact same gate/embed a client or guest
+	 * would, instead of opening the raw video link directly. */
+	hostGetMeetingJoinLink: async (publicId: string): Promise<{ join_url: string }> => {
+		const response = await api.get<{ join_url: string }>(`/bookings/meetings/${publicId}/join-link`);
 		return response.data;
 	},
 };

@@ -16,6 +16,7 @@ import { ProjectsListPage, ProjectDetailPage } from '../pages/projects';
 import TimesheetPage from '../pages/timesheets/TimesheetPage';
 import { MyMeetingsPage, TeamMeetingsPage } from '../pages/booking';
 import ManageMeetingPage from '../pages/booking/public/ManageMeetingPage';
+import JoinMeetingPage from '../pages/booking/public/JoinMeetingPage';
 // HR Admin Pages
 import EmployeesPage from '../pages/hr/admin/EmployeesPage';
 import DepartmentsPage from '../pages/hr/admin/DepartmentsPage';
@@ -59,6 +60,11 @@ const AppRouter: React.FC = () => {
 
 			{/* Public — a client manages their own meeting via a tokenized email link, no login */}
 			<Route path="/meetings/manage" element={<ManageMeetingPage />} />
+
+			{/* Public — the video-call join gate (client, guest, and host all land here via
+			    a fresh join token); enforces the active-time window and embeds the call
+			    branding-free instead of opening the raw Jitsi link. */}
+			<Route path="/meetings/join" element={<JoinMeetingPage />} />
 
 			<Route element={<ProtectedRoute />}>
 				{/* Protected Routes */}

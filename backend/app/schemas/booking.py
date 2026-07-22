@@ -167,6 +167,25 @@ class PublicMeetingView(BaseModel):
     recurrence_group_id: Optional[uuid.UUID] = None
 
 
+# --- Video-call join gate (see get_meeting_join_info in app/services/booking.py) ---
+
+class MeetingJoinInfo(BaseModel):
+    """What a join-token holder learns about a meeting — deliberately just enough to
+    either embed the call or explain why not, nothing else (no client contact info,
+    no reschedule/cancel capability)."""
+    joinable: bool
+    # "not_started" | "ended" | "cancelled" | "no_video_link" | None (only set when joinable)
+    reason: Optional[str] = None
+    meeting_title: Optional[str] = None
+    host_name: Optional[str] = None
+    start_time: datetime
+    end_time: datetime
+    # Only set when joinable — the bare pieces needed to embed via the Jitsi IFrame
+    # External API, never the raw location_detail URL itself.
+    jitsi_domain: Optional[str] = None
+    jitsi_room: Optional[str] = None
+
+
 # --- Org Member Options (for the "invite a teammate" picker) ---
 
 class OrgMemberOption(BaseModel):

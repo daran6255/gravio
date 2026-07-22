@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Stack, Typography, IconButton, Tooltip, Chip, Divider, useTheme, alpha } from '@mui/material';
 import { VideocamOutlined, EditOutlined, CloseOutlined, EventBusyOutlined, ScheduleOutlined } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import EnterpriseAvatar from '../../common/avatar/Avatar';
+import bookingService from '../../../services/bookingService';
+import useToast from '../../../hooks/useToast';
 import { useUpcomingMeetingsPanel, meetingWhenLabel, dayGroupLabel } from './hooks/useUpcomingMeetingsPanel';
 import type { ScheduledMeetingHost } from '../../../models/booking/meeting';
 
@@ -15,7 +17,24 @@ interface UpcomingMeetingsPanelProps {
 const UpcomingMeetingsPanel: React.FC<UpcomingMeetingsPanelProps> = ({ meetings, onReschedule, onCancel }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
+	const toast = useToast();
+	const [joinLoadingId, setJoinLoadingId] = useState<string | null>(null);
 	const { now, upcoming, nextMeeting, todayCount, weekStats, groups } = useUpcomingMeetingsPanel({ meetings });
+
+	// Same join gate used everywhere else a "Join Meeting" action appears — see
+	// WeekCalendarView's handleJoinMeeting for why the host also goes through it
+	// instead of opening the raw video link directly.
+	const handleJoinMeeting = async (meeting: ScheduledMeetingHost) => {
+		setJoinLoadingId(meeting.public_id);
+		try {
+			const { join_url } = await bookingService.hostGetMeetingJoinLink(meeting.public_id);
+			window.open(join_url, '_blank', 'noopener,noreferrer');
+		} catch {
+			toast.error("Couldn't open the video call — try again in a moment.");
+		} finally {
+			setJoinLoadingId(null);
+		}
+	};
 
 	const cardSx = {
 		p: { xs: 2.5, sm: 3 }, borderRadius: '20px', height: '100%',
@@ -112,7 +131,11 @@ const UpcomingMeetingsPanel: React.FC<UpcomingMeetingsPanelProps> = ({ meetings,
 										<Stack direction="row" spacing={0.25}>
 											{m.location_type === 'google_meet' && m.location_detail && (
 												<Tooltip title="Join meeting">
-													<IconButton size="small" component="a" href={m.location_detail} target="_blank" rel="noreferrer">
+													<IconButton
+														size="small"
+														onClick={() => handleJoinMeeting(m)}
+														disabled={joinLoadingId === m.public_id}
+													>
 														<VideocamOutlined sx={{ fontSize: 16 }} />
 													</IconButton>
 												</Tooltip>

@@ -17,6 +17,7 @@ from app.repositories.booking import ScheduledMeetingRepository
 from app.schemas.booking import (
     CancelMeetingRequest,
     CompleteMeetingRequest,
+    MeetingJoinInfo,
     OrgMemberOption,
     PublicMeetingView,
     RescheduleMeetingRequest,
@@ -25,6 +26,7 @@ from app.schemas.booking import (
 )
 from app.schemas.common import PaginatedResponse
 from app.services import booking as booking_service
+from app.utils.email import create_meeting_join_token
 
 router = APIRouter(prefix="/bookings", tags=["Meetings"])
 
@@ -178,6 +180,29 @@ async def host_reschedule_meeting(
     return ScheduledMeetingResponse.model_validate(meeting)
 
 
+@router.get("/meetings/{public_id}/join-link")
+async def host_get_meeting_join_link(
+    public_id: uuid.UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Mints a fresh join token for the host's own meeting and hands back the same
+    join-gate URL a client/guest would get by email — the host goes through the
+    identical joinability check (see get_meeting_join_info) rather than opening the
+    raw video link directly, so branding-stripping and the active-window rule apply
+    to everyone the same way."""
+    meeting = await ScheduledMeetingRepository.get_by_public_id(db, public_id)
+    if meeting is None:
+        raise NotFoundError("Meeting not found")
+    booking_service.assert_host_owns_meeting(meeting, current_user)
+
+    from app.core.config import settings
+
+    token = create_meeting_join_token(meeting.public_id)
+    base_url = settings.FRONTEND_URL or "http://localhost:5173"
+    return {"join_url": f"{base_url}/meetings/join?token={token}"}
+
+
 # ── Public (no-login) client self-service — token identifies the meeting ─────────
 #
 # No current_user dependency anywhere below, by design (same convention as
@@ -212,3 +237,14 @@ async def public_cancel_meeting(
     meeting = await booking_service.get_meeting_by_manage_token(db, token)
     meeting = await booking_service.client_cancel_meeting(db, meeting=meeting, reason=payload.reason)
     return await _public_meeting_view(db, meeting)
+
+
+# ── Public (no-login) video-call join gate — a separate token from the manage one
+# above, carrying no reschedule/cancel privilege (see create_meeting_join_token). ──
+
+@router.get("/public/meetings/join/{token}", response_model=MeetingJoinInfo)
+async def public_get_meeting_join_info(token: str, db: AsyncSession = Depends(get_db)) -> MeetingJoinInfo:
+    meeting = await booking_service.get_meeting_by_join_token(db, token)
+    host = await db.get(User, meeting.host_user_id)
+    host_name = (host.full_name or host.email) if host else "Your host"
+    return booking_service.get_meeting_join_info(meeting, host_name=host_name)
