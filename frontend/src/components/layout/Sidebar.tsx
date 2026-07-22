@@ -16,8 +16,6 @@ import {
 import {
 	Person as ProfileIcon,
 	ExitToApp as LogoutIcon,
-	ChevronLeftOutlined,
-	ChevronRightOutlined,
 	HourglassEmpty as HourglassIcon,
 	AutoAwesome as PremiumIcon,
 	Warning as WarningIcon,
@@ -587,44 +585,6 @@ const Sidebar: React.FC = () => {
 						))}
 					</List>
 				</Box>
-
-				{/* Collapse / Expand Toggle Button for Desktop */}
-				{!isMobile && (
-					<Box sx={{ flexShrink: 0, borderTop: `1px solid ${sidebarDivider}`, p: 0.5 }}>
-						<ListItemButton
-							onClick={() => dispatch(toggleSidebar())}
-							sx={{
-								minHeight: 36,
-								px: drawerExpanded ? 1.5 : 0,
-								py: 0.5,
-								mx: drawerExpanded ? 0.75 : 0.5,
-								borderRadius: 1.25,
-								justifyContent: drawerExpanded ? 'initial' : 'center',
-								transition: theme.transitions.create(['background-color', 'color', 'margin']),
-								'&:hover': {
-									bgcolor: sidebarHoverBg,
-								},
-							}}
-						>
-							<ListItemIcon sx={{ minWidth: 0, mr: drawerExpanded ? 1.25 : 0, color: sidebarTextMuted, justifyContent: 'center' }}>
-								{drawerExpanded ? <ChevronLeftOutlined sx={{ fontSize: '1.2rem' }} /> : <ChevronRightOutlined sx={{ fontSize: '1.2rem' }} />}
-							</ListItemIcon>
-							<ListItemText
-								primary="Collapse sidebar"
-								sx={{
-									opacity: drawerExpanded ? 1 : 0,
-									display: drawerExpanded ? 'block' : 'none',
-									m: 0,
-									'& .MuiListItemText-primary': {
-										...theme.typography.sidebarItem,
-										color: sidebarTextMuted,
-										whiteSpace: 'nowrap',
-									}
-								}}
-							/>
-						</ListItemButton>
-					</Box>
-				)}
 
 				{/* Mobile-only: Trial/Plan Badge + Help & Support */}
 			{isMobile && !isSettingsRoute && user && (
