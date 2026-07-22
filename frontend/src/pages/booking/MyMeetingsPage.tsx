@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import dayjs from 'dayjs';
 import { Box, Container, Button, TextField, Tabs, Tab, RadioGroup, FormControlLabel, Radio, Typography, alpha } from '@mui/material';
 import { CalendarMonthOutlined, HistoryOutlined } from '@mui/icons-material';
 import PageHeader from '../../components/common/page-header';
@@ -40,7 +41,13 @@ const MyMeetingsPage: React.FC = () => {
 
 	const loadCalendarMeetings = async () => {
 		try {
-			const response = await bookingService.listMyMeetings({ status: 'scheduled', pageSize: 100 });
+			// No status filter — the week grid shows scheduled, completed, and cancelled
+			// meetings alike. Bounded to the last 60 days onward so old history doesn't
+			// crowd out the current/upcoming weeks within the page-size cap.
+			const response = await bookingService.listMyMeetings({
+				startAfter: dayjs().subtract(60, 'day').toISOString(),
+				pageSize: 100,
+			});
 			setCalendarMeetings(response.items);
 		} catch {
 			// Non-fatal — the calendar just shows no events until the next refresh.

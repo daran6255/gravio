@@ -12,15 +12,16 @@ const bookingService = {
 	listMyMeetings: async (params: {
 		status?: MeetingStatus;
 		upcomingOnly?: boolean;
+		startAfter?: string;
 		startBefore?: string;
 		search?: string;
 		page?: number;
 		pageSize?: number;
 	} = {}): Promise<PaginatedResponse<ScheduledMeetingHost>> => {
-		const { status, upcomingOnly, startBefore, search, page = 1, pageSize = 20 } = params;
+		const { status, upcomingOnly, startAfter, startBefore, search, page = 1, pageSize = 20 } = params;
 		const response = await api.get<PaginatedResponse<ScheduledMeetingHost>>('/bookings/meetings', {
 			params: {
-				status, upcoming_only: upcomingOnly, start_before: startBefore,
+				status, upcoming_only: upcomingOnly, start_after: startAfter, start_before: startBefore,
 				search: search || undefined, page, page_size: pageSize,
 			},
 		});

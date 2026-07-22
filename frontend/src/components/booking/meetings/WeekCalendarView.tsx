@@ -1,16 +1,22 @@
 import React from 'react';
 import { Box, Stack, Typography, IconButton, Button, Popover, Divider, useTheme, alpha } from '@mui/material';
-import { ChevronLeft, ChevronRight, VideocamOutlined, PlaceOutlined, PhoneOutlined, Close as CloseIcon, EditOutlined, CloseOutlined, CalendarMonthOutlined, CheckCircleOutline } from '@mui/icons-material';
+import { ChevronLeft, ChevronRight, VideocamOutlined, PlaceOutlined, PhoneOutlined, Close as CloseIcon, EditOutlined, CloseOutlined, CalendarMonthOutlined, CheckCircleOutline, EventBusyOutlined } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import EnterpriseAvatar from '../../common/avatar/Avatar';
 import { responsiveStyles } from '../../../theme';
 import { useWeekCalendarView, HOUR_HEIGHT } from './hooks/useWeekCalendarView';
-import type { ScheduledMeetingHost, MeetingLocationType } from '../../../models/booking/meeting';
+import type { ScheduledMeetingHost, MeetingLocationType, MeetingStatus } from '../../../models/booking/meeting';
 
 const LOCATION_INFO: Record<MeetingLocationType, { icon: React.ReactElement<{ sx?: object }>; label: string }> = {
 	google_meet: { icon: <VideocamOutlined sx={{ fontSize: 18 }} />, label: 'Video call' },
 	offline: { icon: <PlaceOutlined sx={{ fontSize: 18 }} />, label: 'In person' },
 	phone: { icon: <PhoneOutlined sx={{ fontSize: 18 }} />, label: 'Phone call' },
+};
+
+const STATUS_LABEL: Record<MeetingStatus, string> = {
+	scheduled: 'Scheduled',
+	completed: 'Completed',
+	cancelled: 'Cancelled',
 };
 
 interface WeekCalendarViewProps {
@@ -60,6 +66,45 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 		boxShadow: isDark ? '0 1px 2px rgba(0,0,0,0.4), 0 8px 20px rgba(0,0,0,0.2)' : '0 1px 2px rgba(15,23,42,0.04), 0 8px 20px rgba(15,23,42,0.05)',
 	};
 
+	// Scheduled keeps the brand gradient (it's the only status you can still act on);
+	// completed and cancelled recede into muted, non-brand tints so a glance at the
+	// grid tells you what's still active vs. just historical record.
+	const getCardVisuals = (status: MeetingStatus) => {
+		if (status === 'cancelled') {
+			return {
+				background: isDark ? 'rgba(148,163,184,0.16)' : 'rgba(100,116,139,0.12)',
+				color: theme.palette.text.secondary,
+				border: `1px dashed ${alpha(theme.palette.text.secondary, 0.4)}`,
+				boxShadow: 'none',
+				strike: true,
+			};
+		}
+		if (status === 'completed') {
+			return {
+				background: alpha(theme.palette.info.main, isDark ? 0.22 : 0.14),
+				color: isDark ? theme.palette.info.light : theme.palette.info.dark,
+				border: `1px solid ${alpha(theme.palette.info.main, 0.35)}`,
+				boxShadow: 'none',
+				strike: false,
+			};
+		}
+		return {
+			background: theme.gradients.brandDiagonal,
+			color: '#fff',
+			border: '1px solid rgba(255,255,255,0.22)',
+			boxShadow: '0 1px 3px rgba(15,23,42,0.18), 0 3px 10px rgba(139,124,246,0.38)',
+			strike: false,
+		};
+	};
+
+	const legendItems: { color: string; label: string }[] = [
+		{ color: alpha(theme.palette.success.main, isDark ? 0.4 : 0.35), label: 'Open — click to book' },
+		{ color: theme.palette.primary.main, label: 'Scheduled' },
+		{ color: theme.palette.info.main, label: 'Completed' },
+		{ color: theme.palette.text.secondary, label: 'Cancelled' },
+		{ color: alpha(theme.palette.text.secondary, 0.3), label: 'Past, nothing logged' },
+	];
+
 	return (
 		<Box sx={cardSx}>
 			{/* Controls */}
@@ -72,7 +117,14 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 					<IconButton size="small" onClick={goToNextWeek}><ChevronRight /></IconButton>
 					<Typography variant="body2" fontWeight={700} sx={{ ml: 1 }}>{weekLabel}</Typography>
 				</Stack>
-				<Typography variant="caption" color="text.secondary">Click any slot to schedule a meeting, or drag a meeting to move it.</Typography>
+				<Stack direction="row" spacing={1.5} flexWrap="wrap" rowGap={0.5}>
+					{legendItems.map((item) => (
+						<Stack key={item.label} direction="row" spacing={0.6} alignItems="center">
+							<Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: item.color, flexShrink: 0 }} />
+							<Typography variant="caption" color="text.secondary" noWrap>{item.label}</Typography>
+						</Stack>
+					))}
+				</Stack>
 			</Stack>
 
 			{/* Grid — horizontally scrollable below its comfortable minimum width instead
@@ -120,11 +172,14 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 					))}
 				</Box>
 
-				{/* Day columns */}
+				{/* Day columns — past days stay fully clickable (you can log a backdated
+				    meeting), they just read as neutral rather than "open to book" like
+				    upcoming days do. */}
 				{days.map((day) => {
 					const dateStr = day.format('YYYY-MM-DD');
 					const dayMeetings = meetingsByDate.get(dateStr) || [];
 					const isPast = day.isBefore(now, 'day');
+					const hasNoMeetings = dayMeetings.length === 0;
 
 					return (
 						<Box
@@ -134,9 +189,24 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 							onDrop={(e) => handleDayColumnDrop(day, e)}
 							sx={{
 								position: 'relative', height: gridHeight, borderLeft: '1px solid', borderColor: 'divider',
-								cursor: 'pointer', opacity: isPast ? 0.5 : 1,
+								cursor: 'pointer',
+								// Open/bookable time reads green; past time reads neutral grey —
+								// still clickable to add a backdated meeting, just not "come book me".
+								bgcolor: isPast
+									? alpha(theme.palette.text.secondary, isDark ? 0.05 : 0.04)
+									: alpha(theme.palette.success.main, isDark ? 0.07 : 0.055),
 							}}
 						>
+							{/* Past day with nothing logged — make the empty slot legible instead
+							    of leaving an unexplained blank column. */}
+							{isPast && hasNoMeetings && (
+								<Box sx={{ position: 'absolute', top: 8, left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
+									<Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 700, fontSize: '0.62rem' }} noWrap>
+										No meetings
+									</Typography>
+								</Box>
+							)}
+
 							{/* Hour gridlines */}
 							{hours.map((h) => (
 								<Box key={h} sx={{ position: 'absolute', top: (h - startHour) * HOUR_HEIGHT, left: 0, right: 0, borderTop: '1px solid', borderColor: 'divider' }} />
@@ -149,7 +219,8 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 								</Box>
 							)}
 
-							{/* Meeting blocks */}
+							{/* Meeting blocks — scheduled, completed, and cancelled all render here so the
+							    grid doubles as a record of what happened in a slot, not just what's booked */}
 							{dayMeetings.map((m) => {
 								const start = dayjs(m.start_time);
 								const end = dayjs(m.end_time);
@@ -159,13 +230,15 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 								const compact = height < 38;
 								const roomy = height >= 56;
 								const isBeingDragged = dragState?.meeting.public_id === m.public_id;
+								const isDraggable = m.status === 'scheduled';
 								const locationIcon = React.cloneElement(LOCATION_INFO[m.location_type].icon, { sx: { fontSize: 12 } });
+								const visuals = getCardVisuals(m.status);
 								return (
 									<Box
 										key={m.public_id}
-										draggable
-										onDragStart={(e) => handleMeetingDragStart(e, m)}
-										onDragEnd={handleMeetingDragEnd}
+										draggable={isDraggable}
+										onDragStart={isDraggable ? (e) => handleMeetingDragStart(e, m) : undefined}
+										onDragEnd={isDraggable ? handleMeetingDragEnd : undefined}
 										onClick={(e) => { e.stopPropagation(); openPopover(e.currentTarget, m); }}
 										sx={{
 											position: 'absolute', left: 3, right: 3, top: top + 1, height,
@@ -174,33 +247,40 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 											alignItems: compact ? 'center' : 'flex-start',
 											justifyContent: compact ? 'flex-start' : 'center',
 											gap: compact ? 0.6 : 0.15,
-											background: (t) => t.gradients.brandDiagonal,
-											color: '#fff', borderRadius: '10px', pl: 1.1, pr: 0.85, py: compact ? 0 : 0.6,
-											overflow: 'hidden', cursor: 'grab',
-											border: '1px solid rgba(255,255,255,0.22)',
-											boxShadow: '0 1px 3px rgba(15,23,42,0.18), 0 3px 10px rgba(139,124,246,0.38)',
+											background: visuals.background,
+											color: visuals.color, borderRadius: '10px', pl: 1.1, pr: 0.85, py: compact ? 0 : 0.6,
+											overflow: 'hidden', cursor: isDraggable ? 'grab' : 'pointer',
+											border: visuals.border,
+											boxShadow: visuals.boxShadow,
 											zIndex: 1,
 											opacity: isBeingDragged ? 0.35 : 1,
 											transition: 'transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease',
 											'&:hover': {
 												transform: 'translateY(-1px)',
-												boxShadow: '0 3px 6px rgba(15,23,42,0.22), 0 8px 18px rgba(139,124,246,0.5)',
 												zIndex: 3,
 											},
 										}}
 									>
 										<Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0, flexShrink: 0 }}>
 											{!compact && locationIcon}
-											<Typography variant="caption" sx={{ fontWeight: 800, lineHeight: 1.25, fontSize: '0.7rem', flexShrink: 0 }} noWrap>
+											<Typography
+												variant="caption"
+												sx={{ fontWeight: 800, lineHeight: 1.25, fontSize: '0.7rem', flexShrink: 0, textDecoration: visuals.strike ? 'line-through' : 'none' }}
+												noWrap
+											>
 												{start.format('h:mm A')}
 											</Typography>
 										</Stack>
-										<Typography variant="caption" sx={{ lineHeight: 1.25, fontSize: '0.72rem', fontWeight: 600, opacity: 0.96, minWidth: 0 }} noWrap>
+										<Typography
+											variant="caption"
+											sx={{ lineHeight: 1.25, fontSize: '0.72rem', fontWeight: 600, opacity: 0.96, minWidth: 0, textDecoration: visuals.strike ? 'line-through' : 'none' }}
+											noWrap
+										>
 											{compact ? `· ${m.client_name}` : m.client_name}
 										</Typography>
 										{roomy && (
 											<Typography variant="caption" sx={{ lineHeight: 1.2, fontSize: '0.62rem', opacity: 0.8, minWidth: 0 }} noWrap>
-												{LOCATION_INFO[m.location_type].label}
+												{m.status === 'scheduled' ? LOCATION_INFO[m.location_type].label : STATUS_LABEL[m.status]}
 											</Typography>
 										)}
 									</Box>
@@ -257,7 +337,22 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 								<Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0 }}>
 									<EnterpriseAvatar name={popoverMeeting.client_name} size={40} />
 									<Box sx={{ minWidth: 0 }}>
-										<Typography variant="subtitle2" fontWeight={800} noWrap>{popoverMeeting.client_name}</Typography>
+										<Stack direction="row" spacing={0.75} alignItems="center">
+											<Typography variant="subtitle2" fontWeight={800} noWrap>{popoverMeeting.client_name}</Typography>
+											{popoverMeeting.status !== 'scheduled' && (
+												<Box
+													sx={{
+														px: 0.75, py: 0.15, borderRadius: '6px', flexShrink: 0,
+														bgcolor: getCardVisuals(popoverMeeting.status).background,
+														color: getCardVisuals(popoverMeeting.status).color,
+													}}
+												>
+													<Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.6rem', textTransform: 'uppercase' }}>
+														{STATUS_LABEL[popoverMeeting.status]}
+													</Typography>
+												</Box>
+											)}
+										</Stack>
 										<Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
 											{popoverMeeting.client_email}
 										</Typography>
@@ -286,10 +381,28 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 									{popoverMeeting.location_detail || LOCATION_INFO[popoverMeeting.location_type].label}
 								</Typography>
 							</Stack>
+
+							{popoverMeeting.status === 'cancelled' && popoverMeeting.cancellation_reason && (
+								<Stack direction="row" spacing={1} alignItems="flex-start" sx={{ mt: 1.5 }}>
+									<EventBusyOutlined sx={{ fontSize: 16, color: 'text.secondary', mt: 0.15 }} />
+									<Typography variant="caption" color="text.secondary">
+										{popoverMeeting.cancellation_reason}
+									</Typography>
+								</Stack>
+							)}
+							{popoverMeeting.status === 'completed' && popoverMeeting.outcome_notes && (
+								<Stack direction="row" spacing={1} alignItems="flex-start" sx={{ mt: 1.5 }}>
+									<CheckCircleOutline sx={{ fontSize: 16, color: 'text.secondary', mt: 0.15 }} />
+									<Typography variant="caption" color="text.secondary">
+										{popoverMeeting.outcome_notes}
+									</Typography>
+								</Stack>
+							)}
 						</Box>
 
-						<Divider />
+						{popoverMeeting.status === 'scheduled' && <Divider />}
 
+						{popoverMeeting.status === 'scheduled' && (
 						<Stack spacing={1} sx={{ p: 2 }}>
 							{popoverMeeting.location_type === 'google_meet' && popoverMeeting.location_detail && (
 								<Button
@@ -335,6 +448,7 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 								</Button>
 							</Stack>
 						</Stack>
+						)}
 					</Box>
 				)}
 			</Popover>

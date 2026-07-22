@@ -37,10 +37,11 @@ export const useWeekCalendarView = ({ meetings, onSlotClick, onMoveMeeting }: Us
 
 	const days = useMemo(() => Array.from({ length: 7 }, (_, i) => weekStart.add(i, 'day')), [weekStart]);
 
+	// Every status shows on the grid (scheduled, completed, cancelled) so the week
+	// view doubles as a full record of what happened in a slot, not just what's booked.
 	const meetingsByDate = useMemo(() => {
 		const map = new Map<string, ScheduledMeetingHost[]>();
 		for (const m of meetings) {
-			if (m.status !== 'scheduled') continue;
 			const key = dayjs(m.start_time).format('YYYY-MM-DD');
 			if (!map.has(key)) map.set(key, []);
 			map.get(key)!.push(m);
