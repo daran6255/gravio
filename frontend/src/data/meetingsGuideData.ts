@@ -1,7 +1,7 @@
 import {
 	HelpOutline, EventRepeatOutlined, PublicOutlined, VideoCallOutlined,
 	GroupsOutlined, NotesOutlined, HistoryOutlined, UpdateOutlined,
-	LightbulbOutlined, SettingsOutlined, ChevronRight,
+	SettingsOutlined, ChevronRight,
 } from '@mui/icons-material';
 import type { HelpGuideContent } from '../components/common/guide/HelpGuideDrawer';
 

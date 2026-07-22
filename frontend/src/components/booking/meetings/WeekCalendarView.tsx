@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 import EnterpriseAvatar from '../../common/avatar/Avatar';
 import { responsiveStyles } from '../../../theme';
 import { useWeekCalendarView, HOUR_HEIGHT } from './hooks/useWeekCalendarView';
-import type { ScheduledMeetingHost, MeetingLocationType, MeetingStatus } from '../../../models/booking/meeting';
+import { MEETING_PAST_GRACE_MINUTES, type ScheduledMeetingHost, type MeetingLocationType, type MeetingStatus } from '../../../models/booking/meeting';
 
 const LOCATION_INFO: Record<MeetingLocationType, { icon: React.ReactElement<{ sx?: object }>; label: string }> = {
 	google_meet: { icon: <VideocamOutlined sx={{ fontSize: 18 }} />, label: 'Video call' },
@@ -172,14 +172,20 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 					))}
 				</Box>
 
-				{/* Day columns — past days stay fully clickable (you can log a backdated
-				    meeting), they just read as neutral rather than "open to book" like
-				    upcoming days do. */}
+				{/* Day columns — past dates are view-only (clicking shows a toast instead of
+				    opening New Meeting; see isSlotBookable in useWeekCalendarView), so a
+				    past day reads as neutral history rather than "open to book". */}
 				{days.map((day) => {
 					const dateStr = day.format('YYYY-MM-DD');
 					const dayMeetings = meetingsByDate.get(dateStr) || [];
 					const isPast = day.isBefore(now, 'day');
 					const hasNoMeetings = dayMeetings.length === 0;
+					const isToday = day.isSame(now, 'day');
+					// The bookable cutoff within today (now minus the grace window) — the
+					// portion of today's column before this reads as past/neutral too,
+					// instead of the whole current day glowing green regardless of the hour.
+					const todayCutoff = now.subtract(MEETING_PAST_GRACE_MINUTES, 'minute');
+					const todayCutoffMinutes = isToday ? Math.max(0, todayCutoff.hour() * 60 + todayCutoff.minute()) : 0;
 
 					return (
 						<Box
@@ -189,9 +195,8 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 							onDrop={(e) => handleDayColumnDrop(day, e)}
 							sx={{
 								position: 'relative', height: gridHeight, borderLeft: '1px solid', borderColor: 'divider',
-								cursor: 'pointer',
-								// Open/bookable time reads green; past time reads neutral grey —
-								// still clickable to add a backdated meeting, just not "come book me".
+								cursor: isPast ? 'not-allowed' : 'pointer',
+								// Open/bookable time reads green; past time reads neutral grey.
 								bgcolor: isPast
 									? alpha(theme.palette.text.secondary, isDark ? 0.05 : 0.04)
 									: alpha(theme.palette.success.main, isDark ? 0.07 : 0.055),
@@ -205,6 +210,19 @@ const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 										No meetings
 									</Typography>
 								</Box>
+							)}
+
+							{/* Already-elapsed hours of today — covers the green "open" wash up to
+							    the bookable cutoff so only genuinely bookable time reads as open. */}
+							{isToday && todayCutoffMinutes > 0 && (
+								<Box
+									sx={{
+										position: 'absolute', top: 0, left: 0, right: 0,
+										height: timeToY(todayCutoffMinutes),
+										bgcolor: alpha(theme.palette.text.secondary, isDark ? 0.05 : 0.04),
+										pointerEvents: 'none',
+									}}
+								/>
 							)}
 
 							{/* Hour gridlines */}

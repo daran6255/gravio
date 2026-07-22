@@ -1,7 +1,7 @@
 """Pydantic validation schemas for Meetings."""
 
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
@@ -9,6 +9,10 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, mo
 from app.models.booking import CancelledBy, MeetingLocationType, MeetingStatus, RecurrenceRule
 
 MAX_RECURRING_OCCURRENCES = 52
+# A meeting's start time may lag "now" by at most this much — small enough to just
+# cover clock skew / the time spent filling out the form, not a general allowance
+# for booking whatever's already happened.
+MEETING_PAST_GRACE_MINUTES = 15
 
 
 # --- Scheduling Schemas ---
@@ -42,6 +46,14 @@ class ScheduleMeetingRequest(BaseModel):
     def _require_timezone_aware(cls, v: datetime) -> datetime:
         if v.tzinfo is None:
             raise ValueError("must be timezone-aware")
+        return v
+
+    @field_validator("start_time")
+    @classmethod
+    def _not_too_far_past(cls, v: datetime) -> datetime:
+        earliest_allowed = datetime.now(timezone.utc) - timedelta(minutes=MEETING_PAST_GRACE_MINUTES)
+        if v < earliest_allowed:
+            raise ValueError(f"start_time can't be more than {MEETING_PAST_GRACE_MINUTES} minutes in the past")
         return v
 
     @field_validator("host_timezone", "attendee_timezone")
@@ -117,6 +129,14 @@ class RescheduleMeetingRequest(BaseModel):
     def _require_timezone_aware(cls, v: datetime) -> datetime:
         if v.tzinfo is None:
             raise ValueError("start_time must be timezone-aware")
+        return v
+
+    @field_validator("start_time")
+    @classmethod
+    def _not_too_far_past(cls, v: datetime) -> datetime:
+        earliest_allowed = datetime.now(timezone.utc) - timedelta(minutes=MEETING_PAST_GRACE_MINUTES)
+        if v < earliest_allowed:
+            raise ValueError(f"start_time can't be more than {MEETING_PAST_GRACE_MINUTES} minutes in the past")
         return v
 
 

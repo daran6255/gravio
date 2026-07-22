@@ -3,7 +3,7 @@ import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { searchContactOptions } from '../../../../store/slices/crmSlice';
 import bookingService from '../../../../services/bookingService';
 import useToast from '../../../../hooks/useToast';
-import type { ScheduledMeetingHost, OrgMemberOption, MeetingLocationType, RecurrenceRule } from '../../../../models/booking/meeting';
+import { MEETING_PAST_GRACE_MINUTES, type ScheduledMeetingHost, type OrgMemberOption, type MeetingLocationType, type RecurrenceRule } from '../../../../models/booking/meeting';
 import type { Contact } from '../../../../models/crm/contact';
 
 export const BROWSER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -139,6 +139,10 @@ export const useNewMeetingDialog = ({ open, initialDate, initialTime, onCreated,
 			return;
 		}
 		const startTime = buildStartTime();
+		if (startTime.getTime() < Date.now() - MEETING_PAST_GRACE_MINUTES * 60000) {
+			toast.error(`Meeting time can't be more than ${MEETING_PAST_GRACE_MINUTES} minutes in the past.`);
+			return;
+		}
 		const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
 		setSubmitting(true);
 		try {

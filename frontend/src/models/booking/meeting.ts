@@ -1,3 +1,8 @@
+// Mirrors MEETING_PAST_GRACE_MINUTES in backend/app/schemas/booking.py — the backend
+// is the source of truth for this rule; this just avoids a round-trip failure for
+// the common case of picking/clicking/dragging clearly too far into the past.
+export const MEETING_PAST_GRACE_MINUTES = 15;
+
 export type MeetingStatus = 'scheduled' | 'completed' | 'cancelled';
 export type CancelledBy = 'host' | 'client' | 'system';
 export type MeetingLocationType = 'google_meet' | 'offline' | 'phone';

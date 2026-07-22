@@ -6,7 +6,7 @@ import {
 import { VideocamOutlined, PlaceOutlined, PhoneOutlined, VideoCallOutlined } from '@mui/icons-material';
 import { EnterpriseForm, RichTextEditor, type FormStep } from '../../common/form';
 import { useNewMeetingDialog, BROWSER_TZ, contactLabel } from './hooks/useNewMeetingDialog';
-import type { ScheduledMeetingHost, MeetingLocationType, RecurrenceRule } from '../../../models/booking/meeting';
+import { MEETING_PAST_GRACE_MINUTES, type ScheduledMeetingHost, type MeetingLocationType, type RecurrenceRule } from '../../../models/booking/meeting';
 
 interface NewMeetingDialogProps {
 	open: boolean;
@@ -75,6 +75,13 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = (props) => {
 	} = useNewMeetingDialog(props);
 
 	const selectedLocation = LOCATION_OPTIONS.find((o) => o.value === locationType) || LOCATION_OPTIONS[0];
+
+	// A past date is never bookable; today allows a small grace window (see
+	// useNewMeetingDialog's submit check) instead of a hard cutoff at "now".
+	const todayStr = new Date().toISOString().slice(0, 10);
+	const minTimeStr = selectedDate === todayStr
+		? new Date(Date.now() - MEETING_PAST_GRACE_MINUTES * 60000).toTimeString().slice(0, 5)
+		: undefined;
 
 	const steps: FormStep[] = [
 		{
@@ -151,11 +158,14 @@ const NewMeetingDialog: React.FC<NewMeetingDialogProps> = (props) => {
 							label="Date" type="date" fullWidth value={selectedDate}
 							onChange={(e) => setSelectedDate(e.target.value)}
 							InputLabelProps={{ shrink: true }}
+							inputProps={{ min: todayStr }}
 						/>
 						<TextField
 							label="Start time" type="time" fullWidth value={selectedTime}
 							onChange={(e) => setSelectedTime(e.target.value)}
 							InputLabelProps={{ shrink: true }}
+							inputProps={{ min: minTimeStr }}
+							helperText={minTimeStr ? `Today, no earlier than ${minTimeStr}` : ' '}
 						/>
 						<TextField
 							select label="Duration" fullWidth
