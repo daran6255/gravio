@@ -96,12 +96,29 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
-    logger.error(f"Validation Error for {request.url}: {exc.errors()}")
-    # Re-raise to let default handler return 422, or return JSON response
-    # We just want to log here
-    return await request_validation_exception_handler(request, exc)
-
-from fastapi.exception_handlers import request_validation_exception_handler
+    """Request-body/query validation failures (including a ValueError raised by a
+    field_validator, e.g. ScheduleMeetingRequest's past-time check) previously fell
+    through to FastAPI's default {"detail": [...]} shape — every frontend catch
+    block reads `error.response.data.error.message` (the shape ErrorHandlerMiddleware
+    uses for everything else), so that default shape's message was silently
+    invisible and the UI fell back to a hardcoded, often misleading string instead
+    of the actual validation reason. This matches the app's one standard error
+    contract so the real message reaches the user.
+    """
+    errors = exc.errors()
+    logger.error(f"Validation Error for {request.url}: {errors}")
+    first_message = errors[0]["msg"] if errors else "Validation failed for request parameters"
+    return JSONResponse(
+        status_code=422,
+        content={
+            "success": False,
+            "error": {
+                "code": "VALIDATION_ERROR",
+                "message": first_message,
+                "detail": errors,
+            },
+        },
+    )
 
 
 # Middleware order matters: Starlette wraps middleware in the *reverse* of the

@@ -83,6 +83,38 @@ async def _has_conflict(
     return len(overlapping) > 0
 
 
+async def _participant_conflict_name(
+    db: AsyncSession, *, participant_user_ids: list[int], start_utc: datetime, end_utc: datetime,
+    exclude_meeting_id: Optional[int] = None,
+) -> Optional[str]:
+    """Display name of the first invited teammate who's already busy during this
+    slot — either hosting or merely attending another meeting that overlaps it —
+    or None if everyone invited is free. Inviting a colleague to a meeting
+    shouldn't silently double-book their calendar the way it would if only the
+    requesting host's own availability were ever checked."""
+    if not participant_user_ids:
+        return None
+
+    candidates = set(participant_user_ids)
+    overlapping = await ScheduledMeetingRepository.list_overlapping_any_host(
+        db, start_time=start_utc, end_time=end_utc, exclude_meeting_id=exclude_meeting_id
+    )
+    busy_user_id: Optional[int] = None
+    for meeting in overlapping:
+        if meeting.host_user_id in candidates:
+            busy_user_id = meeting.host_user_id
+            break
+        attending = candidates.intersection(meeting.participant_user_ids or [])
+        if attending:
+            busy_user_id = next(iter(attending))
+            break
+
+    if busy_user_id is None:
+        return None
+    user = await db.get(User, busy_user_id)
+    return (user.full_name or user.email) if user else "One of your invited teammates"
+
+
 # ── CRM linkage ──────────────────────────────────────────────────────────────────
 
 async def _find_or_create_lead(
@@ -406,6 +438,14 @@ async def _create_occurrence(
             return None
         raise ConflictError("You already have a meeting scheduled during this time.")
 
+    busy_name = await _participant_conflict_name(
+        db, participant_user_ids=payload.participant_user_ids or [], start_utc=start_utc, end_utc=end_utc,
+    )
+    if busy_name is not None:
+        if not raise_on_conflict:
+            return None
+        raise ConflictError(f"{busy_name} already has a meeting during this time — pick another time or remove them from the invite.")
+
     lead = await _find_or_create_lead(
         db, organization_id=host.organization_id, host_user_id=host.id, meeting_title=payload.meeting_title,
         client_name=payload.client_name, client_email=payload.client_email,
@@ -539,6 +579,13 @@ async def reschedule_meeting(db: AsyncSession, *, meeting: ScheduledMeeting, new
         end_utc = start_utc + duration
         if await _has_conflict(db, host_user_id=meeting.host_user_id, start_utc=start_utc, end_utc=end_utc, exclude_meeting_id=meeting.id):
             raise ConflictError("You already have another meeting scheduled during this time.")
+
+        busy_name = await _participant_conflict_name(
+            db, participant_user_ids=meeting.participant_user_ids or [], start_utc=start_utc, end_utc=end_utc,
+            exclude_meeting_id=meeting.id,
+        )
+        if busy_name is not None:
+            raise ConflictError(f"{busy_name} already has a meeting during this new time — pick another time.")
 
         host = await db.get(User, meeting.host_user_id)
         if host is None:

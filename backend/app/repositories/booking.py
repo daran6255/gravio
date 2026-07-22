@@ -49,6 +49,27 @@ class ScheduledMeetingRepository:
         return list(result.scalars().all())
 
     @staticmethod
+    async def list_overlapping_any_host(
+        db: AsyncSession, *, start_time: datetime, end_time: datetime, exclude_meeting_id: Optional[int] = None,
+    ) -> list[ScheduledMeeting]:
+        """Active meetings overlapping [start_time, end_time) regardless of who's
+        hosting — used to check invited participants' own availability (see
+        app/services/booking.py's _participant_conflict_name), not just the
+        requesting host's calendar. Unscoped by host_user_id so it also catches a
+        participant who's merely *attending* (not hosting) another meeting at this
+        time; automatically narrowed to the current organization by the tenant
+        filter on TenantAwareMixin queries (see core/database.py)."""
+        conditions = [
+            ScheduledMeeting.status == MeetingStatus.SCHEDULED,
+            ScheduledMeeting.start_time < end_time,
+            ScheduledMeeting.end_time > start_time,
+        ]
+        if exclude_meeting_id is not None:
+            conditions.append(ScheduledMeeting.id != exclude_meeting_id)
+        result = await db.execute(select(ScheduledMeeting).where(*conditions))
+        return list(result.scalars().all())
+
+    @staticmethod
     async def create(db: AsyncSession, *, host_user_id: int, **kwargs) -> ScheduledMeeting:
         meeting = ScheduledMeeting(host_user_id=host_user_id, **kwargs)
         db.add(meeting)

@@ -19,6 +19,16 @@ function randomToken(length: number): string {
 	return Math.random().toString(36).slice(2, 2 + length);
 }
 
+/** The next quarter-hour from right now — used as the default Start time instead of
+ * a fixed '09:00', which read as "in the past" (and got rejected by the backend's
+ * past-time guard) for the entire rest of the day once it was already past 9 AM. */
+function nextAvailableTimeSlot(): string {
+	const d = new Date();
+	const roundedMinutes = Math.ceil(d.getMinutes() / 15) * 15;
+	d.setMinutes(roundedMinutes, 0, 0);
+	return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 /** Instant, keyless video-call room — no OAuth/account tied to any individual
  * host, no external API call, works the moment anyone opens the link. */
 function generateVideoMeetingLink(seed: string): string {
@@ -54,7 +64,7 @@ export const useNewMeetingDialog = ({ open, initialDate, initialTime, onCreated,
 	const [attendeeTimezone, setAttendeeTimezone] = useState(BROWSER_TZ);
 	const [notes, setNotes] = useState('');
 	const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
-	const [selectedTime, setSelectedTime] = useState('09:00');
+	const [selectedTime, setSelectedTime] = useState(nextAvailableTimeSlot);
 	const [durationMinutes, setDurationMinutes] = useState(30);
 	const [locationType, setLocationType] = useState<MeetingLocationType>('google_meet');
 	const [locationDetail, setLocationDetail] = useState('');
@@ -80,7 +90,7 @@ export const useNewMeetingDialog = ({ open, initialDate, initialTime, onCreated,
 			setRecurrenceEndDate('');
 			setDurationMinutes(30);
 			setSelectedDate(initialDate || new Date().toISOString().slice(0, 10));
-			setSelectedTime(initialTime || '09:00');
+			setSelectedTime(initialTime || nextAvailableTimeSlot());
 			bookingService.listOrgMembers().then(setOrgMembers).catch(() => setOrgMembers([]));
 		}
 	}, [open, initialDate, initialTime]);
