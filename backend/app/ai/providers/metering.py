@@ -1,8 +1,9 @@
 """Credits metering wrapper — the single choke point every AI call passes through.
 
-Wraps any LLMProvider (typically a ResilientLLMProvider): pre-checks the org's credit balance,
-delegates the call, and deducts real usage afterward. Every current and future AI feature gets
-credit accounting for free just by going through get_llm_provider() with an org_id — no
+Wraps any LLMProvider (typically a ResilientLLMProvider): pre-checks the calling user's own
+credit balance (wallets are per-user, not pooled per org — see AICreditWallet), delegates the
+call, and deducts real usage afterward. Every current and future AI feature gets credit
+accounting for free just by going through get_llm_provider() with an org_id and user_id — no
 feature-level code has to know credits exist.
 """
 
@@ -66,7 +67,7 @@ class MeteredLLMProvider(LLMProvider):
 
     async def complete(self, system_prompt, user_message, temperature=0.2, max_tokens=4096) -> LLMResponse:
         org = await self._get_org()
-        wallet = await ai_credit_service.ensure_credits_available(self._db, org)
+        wallet = await ai_credit_service.ensure_credits_available(self._db, org, self._user_id)
         clamped_max_tokens = await self._clamp_max_tokens(wallet, max_tokens)
 
         response = await self._inner.complete(system_prompt, user_message, temperature, clamped_max_tokens)
@@ -83,7 +84,7 @@ class MeteredLLMProvider(LLMProvider):
 
     async def stream_complete(self, system_prompt, user_message, temperature=0.2, max_tokens=4096) -> AsyncGenerator[str, None]:
         org = await self._get_org()
-        wallet = await ai_credit_service.ensure_credits_available(self._db, org)
+        wallet = await ai_credit_service.ensure_credits_available(self._db, org, self._user_id)
         clamped_max_tokens = await self._clamp_max_tokens(wallet, max_tokens)
 
         accumulated_chars = 0

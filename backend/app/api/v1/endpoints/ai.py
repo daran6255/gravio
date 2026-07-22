@@ -48,14 +48,14 @@ async def _get_current_org(current_user: User, db: AsyncSession) -> Organization
 @router.get(
     "/credits",
     response_model=AICreditBalanceResponse,
-    summary="Get the current AI credit balance for my organization",
+    summary="Get my own AI credit balance",
 )
 async def get_credit_balance(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> AICreditBalanceResponse:
     org = await _get_current_org(current_user, db)
-    wallet = await ai_credit_service.get_wallet_status(db, org)
+    wallet = await ai_credit_service.get_wallet_status(db, org, current_user.id)
     await db.commit()  # persists a first-time wallet creation / period rollover, if one occurred
     return AICreditBalanceResponse.from_wallet(wallet)
 

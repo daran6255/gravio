@@ -6,16 +6,9 @@ Free tier's AI credit grant, to cap cost exposure during evaluation. Orgs with n
 active trial get no module access at all — mirrors the existing "expired" lockout in deps.py.
 
 AI credit *enforcement* (balance checks, deduction) lives in app.services.ai_credit_service —
-this module only resolves how many credits an org's plan grants, reused by that service when
-it rolls a wallet over to a fresh billing period.
-
-A Team org's grant (identified by `others.account_type == "organization"`, the same field
-BillingSettings.tsx reads to tell Solo and Team accounts apart -- there's no dedicated column
-for it) scales with its active seat count: `plan.ai_credits_monthly` is a *per-seat* rate for
-Team accounts, and a flat pool for Solo/individual accounts (always 1 seat). This multiplication
-happens fresh every time the wallet rolls over to a new period (see AICreditRepository), so a
-mid-month seat change only affects *next* month's grant -- the current period's pool is never
-retroactively adjusted, and nothing carries over between periods either way.
+this module only resolves how many credits a plan grants *per user* (see AICreditWallet: every
+user gets their own full allotment off their org's plan rate, Solo or Team alike -- a 10-person
+Team on Pro means 10 separate 1,000-credit wallets, not one 10,000-credit shared pool).
 """
 
 from __future__ import annotations
@@ -31,39 +24,28 @@ from app.models.user import User
 from app.models.organization import Organization
 from app.models.plan import Plan, PlanTier, Module
 from app.repositories.plan import PlanRepository
-from app.repositories.user import UserRepository
 from app.middleware.exceptions import ForbiddenError
 
-# Fallback AI credit grant for trial orgs if the Free plan hasn't been seeded yet.
+# Fallback per-user AI credit grant for trial orgs if the Free plan hasn't been seeded yet.
 TRIAL_AI_CREDITS_FALLBACK = 100
 
 
 @dataclass(frozen=True)
 class EffectiveAccess:
-    """The module access and AI credit grant that actually apply to an organization right now."""
+    """The module access and per-user AI credit grant that actually apply to an organization
+    right now."""
     enabled_modules: frozenset[str]
     ai_credits_monthly: int
 
 
-async def _seat_count(db: AsyncSession, org: Organization) -> int:
-    """Team accounts grant AI credits per active seat; Solo/individual accounts are always
-    treated as a single seat regardless of how many users technically exist on the org."""
-    account_type = (org.others or {}).get("account_type", "individual")
-    if account_type != "organization":
-        return 1
-    return max(await UserRepository.count_by_organization(db, org.id), 1)
-
-
 async def get_effective_access(db: AsyncSession, org: Organization) -> EffectiveAccess:
     """Resolve the access an organization currently has, accounting for trial status."""
-    seats = await _seat_count(db, org)
-
     if org.subscription_status == "trial":
         free_plan = await PlanRepository.get_by_tier(db, PlanTier.FREE)
         base_credits = free_plan.ai_credits_monthly if free_plan else TRIAL_AI_CREDITS_FALLBACK
         return EffectiveAccess(
             enabled_modules=frozenset(m.value for m in Module),
-            ai_credits_monthly=base_credits * seats,
+            ai_credits_monthly=base_credits,
         )
 
     if org.plan_id is None:
@@ -75,7 +57,7 @@ async def get_effective_access(db: AsyncSession, org: Organization) -> Effective
 
     return EffectiveAccess(
         enabled_modules=frozenset(plan.enabled_modules),
-        ai_credits_monthly=plan.ai_credits_monthly * seats,
+        ai_credits_monthly=plan.ai_credits_monthly,
     )
 
 

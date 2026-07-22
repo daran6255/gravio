@@ -1,9 +1,13 @@
-"""AI credits — org-scoped wallet balance plus an append-only transaction ledger.
+"""AI credits — per-user wallet balance plus an append-only transaction ledger.
 
 Replaces the old flat-count AIUsageCounter/ai_monthly_limit scaffold with token-weighted
 credit accounting: AICreditWallet holds the current balance (mutated in place, rolled over
 to a fresh period lazily on read), AICreditTransaction records every balance-affecting event
 for audit trail and the token utilization reporting module.
+
+Wallets are scoped to (organization, user) -- each user gets their own monthly allotment off
+their org's plan rate, not a shared org-wide pool. A Team account's 10 users each get their own
+full allotment; nothing is divided or pooled between them.
 """
 
 from __future__ import annotations
@@ -24,16 +28,25 @@ class AICreditTransactionReason(str, enum.Enum):
 
 
 class AICreditWallet(BaseModel):
-    """One row per organization — the current credit balance for the active billing period."""
+    """One row per (organization, user) — the current credit balance for the active billing
+    period. `organization_id` is kept alongside `user_id` (not just derivable via the user)
+    so a wallet's org-level reporting doesn't need a join back through Users."""
 
     __tablename__ = "ai_credit_wallets"
     __table_args__ = (
-        UniqueConstraint("organization_id", name="uq_ai_credit_wallet_org"),
+        UniqueConstraint("organization_id", "user_id", name="uq_ai_credit_wallet_org_user"),
     )
 
     organization_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -44,7 +57,7 @@ class AICreditWallet(BaseModel):
     granted: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     def __repr__(self) -> str:
-        return f"<AICreditWallet(org_id={self.organization_id}, balance={self.balance}/{self.granted})>"
+        return f"<AICreditWallet(org_id={self.organization_id}, user_id={self.user_id}, balance={self.balance}/{self.granted})>"
 
 
 class AICreditTransaction(BaseModel):

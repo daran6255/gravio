@@ -27,29 +27,33 @@ def current_period_start(now: datetime) -> datetime:
 
 class AICreditRepository:
     @staticmethod
-    async def get_wallet(db: AsyncSession, organization_id: int) -> AICreditWallet | None:
+    async def get_wallet(db: AsyncSession, organization_id: int, user_id: int) -> AICreditWallet | None:
         result = await db.execute(
-            select(AICreditWallet).where(AICreditWallet.organization_id == organization_id)
+            select(AICreditWallet).where(
+                AICreditWallet.organization_id == organization_id,
+                AICreditWallet.user_id == user_id,
+            )
         )
         return result.scalars().first()
 
     @staticmethod
     async def get_or_create_wallet(
-        db: AsyncSession, organization_id: int, ai_credits_monthly: int
+        db: AsyncSession, organization_id: int, user_id: int, ai_credits_monthly: int
     ) -> AICreditWallet:
-        """Fetch the org's wallet, creating it (or rolling it to a fresh period) as needed.
+        """Fetch this user's wallet, creating it (or rolling it to a fresh period) as needed.
 
         A wallet whose period_start has fallen behind the current calendar month is reset in
         place — balance and granted both go back to `ai_credits_monthly`, and a MONTHLY_GRANT
         ledger row records the reset. This is a lazy rollover (checked on read, not on a cron),
         matching the pattern the old AIUsageCounter/consume_ai_quota used.
         """
-        wallet = await AICreditRepository.get_wallet(db, organization_id)
+        wallet = await AICreditRepository.get_wallet(db, organization_id, user_id)
         period_start = current_period_start(datetime.now(timezone.utc))
 
         if wallet is None:
             wallet = AICreditWallet(
                 organization_id=organization_id,
+                user_id=user_id,
                 period_start=period_start,
                 balance=ai_credits_monthly,
                 granted=ai_credits_monthly,
@@ -58,6 +62,7 @@ class AICreditRepository:
             await db.flush()
             await AICreditRepository.record_grant(
                 db, wallet, amount=ai_credits_monthly, reason=AICreditTransactionReason.MONTHLY_GRANT,
+                user_id=user_id,
             )
             return wallet
 
@@ -68,6 +73,7 @@ class AICreditRepository:
             await db.flush()
             await AICreditRepository.record_grant(
                 db, wallet, amount=ai_credits_monthly, reason=AICreditTransactionReason.MONTHLY_GRANT,
+                user_id=user_id,
             )
 
         return wallet
