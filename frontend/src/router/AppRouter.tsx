@@ -132,6 +132,7 @@ const AppRouter: React.FC = () => {
 
 					{/* Tenant-prefixed Settings — single page */}
 					<Route path="org/:orgId/settings" element={<SettingsLayout />} />
+					<Route path="org/:orgId/ai-usage" element={<AICreditsUsagePage />} />
 
 					<Route path="org/:orgId/timesheets" element={<TimesheetPage />} />
 

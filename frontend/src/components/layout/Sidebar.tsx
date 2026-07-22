@@ -20,6 +20,7 @@ import {
 	AutoAwesome as PremiumIcon,
 	Warning as WarningIcon,
 	HeadsetMicOutlined as SupportIcon,
+	BoltOutlined as CreditsIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
@@ -31,6 +32,7 @@ import type { NavigationItem } from '../../config/navigation';
 import { useColorMode } from '../../theme/ThemeContext';
 import { logoutUser } from '../../store/slices/authSlice';
 import ActionMenu from '../common/action-menu/ActionMenu';
+import { useAICreditBalance } from '../../hooks/useAICreditBalance';
 
 /**
  * Enterprise Sidebar - Modern Console Navigation
@@ -44,6 +46,9 @@ const Sidebar: React.FC = () => {
 	const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 	const open = useAppSelector((state) => state.ui.sidebarOpen);
 	const user = useAppSelector((state) => state.auth.user);
+	// Desktop shows this in the Navbar; on mobile the Navbar hides it, so it's shown here
+	// instead, alongside the trial/plan badge (see the mobile-only block below).
+	const aiCredits = useAICreditBalance();
 
 	const { mode } = useColorMode();
 
@@ -596,6 +601,39 @@ const Sidebar: React.FC = () => {
 					flexDirection: 'column',
 					gap: 1,
 				}}>
+					{aiCredits && (() => {
+						const brand = theme.palette.primary.main;
+						const isOut = aiCredits.balance <= 0;
+						const isLow = !isOut && aiCredits.percent_used >= 90;
+						const accent = isOut ? theme.palette.error.main : isLow ? theme.palette.warning.main : brand;
+						const resetsOn = new Date(aiCredits.period_start);
+						resetsOn.setMonth(resetsOn.getMonth() + 1);
+						return (
+							<Box
+								onClick={() => { navigate('/ai-usage'); dispatch(toggleSidebar()); }}
+								sx={{
+									display: 'flex', alignItems: 'center', gap: 1.5,
+									px: 1.5, py: 1.25,
+									borderRadius: theme.layout.radius.pill,
+									background: alpha(accent, isDarkSidebar ? 0.12 : 0.08),
+									border: `1px solid ${alpha(accent, 0.3)}`,
+									cursor: 'pointer',
+									transition: 'opacity 0.2s',
+									'&:hover': { opacity: 0.85 },
+								}}
+							>
+								<CreditsIcon sx={{ fontSize: '1.1rem', color: accent }} />
+								<Box sx={{ minWidth: 0 }}>
+									<Typography variant="caption" sx={{ fontWeight: 700, color: accent, display: 'block', lineHeight: 1.2 }}>
+										{aiCredits.balance.toLocaleString()} credits left
+									</Typography>
+									<Typography variant="caption" sx={{ color: sidebarTextMuted, fontSize: '0.68rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+										of {aiCredits.granted.toLocaleString()} · resets {resetsOn.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+									</Typography>
+								</Box>
+							</Box>
+						);
+					})()}
 					{renderPlanBadge({ includeSuperAdmin: true, includeTrial: true })}
 					<Button
 						fullWidth

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { AppBar, Toolbar, IconButton, Box, Button, Chip, Divider, Tooltip } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import {
@@ -18,7 +18,7 @@ import { useColorMode } from '../../theme/ThemeContext';
 import GlobalSearch from '../common/GlobalSearch';
 import NotificationBell from './NotificationBell';
 import { getCurrencySymbol } from '../../utils/currency';
-import aiService, { type AICreditBalance } from '../../services/aiService';
+import { useAICreditBalance } from '../../hooks/useAICreditBalance';
 
 const Navbar: React.FC = () => {
 	const dispatch = useAppDispatch();
@@ -29,13 +29,9 @@ const Navbar: React.FC = () => {
 	const sidebarOpen = useAppSelector((state) => state.ui.sidebarOpen);
 	const currentDrawerWidth = sidebarOpen ? theme.layout.drawerWidth : theme.layout.drawerWidthCollapsed;
 
-	// AI credit balance -- only orgs have a wallet (GET /ai/credits 404s for a superuser with
-	// no organization), so this mirrors the same `org` guard the subscription badge uses below.
-	const [aiCredits, setAiCredits] = useState<AICreditBalance | null>(null);
-	useEffect(() => {
-		if (!user?.organization) return;
-		aiService.getCreditBalance().then(setAiCredits).catch(() => setAiCredits(null));
-	}, [user?.organization]);
+	// AI credit balance -- shared with Sidebar's mobile-only badge (useAICreditBalance);
+	// only orgs have a wallet (GET /ai/credits 404s for a superuser with no organization).
+	const aiCredits = useAICreditBalance();
 
 	// Calculate trial days left
 	const getTrialDaysLeft = (expiryDateStr?: string) => {
