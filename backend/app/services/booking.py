@@ -21,6 +21,7 @@ from app.middleware.exceptions import BadRequestError, ConflictError, ForbiddenE
 from app.models.booking import CancelledBy, MeetingLocationType, MeetingStatus, RecurrenceRule, ScheduledMeeting
 from app.models.crm import ActivityType, CRMContact, CRMLead, LeadSource, LeadStatus
 from app.models.notification import NotificationType
+from app.models.reminder import ReminderStatus
 from app.models.user import User
 from app.repositories.booking import ScheduledMeetingRepository
 from app.repositories.crm import CRMActivityRepository
@@ -38,6 +39,11 @@ from app.utils.email import (
 from app.utils.ics import build_meeting_ics
 
 MEETING_REMINDER_LEAD_MINUTES = 15
+# Host-facing "you have a meeting today" reminder, sent once each meeting day at
+# this local hour (see _schedule_dayof_reminder) — distinct from the 15-minute
+# just-before reminder above, which is too easy to miss if the host isn't at their
+# desk right that moment.
+MEETING_DAYOF_REMINDER_HOUR = 8
 _RECURRENCE_STEP = {
     RecurrenceRule.DAILY: relativedelta(days=1),
     RecurrenceRule.WEEKLY: relativedelta(weeks=1),
@@ -141,11 +147,30 @@ def _manage_link(meeting: ScheduledMeeting) -> str:
     return f"{base_url}/meetings/manage?token={token}"
 
 
+async def _invitee_contacts(db: AsyncSession, meeting: ScheduledMeeting) -> list[tuple[str, str]]:
+    """(email, display_name) for every invited teammate and extra guest — everyone
+    besides the client who should get a copy of the meeting details/join link."""
+    contacts: list[tuple[str, str]] = []
+    if meeting.participant_user_ids:
+        result = await db.execute(select(User).where(User.id.in_(meeting.participant_user_ids)))
+        for user in result.scalars().all():
+            contacts.append((user.email, user.full_name or user.email))
+    for guest_email in meeting.guest_emails or []:
+        contacts.append((guest_email, guest_email.split("@", 1)[0]))
+    return contacts
+
+
 async def _send_confirmation(db: AsyncSession, *, host: User, meeting: ScheduledMeeting, heading: str) -> None:
     ics_bytes = build_meeting_ics(
         meeting, organizer_email=host.email, organizer_name=host.full_name or host.email, method="REQUEST"
     )
     display_tz = ZoneInfo(meeting.attendee_timezone)
+    meeting_title = meeting.meeting_title or f"Meeting with {host.full_name or host.email}"
+    start_time_display = meeting.start_time.astimezone(display_tz).strftime("%A, %B %d, %Y at %I:%M %p")
+    meet_link = meeting.location_detail if meeting.location_type == MeetingLocationType.GOOGLE_MEET else None
+    location_text = _location_text(meeting)
+    maps_url = _maps_url(meeting)
+
     # Fire-and-forget: the SMTP round trip to an external relay can take seconds to
     # tens of seconds, and awaiting it here would hold the whole create/reschedule
     # request (and the frontend UI waiting on its response) hostage until it finishes.
@@ -153,18 +178,39 @@ async def _send_confirmation(db: AsyncSession, *, host: User, meeting: Scheduled
         send_booking_confirmation_email(
             to_email=meeting.client_email,
             client_name=meeting.client_name,
-            meeting_title=meeting.meeting_title or f"Meeting with {host.full_name or host.email}",
+            meeting_title=meeting_title,
             heading=heading,
-            start_time_display=meeting.start_time.astimezone(display_tz).strftime("%A, %B %d, %Y at %I:%M %p"),
+            start_time_display=start_time_display,
             attendee_timezone=meeting.attendee_timezone,
-            meet_link=meeting.location_detail if meeting.location_type == MeetingLocationType.GOOGLE_MEET else None,
-            location_text=_location_text(meeting),
-            maps_url=_maps_url(meeting),
+            meet_link=meet_link,
+            location_text=location_text,
+            maps_url=maps_url,
             ics_bytes=ics_bytes,
             ics_method="REQUEST",
             manage_link=_manage_link(meeting),
         )
     )
+
+    # Invited teammates and guests get the same time/location/join-link details, but
+    # no client-only manage link — they shouldn't be able to reschedule or cancel
+    # someone else's meeting.
+    for invitee_email, invitee_name in await _invitee_contacts(db, meeting):
+        spawn_email_task(
+            send_booking_confirmation_email(
+                to_email=invitee_email,
+                client_name=invitee_name,
+                meeting_title=meeting_title,
+                heading=heading,
+                start_time_display=start_time_display,
+                attendee_timezone=meeting.attendee_timezone,
+                meet_link=meet_link,
+                location_text=location_text,
+                maps_url=maps_url,
+                ics_bytes=ics_bytes,
+                ics_method="REQUEST",
+                manage_link=None,
+            )
+        )
 
 
 async def _send_cancellation(db: AsyncSession, *, host: User, meeting: ScheduledMeeting) -> None:
@@ -198,6 +244,38 @@ async def _schedule_reminder(db: AsyncSession, *, host_user_id: int, meeting: Sc
         message=f"Meeting with {meeting.client_name} starts in {MEETING_REMINDER_LEAD_MINUTES} minutes.",
         organization_id=meeting.organization_id,
     )
+
+
+async def _schedule_dayof_reminder(db: AsyncSession, *, host_user_id: int, meeting: ScheduledMeeting) -> None:
+    """A second, earlier reminder — fires once at MEETING_DAYOF_REMINDER_HOUR on the
+    host's own local calendar day for the meeting, so 'you have a meeting today'
+    lands well before the 15-minute just-before one, which is easy to miss if the
+    host isn't at their desk right then."""
+    local_tz = ZoneInfo(meeting.host_timezone)
+    local_start = meeting.start_time.astimezone(local_tz)
+    remind_at = local_start.replace(hour=MEETING_DAYOF_REMINDER_HOUR, minute=0, second=0, microsecond=0)
+    now = datetime.now(timezone.utc)
+    if remind_at <= now or remind_at >= meeting.start_time:
+        return  # meeting is today before the reminder hour, or already past it — the 15-min reminder covers it
+    await CRMReminderRepository.create(
+        db,
+        entity_type="scheduled_meeting",
+        entity_id=meeting.id,
+        user_id=host_user_id,
+        remind_at=remind_at,
+        message=f"You have a meeting with {meeting.client_name} today at {local_start.strftime('%I:%M %p')}.",
+        organization_id=meeting.organization_id,
+    )
+
+
+async def _cancel_pending_reminders(db: AsyncSession, *, meeting_id: int) -> None:
+    """Cancels any not-yet-sent reminders tied to this meeting — used whenever a
+    meeting is cancelled or rescheduled, so a host never gets a stale 'meeting
+    today'/'starts in 15 minutes' nudge for a time that no longer applies."""
+    reminders = await CRMReminderRepository.list_for_entity(db, entity_type="scheduled_meeting", entity_id=meeting_id)
+    for reminder in reminders:
+        if reminder.status == ReminderStatus.PENDING:
+            await CRMReminderRepository.cancel(db, reminder)
 
 
 # ── Recurrence ───────────────────────────────────────────────────────────────────
@@ -270,6 +348,7 @@ async def _create_occurrence(
 
     await _send_confirmation(db, host=host, meeting=meeting, heading="Meeting Confirmed")
     await _schedule_reminder(db, host_user_id=host.id, meeting=meeting)
+    await _schedule_dayof_reminder(db, host_user_id=host.id, meeting=meeting)
 
     await db.refresh(meeting)
     return meeting
@@ -343,6 +422,8 @@ async def cancel_meeting(
         meeting.sequence += 1
         await db.flush()
 
+        await _cancel_pending_reminders(db, meeting_id=meeting.id)
+
         if host:
             await _send_cancellation(db, host=host, meeting=meeting)
 
@@ -372,6 +453,12 @@ async def reschedule_meeting(db: AsyncSession, *, meeting: ScheduledMeeting, new
         meeting.end_time = end_utc
         meeting.sequence += 1
         await db.flush()
+
+        # The old reminders were computed against the previous start_time and would
+        # otherwise fire at the wrong moment (or not at all, for the new time).
+        await _cancel_pending_reminders(db, meeting_id=meeting.id)
+        await _schedule_reminder(db, host_user_id=meeting.host_user_id, meeting=meeting)
+        await _schedule_dayof_reminder(db, host_user_id=meeting.host_user_id, meeting=meeting)
 
         await _send_confirmation(db, host=host, meeting=meeting, heading="Meeting Rescheduled")
 
@@ -421,6 +508,7 @@ async def complete_meeting(
         if outcome_notes is not None:
             meeting.outcome_notes = outcome_notes
         await db.flush()
+        await _cancel_pending_reminders(db, meeting_id=meeting.id)
         await db.refresh(meeting)
         return meeting
     finally:
