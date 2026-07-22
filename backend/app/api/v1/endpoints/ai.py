@@ -31,6 +31,7 @@ from app.ai.schemas.requests import AITaskRunRequest
 from app.ai.schemas.responses import AITaskRunResponse
 from app.ai.services.chat_service import AIChatService
 from app.ai.brain.engine import AIEngine
+from app.schemas.project import DescriptionEnhanceRequest, DescriptionEnhanceResponse
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
@@ -168,3 +169,21 @@ async def run_ai_task(
 ) -> AITaskRunResponse:
     engine = AIEngine(db, current_user)
     return await engine.run(request)
+
+
+# ── Description Assist ────────────────────────────────────────────────────────
+
+@router.post(
+    "/description/enhance",
+    response_model=DescriptionEnhanceResponse,
+    summary="Have IRIS fix typos, tighten wording, or expand a task/subtask description",
+)
+async def enhance_description(
+    request: DescriptionEnhanceRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> DescriptionEnhanceResponse:
+    from app.ai.services.task_assist_service import TaskAssistService
+
+    enhanced = await TaskAssistService(db, current_user).enhance_description(request.text, request.mode)
+    return DescriptionEnhanceResponse(enhanced_text=enhanced)

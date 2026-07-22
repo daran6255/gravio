@@ -109,6 +109,10 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 	}, [tasks]);
 
 	const handleToggleCheckbox = async (st: ProjectTask) => {
+		// `statuses` can be briefly empty while the project's task-status board is still
+		// loading (e.g. right after an IRIS action refetches tasks before statuses catch up)
+		// -- nothing sensible to toggle to in that case, so bail out instead of crashing.
+		if (statuses.length === 0) return;
 		const subStatus = statuses.find((s) => s.id === st.status_id) || statuses[0];
 		if (subStatus.is_done_status) {
 			const todoStatus = statuses.find((s) => !s.is_done_status) || statuses[0];
@@ -260,9 +264,12 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 					<Box>
 						{subtasks.length > 0 ? (
 							subtasks.map((st, index) => {
+								// `statuses` can be briefly empty/stale right after a refetch (e.g. an
+								// IRIS action updating tasks before the status board re-syncs) -- guard
+								// instead of assuming a match always exists, same as TaskDrawerHeader does.
 								const subStatus = statuses.find((s) => s.id === st.status_id) || statuses[0];
 								const subAssignee = owners.find((o) => o.id === st.assignee_id);
-								const isSubDone = subStatus.is_done_status;
+								const isSubDone = subStatus?.is_done_status ?? false;
 								const hasBorderBottom = index < subtasks.length - 1;
 
 								// Get Initials for Assignee Avatar
@@ -374,9 +381,9 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 													gap: 0.5,
 													cursor: 'pointer',
 													border: '1px solid',
-													borderColor: subStatus.color || (isDark ? '#30363d' : '#d0d7de'),
-													color: subStatus.color || 'text.secondary',
-													bgcolor: alpha(subStatus.color || theme.palette.primary.main, 0.08),
+													borderColor: subStatus?.color || (isDark ? '#30363d' : '#d0d7de'),
+													color: subStatus?.color || 'text.secondary',
+													bgcolor: alpha(subStatus?.color || theme.palette.primary.main, 0.08),
 													px: 1,
 													py: 0.25,
 													borderRadius: '100px',
@@ -385,11 +392,11 @@ export const SubtasksList: React.FC<SubtasksListProps> = ({
 													userSelect: 'none',
 													transition: 'all 0.15s',
 													'&:hover': {
-														bgcolor: alpha(subStatus.color || theme.palette.primary.main, 0.15),
+														bgcolor: alpha(subStatus?.color || theme.palette.primary.main, 0.15),
 													}
 												}}
 											>
-												{subStatus.name}
+												{subStatus?.name || 'No status'}
 												<KeyboardArrowDown sx={{ fontSize: 11, ml: 0.15 }} />
 											</Box>
 

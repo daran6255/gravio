@@ -19,6 +19,8 @@ import {
 } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import projectService from '../../../../../services/projectService';
+import useToast from '../../../../../hooks/useToast';
 
 interface TaskCreateDescriptionProps {
 	description: string;
@@ -59,8 +61,24 @@ export const TaskCreateDescription: React.FC<TaskCreateDescriptionProps> = ({
 	uploading = false,
 }) => {
 	const theme = useTheme();
+	const toast = useToast();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [isDragging, setIsDragging] = useState(false);
+	const [isEnhancing, setIsEnhancing] = useState(false);
+
+	const handleEnhanceDescription = async () => {
+		if (isEnhancing) return;
+		setIsEnhancing(true);
+		try {
+			const mode = description.trim() ? 'improve' : 'expand';
+			const enhanced = await projectService.enhanceDescription(description, mode);
+			setDescription(enhanced);
+		} catch (err: any) {
+			toast.error(err?.response?.data?.error?.message || 'IRIS could not enhance this description');
+		} finally {
+			setIsEnhancing(false);
+		}
+	};
 
 	const insertMarkdown = (syntax: string) => {
 		const textarea = document.getElementById('create-task-desc-textarea') as HTMLTextAreaElement;
@@ -379,10 +397,20 @@ export const TaskCreateDescription: React.FC<TaskCreateDescriptionProps> = ({
 						style={{ display: 'none' }}
 					/>
 
-					<Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: 'text.secondary', cursor: 'pointer', '&:hover': { color: 'primary.main' } }}>
-						<AutoAwesomeOutlined sx={{ fontSize: 14 }} />
+					<Stack
+						direction="row"
+						spacing={0.5}
+						alignItems="center"
+						onClick={handleEnhanceDescription}
+						sx={{
+							color: isEnhancing ? 'text.disabled' : 'text.secondary',
+							cursor: isEnhancing ? 'default' : 'pointer',
+							'&:hover': { color: isEnhancing ? 'text.disabled' : 'primary.main' },
+						}}
+					>
+						{isEnhancing ? <CircularProgress size={14} /> : <AutoAwesomeOutlined sx={{ fontSize: 14 }} />}
 						<Typography variant="caption" sx={{ fontWeight: 600 }}>
-							Write with Gravit
+							{isEnhancing ? 'Writing…' : 'Write with Gravit'}
 						</Typography>
 					</Stack>
 				</Box>

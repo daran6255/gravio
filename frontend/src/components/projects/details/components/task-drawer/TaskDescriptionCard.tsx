@@ -28,6 +28,7 @@ import {
 	ReportOutlined,
 	SentimentSatisfiedAltOutlined,
 	AttachFile,
+	AutoAwesome,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { useParams } from 'react-router-dom';
@@ -38,6 +39,7 @@ import useToast from '../../../../../hooks/useToast';
 import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
 import { uploadTaskFile } from '../../../../../store/slices/projectsSlice';
 import { MAX_FILE_SIZE_BYTES, ALLOWED_UPLOAD_MIME_TYPES } from '../../../../../constants/fileUpload';
+import projectService from '../../../../../services/projectService';
 
 interface TaskDescriptionCardProps {
 	task: ProjectTask;
@@ -79,6 +81,7 @@ export const TaskDescriptionCard: React.FC<TaskDescriptionCardProps> = ({
 	const [editTab, setEditTab] = useState(0);
 	const [isDraggingFile, setIsDraggingFile] = useState(false);
 	const [isUploadingFile, setIsUploadingFile] = useState(false);
+	const [isEnhancingDesc, setIsEnhancingDesc] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	// Reactions state
@@ -117,6 +120,19 @@ export const TaskDescriptionCard: React.FC<TaskDescriptionCardProps> = ({
 		setEditDesc(task.description || '');
 		setEditTab(0);
 		setIsEditingDesc(false);
+	};
+
+	const handleEnhanceDescription = async () => {
+		setIsEnhancingDesc(true);
+		try {
+			const mode = editDesc.trim() ? 'improve' : 'expand';
+			const enhanced = await projectService.enhanceDescription(editDesc, mode);
+			setEditDesc(enhanced);
+		} catch (err: any) {
+			toast.error(err?.response?.data?.error?.message || 'IRIS could not enhance this description');
+		} finally {
+			setIsEnhancingDesc(false);
+		}
 	};
 
 	const uploadDescriptionFile = async (file: File) => {
@@ -481,6 +497,25 @@ export const TaskDescriptionCard: React.FC<TaskDescriptionCardProps> = ({
 								/>
 
 								<Stack direction="row" spacing={1.5}>
+									<Button
+										onClick={handleEnhanceDescription}
+										disabled={isEnhancingDesc}
+										size="small"
+										startIcon={isEnhancingDesc ? <CircularProgress size={14} /> : <AutoAwesome sx={{ fontSize: 15 }} />}
+										sx={{
+											textTransform: 'none',
+											fontWeight: 700,
+											borderRadius: '6px',
+											color: '#8B7CF6',
+											border: '1px solid',
+											borderColor: alpha('#8B7CF6', 0.4),
+											px: 1.5,
+											py: 0.5,
+											'&:hover': { bgcolor: alpha('#8B7CF6', 0.08) },
+										}}
+									>
+										{isEnhancingDesc ? 'Enhancing…' : 'Enhance with IRIS'}
+									</Button>
 									<Button
 										onClick={cancelEditDescription}
 										size="small"

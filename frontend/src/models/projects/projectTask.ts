@@ -89,6 +89,35 @@ export interface ProjectTaskHistoryEntry {
 	changed_at: string;
 }
 
+/** One planned tool call in an IRIS preview. Matches backend's IrisPlannedStep. */
+export interface IrisPlannedStep {
+	tool_name: string;
+	parameters: Record<string, any>;
+	reasoning?: string | null;
+}
+
+/** Matches backend's IrisPreviewResponse — what IRIS proposes to do, before it's confirmed. */
+export interface IrisPreviewResponse {
+	task_name: string;
+	response_to_user?: string | null;
+	reasoning: string;
+	estimated_record_impact: number;
+	steps: IrisPlannedStep[];
+}
+
+/** Matches backend's TaskInsightResponse. */
+export interface TaskInsight {
+	health: 'on_track' | 'at_risk' | 'blocked';
+	risk_reasons: string[];
+	suggestions: string[];
+}
+
+/** Matches backend's TaskEstimateResponse. */
+export interface TaskEstimate {
+	estimated_hours?: number | null;
+	rationale: string;
+}
+
 /** A file attached to a task. Matches backend's ProjectTaskFileResponse. */
 export interface ProjectTaskFile {
 	id: number;

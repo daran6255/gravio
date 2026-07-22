@@ -81,7 +81,10 @@ class Planner:
             system_prompt=system_prompt,
             user_message=user_message,
             temperature=0.1,
-            max_tokens=4096,
+            # Plans with one step per entity (e.g. "mark all subtasks as completed" on a task
+            # with a dozen subtasks) can produce a lot of JSON -- 4096 was tight enough to get
+            # the response truncated mid-object, which fails JSON parsing outright.
+            max_tokens=8192,
         )
 
         plan = self._parse_response(llm_response.content)

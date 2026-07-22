@@ -288,3 +288,41 @@ class ProjectTaskFileResponse(BaseModel):
 
 class TaskCommentCreate(BaseModel):
     content: str = Field(..., min_length=1)
+
+
+class IrisMessageRequest(BaseModel):
+    message: str = Field(..., min_length=1)
+
+
+class IrisPlannedStep(BaseModel):
+    tool_name: str
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    reasoning: Optional[str] = None
+
+
+class IrisPreviewResponse(BaseModel):
+    task_name: str
+    response_to_user: Optional[str] = None
+    reasoning: str
+    estimated_record_impact: int = 0
+    steps: list[IrisPlannedStep] = Field(default_factory=list)
+
+
+class TaskInsightResponse(BaseModel):
+    health: str
+    risk_reasons: list[str] = Field(default_factory=list)
+    suggestions: list[str] = Field(default_factory=list)
+
+
+class TaskEstimateResponse(BaseModel):
+    estimated_hours: Optional[float] = None
+    rationale: str = ""
+
+
+class DescriptionEnhanceRequest(BaseModel):
+    text: str = Field(default="")
+    mode: str = Field(default="improve", pattern="^(improve|fix_typos|expand)$")
+
+
+class DescriptionEnhanceResponse(BaseModel):
+    enhanced_text: str

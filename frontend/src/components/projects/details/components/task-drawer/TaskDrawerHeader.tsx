@@ -24,6 +24,7 @@ import {
 	CalendarTodayOutlined,
 	ListAltOutlined,
 	TagOutlined,
+	AutoAwesome,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import type { ProjectTask, ProjectTaskUpdate, ProjectTaskStatus } from '../../../../../models/projects/projectTask';
@@ -37,6 +38,7 @@ interface TaskDrawerHeaderProps {
 	onUpdateField: (fields: ProjectTaskUpdate) => Promise<void>;
 	onDelete: () => void;
 	onClose: () => void;
+	onOpenIris: () => void;
 }
 
 export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
@@ -47,6 +49,7 @@ export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
 	onUpdateField,
 	onDelete,
 	onClose,
+	onOpenIris,
 }) => {
 	const theme = useTheme();
 	const toast = useToast();
@@ -164,6 +167,14 @@ export const TaskDrawerHeader: React.FC<TaskDrawerHeaderProps> = ({
 
 				{/* Header Actions */}
 				<Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
+					<IconButton
+						size="small"
+						title="Ask IRIS"
+						onClick={onOpenIris}
+						sx={{ color: '#8B7CF6', '&:hover': { bgcolor: alpha('#8B7CF6', 0.1) } }}
+					>
+						<AutoAwesome fontSize="small" style={{ fontSize: 16 }} />
+					</IconButton>
 					<IconButton size="small" title="Delete task" onClick={onDelete} sx={{ color: 'error.main', '&:hover': { bgcolor: theme.palette.action.hover } }}>
 						<DeleteOutline fontSize="small" style={{ fontSize: 16 }} />
 					</IconButton>

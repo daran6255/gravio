@@ -18,6 +18,7 @@ import { TaskDescriptionCard } from '../components/task-drawer/TaskDescriptionCa
 import { SubtasksList } from '../components/task-drawer/SubtasksList';
 import { TaskHistoryTimeline } from '../components/task-drawer/TaskHistoryTimeline';
 import { CommentsSection } from '../components/task-drawer/CommentsSection';
+import { IrisTaskPanel } from '../components/task-drawer/IrisTaskPanel';
 
 interface ProjectTaskDetailDrawerProps {
 	open: boolean;
@@ -55,6 +56,7 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 	const taskFiles = useAppSelector((state) => state.projects.taskFiles);
 
 	const [commentText, setCommentText] = useState('');
+	const [isIrisOpen, setIsIrisOpen] = useState(false);
 
 	// Get latest version from source-of-truth list
 	const latestTask = tasks.find((t) => t.id === task.id) || task;
@@ -102,6 +104,7 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 					onUpdateField={handleUpdateField}
 					onDelete={onDelete}
 					onClose={onClose}
+					onOpenIris={() => setIsIrisOpen(true)}
 				/>
 
 				{/* Two Column Scrollable Body */}
@@ -176,6 +179,14 @@ export const ProjectTaskDetailDrawer: React.FC<ProjectTaskDetailDrawerProps> = (
 					</Box>
 				</Box>
 			</Box>
+
+			<IrisTaskPanel
+				open={isIrisOpen}
+				onClose={() => setIsIrisOpen(false)}
+				task={latestTask}
+				projectPublicId={projectPublicId}
+				onUpdateField={handleUpdateField}
+			/>
 		</Drawer>
 	);
 };

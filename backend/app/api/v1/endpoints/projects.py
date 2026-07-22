@@ -12,10 +12,13 @@ import uuid
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, status, UploadFile, File
 from fastapi.responses import FileResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.api.deps import require_roles
+from app.models.project import ProjectTask
 from app.models.user import User, UserRole
 from app.models.plan import Module
 from app.services.plan_access import require_module
@@ -34,10 +37,15 @@ from app.schemas.project import (
     ProjectTaskStatusesUpdateRequest,
     ProjectTaskFileResponse,
     TaskCommentCreate,
+    IrisMessageRequest,
+    IrisPreviewResponse,
+    IrisPlannedStep,
+    TaskInsightResponse,
+    TaskEstimateResponse,
 )
 from app.schemas.crm import AuditLogResponse
 from app.utils.file_validation import validate_upload
-from app.middleware.exceptions import NotFoundError
+from app.middleware.exceptions import NotFoundError, BadRequestError, ServiceUnavailableError
 from app.services.currency import CurrencyConversionService
 
 router = APIRouter(prefix="/projects", tags=["Project Management"])
@@ -408,6 +416,181 @@ async def create_task_comment_endpoint(
             await db.commit()
 
     return comment_log
+
+
+# --- IRIS task assist (propose-then-confirm) ---
+# Powers the "Ask IRIS" panel in the task drawer: /preview plans without touching the DB so the
+# UI can show the user what's about to happen; /execute is only called after the user confirms.
+
+async def _get_task_with_subtasks(db: AsyncSession, task_public_id: uuid.UUID) -> ProjectTask:
+    result = await db.execute(
+        select(ProjectTask)
+        .options(selectinload(ProjectTask.subtasks).selectinload(ProjectTask.status))
+        .where(ProjectTask.public_id == task_public_id, ProjectTask.is_deleted.is_(False))
+    )
+    task = result.scalars().first()
+    if task is None:
+        raise NotFoundError("Task not found")
+    return task
+
+
+def _build_iris_input_data(task: ProjectTask) -> dict:
+    """Gives the planner each subtask's exact public_id up front. Without this, an instruction
+    like "mark all subtasks as completed" leaves the LLM knowing only the parent task -- it has
+    to fall back to search_project_tasks' fuzzy, organization-wide title match to find each
+    subtask, which risks resolving to (and silently editing) an unrelated same-titled task in a
+    different project. Handing over the real IDs makes every per-subtask update_project_task
+    call unambiguous."""
+    return {
+        "task_public_id": str(task.public_id),
+        "task_title": task.title,
+        "subtasks": [
+            {
+                "public_id": str(s.public_id),
+                "title": s.title,
+                "status": s.status.name if s.status else None,
+                "is_done": s.completed_at is not None,
+            }
+            for s in (task.subtasks or [])
+            if not s.is_deleted
+        ],
+    }
+
+
+@router_tasks.post(
+    "/{task_public_id}/iris/preview",
+    response_model=IrisPreviewResponse,
+    summary="Ask IRIS what it would do for this task, without executing anything",
+)
+async def preview_iris_action(
+    task_public_id: uuid.UUID,
+    payload: IrisMessageRequest,
+    current_user: User = Depends(require_project_access),
+    _pm: User = Depends(require_pm_module),
+    db: AsyncSession = Depends(get_db),
+) -> IrisPreviewResponse:
+    from app.ai.brain.engine import AIEngine
+    from app.ai.brain.exceptions import LLMProviderError, LLMResponseParseError, NoPlanGeneratedError, PlanningError
+    from app.ai.schemas.requests import AITaskRunRequest
+
+    task = await _get_task_with_subtasks(db, task_public_id)
+
+    engine = AIEngine(db, current_user)
+    try:
+        plan = await engine.preview(AITaskRunRequest(
+            trigger_type="manual",
+            task_hint=payload.message,
+            input_data=_build_iris_input_data(task),
+        ))
+    except NoPlanGeneratedError:
+        raise BadRequestError("IRIS couldn't work out a plan for that -- try rephrasing.")
+    except LLMResponseParseError:
+        raise BadRequestError(
+            "IRIS's plan came back malformed -- this can happen when a request needs a lot of "
+            "steps at once. Try a more specific or smaller request."
+        )
+    except PlanningError as e:
+        raise BadRequestError(e.message)
+    except LLMProviderError as e:
+        raise ServiceUnavailableError(e.message)
+
+    return IrisPreviewResponse(
+        task_name=plan.task_name,
+        response_to_user=plan.response_to_user,
+        reasoning=plan.reasoning,
+        estimated_record_impact=plan.estimated_record_impact,
+        steps=[IrisPlannedStep(tool_name=s.tool_name, parameters=s.parameters, reasoning=s.reasoning) for s in plan.steps],
+    )
+
+
+@router_tasks.post(
+    "/{task_public_id}/iris/execute",
+    response_model=AuditLogResponse,
+    summary="Confirm and run an IRIS action for this task, posting the result as a comment",
+)
+async def execute_iris_action(
+    task_public_id: uuid.UUID,
+    payload: IrisMessageRequest,
+    current_user: User = Depends(require_project_access),
+    _pm: User = Depends(require_pm_module),
+    db: AsyncSession = Depends(get_db),
+) -> AuditLogResponse:
+    from app.ai.brain.engine import AIEngine
+    from app.ai.schemas.requests import AITaskRunRequest
+    from app.services.audit import AuditService
+
+    task = await _get_task_with_subtasks(db, task_public_id)
+
+    engine = AIEngine(db, current_user)
+    result = await engine.run(AITaskRunRequest(
+        trigger_type="manual",
+        task_hint=payload.message,
+        input_data=_build_iris_input_data(task),
+    ))
+    reply_text = result.summary or (f"⚠️ {result.error}" if result.error else "IRIS didn't return a result.")
+    comment_log = await AuditService.record(
+        db,
+        entity_type="project_task",
+        entity_id=task.id,
+        action="comment",
+        changed_by_user_id=None,
+        new_value=reply_text,
+    )
+    await db.commit()
+    await db.refresh(comment_log)
+    return comment_log
+
+
+@router_tasks.get(
+    "/{task_public_id}/iris/insights",
+    response_model=TaskInsightResponse,
+    summary="Get IRIS's health/risk read on a task",
+)
+async def get_iris_task_insights(
+    task_public_id: uuid.UUID,
+    current_user: User = Depends(require_project_access),
+    _pm: User = Depends(require_pm_module),
+    db: AsyncSession = Depends(get_db),
+) -> TaskInsightResponse:
+    from app.ai.services.task_assist_service import TaskAssistService
+
+    result = await db.execute(
+        select(ProjectTask)
+        .options(selectinload(ProjectTask.status), selectinload(ProjectTask.subtasks))
+        .where(ProjectTask.public_id == task_public_id, ProjectTask.is_deleted.is_(False))
+    )
+    task = result.scalars().first()
+    if task is None:
+        raise NotFoundError("Task not found")
+
+    insights = await TaskAssistService(db, current_user).get_task_insights(task)
+    return TaskInsightResponse(**insights)
+
+
+@router_tasks.post(
+    "/{task_public_id}/iris/estimate",
+    response_model=TaskEstimateResponse,
+    summary="Get an IRIS-suggested hour estimate for a task, grounded in similar past tasks",
+)
+async def estimate_iris_task_hours(
+    task_public_id: uuid.UUID,
+    current_user: User = Depends(require_project_access),
+    _pm: User = Depends(require_pm_module),
+    db: AsyncSession = Depends(get_db),
+) -> TaskEstimateResponse:
+    from app.ai.services.task_assist_service import TaskAssistService
+
+    result = await db.execute(
+        select(ProjectTask)
+        .options(selectinload(ProjectTask.subtasks))
+        .where(ProjectTask.public_id == task_public_id, ProjectTask.is_deleted.is_(False))
+    )
+    task = result.scalars().first()
+    if task is None:
+        raise NotFoundError("Task not found")
+
+    estimate = await TaskAssistService(db, current_user).estimate_hours(task)
+    return TaskEstimateResponse(**estimate)
 
 
 @router_tasks.delete(

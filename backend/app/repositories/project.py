@@ -289,6 +289,29 @@ class ProjectTaskRepository:
         return list(result.scalars().all())
 
     @staticmethod
+    async def list_recent_completed_with_hours(
+        db: AsyncSession, *, project_id: int, limit: int = 10, exclude_task_id: Optional[int] = None,
+    ) -> list[ProjectTask]:
+        """Grounds IRIS's hour estimates in real history instead of a pure guess -- the most
+        recently completed tasks in the same project that actually recorded hours."""
+        conditions = [
+            ProjectTask.project_id == project_id,
+            ProjectTask.is_deleted.is_(False),
+            ProjectTask.completed_at.isnot(None),
+            ProjectTask.actual_hours.isnot(None),
+        ]
+        if exclude_task_id is not None:
+            conditions.append(ProjectTask.id != exclude_task_id)
+
+        result = await db.execute(
+            select(ProjectTask)
+            .where(*conditions)
+            .order_by(ProjectTask.completed_at.desc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
     async def create(
         db: AsyncSession,
         *,

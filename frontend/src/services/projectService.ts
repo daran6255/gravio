@@ -9,6 +9,9 @@ import type {
 	ProjectTaskStatusUpsert,
 	ProjectTaskFile,
 	ProjectTaskHistoryEntry,
+	IrisPreviewResponse,
+	TaskInsight,
+	TaskEstimate,
 } from '../models/projects/projectTask';
 
 const projectService = {
@@ -170,6 +173,32 @@ const projectService = {
 	createTaskComment: async (taskPublicId: string, content: string): Promise<ProjectTaskHistoryEntry> => {
 		const response = await api.post<ProjectTaskHistoryEntry>(`/project-tasks/${taskPublicId}/comments`, { content });
 		return response.data;
+	},
+
+	// --- IRIS task assist ---
+	previewIrisAction: async (taskPublicId: string, message: string): Promise<IrisPreviewResponse> => {
+		const response = await api.post<IrisPreviewResponse>(`/project-tasks/${taskPublicId}/iris/preview`, { message });
+		return response.data;
+	},
+
+	executeIrisAction: async (taskPublicId: string, message: string): Promise<ProjectTaskHistoryEntry> => {
+		const response = await api.post<ProjectTaskHistoryEntry>(`/project-tasks/${taskPublicId}/iris/execute`, { message });
+		return response.data;
+	},
+
+	getTaskInsights: async (taskPublicId: string): Promise<TaskInsight> => {
+		const response = await api.get<TaskInsight>(`/project-tasks/${taskPublicId}/iris/insights`);
+		return response.data;
+	},
+
+	estimateTaskHours: async (taskPublicId: string): Promise<TaskEstimate> => {
+		const response = await api.post<TaskEstimate>(`/project-tasks/${taskPublicId}/iris/estimate`);
+		return response.data;
+	},
+
+	enhanceDescription: async (text: string, mode: 'improve' | 'fix_typos' | 'expand' = 'improve'): Promise<string> => {
+		const response = await api.post<{ enhanced_text: string }>('/ai/description/enhance', { text, mode });
+		return response.data.enhanced_text;
 	},
 };
 

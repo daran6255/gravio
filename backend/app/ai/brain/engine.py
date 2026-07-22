@@ -18,7 +18,9 @@ from app.ai.brain.exceptions import (
     AIEngineError,
     LLMAuthError,
     LLMProviderError,
+    LLMResponseParseError,
     NoPlanGeneratedError,
+    PlanningError,
     ToolLimitExceededError,
 )
 from app.ai.brain.planner import Planner
@@ -58,6 +60,25 @@ class AIEngine:
         
         # Log tool count for diagnostics
         logger.debug(f"AIEngine initialized with {len(self._registry.all())} tools.")
+
+    async def preview(self, request: AITaskRunRequest) -> ToolCallPlan:
+        """
+        Planning-only preview for the propose-then-confirm flow: runs just the LLM planning
+        phase and returns the raw plan (steps + response_to_user) without executing anything
+        and without creating a TaskJournal row. Deliberately separate from `dry_run` on `run()`,
+        which finalizes a journal and only returns a terse tool-name summary -- callers that
+        need to show the user what's about to happen (not just log that something was planned)
+        call this instead, then call `run(..., dry_run=False)` to actually execute on confirm.
+        """
+        provider = await get_llm_provider(
+            self._db, org_id=self._user.organization_id, user_id=self._user_id,
+            action_type="agentic_task_preview",
+        )
+        planner = Planner(provider=provider, registry=self._registry, db=self._db)
+        return await planner.plan(
+            task_hint=request.task_hint,
+            input_data=request.input_data,
+        )
 
     async def run(self, request: AITaskRunRequest) -> AITaskRunResponse:
         """
@@ -156,6 +177,29 @@ class AIEngine:
             )
             return self._build_response(journal, status="failed", error="No plan generated.")
 
+        # LLMResponseParseError/PlanningError are siblings of LLMProviderError, not
+        # subclasses -- without these they'd fall through to run()'s generic `except
+        # Exception` and surface only as an opaque "unexpected error occurred", which is
+        # exactly what a JSON-truncated plan (e.g. one step per subtask on a "mark all
+        # subtasks complete" request, with enough subtasks to run past the token budget)
+        # used to do.
+        except LLMResponseParseError as e:
+            await journal.finalize(
+                status=AITaskStatus.FAILED,
+                summary="🤔 IRIS's plan came back malformed -- this can happen when a request "
+                        "needs a lot of steps at once. Try a more specific or smaller request.",
+                error_message=e.message,
+            )
+            return self._build_response(journal, status="failed", error=e.message)
+
+        except PlanningError as e:
+            await journal.finalize(
+                status=AITaskStatus.FAILED,
+                summary=f"🤔 {e.message}",
+                error_message=e.message,
+            )
+            return self._build_response(journal, status="failed", error=e.message)
+
         except LLMProviderError as e:
             await journal.finalize(
                 status=AITaskStatus.FAILED,
@@ -179,7 +223,15 @@ class AIEngine:
             return self._build_response(journal, status="completed")
 
         # ── 2. Execution Phase ────────────────────────────────────────────────
-        response, results = await self._execute_task_with_plan(plan, journal)
+        try:
+            response, results = await self._execute_task_with_plan(plan, journal)
+        except ToolLimitExceededError as e:
+            await journal.finalize(
+                status=AITaskStatus.FAILED,
+                summary=f"🤔 {e.message} Try asking for this in smaller batches.",
+                error_message=e.message,
+            )
+            return self._build_response(journal, status="failed", error=e.message)
 
         # ── 3. Synthesis Phase ────────────────────────────────────────────────
         # An approval-gated run has already returned its own response and must not be

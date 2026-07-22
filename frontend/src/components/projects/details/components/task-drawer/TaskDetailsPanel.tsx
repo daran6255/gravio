@@ -368,10 +368,15 @@ export const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
 					})}
 
 					{renderPropertyRow({
-						icon: dotIcon(selectedStatus.color),
+						// `statuses` can be briefly empty/stale relative to `task` right after a
+						// refetch (e.g. an IRIS action updating tasks before the status board
+						// re-syncs) -- guard instead of assuming a match always exists.
+						icon: dotIcon(selectedStatus?.color || theme.palette.text.secondary),
 						label: 'Status',
 						popoverKey: 'status',
-						children: pillValue(selectedStatus.color, selectedStatus.name, true),
+						children: selectedStatus
+							? pillValue(selectedStatus.color, selectedStatus.name, true)
+							: emptyValue('No status'),
 					})}
 
 					{renderPropertyRow({

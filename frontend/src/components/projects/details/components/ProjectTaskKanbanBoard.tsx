@@ -69,8 +69,8 @@ export const ProjectTaskKanbanBoard: React.FC<ProjectTaskKanbanBoardProps> = ({
 		const subtasks = tasks.filter((t) => t.parent_task_id === task.id);
 		const totalSubtasks = subtasks.length;
 		const completedSubtasks = subtasks.filter((st) => {
-			const subStatus = statuses.find((s) => s.id === st.status_id) || statuses[0];
-			return subStatus.is_done_status;
+			const subStatus = statuses.find((s) => s.id === st.status_id);
+			return subStatus?.is_done_status ?? false;
 		}).length;
 		const subtasksPercent = totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0;
 

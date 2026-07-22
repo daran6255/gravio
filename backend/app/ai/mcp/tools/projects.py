@@ -8,6 +8,7 @@ either way it lands here, since both paths go through the same AIEngine.
 from __future__ import annotations
 
 import uuid
+from datetime import date
 from typing import TYPE_CHECKING, Any, Optional
 
 from sqlalchemy import select
@@ -18,13 +19,14 @@ from app.ai.mcp.base_tool import BaseTool
 from app.ai.mcp.registry import registry
 from app.middleware.exceptions import BadRequestError, NotFoundError
 from app.models.audit import AuditLog
-from app.models.project import ProjectTask
-from app.schemas.project import ProjectTaskCreate
+from app.models.crm import LeadPriority
+from app.models.project import ProjectTask, ProjectTaskStatus
+from app.models.user import User
+from app.schemas.project import ProjectTaskCreate, ProjectTaskUpdate
 from app.services.project import ProjectService
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
-    from app.models.user import User
 
 
 async def _resolve_task(db: "AsyncSession", organization_id: int, identifier: str) -> Optional[ProjectTask]:
@@ -178,6 +180,136 @@ class CreateSubtasksTool(BaseTool):
         )
 
 
+async def _resolve_status(db: "AsyncSession", project_id: int, name: str) -> Optional[ProjectTaskStatus]:
+    result = await db.execute(
+        select(ProjectTaskStatus)
+        .where(
+            ProjectTaskStatus.project_id == project_id,
+            ProjectTaskStatus.is_deleted.is_(False),
+            ProjectTaskStatus.name.ilike(name.strip()),
+        )
+        .limit(1)
+    )
+    return result.scalars().first()
+
+
+async def _resolve_assignee(db: "AsyncSession", organization_id: int, identifier: str) -> Optional[User]:
+    """Matches by exact email first (unambiguous), then falls back to a fuzzy name match --
+    same two-tier resolution style as `_resolve_task` above, for the same reason: the LLM is
+    handed whatever the user typed (an email or a first/full name), not an internal user ID."""
+    identifier = identifier.strip()
+    result = await db.execute(
+        select(User)
+        .where(User.organization_id == organization_id, User.is_deleted.is_(False), User.email.ilike(identifier))
+        .limit(1)
+    )
+    user = result.scalars().first()
+    if user:
+        return user
+
+    result = await db.execute(
+        select(User)
+        .where(User.organization_id == organization_id, User.is_deleted.is_(False), User.full_name.ilike(f"%{identifier}%"))
+        .limit(1)
+    )
+    return result.scalars().first()
+
+
+class UpdateProjectTaskTool(BaseTool):
+    """Edits an existing task or subtask's fields -- title, description, status, priority,
+    estimated hours, assignee, due date. This is the write behind IRIS's task-panel "propose an
+    edit" flow: the app layer previews this tool's plan and asks the user to confirm before this
+    ever executes, so this tool itself does not gate on `requires_approval`."""
+
+    definition = ToolDefinition(
+        name="update_project_task",
+        description=(
+            "Updates fields on an existing project task or subtask: title, description, status, "
+            "priority, estimated_hours, assignee, or due_date. Only the fields provided are "
+            "changed -- omit anything that shouldn't move. Use search_project_tasks first if you "
+            "don't already have the task's exact title or public ID."
+        ),
+        category="productivity",
+        is_read_only=False,
+        requires_approval=False,
+        parameters={
+            "task": ToolParameterSchema(type="string", description="The task's title (or public ID) to update."),
+            "title": ToolParameterSchema(type="string", description="New title for the task."),
+            "description": ToolParameterSchema(type="string", description="New description (markdown allowed)."),
+            "status": ToolParameterSchema(type="string", description="New status name, e.g. 'In Progress', 'Done'."),
+            "priority": ToolParameterSchema(type="string", description="New priority.", enum=["low", "medium", "high", "urgent"]),
+            "estimated_hours": ToolParameterSchema(type="number", description="New estimated effort in hours."),
+            "assignee": ToolParameterSchema(type="string", description="Email or full name of the person to assign."),
+            "due_date": ToolParameterSchema(type="string", description="New due date, ISO format (YYYY-MM-DD)."),
+        },
+        required_parameters=["task"],
+    )
+
+    async def execute(self, params: dict[str, Any], db: "AsyncSession", user: "User") -> ToolResult:
+        task = await _resolve_task(db, user.organization_id, str(params["task"]))
+        if task is None:
+            return ToolResult(success=False, message=f"No task matching '{params['task']}' was found.", error="not_found")
+
+        update_fields: dict[str, Any] = {}
+        changed_labels: list[str] = []
+
+        if params.get("title"):
+            update_fields["title"] = str(params["title"]).strip()
+            changed_labels.append(f"title to '{update_fields['title']}'")
+
+        if params.get("description") is not None:
+            update_fields["description"] = str(params["description"])
+            changed_labels.append("description")
+
+        if params.get("status"):
+            status = await _resolve_status(db, task.project_id, str(params["status"]))
+            if status is None:
+                return ToolResult(success=False, message=f"No status matching '{params['status']}' was found on this project.", error="not_found")
+            update_fields["status_id"] = status.id
+            changed_labels.append(f"status to '{status.name}'")
+
+        if params.get("priority"):
+            try:
+                priority = LeadPriority(str(params["priority"]).strip().lower())
+            except ValueError:
+                return ToolResult(success=False, message=f"'{params['priority']}' is not a valid priority.", error="invalid_params")
+            update_fields["priority"] = priority
+            changed_labels.append(f"priority to '{priority.value}'")
+
+        if params.get("estimated_hours") is not None:
+            update_fields["estimated_hours"] = float(params["estimated_hours"])
+            changed_labels.append(f"estimate to {update_fields['estimated_hours']}h")
+
+        if params.get("assignee"):
+            assignee = await _resolve_assignee(db, user.organization_id, str(params["assignee"]))
+            if assignee is None:
+                return ToolResult(success=False, message=f"No user matching '{params['assignee']}' was found.", error="not_found")
+            update_fields["assignee_id"] = assignee.id
+            changed_labels.append(f"assignee to {assignee.full_name}")
+
+        if params.get("due_date"):
+            try:
+                update_fields["due_date"] = date.fromisoformat(str(params["due_date"]))
+            except ValueError:
+                return ToolResult(success=False, message=f"'{params['due_date']}' is not a valid date (expected YYYY-MM-DD).", error="invalid_params")
+            changed_labels.append(f"due date to {update_fields['due_date'].isoformat()}")
+
+        if not update_fields:
+            return ToolResult(success=False, message="No recognized fields were provided to update.", error="invalid_params")
+
+        try:
+            await ProjectService.update_task(db, task.public_id, ProjectTaskUpdate(**update_fields), current_user=user)
+        except (NotFoundError, BadRequestError) as e:
+            return ToolResult(success=False, message=f"Could not update '{task.title}': {e.message}", error=e.message)
+
+        return ToolResult(
+            success=True,
+            message=f"Updated '{task.title}': set {', '.join(changed_labels)}.",
+            data={"task_public_id": str(task.public_id)},
+            records_affected=1,
+        )
+
+
 class SummarizeTaskCommentsTool(BaseTool):
     """Summarizes a task's comment thread — comments are audit-log rows (action='comment'),
     not a dedicated table, so this reads AuditLog directly rather than going through the
@@ -251,4 +383,5 @@ class SummarizeTaskCommentsTool(BaseTool):
 
 registry.register(SearchProjectTasksTool())
 registry.register(CreateSubtasksTool())
+registry.register(UpdateProjectTaskTool())
 registry.register(SummarizeTaskCommentsTool())

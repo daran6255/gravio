@@ -309,6 +309,27 @@ export const addTaskComment = createAsyncThunk(
 	}
 );
 
+/** Confirms and runs an IRIS action on a task. IRIS may have changed the task's own fields
+ * (status, hours, etc. via update_project_task) as well as posted a reply comment, so this
+ * refreshes both the task list (source of truth for `latestTask` in the drawer) and the
+ * history/comments thread -- a plain `addTaskComment` only needs the latter. */
+export const runIrisAction = createAsyncThunk(
+	'projects/runIrisAction',
+	async (
+		{ taskPublicId, projectPublicId, message }: { taskPublicId: string; projectPublicId: string; message: string },
+		{ dispatch, rejectWithValue }
+	) => {
+		try {
+			const comment = await projectService.executeIrisAction(taskPublicId, message);
+			dispatch(fetchTaskHistory(taskPublicId));
+			dispatch(fetchProjectTasks(projectPublicId));
+			return comment;
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'IRIS could not complete that action'));
+		}
+	}
+);
+
 // --- Task Statuses (per-project) ---
 export const fetchTaskStatuses = createAsyncThunk(
 	'projects/fetchTaskStatuses',
