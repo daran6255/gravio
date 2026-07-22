@@ -63,16 +63,18 @@ async def get_credit_balance(
 @router.get(
     "/usage",
     response_model=TokenUtilizationSummary,
-    summary="Token utilization for my organization — totals, breakdowns, and a daily trend",
+    summary="Token utilization — totals, breakdowns, and a daily trend",
 )
 async def get_token_utilization(
     period_start: Optional[datetime] = Query(None, description="Defaults to the start of the current calendar month"),
     period_end: Optional[datetime] = Query(None, description="Defaults to now"),
+    scope: str = Query("mine", pattern="^(mine|organization)$", description="'mine' (default) for my own usage, 'organization' for every member's combined"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> TokenUtilizationSummary:
     org = await _get_current_org(current_user, db)
-    return await token_utilization_service.get_utilization_summary(db, org.id, period_start, period_end)
+    user_id = current_user.id if scope == "mine" else None
+    return await token_utilization_service.get_utilization_summary(db, org.id, period_start, period_end, user_id)
 
 
 # ── IRIS Chat ────────────────────────────────────────────────────────────────

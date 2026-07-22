@@ -284,7 +284,7 @@ const Navbar: React.FC = () => {
 									icon={<CreditsIcon sx={{ fontSize: '1rem', color: `${accent} !important` }} />}
 									label={`${aiCredits.balance.toLocaleString()} credits`}
 									size="small"
-									onClick={() => navigate('/billing')}
+									onClick={() => navigate('/ai-usage')}
 									sx={{
 										...theme.typography.chipLabel,
 										height: theme.layout.badgeHeight,

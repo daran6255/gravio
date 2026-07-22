@@ -35,7 +35,10 @@ async def get_utilization_summary(
     org_id: int,
     period_start: datetime | None = None,
     period_end: datetime | None = None,
+    user_id: int | None = None,
 ) -> TokenUtilizationSummary:
+    """`user_id` scopes to one person's own usage (credits are per-user, see AICreditWallet) --
+    omit it for an org-wide rollup across every member."""
     now = datetime.now(timezone.utc)
     period_start = period_start or _default_period_start(now)
     period_end = period_end or now
@@ -46,6 +49,8 @@ async def get_utilization_summary(
         AICreditTransaction.created_at >= period_start,
         AICreditTransaction.created_at <= period_end,
     ]
+    if user_id is not None:
+        call_filters.append(AICreditTransaction.user_id == user_id)
 
     total_tokens, total_credits, total_calls = (
         await db.execute(select(_TOKENS, _CREDITS, _CALLS).where(*call_filters))
@@ -76,15 +81,18 @@ async def get_utilization_summary(
     ).all()
 
     day_col = cast(AICreditTransaction.created_at, Date)
+    daily_filters = [
+        AICreditTransaction.organization_id == org_id,
+        AICreditTransaction.reason == AICreditTransactionReason.AI_CALL,
+        AICreditTransaction.created_at >= period_end - timedelta(days=30),
+        AICreditTransaction.created_at <= period_end,
+    ]
+    if user_id is not None:
+        daily_filters.append(AICreditTransaction.user_id == user_id)
     daily_rows = (
         await db.execute(
             select(day_col.label("day"), _TOKENS, _CREDITS, _CALLS)
-            .where(
-                AICreditTransaction.organization_id == org_id,
-                AICreditTransaction.reason == AICreditTransactionReason.AI_CALL,
-                AICreditTransaction.created_at >= period_end - timedelta(days=30),
-                AICreditTransaction.created_at <= period_end,
-            )
+            .where(*daily_filters)
             .group_by(day_col)
             .order_by(day_col)
         )

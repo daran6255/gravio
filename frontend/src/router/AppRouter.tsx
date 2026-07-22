@@ -11,6 +11,7 @@ import SuccessPage from '../pages/common/SuccessPage';
 import NotFoundPage from '../pages/common/NotFoundPage';
 import MaintenancePage from '../pages/common/MaintenancePage';
 import BillingSettings from '../pages/settings/BillingSettings';
+import AICreditsUsagePage from '../pages/settings/AICreditsUsagePage';
 import { LeadsPage, DealsPage, CompaniesPage, TasksPage } from '../pages/crm';
 import { ProjectsListPage, ProjectDetailPage } from '../pages/projects';
 import TimesheetPage from '../pages/timesheets/TimesheetPage';
@@ -74,6 +75,7 @@ const AppRouter: React.FC = () => {
 					<Route path="users" element={<OrgManagement />} />
 					<Route path="organizations" element={<OrgConsole />} />
 					<Route path="billing" element={<BillingSettings />} />
+					<Route path="ai-usage" element={<AICreditsUsagePage />} />
 
 					{/* Legacy redirect: old account-settings → settings */}
 					<Route path="account-settings" element={<Navigate to="/settings" replace />} />
