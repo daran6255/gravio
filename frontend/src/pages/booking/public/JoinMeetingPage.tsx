@@ -6,6 +6,7 @@ import {
 	EventBusyOutlined,
 	HourglassEmptyOutlined,
 	CalendarMonthOutlined,
+	CheckCircleOutline,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import bookingService from '../../../services/bookingService';
@@ -45,6 +46,7 @@ const JoinMeetingPage: React.FC = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [info, setInfo] = useState<MeetingJoinInfo | null>(null);
+	const [hasLeft, setHasLeft] = useState(false);
 
 	useEffect(() => {
 		if (!token) {
@@ -60,7 +62,7 @@ const JoinMeetingPage: React.FC = () => {
 			.finally(() => setLoading(false));
 	}, [token]);
 
-	if (!loading && info?.joinable && info.jitsi_domain && info.jitsi_room) {
+	if (!loading && !hasLeft && info?.joinable && info.jitsi_domain && info.jitsi_room) {
 		return (
 			<Box component="main" sx={{ width: '100vw', height: '100dvh', bgcolor: '#000' }}>
 				<JitsiEmbed
@@ -68,7 +70,51 @@ const JoinMeetingPage: React.FC = () => {
 					room={info.jitsi_room}
 					subject={info.meeting_title}
 					onLoadError={() => setError('Failed to load the video call.')}
+					onMeetingEnded={() => setHasLeft(true)}
 				/>
+			</Box>
+		);
+	}
+
+	if (hasLeft) {
+		return (
+			<Box
+				component="main"
+				sx={{
+					minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+					backgroundColor: theme.palette.background.default,
+					backgroundImage: `radial-gradient(circle at 50% 50%, ${theme.palette.background.default} 0%, ${theme.palette.secondary.dark}20 100%)`,
+					py: 6,
+				}}
+			>
+				<Container maxWidth="sm">
+					<Box sx={{ mb: 4, textAlign: 'center' }}>
+						<Box
+							component="img"
+							src={colorMode === 'dark' ? '/assets/img/logo/gravit-dark.svg' : '/assets/img/logo/gravit-light.svg'}
+							alt="Gravit Logo"
+							sx={{ height: 48, mb: 1.5 }}
+						/>
+					</Box>
+					<Fade in timeout={400}>
+						<Paper
+							elevation={1}
+							sx={{
+								p: { xs: 3, sm: 5 }, borderRadius: 2, textAlign: 'center',
+								backgroundColor: theme.palette.background.paper,
+								border: `1px solid ${theme.palette.divider}`,
+							}}
+						>
+							<Stack alignItems="center" spacing={2} sx={{ py: 2 }}>
+								<CheckCircleOutline sx={{ fontSize: 64, color: theme.palette.success.main }} />
+								<Typography variant="h6" fontWeight={700}>You've Left the Meeting</Typography>
+								<Typography variant="body2" color="text.secondary">
+									You can safely close this tab now.
+								</Typography>
+							</Stack>
+						</Paper>
+					</Fade>
+				</Container>
 			</Box>
 		);
 	}

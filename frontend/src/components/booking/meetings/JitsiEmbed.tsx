@@ -5,6 +5,7 @@ declare global {
 	interface Window {
 		JitsiMeetExternalAPI?: new (domain: string, options: Record<string, unknown>) => {
 			dispose: () => void;
+			addEventListener: (event: string, handler: (...args: unknown[]) => void) => void;
 		};
 	}
 }
@@ -41,18 +42,22 @@ interface JitsiEmbedProps {
 	displayName?: string;
 	subject?: string;
 	onLoadError?: () => void;
+	/** Fired once the call is safely torn down after the local user leaves/hangs
+	 * up — the caller should show its own "you've left" UI here instead of letting
+	 * Jitsi's own post-call page render inside the embed (see enableClosePage below). */
+	onMeetingEnded?: () => void;
 }
 
 /** Embeds a Jitsi call via the official IFrame External API (not a raw link in a new
  * tab) so we can strip Jitsi's own branding — this is the only supported way to do
  * that even on the free public meet.jit.si server. */
-const JitsiEmbed: React.FC<JitsiEmbedProps> = ({ domain, room, displayName, subject, onLoadError }) => {
+const JitsiEmbed: React.FC<JitsiEmbedProps> = ({ domain, room, displayName, subject, onLoadError, onMeetingEnded }) => {
 	const theme = useTheme();
 	const containerRef = useRef<HTMLDivElement | null>(null);
 
 	useEffect(() => {
 		let disposed = false;
-		let apiInstance: { dispose: () => void } | null = null;
+		let apiInstance: { dispose: () => void; addEventListener: (event: string, handler: (...args: unknown[]) => void) => void } | null = null;
 
 		loadExternalApiScript(domain)
 			.then(() => {
@@ -66,6 +71,12 @@ const JitsiEmbed: React.FC<JitsiEmbedProps> = ({ domain, room, displayName, subj
 					configOverwrite: {
 						prejoinPageEnabled: true,
 						disableDeepLinking: true,
+						// Without this, hanging up loads Jitsi's own "you've left the
+						// meeting" page inside the embed — which, filling our full-bleed
+						// container, reads as "navigating to the Jitsi site". Turning it
+						// off fires `readyToClose` immediately instead, and we show our
+						// own end-of-call screen for that (see onMeetingEnded below).
+						enableClosePage: false,
 						subject,
 					},
 					interfaceConfigOverwrite: {
@@ -78,6 +89,9 @@ const JitsiEmbed: React.FC<JitsiEmbedProps> = ({ domain, room, displayName, subj
 						DEFAULT_LOGO_URL: '',
 						DEFAULT_BACKGROUND: theme.palette.background.default,
 					},
+				});
+				apiInstance.addEventListener('readyToClose', () => {
+					if (!disposed) onMeetingEnded?.();
 				});
 			})
 			.catch(() => {
