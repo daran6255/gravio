@@ -78,6 +78,20 @@ class ProjectRepository:
         return result.scalars().first()
 
     @staticmethod
+    async def get_by_share_token(db: AsyncSession, token: uuid.UUID) -> Optional[Project]:
+        """Looked up by token alone -- no organization scoping, since the token itself
+        is the credential for an unauthenticated visitor with no tenant context."""
+        result = await db.execute(
+            select(Project)
+            .options(
+                selectinload(Project.tasks).selectinload(ProjectTask.status),
+                selectinload(Project.company),
+            )
+            .where(Project.share_token == token, Project.is_deleted.is_(False))
+        )
+        return result.scalars().first()
+
+    @staticmethod
     async def create(db: AsyncSession, *, name: str, **kwargs) -> Project:
         project = Project(name=name, **kwargs)
         db.add(project)

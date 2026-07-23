@@ -107,6 +107,11 @@ class Project(BaseModel, TenantAwareMixin):
     # Key of the PROJECT_TEMPLATES entry this project was created from (if any) —
     # kept after creation so the UI can recommend a matching task-status preset.
     template_key: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    # Client-facing read-only status page (see ProjectService.get_public_project_view).
+    # share_token is looked up directly (no organization scoping needed -- it's the
+    # credential itself) and rotates on regenerate, which is how an old link is revoked.
+    share_token: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid, unique=True, index=True, nullable=True)
+    share_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Relationships
     owner: Mapped[Optional[User]] = relationship("User", foreign_keys=[owner_id])

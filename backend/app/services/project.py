@@ -27,6 +27,8 @@ from app.schemas.project import (
     ProjectTaskStatusUpsert,
     DealConvertToProjectRequest,
     DealProjectConversionPreview,
+    PublicProjectView,
+    PublicProjectTaskView,
 )
 from app.models.user import User
 from app.services.audit import AuditService
@@ -298,6 +300,68 @@ class ProjectService:
             updates["status"] = status
 
         return await ProjectRepository.bulk_update(db, project_ids, **updates)
+
+    # --- Client-facing share link ---
+    @staticmethod
+    async def get_share_link(db: AsyncSession, public_id: uuid.UUID) -> Project:
+        return await ProjectService.get_project(db, public_id)
+
+    @staticmethod
+    async def enable_share_link(db: AsyncSession, public_id: uuid.UUID) -> Project:
+        """Idempotent: turns sharing on, minting a token only if this project has never
+        been shared before (re-enabling after a disable reuses the same link)."""
+        project = await ProjectService.get_project(db, public_id)
+        updates: dict[str, Any] = {"share_enabled": True}
+        if project.share_token is None:
+            updates["share_token"] = uuid.uuid4()
+        return await ProjectRepository.update(db, project, **updates)
+
+    @staticmethod
+    async def regenerate_share_link(db: AsyncSession, public_id: uuid.UUID) -> Project:
+        """Rotates the token -- this is how a previously-shared link is revoked without
+        turning sharing off altogether."""
+        project = await ProjectService.get_project(db, public_id)
+        return await ProjectRepository.update(db, project, share_token=uuid.uuid4(), share_enabled=True)
+
+    @staticmethod
+    async def disable_share_link(db: AsyncSession, public_id: uuid.UUID) -> Project:
+        project = await ProjectService.get_project(db, public_id)
+        return await ProjectRepository.update(db, project, share_enabled=False)
+
+    @staticmethod
+    async def get_public_project_view(db: AsyncSession, token: uuid.UUID) -> "PublicProjectView":
+        project = await ProjectRepository.get_by_share_token(db, token)
+        if not project or not project.share_enabled:
+            raise NotFoundError("This project link is invalid or is no longer being shared.")
+
+        non_deleted_tasks = [t for t in project.tasks if not t.is_deleted]
+        # Sub-tasks are omitted here -- a client-facing status page shows top-level
+        # work items, not the full internal task/sub-task breakdown.
+        top_level_tasks = sorted(
+            (t for t in non_deleted_tasks if t.parent_task_id is None),
+            key=lambda t: (t.order, t.created_at),
+        )
+
+        return PublicProjectView(
+            name=project.name,
+            description=project.description,
+            status=project.status,
+            start_date=project.start_date,
+            end_date=project.end_date,
+            company_name=project.company.name if project.company else None,
+            task_count=len(non_deleted_tasks),
+            completed_task_count=len([t for t in non_deleted_tasks if t.completed_at is not None]),
+            tasks=[
+                PublicProjectTaskView(
+                    title=t.title,
+                    status_name=t.status.name if t.status else "Unknown",
+                    status_color=t.status.color if t.status else "#808080",
+                    is_done=t.completed_at is not None,
+                    due_date=t.due_date,
+                )
+                for t in top_level_tasks
+            ],
+        )
 
     # --- Project Task CRUD (also used for sub-tasks) ---
     @staticmethod

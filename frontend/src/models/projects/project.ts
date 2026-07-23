@@ -136,6 +136,34 @@ export interface ProjectBudgetActuals {
 	is_over_budget: boolean;
 }
 
+/** Matches backend's ProjectShareLinkResponse. */
+export interface ProjectShareLink {
+	share_enabled: boolean;
+	share_token?: string;
+}
+
+/** Matches backend's PublicProjectTaskView (GET /projects/public/{token}). */
+export interface PublicProjectTask {
+	title: string;
+	status_name: string;
+	status_color: string;
+	is_done: boolean;
+	due_date?: string;
+}
+
+/** Matches backend's PublicProjectView -- the read-only client status page. */
+export interface PublicProject {
+	name: string;
+	description?: string;
+	status: ProjectStatus;
+	start_date?: string;
+	end_date?: string;
+	company_name?: string;
+	task_count: number;
+	completed_task_count: number;
+	tasks: PublicProjectTask[];
+}
+
 /** Matches backend's ProjectStatsResponse (GET /projects/stats). */
 export interface ProjectStats {
 	total_projects: number;

@@ -31,6 +31,8 @@ from app.schemas.project import (
     ProjectBulkUpdateRequest,
     ProjectStatsResponse,
     ProjectBudgetActualsResponse,
+    ProjectShareLinkResponse,
+    PublicProjectView,
     ProjectTaskCreate,
     ProjectTaskUpdate,
     ProjectTaskResponse,
@@ -251,6 +253,83 @@ async def get_project_endpoint(
         db, project, value_field="budget", currency_field="currency", user_currency=current_user.currency,
     )
     return ProjectResponse.model_validate(project)
+
+
+def _share_link_response(project) -> ProjectShareLinkResponse:
+    return ProjectShareLinkResponse(share_enabled=project.share_enabled, share_token=project.share_token)
+
+
+@router.get(
+    "/{public_id}/share-link",
+    response_model=ProjectShareLinkResponse,
+    summary="Get a project's client-facing share link status",
+)
+async def get_project_share_link_endpoint(
+    public_id: uuid.UUID,
+    current_user: User = Depends(require_project_admin),
+    _pm: User = Depends(require_pm_module),
+    db: AsyncSession = Depends(get_db),
+) -> ProjectShareLinkResponse:
+    project = await ProjectService.get_share_link(db, public_id)
+    return _share_link_response(project)
+
+
+@router.post(
+    "/{public_id}/share-link",
+    response_model=ProjectShareLinkResponse,
+    summary="Turn on this project's client-facing share link (reuses the existing token, if any)",
+)
+async def enable_project_share_link_endpoint(
+    public_id: uuid.UUID,
+    current_user: User = Depends(require_project_admin),
+    _pm: User = Depends(require_pm_module),
+    db: AsyncSession = Depends(get_db),
+) -> ProjectShareLinkResponse:
+    project = await ProjectService.enable_share_link(db, public_id)
+    return _share_link_response(project)
+
+
+@router.post(
+    "/{public_id}/share-link/regenerate",
+    response_model=ProjectShareLinkResponse,
+    summary="Rotate this project's share token, invalidating the previous link",
+)
+async def regenerate_project_share_link_endpoint(
+    public_id: uuid.UUID,
+    current_user: User = Depends(require_project_admin),
+    _pm: User = Depends(require_pm_module),
+    db: AsyncSession = Depends(get_db),
+) -> ProjectShareLinkResponse:
+    project = await ProjectService.regenerate_share_link(db, public_id)
+    return _share_link_response(project)
+
+
+@router.delete(
+    "/{public_id}/share-link",
+    response_model=ProjectShareLinkResponse,
+    summary="Turn off this project's client-facing share link",
+)
+async def disable_project_share_link_endpoint(
+    public_id: uuid.UUID,
+    current_user: User = Depends(require_project_admin),
+    _pm: User = Depends(require_pm_module),
+    db: AsyncSession = Depends(get_db),
+) -> ProjectShareLinkResponse:
+    project = await ProjectService.disable_share_link(db, public_id)
+    return _share_link_response(project)
+
+
+# --- Public (no-login) client status page — token identifies the project ---
+@router.get(
+    "/public/{token}",
+    response_model=PublicProjectView,
+    summary="Get a project's read-only client status page via its share token",
+)
+async def get_public_project_endpoint(
+    token: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> PublicProjectView:
+    return await ProjectService.get_public_project_view(db, token)
 
 
 @router.patch(

@@ -18,6 +18,7 @@ import TimesheetPage from '../pages/timesheets/TimesheetPage';
 import { MyMeetingsPage, TeamMeetingsPage } from '../pages/booking';
 import ManageMeetingPage from '../pages/booking/public/ManageMeetingPage';
 import JoinMeetingPage from '../pages/booking/public/JoinMeetingPage';
+import ProjectStatusPage from '../pages/projects/public/ProjectStatusPage';
 // HR Admin Pages
 import EmployeesPage from '../pages/hr/admin/EmployeesPage';
 import DepartmentsPage from '../pages/hr/admin/DepartmentsPage';
@@ -66,6 +67,9 @@ const AppRouter: React.FC = () => {
 			    a fresh join token); enforces the active-time window and embeds the call
 			    branding-free instead of opening the raw Jitsi link. */}
 			<Route path="/meetings/join" element={<JoinMeetingPage />} />
+
+			{/* Public — a client views a read-only project status page via a share link, no login */}
+			<Route path="/projects/status" element={<ProjectStatusPage />} />
 
 			<Route element={<ProtectedRoute />}>
 				{/* Protected Routes */}

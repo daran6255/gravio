@@ -94,7 +94,7 @@ api.interceptors.response.use(
 			// Attempt to refresh the token
 			const response = await authService.refreshToken();
 
-			const publicPaths = ['/auth/', '/login', '/candidate-registration', '/success', '/maintenance', '/exam', '/meetings/manage'];
+			const publicPaths = ['/auth/', '/login', '/candidate-registration', '/success', '/maintenance', '/exam', '/meetings/manage', '/projects/status'];
 			const isPublicPath = publicPaths.some(path => window.location.pathname.startsWith(path));
 
 			if (!response) {
@@ -124,7 +124,7 @@ api.interceptors.response.use(
 			authService.clearTokens();
 
 			// Redirect to login - only for non-public routes
-			const publicPaths = ['/auth/', '/login', '/candidate-registration', '/success', '/maintenance', '/exam', '/candidate/interview', '/meetings/manage'];
+			const publicPaths = ['/auth/', '/login', '/candidate-registration', '/success', '/maintenance', '/exam', '/candidate/interview', '/meetings/manage', '/projects/status'];
 			const isPublicPath = publicPaths.some(path => window.location.pathname.startsWith(path));
 
 			if (!isPublicPath && window.location.pathname !== '/auth/login') {

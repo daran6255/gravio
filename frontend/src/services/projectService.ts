@@ -1,6 +1,6 @@
 import api from './api';
 import type { PaginatedResponse } from '../models/common';
-import type { Project, ProjectCreate, ProjectUpdate, ProjectStatus, ProjectStats, ProjectBudgetActuals } from '../models/projects/project';
+import type { Project, ProjectCreate, ProjectUpdate, ProjectStatus, ProjectStats, ProjectBudgetActuals, ProjectShareLink, PublicProject } from '../models/projects/project';
 import type {
 	ProjectTask,
 	ProjectTaskCreate,
@@ -69,6 +69,33 @@ const projectService = {
 
 	deleteProject: async (publicId: string): Promise<void> => {
 		await api.delete(`/projects/${publicId}`);
+	},
+
+	// --- Client-facing share link ---
+	getShareLink: async (publicId: string): Promise<ProjectShareLink> => {
+		const response = await api.get<ProjectShareLink>(`/projects/${publicId}/share-link`);
+		return response.data;
+	},
+
+	enableShareLink: async (publicId: string): Promise<ProjectShareLink> => {
+		const response = await api.post<ProjectShareLink>(`/projects/${publicId}/share-link`);
+		return response.data;
+	},
+
+	regenerateShareLink: async (publicId: string): Promise<ProjectShareLink> => {
+		const response = await api.post<ProjectShareLink>(`/projects/${publicId}/share-link/regenerate`);
+		return response.data;
+	},
+
+	disableShareLink: async (publicId: string): Promise<ProjectShareLink> => {
+		const response = await api.delete<ProjectShareLink>(`/projects/${publicId}/share-link`);
+		return response.data;
+	},
+
+	/** Public (no-login) client status page — token identifies the project. */
+	publicGetProject: async (token: string): Promise<PublicProject> => {
+		const response = await api.get<PublicProject>(`/projects/public/${token}`);
+		return response.data;
 	},
 
 	bulkUpdateProjects: async (publicIds: string[], updates: { ownerId?: number; status?: ProjectStatus }): Promise<Project[]> => {

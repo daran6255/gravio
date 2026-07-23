@@ -14,6 +14,7 @@ import {
 	ExpandMoreOutlined,
 	SettingsOutlined,
 	InfoOutlined,
+	IosShareOutlined,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import StatusBadge, { getStatusTone } from '../../../common/badge/StatusBadge';
@@ -21,6 +22,7 @@ import { AddButton } from '../../../common/button';
 import useDateTime from '../../../../hooks/useDateTime';
 import { formatMoney } from '../../../../utils/currency';
 import projectService from '../../../../services/projectService';
+import ProjectShareDialog from '../forms/ProjectShareDialog';
 import type { Project, ProjectBudgetActuals } from '../../../../models/projects/project';
 import type { ProjectTask } from '../../../../models/projects/projectTask';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
@@ -84,6 +86,7 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 	const { formatDate } = useDateTime();
 	const [expanded, setExpanded] = useState(false);
 	const [budgetActuals, setBudgetActuals] = useState<ProjectBudgetActuals | null>(null);
+	const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
 	// Lazily fetched -- only needed once the details section (where it's shown) is
 	// actually opened, and re-fetched each time it's re-opened so logged hours stay current.
@@ -220,6 +223,16 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 						<AddButton size="small" onClick={onAddTask} sx={{ px: 2.25, py: 0.75 }}>
 							Add Task
 						</AddButton>
+						<Tooltip title="Share with client">
+							<IconButton
+								onClick={() => setShareDialogOpen(true)}
+								size="small"
+								aria-label="Share with client"
+								sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.08) } }}
+							>
+								<IosShareOutlined fontSize="small" />
+							</IconButton>
+						</Tooltip>
 						<Tooltip title="Manage task stages">
 							<IconButton
 								onClick={onManageStages}
@@ -427,6 +440,8 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 					</Typography>
 				</Collapse>
 			</Box>
+
+			<ProjectShareDialog open={shareDialogOpen} onClose={() => setShareDialogOpen(false)} project={project} />
 		</Box>
 	);
 };

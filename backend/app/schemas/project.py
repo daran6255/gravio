@@ -196,6 +196,38 @@ class ProjectBudgetActualsResponse(BaseModel):
     is_over_budget: bool = False
 
 
+# --- Client-facing share link ---
+class ProjectShareLinkResponse(BaseModel):
+    share_enabled: bool
+    share_token: Optional[uuid.UUID] = None
+
+
+class PublicProjectTaskView(BaseModel):
+    """Deliberately thin -- no description, hours, billing type, assignee, comments,
+    or attachments. A client sees what's being worked on and its status, nothing else.
+    Built explicitly in the service layer (not from_attributes) since status_name/color
+    are pulled off the related ProjectTaskStatus, not columns on ProjectTask itself."""
+    title: str
+    status_name: str
+    status_color: str
+    is_done: bool
+    due_date: Optional[date] = None
+
+
+class PublicProjectView(BaseModel):
+    """The read-only client status page (GET /projects/public/{token}). No budget,
+    no internal issues notes, no custom_fields, no owner/assignee identities."""
+    name: str
+    description: Optional[str] = None
+    status: ProjectStatus
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    company_name: Optional[str] = None
+    task_count: int = 0
+    completed_task_count: int = 0
+    tasks: list[PublicProjectTaskView] = Field(default_factory=list)
+
+
 # --- Deal -> Project conversion ---
 class DealConvertToProjectRequest(BaseModel):
     name: Optional[str] = None       # defaults to deal.title if not provided
