@@ -85,6 +85,17 @@ class GroqProvider(LLMProvider):
             async with httpx.AsyncClient(timeout=60.0) as client:
                 resp = await client.post(self.BASE_URL, json=payload, headers=headers)
 
+                if resp.status_code == 413:
+                    # Groq reports "request too large for this model" as a 413 whose body
+                    # still carries code=="rate_limit_exceeded" (it's a token-budget error,
+                    # not an RPM one) -- treating that as a per-key rate limit would rotate
+                    # through and cool down every key in the pool for a request that's too
+                    # big for all of them equally. Fail fast instead so the resilient
+                    # wrapper can fall back to another provider without burning 60s per key.
+                    raise LLMProviderError(
+                        f"Request too large for Groq model '{self._model}' (413).", provider="groq",
+                    )
+
                 if resp.status_code == 429:
                     retry_after = resp.headers.get("retry-after")
                     await self._pool.mark_rate_limited(key, float(retry_after) if retry_after else None)
@@ -135,6 +146,13 @@ class GroqProvider(LLMProvider):
 
             async with httpx.AsyncClient(timeout=60.0) as client:
                 async with client.stream("POST", self.BASE_URL, json=payload, headers=headers) as response:
+                    if response.status_code == 413:
+                        # See the non-streaming complete() for why 413 must not be treated
+                        # as a rotatable per-key rate limit.
+                        raise LLMProviderError(
+                            f"Request too large for Groq model '{self._model}' (413).", provider="groq",
+                        )
+
                     if response.status_code == 429:
                         retry_after = response.headers.get("retry-after")
                         await self._pool.mark_rate_limited(key, float(retry_after) if retry_after else None)
