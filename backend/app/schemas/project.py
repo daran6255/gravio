@@ -174,6 +174,28 @@ class ProjectStatsResponse(BaseModel):
     display_currency: Optional[str] = None
 
 
+# --- Project Budget vs Actual ---
+class ProjectBudgetActualsResponse(BaseModel):
+    """Rolls up a project's dollar budget against effort estimated on its tasks and
+    hours actually logged against it via timesheets -- no cost data is collected here
+    that doesn't already exist elsewhere; `estimated_spend` is derived, not recorded."""
+    budget: Optional[float] = None
+    currency: str
+    display_budget: Optional[float] = None
+    display_currency: Optional[str] = None
+    estimated_hours_total: float = 0
+    billable_hours_logged: float = 0
+    non_billable_hours_logged: float = 0
+    actual_hours_logged_total: float = 0
+    hours_utilization_pct: Optional[float] = None
+    # budget / estimated_hours_total -- the only hourly rate derivable from existing
+    # data, since no per-user or per-task rate is recorded anywhere in the system.
+    implied_hourly_rate: Optional[float] = None
+    estimated_spend: Optional[float] = None
+    budget_utilization_pct: Optional[float] = None
+    is_over_budget: bool = False
+
+
 # --- Deal -> Project conversion ---
 class DealConvertToProjectRequest(BaseModel):
     name: Optional[str] = None       # defaults to deal.title if not provided

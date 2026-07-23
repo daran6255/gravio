@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Typography, Stack, IconButton, Avatar, LinearProgress, Chip, Divider, Tooltip, Collapse, useTheme, alpha } from '@mui/material';
 import {
 	ArrowBackOutlined,
@@ -13,13 +13,15 @@ import {
 	GroupsOutlined,
 	ExpandMoreOutlined,
 	SettingsOutlined,
+	InfoOutlined,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import StatusBadge, { getStatusTone } from '../../../common/badge/StatusBadge';
 import { AddButton } from '../../../common/button';
 import useDateTime from '../../../../hooks/useDateTime';
 import { formatMoney } from '../../../../utils/currency';
-import type { Project } from '../../../../models/projects/project';
+import projectService from '../../../../services/projectService';
+import type { Project, ProjectBudgetActuals } from '../../../../models/projects/project';
 import type { ProjectTask } from '../../../../models/projects/projectTask';
 import type { CRMOwnerOption } from '../../../../models/crm/owner';
 
@@ -81,6 +83,20 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 	const theme = useTheme();
 	const { formatDate } = useDateTime();
 	const [expanded, setExpanded] = useState(false);
+	const [budgetActuals, setBudgetActuals] = useState<ProjectBudgetActuals | null>(null);
+
+	// Lazily fetched -- only needed once the details section (where it's shown) is
+	// actually opened, and re-fetched each time it's re-opened so logged hours stay current.
+	useEffect(() => {
+		if (!expanded) return;
+		let cancelled = false;
+		projectService.getProjectBudgetActuals(project.public_id).then((result) => {
+			if (!cancelled) setBudgetActuals(result);
+		}).catch(() => {
+			if (!cancelled) setBudgetActuals(null);
+		});
+		return () => { cancelled = true; };
+	}, [expanded, project.public_id]);
 
 	// Everyone with at least one task assigned to them in this project — deduped,
 	// resolved against the owner options list already loaded for the assignee pickers.
@@ -343,6 +359,55 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 							}}
 						/>
 					</Box>
+
+					{/* Budget vs Actual */}
+					{budgetActuals && (
+						budgetActuals.budget != null
+						|| budgetActuals.estimated_hours_total > 0
+						|| budgetActuals.actual_hours_logged_total > 0
+					) && (
+						<Box sx={{ mt: 2 }}>
+							<Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 0.75 }} flexWrap="wrap" rowGap={0.5}>
+								<Stack direction="row" spacing={0.75} alignItems="center">
+									<AccountBalanceWalletOutlined sx={{ fontSize: '1rem', color: 'text.secondary' }} />
+									<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+										Budget vs Actual
+									</Typography>
+									{budgetActuals.estimated_spend != null && (
+										<Tooltip
+											title={`Estimated spend = (budget ÷ ${budgetActuals.estimated_hours_total}h estimated) × ${budgetActuals.billable_hours_logged}h billable logged. Modeled from existing estimates and timesheets -- not an invoiced amount.`}
+											arrow
+										>
+											<InfoOutlined sx={{ fontSize: '0.85rem', color: 'text.disabled', cursor: 'help' }} />
+										</Tooltip>
+									)}
+								</Stack>
+								<Typography variant="caption" sx={{ fontWeight: 700, color: budgetActuals.is_over_budget ? 'error.main' : 'text.primary' }}>
+									{budgetActuals.estimated_spend != null && budgetActuals.budget != null ? (
+										`${formatMoney(budgetActuals.estimated_spend, budgetActuals.currency)} of ${formatMoney(budgetActuals.budget, budgetActuals.currency)} · ${budgetActuals.budget_utilization_pct}%`
+									) : (
+										`${budgetActuals.actual_hours_logged_total}h logged of ${budgetActuals.estimated_hours_total}h estimated${budgetActuals.hours_utilization_pct != null ? ` · ${budgetActuals.hours_utilization_pct}%` : ''}`
+									)}
+								</Typography>
+							</Stack>
+							<LinearProgress
+								variant="determinate"
+								value={Math.min(budgetActuals.budget_utilization_pct ?? budgetActuals.hours_utilization_pct ?? 0, 100)}
+								sx={{
+									height: 6,
+									borderRadius: 3,
+									bgcolor: alpha(theme.palette.text.secondary, 0.12),
+									'& .MuiLinearProgress-bar': {
+										borderRadius: 3,
+										bgcolor: budgetActuals.is_over_budget ? theme.palette.error.main : theme.palette.success.main,
+									},
+								}}
+							/>
+							<Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>
+								{budgetActuals.estimated_hours_total}h estimated &middot; {budgetActuals.billable_hours_logged}h billable logged &middot; {budgetActuals.non_billable_hours_logged}h non-billable logged
+							</Typography>
+						</Box>
+					)}
 
 					{/* Tags */}
 					{!!project.tags?.length && (

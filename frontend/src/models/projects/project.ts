@@ -117,6 +117,25 @@ export interface ProjectStatusCount {
 	count: number;
 }
 
+/** Matches backend's ProjectBudgetActualsResponse (GET /projects/{id}/budget-actuals). */
+export interface ProjectBudgetActuals {
+	budget?: number;
+	currency: string;
+	display_budget?: number;
+	display_currency?: string;
+	estimated_hours_total: number;
+	billable_hours_logged: number;
+	non_billable_hours_logged: number;
+	actual_hours_logged_total: number;
+	hours_utilization_pct?: number;
+	/** budget / estimated_hours_total -- a modeled rate, not a recorded one. */
+	implied_hourly_rate?: number;
+	/** implied_hourly_rate * billable_hours_logged -- an estimate, not a booked cost. */
+	estimated_spend?: number;
+	budget_utilization_pct?: number;
+	is_over_budget: boolean;
+}
+
 /** Matches backend's ProjectStatsResponse (GET /projects/stats). */
 export interface ProjectStats {
 	total_projects: number;

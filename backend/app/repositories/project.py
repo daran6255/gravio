@@ -252,6 +252,36 @@ class ProjectRepository:
             "overdue_projects": overdue_projects,
         }
 
+    @staticmethod
+    async def get_budget_actuals(db: AsyncSession, *, project_id: int) -> dict:
+        """Estimated effort (from tasks) vs hours actually logged against this project
+        (from timesheets, by billing type). Rejected time entries don't count as real work."""
+        from app.models.timesheet import ProjectTimeLog, TimesheetBillingType, TimesheetStatus
+
+        estimated_result = await db.execute(
+            select(func.sum(ProjectTask.estimated_hours)).where(
+                ProjectTask.project_id == project_id, ProjectTask.is_deleted.is_(False),
+            )
+        )
+        estimated_hours_total = float(estimated_result.scalar_one() or 0)
+
+        logged_result = await db.execute(
+            select(ProjectTimeLog.billing_type, func.sum(ProjectTimeLog.hours))
+            .where(
+                ProjectTimeLog.project_id == project_id,
+                ProjectTimeLog.is_deleted.is_(False),
+                ProjectTimeLog.status != TimesheetStatus.REJECTED,
+            )
+            .group_by(ProjectTimeLog.billing_type)
+        )
+        hours_by_billing_type = {row[0]: float(row[1]) for row in logged_result.all()}
+
+        return {
+            "estimated_hours_total": estimated_hours_total,
+            "billable_hours_logged": hours_by_billing_type.get(TimesheetBillingType.BILLABLE, 0.0),
+            "non_billable_hours_logged": hours_by_billing_type.get(TimesheetBillingType.NON_BILLABLE, 0.0),
+        }
+
 
 class ProjectTaskRepository:
     @staticmethod

@@ -238,6 +238,46 @@ class ProjectService:
         return await ProjectRepository.get_stats(db)
 
     @staticmethod
+    async def get_budget_actuals(db: AsyncSession, public_id: uuid.UUID) -> dict:
+        project = await ProjectService.get_project(db, public_id)
+        actuals = await ProjectRepository.get_budget_actuals(db, project_id=project.id)
+
+        estimated_hours_total = actuals["estimated_hours_total"]
+        billable_hours_logged = actuals["billable_hours_logged"]
+        non_billable_hours_logged = actuals["non_billable_hours_logged"]
+        actual_hours_logged_total = billable_hours_logged + non_billable_hours_logged
+
+        hours_utilization_pct = (
+            round(actual_hours_logged_total / estimated_hours_total * 100, 1)
+            if estimated_hours_total > 0 else None
+        )
+
+        # The only hourly rate derivable from existing data: the project's total
+        # estimated effort, priced against its total budget. No per-user or per-task
+        # rate is recorded anywhere, so this is a modeled estimate, not a booked cost.
+        implied_hourly_rate = None
+        estimated_spend = None
+        budget_utilization_pct = None
+        if project.budget and estimated_hours_total > 0:
+            budget_float = float(project.budget)
+            implied_hourly_rate = round(budget_float / estimated_hours_total, 2)
+            estimated_spend = round(implied_hourly_rate * billable_hours_logged, 2)
+            budget_utilization_pct = round(estimated_spend / budget_float * 100, 1)
+
+        return {
+            "project": project,
+            "estimated_hours_total": estimated_hours_total,
+            "billable_hours_logged": billable_hours_logged,
+            "non_billable_hours_logged": non_billable_hours_logged,
+            "actual_hours_logged_total": actual_hours_logged_total,
+            "hours_utilization_pct": hours_utilization_pct,
+            "implied_hourly_rate": implied_hourly_rate,
+            "estimated_spend": estimated_spend,
+            "budget_utilization_pct": budget_utilization_pct,
+            "is_over_budget": budget_utilization_pct is not None and budget_utilization_pct > 100,
+        }
+
+    @staticmethod
     async def bulk_update_projects(
         db: AsyncSession, public_ids: list[uuid.UUID], owner_id: Optional[int], status: Optional[str],
     ) -> list[Project]:

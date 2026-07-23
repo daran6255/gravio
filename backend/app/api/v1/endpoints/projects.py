@@ -30,6 +30,7 @@ from app.schemas.project import (
     ProjectResponse,
     ProjectBulkUpdateRequest,
     ProjectStatsResponse,
+    ProjectBudgetActualsResponse,
     ProjectTaskCreate,
     ProjectTaskUpdate,
     ProjectTaskResponse,
@@ -189,6 +190,31 @@ async def get_project_stats_endpoint(
     stats["display_total_budget"] = display_total_budget
     stats["display_currency"] = user_currency
     return ProjectStatsResponse(**stats)
+
+
+@router.get(
+    "/{public_id}/budget-actuals",
+    response_model=ProjectBudgetActualsResponse,
+    summary="Get a project's budget-vs-actual rollup (estimated vs logged hours, spend estimate)",
+)
+async def get_project_budget_actuals_endpoint(
+    public_id: uuid.UUID,
+    current_user: User = Depends(require_project_access),
+    _pm: User = Depends(require_pm_module),
+    db: AsyncSession = Depends(get_db),
+) -> ProjectBudgetActualsResponse:
+    data = await ProjectService.get_budget_actuals(db, public_id)
+    project = data.pop("project")
+    await CurrencyConversionService.attach_display_value(
+        db, project, value_field="budget", currency_field="currency", user_currency=current_user.currency,
+    )
+    return ProjectBudgetActualsResponse(
+        budget=float(project.budget) if project.budget is not None else None,
+        currency=project.currency,
+        display_budget=project.display_value,
+        display_currency=project.display_currency,
+        **data,
+    )
 
 
 @router.patch(

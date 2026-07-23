@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Stack, Typography, useTheme } from '@mui/material';
-import { ArrowForwardOutlined, ContentCopyOutlined, DeleteOutline } from '@mui/icons-material';
+import { DeleteOutline } from '@mui/icons-material';
 
 interface TaskActionsCardProps {
 	onDelete: () => void;
@@ -79,8 +79,6 @@ export const TaskActionsCard: React.FC<TaskActionsCardProps> = ({ onDelete }) =>
 
 			{/* Flat action list -- always visible, not tucked behind a "..." menu */}
 			<Stack sx={{ p: 1 }}>
-				{renderActionRow({ icon: <ArrowForwardOutlined fontSize="inherit" />, label: 'Transfer task', onClick: () => {} })}
-				{renderActionRow({ icon: <ContentCopyOutlined fontSize="inherit" />, label: 'Clone task', onClick: () => {} })}
 				{renderActionRow({ icon: <DeleteOutline fontSize="inherit" />, label: 'Delete task', onClick: onDelete, danger: true })}
 			</Stack>
 		</Box>
