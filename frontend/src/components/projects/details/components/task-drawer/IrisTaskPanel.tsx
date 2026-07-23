@@ -108,6 +108,10 @@ export const IrisTaskPanel: React.FC<IrisTaskPanelProps> = ({ open, onClose, tas
 	const taskHistory = useAppSelector((state) => state.projects.taskHistory);
 	const irisActivity = taskHistory
 		.filter((h) => h.action === 'comment' && h.changed_by_user_id == null)
+		// Display-only cutoff -- entries older than 2 days just drop off this "recent"
+		// list; the underlying audit log rows are untouched and still show up in the
+		// task's full history (TaskHistoryTimeline).
+		.filter((h) => dayjs().diff(dayjs(h.changed_at), 'hour') < 48)
 		.slice(0, 5);
 
 	const [insights, setInsights] = useState<TaskInsight | null>(null);
@@ -141,10 +145,11 @@ export const IrisTaskPanel: React.FC<IrisTaskPanelProps> = ({ open, onClose, tas
 			setInsights(result);
 		} catch {
 			setInsights(null);
+			toast.error("Couldn't read this task right now.");
 		} finally {
 			setInsightsLoading(false);
 		}
-	}, []);
+	}, [toast]);
 
 	const loadEstimate = useCallback(async (taskPublicId: string, force = false) => {
 		if (!force && estimateCache.current[taskPublicId]) {
@@ -158,24 +163,23 @@ export const IrisTaskPanel: React.FC<IrisTaskPanelProps> = ({ open, onClose, tas
 			setEstimate(result);
 		} catch {
 			setEstimate(null);
+			toast.error("Couldn't estimate this task right now.");
 		} finally {
 			setEstimateLoading(false);
 		}
-	}, []);
+	}, [toast]);
 
 	useEffect(() => {
 		if (!open) return;
 		setPreview(null);
 		setResultText(null);
 		setMessage('');
-		// Sequential, not parallel -- firing both LLM calls at once doubles concurrent load on
-		// the configured provider right as the panel opens, which is an easy way to trip a
-		// per-second/per-minute rate limit on a constrained tier. Insights still renders as
-		// soon as it's ready; estimate's own spinner just runs a beat longer.
-		(async () => {
-			await loadInsights(task.public_id);
-			await loadEstimate(task.public_id);
-		})();
+		// Manual control -- insights/estimate each cost an LLM call, so don't fire them
+		// automatically on every open. Seed from this session's cache if the user already
+		// fetched them once; otherwise leave both null so the section shows its "Get ..."
+		// button instead of spending credits the user didn't ask to spend.
+		setInsights(insightsCache.current[task.public_id] ?? null);
+		setEstimate(estimateCache.current[task.public_id] ?? null);
 		// Only re-run when the panel opens for a (possibly different) task -- not on every
 		// keystroke/prop change while it's already open.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -301,9 +305,11 @@ export const IrisTaskPanel: React.FC<IrisTaskPanelProps> = ({ open, onClose, tas
 									{health?.label || 'Insights'}
 								</Typography>
 							</Stack>
-							<IconButton size="small" title="Get a fresh read" onClick={() => loadInsights(task.public_id, true)} disabled={insightsLoading}>
-								<RefreshOutlined sx={{ fontSize: 14 }} />
-							</IconButton>
+							{insights && (
+								<IconButton size="small" title="Get a fresh read" onClick={() => loadInsights(task.public_id, true)} disabled={insightsLoading}>
+									<RefreshOutlined sx={{ fontSize: 14 }} />
+								</IconButton>
+							)}
 						</Stack>
 						{insightsLoading ? (
 							<Stack spacing={0.75}>
@@ -332,9 +338,20 @@ export const IrisTaskPanel: React.FC<IrisTaskPanelProps> = ({ open, onClose, tas
 								</Typography>
 							)
 						) : (
-							<Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-								Couldn't read this task right now.
-							</Typography>
+							<Stack spacing={1} alignItems="flex-start">
+								<Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+									Get IRIS's read on this task's health and risk factors.
+								</Typography>
+								<Button
+									size="small"
+									variant="outlined"
+									startIcon={<AutoAwesome sx={{ fontSize: 14 }} />}
+									onClick={() => loadInsights(task.public_id)}
+									sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px', borderColor: alpha(brand, 0.4), color: brand, '&:hover': { borderColor: brand, bgcolor: alpha(brand, 0.08) } }}
+								>
+									Get insights
+								</Button>
+							</Stack>
 						)}
 					</Paper>
 
@@ -345,43 +362,62 @@ export const IrisTaskPanel: React.FC<IrisTaskPanelProps> = ({ open, onClose, tas
 								<ScheduleOutlined sx={{ fontSize: 17, color: brand }} />
 								<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Estimate</Typography>
 							</Stack>
-							<IconButton size="small" title="Get a fresh estimate" onClick={() => loadEstimate(task.public_id, true)} disabled={estimateLoading}>
-								<RefreshOutlined sx={{ fontSize: 14 }} />
-							</IconButton>
+							{estimate && (
+								<IconButton size="small" title="Get a fresh estimate" onClick={() => loadEstimate(task.public_id, true)} disabled={estimateLoading}>
+									<RefreshOutlined sx={{ fontSize: 14 }} />
+								</IconButton>
+							)}
 						</Stack>
 						{estimateLoading ? (
 							<Stack spacing={0.75}>
 								<Skeleton variant="text" width="50%" height={28} />
 								<Skeleton variant="text" width="80%" height={16} />
 							</Stack>
-						) : estimate?.estimated_hours != null ? (
-							<Stack spacing={1}>
-								<Stack direction="row" alignItems="baseline" spacing={1}>
-									<Typography sx={{ fontSize: '1.6rem', fontWeight: 800, lineHeight: 1, color: brand }}>
-										{estimate.estimated_hours}h
-									</Typography>
-									{task.estimated_hours != null && (
-										<Typography variant="caption" color="text.secondary">
-											currently {task.estimated_hours}h
+						) : estimate ? (
+							estimate.estimated_hours != null ? (
+								<Stack spacing={1}>
+									<Stack direction="row" alignItems="baseline" spacing={1}>
+										<Typography sx={{ fontSize: '1.6rem', fontWeight: 800, lineHeight: 1, color: brand }}>
+											{estimate.estimated_hours}h
 										</Typography>
+										{task.estimated_hours != null && (
+											<Typography variant="caption" color="text.secondary">
+												currently {task.estimated_hours}h
+											</Typography>
+										)}
+									</Stack>
+									{estimate.rationale && (
+										<Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{estimate.rationale}</Typography>
 									)}
+									<Button
+										size="small"
+										variant="outlined"
+										onClick={handleApplyEstimate}
+										sx={{ alignSelf: 'flex-start', textTransform: 'none', fontWeight: 700, borderRadius: '8px', borderColor: alpha(brand, 0.4), color: brand, '&:hover': { borderColor: brand, bgcolor: alpha(brand, 0.08) } }}
+									>
+										Apply {estimate.estimated_hours}h
+									</Button>
 								</Stack>
-								{estimate.rationale && (
-									<Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{estimate.rationale}</Typography>
-								)}
+							) : (
+								<Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+									Not enough data to suggest an estimate yet.
+								</Typography>
+							)
+						) : (
+							<Stack spacing={1} alignItems="flex-start">
+								<Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+									Get an IRIS-suggested hour estimate for this task.
+								</Typography>
 								<Button
 									size="small"
 									variant="outlined"
-									onClick={handleApplyEstimate}
-									sx={{ alignSelf: 'flex-start', textTransform: 'none', fontWeight: 700, borderRadius: '8px', borderColor: alpha(brand, 0.4), color: brand, '&:hover': { borderColor: brand, bgcolor: alpha(brand, 0.08) } }}
+									startIcon={<ScheduleOutlined sx={{ fontSize: 14 }} />}
+									onClick={() => loadEstimate(task.public_id)}
+									sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px', borderColor: alpha(brand, 0.4), color: brand, '&:hover': { borderColor: brand, bgcolor: alpha(brand, 0.08) } }}
 								>
-									Apply {estimate.estimated_hours}h
+									Get estimate
 								</Button>
 							</Stack>
-						) : (
-							<Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-								Not enough data to suggest an estimate yet.
-							</Typography>
 						)}
 					</Paper>
 

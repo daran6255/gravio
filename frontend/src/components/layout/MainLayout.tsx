@@ -6,13 +6,17 @@ import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 import ProfileSetupDialog from './ProfileSetupDialog';
-import { useAppSelector } from '../../store/hooks';
+import ChatDrawer from './chat/ChatDrawer';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { setChatDrawerOpen } from '../../store/slices/uiSlice';
 
 const MainLayout: React.FC = () => {
 	const location = useLocation();
 	const theme = useTheme();
+	const dispatch = useAppDispatch();
 	const navbarHeight = `${theme.layout.navbarHeight}px`;
 	const user = useAppSelector((state) => state.auth.user);
+	const chatDrawerOpen = useAppSelector((state) => state.ui.chatDrawerOpen);
 	// Applies to every account — new or pre-existing, any role (individual, org
 	// admin, super admin) — every login, until both are actually set.
 	const needsProfileSetup = !!user && (!user.timezone || !user.currency);
@@ -53,6 +57,7 @@ const MainLayout: React.FC = () => {
 				<ProfileSetupDialog open={needsProfileSetup} />
 				<Navbar />
 				<Sidebar />
+				<ChatDrawer open={chatDrawerOpen} onClose={() => dispatch(setChatDrawerOpen(false))} />
 				<Box
 					sx={{
 						flexGrow: 1,
@@ -77,6 +82,7 @@ const MainLayout: React.FC = () => {
 			<ProfileSetupDialog open={needsProfileSetup} />
 			<Navbar />
 			<Sidebar />
+			<ChatDrawer open={chatDrawerOpen} onClose={() => dispatch(setChatDrawerOpen(false))} />
 			<Box
 				sx={{
 					flexGrow: 1,
