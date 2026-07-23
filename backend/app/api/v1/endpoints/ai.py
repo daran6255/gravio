@@ -6,6 +6,7 @@ get_llm_provider(org_id=..., user_id=...) internally, so it's metered against th
 credit wallet automatically — no credit bookkeeping needed in this file.
 """
 
+import uuid
 from datetime import datetime
 from typing import Optional
 
@@ -27,10 +28,11 @@ from app.ai.schemas.ai_chat import (
     AIChatSessionDetail,
     AIChatMessageCreate,
 )
-from app.ai.schemas.requests import AITaskRunRequest
-from app.ai.schemas.responses import AITaskRunResponse
+from app.ai.schemas.requests import AITaskRunRequest, AITaskApprovalRequest
+from app.ai.schemas.responses import AITaskRunResponse, AITaskLogRead, AITaskLogListItem
 from app.ai.services.chat_service import AIChatService
 from app.ai.brain.engine import AIEngine
+from app.ai.brain.journal import get_task_log_by_public_id, list_task_logs
 from app.schemas.project import DescriptionEnhanceRequest, DescriptionEnhanceResponse
 
 router = APIRouter(prefix="/ai", tags=["AI"])
@@ -200,6 +202,77 @@ async def run_ai_task(
 ) -> AITaskRunResponse:
     engine = AIEngine(db, current_user)
     return await engine.run(request)
+
+
+@router.get(
+    "/tasks",
+    response_model=list[AITaskLogListItem],
+    summary="List my organization's AI task runs, most recent first",
+)
+async def list_ai_tasks(
+    status_filter: Optional[str] = Query(None, alias="status"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[AITaskLogListItem]:
+    org = await _get_current_org(current_user, db)
+    logs, _total = await list_task_logs(
+        db, organization_id=org.id, page=page, page_size=page_size, status_filter=status_filter,
+    )
+    return logs
+
+
+async def _get_org_task_or_404(public_id: uuid.UUID, current_user: User, db: AsyncSession):
+    log = await get_task_log_by_public_id(db, str(public_id))
+    if log is None or log.organization_id != current_user.organization_id:
+        raise NotFoundError("AI task not found.")
+    return log
+
+
+@router.get(
+    "/tasks/{public_id}",
+    response_model=AITaskLogRead,
+    summary="Get one AI task run, including its full plan/step journal",
+)
+async def get_ai_task(
+    public_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> AITaskLogRead:
+    return await _get_org_task_or_404(public_id, current_user, db)
+
+
+@router.post(
+    "/tasks/{public_id}/approve",
+    response_model=AITaskRunResponse,
+    summary="Approve a task paused for human review, resuming execution from where it stopped",
+)
+async def approve_ai_task(
+    public_id: uuid.UUID,
+    payload: AITaskApprovalRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> AITaskRunResponse:
+    log = await _get_org_task_or_404(public_id, current_user, db)
+    engine = AIEngine(db, current_user)
+    return await engine.resume(log, approved=True, approver=current_user, reason=payload.reason)
+
+
+@router.post(
+    "/tasks/{public_id}/reject",
+    response_model=AITaskRunResponse,
+    summary="Reject a task paused for human review, cancelling it",
+)
+async def reject_ai_task(
+    public_id: uuid.UUID,
+    payload: AITaskApprovalRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> AITaskRunResponse:
+    log = await _get_org_task_or_404(public_id, current_user, db)
+    engine = AIEngine(db, current_user)
+    return await engine.resume(log, approved=False, approver=current_user, reason=payload.reason)
 
 
 # ── Description Assist ────────────────────────────────────────────────────────

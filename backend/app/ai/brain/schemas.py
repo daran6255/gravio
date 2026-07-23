@@ -9,6 +9,7 @@ results are returned from tool execution.
 
 from __future__ import annotations
 
+import enum
 import uuid
 from datetime import datetime
 from typing import Any, Literal
@@ -26,6 +27,22 @@ class ToolParameterSchema(BaseModel):
     default: Any = None
 
 
+class ToolRiskTier(str, enum.Enum):
+    """How much oversight a tool's actions need before the engine will run them.
+
+    READ_ONLY   — never gates, never counted toward the record-impact approval threshold.
+    REVERSIBLE  — the default; frictionless writes that are cheap to undo (task edits,
+                  subtask creation, activity logs). Still subject to the plan-level
+                  record-impact threshold if a batch of them is large enough.
+    DESTRUCTIVE — always gates for human approval: actions that change/destroy an
+                  existing commitment and/or notify other people outside the actor's
+                  control (e.g. cancelling or rescheduling a meeting).
+    """
+    READ_ONLY = "read_only"
+    REVERSIBLE = "reversible"
+    DESTRUCTIVE = "destructive"
+
+
 class ToolDefinition(BaseModel):
     """
     Full MCP-compatible tool definition.
@@ -34,9 +51,9 @@ class ToolDefinition(BaseModel):
     name: str = Field(..., description="Unique, snake_case tool identifier")
     description: str = Field(..., description="What this tool does (fed to the LLM)")
     category: str = Field(..., description="Grouping: crm | placement | training | candidate | hr | notification")
-    requires_approval: bool = Field(
-        default=False,
-        description="If True, engine pauses and asks for human approval before executing"
+    risk_tier: ToolRiskTier = Field(
+        default=ToolRiskTier.REVERSIBLE,
+        description="Governs whether the engine pauses for human approval before executing this tool"
     )
     is_read_only: bool = Field(
         default=False,
@@ -57,7 +74,7 @@ class ToolDefinition(BaseModel):
                 "name": "create_lead",
                 "description": "Creates a new CRM lead record",
                 "category": "crm",
-                "requires_approval": False,
+                "risk_tier": "reversible",
                 "is_read_only": False,
                 "parameters": {
                     "title": {"type": "string", "description": "Lead title"},
@@ -119,6 +136,7 @@ class ToolStepLog(BaseModel):
     Immutable record of one tool call's execution — written to the task journal.
     """
     step_number: int
+    turn: int = Field(default=1, description="Which planning turn produced this step (see ToolCallPlan)")
     tool_name: str
     parameters: dict[str, Any]
     reasoning: str | None = None

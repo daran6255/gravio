@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app.ai.brain.schemas import ToolDefinition, ToolParameterSchema, ToolResult
+from app.ai.brain.schemas import ToolDefinition, ToolParameterSchema, ToolResult, ToolRiskTier
 from app.ai.mcp.base_tool import BaseTool
 from app.ai.mcp.registry import registry
 from app.models.project import ProjectTask, ProjectTaskStatus
@@ -36,7 +36,7 @@ class ListMyOpenTasksTool(BaseTool):
         ),
         category="productivity",
         is_read_only=True,
-        requires_approval=False,
+        risk_tier=ToolRiskTier.READ_ONLY,
         parameters={
             "limit": ToolParameterSchema(
                 type="integer",

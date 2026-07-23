@@ -9,6 +9,7 @@ and API request/response models.
 from app.ai.brain.schemas import (
     ToolDefinition,
     ToolParameterSchema,
+    ToolRiskTier,
     ToolCallRequest,
     ToolCallPlan,
     ToolResult,
@@ -16,6 +17,7 @@ from app.ai.brain.schemas import (
 )
 from app.ai.schemas.requests import (
     AITaskRunRequest,
+    AITaskApprovalRequest,
     JobRoleExtractionRequest,
 )
 from app.ai.schemas.responses import (
@@ -37,11 +39,13 @@ from app.ai.schemas.token_utilization import (
 __all__ = [
     "ToolDefinition",
     "ToolParameterSchema",
+    "ToolRiskTier",
     "ToolCallRequest",
     "ToolCallPlan",
     "ToolResult",
     "ToolStepLog",
     "AITaskRunRequest",
+    "AITaskApprovalRequest",
     "JobRoleExtractionRequest",
     "AITaskRunResponse",
     "AITaskLogRead",

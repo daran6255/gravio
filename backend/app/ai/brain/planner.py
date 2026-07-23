@@ -52,9 +52,16 @@ class Planner:
         context_snapshot: dict | None = None,
         allowed_categories: list[str] | None = None,
         system_prompt_override: str | None = None,
+        prior_results: list[dict] | None = None,
     ) -> ToolCallPlan:
         """
         Generate a tool execution plan for the given task.
+
+        `prior_results` -- when set, this is a re-planning turn in a multi-turn task: the
+        caller already executed one or more tool calls and is asking the planner to decide
+        what (if anything) happens next now that their real results are known. Each dict is
+        a `ToolStepLog.model_dump()` from earlier turns of the *same* task run (see
+        `TaskJournal.get_step_results()`).
         """
         # Render prompt using Jinja2
         if system_prompt_override:
@@ -73,7 +80,9 @@ class Planner:
         if self._memory:
             past_examples = await self._memory.get_similar_successful_tasks(task_hint)
 
-        user_message = self._build_user_message(task_hint, input_data, history, context_snapshot, past_examples)
+        user_message = self._build_user_message(
+            task_hint, input_data, history, context_snapshot, past_examples, prior_results,
+        )
 
         logger.info("Planner → LLM request: task='%s'", task_hint[:100])
 
@@ -104,6 +113,7 @@ class Planner:
         history: list[dict] | None = None,
         context_snapshot: dict | None = None,
         past_examples: list[dict] | None = None,
+        prior_results: list[dict] | None = None,
     ) -> str:
         parts = []
 
@@ -133,6 +143,21 @@ class Planner:
 
         if input_data:
             parts.append(f"## Input Data\n```json\n{json.dumps(input_data, indent=2)}\n```\n")
+
+        if prior_results:
+            parts.append(
+                "## Results So Far\n"
+                "Tool calls already executed earlier in this same task, most recent last. "
+                "You are being re-consulted after these ran -- decide what (if anything) "
+                "still needs to happen given their actual outcomes."
+            )
+            for r in prior_results:
+                outcome = "✅ success" if r.get("status") == "success" else f"❌ {r.get('status', 'failed')}"
+                parts.append(
+                    f"- Turn {r.get('turn', 1)}, step {r.get('step_number')}: "
+                    f"{r.get('tool_name')} → {outcome} — {r.get('result_message') or r.get('error') or '(no message)'}"
+                )
+            parts.append("---\n")
 
         if context_snapshot:
             parts.append(

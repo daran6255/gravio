@@ -12,7 +12,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
-from app.ai.brain.schemas import ToolDefinition, ToolParameterSchema, ToolResult
+from app.ai.brain.schemas import ToolDefinition, ToolParameterSchema, ToolResult, ToolRiskTier
 from app.ai.mcp.base_tool import BaseTool
 from app.ai.mcp.registry import registry
 from app.middleware.exceptions import BadRequestError, NotFoundError
@@ -38,7 +38,7 @@ class ScheduleMeetingTool(BaseTool):
         ),
         category="booking",
         is_read_only=False,
-        requires_approval=False,
+        risk_tier=ToolRiskTier.REVERSIBLE,
         parameters={
             "client_name": ToolParameterSchema(type="string", description="Full name of the person meeting with the user."),
             "client_email": ToolParameterSchema(type="string", description="Email address of the person meeting with the user."),
@@ -116,7 +116,7 @@ class ListMyMeetingsTool(BaseTool):
         description="Lists the current user's scheduled meetings.",
         category="booking",
         is_read_only=True,
-        requires_approval=False,
+        risk_tier=ToolRiskTier.READ_ONLY,
         parameters={
             "upcoming_only": ToolParameterSchema(type="boolean", description="If true (default), only future meetings.", default=True),
             "limit": ToolParameterSchema(type="integer", description="Maximum number to return (default 10, max 25).", default=10),
@@ -162,7 +162,7 @@ class CancelMeetingTool(BaseTool):
         ),
         category="booking",
         is_read_only=False,
-        requires_approval=False,
+        risk_tier=ToolRiskTier.DESTRUCTIVE,
         parameters={
             "meeting_public_id": ToolParameterSchema(type="string", description="The meeting's public_id, from list_my_meetings."),
             "reason": ToolParameterSchema(type="string", description="Optional cancellation reason shared with the attendee."),
@@ -200,7 +200,7 @@ class RescheduleMeetingTool(BaseTool):
         ),
         category="booking",
         is_read_only=False,
-        requires_approval=False,
+        risk_tier=ToolRiskTier.DESTRUCTIVE,
         parameters={
             "meeting_public_id": ToolParameterSchema(type="string", description="The meeting's public_id, from list_my_meetings."),
             "new_start_time": ToolParameterSchema(type="string", description="New ISO 8601 datetime with timezone offset."),

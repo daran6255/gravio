@@ -195,6 +195,7 @@ class Settings(BaseSettings):
 
     # Engine Behaviour
     AI_MAX_TOOL_CALLS_PER_RUN: int = 15     # Hard limit per task execution
+    AI_MAX_PLANNING_TURNS: int = 5          # Max planner re-invocations per task (ReAct-style loop bound)
     AI_TASK_TIMEOUT_SECONDS: int = 120      # Max time for a single task run
     AI_MAX_RETRIES: int = 3                 # Retry failed tool calls
     AI_APPROVAL_RECORD_THRESHOLD: int = 5   # Tasks touching >N records need approval

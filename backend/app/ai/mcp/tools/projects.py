@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app.ai.brain.schemas import ToolDefinition, ToolParameterSchema, ToolResult
+from app.ai.brain.schemas import ToolDefinition, ToolParameterSchema, ToolResult, ToolRiskTier
 from app.ai.mcp.base_tool import BaseTool
 from app.ai.mcp.registry import registry
 from app.middleware.exceptions import BadRequestError, NotFoundError
@@ -80,7 +80,7 @@ class SearchProjectTasksTool(BaseTool):
         ),
         category="productivity",
         is_read_only=True,
-        requires_approval=False,
+        risk_tier=ToolRiskTier.READ_ONLY,
         parameters={
             "query": ToolParameterSchema(type="string", description="Text to search for in the task title."),
             "limit": ToolParameterSchema(type="integer", description="Maximum results (default 10, max 25).", default=10),
@@ -136,7 +136,7 @@ class CreateSubtasksTool(BaseTool):
         ),
         category="productivity",
         is_read_only=False,
-        requires_approval=False,
+        risk_tier=ToolRiskTier.REVERSIBLE,
         parameters={
             "task": ToolParameterSchema(type="string", description="The parent task's title (or public ID)."),
             "subtasks": ToolParameterSchema(
@@ -219,7 +219,9 @@ class UpdateProjectTaskTool(BaseTool):
     """Edits an existing task or subtask's fields -- title, description, status, priority,
     estimated hours, assignee, due date. This is the write behind IRIS's task-panel "propose an
     edit" flow: the app layer previews this tool's plan and asks the user to confirm before this
-    ever executes, so this tool itself does not gate on `requires_approval`."""
+    ever executes; the general chat/one-shot paths still get the engine's own risk-tier gate
+    (this tool is REVERSIBLE-tier, so that gate stays frictionless unless a plan's estimated
+    record impact crosses the approval threshold)."""
 
     definition = ToolDefinition(
         name="update_project_task",
@@ -231,7 +233,7 @@ class UpdateProjectTaskTool(BaseTool):
         ),
         category="productivity",
         is_read_only=False,
-        requires_approval=False,
+        risk_tier=ToolRiskTier.REVERSIBLE,
         parameters={
             "task": ToolParameterSchema(type="string", description="The task's title (or public ID) to update."),
             "title": ToolParameterSchema(type="string", description="New title for the task."),
@@ -323,7 +325,7 @@ class SummarizeTaskCommentsTool(BaseTool):
         ),
         category="productivity",
         is_read_only=True,
-        requires_approval=False,
+        risk_tier=ToolRiskTier.READ_ONLY,
         parameters={
             "task": ToolParameterSchema(type="string", description="The task's title (or public ID)."),
             "limit": ToolParameterSchema(type="integer", description="Maximum comments to return (default 15, max 30).", default=15),

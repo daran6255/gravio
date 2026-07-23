@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from sqlalchemy import or_, select
 
-from app.ai.brain.schemas import ToolDefinition, ToolParameterSchema, ToolResult
+from app.ai.brain.schemas import ToolDefinition, ToolParameterSchema, ToolResult, ToolRiskTier
 from app.ai.mcp.base_tool import BaseTool
 from app.ai.mcp.registry import registry
 from app.middleware.exceptions import BadRequestError, NotFoundError
@@ -72,7 +72,7 @@ class LogTimeTool(BaseTool):
         ),
         category="productivity",
         is_read_only=False,
-        requires_approval=False,
+        risk_tier=ToolRiskTier.REVERSIBLE,
         parameters={
             "project": ToolParameterSchema(type="string", description="Project name, if this time is against a project."),
             "task": ToolParameterSchema(type="string", description="Task title within the project, if applicable."),

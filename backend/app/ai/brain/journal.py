@@ -27,6 +27,7 @@ from app.ai.brain.schemas import ToolCallPlan, ToolStepLog, ToolResult
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
+    from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +86,16 @@ class TaskJournal:
         logger.info("TaskJournal created: id=%d, task='%s'", log.id, task_name)
         return cls(log=log, db=db)
 
+    @classmethod
+    def load(cls, db: "AsyncSession", log: AITaskLog) -> "TaskJournal":
+        """Wrap an *existing* AITaskLog row (e.g. one paused at AWAITING_APPROVAL) so execution
+        can resume against it. Unlike `create()`, this reconstructs `_steps` from `log.steps`
+        instead of starting empty -- required so the resumed run can find the one step left in
+        `pending_approval` status and continue the journal (not overwrite it)."""
+        journal = cls(log=log, db=db)
+        journal._steps = [ToolStepLog(**step) for step in (log.steps or [])]
+        return journal
+
     # ── Status Updates ────────────────────────────────────────────────────────
 
     async def mark_planning(self) -> None:
@@ -108,15 +119,52 @@ class TaskJournal:
         await self._flush()
         logger.info("[Task %d] → AWAITING_APPROVAL: %s", self._log.id, reason)
 
+    async def reject(self, rejected_by: "User", reason: str | None = None) -> None:
+        """A human declined a paused task -- cancel it without touching approved_by_user_id/
+        approved_at (those specifically mean "approved", not "decided")."""
+        self._log.status = AITaskStatus.CANCELLED
+        self._log.summary = (
+            f"🚫 Rejected by {rejected_by.full_name}" + (f": {reason}" if reason else ".")
+        )
+        self._log.completed_at = datetime.now(timezone.utc)
+        self._log.duration_ms = int((time.monotonic() - self._wall_start) * 1000)
+        await self._db.commit()
+        logger.info("[Task %d] → CANCELLED (rejected by user %d)", self._log.id, rejected_by.id)
+
     # ── Plan Recording ────────────────────────────────────────────────────────
 
-    async def record_plan(self, plan: ToolCallPlan, context_snapshot: dict | None = None) -> None:
-        """Persist the LLM-generated plan before execution begins."""
+    async def record_plan(
+        self,
+        plan: ToolCallPlan,
+        turn: int = 1,
+        step_offset: int = 1,
+        context_snapshot: dict | None = None,
+    ) -> None:
+        """Append one planning turn's output to the journal.
+
+        Additive rather than overwriting: a multi-turn task calls this once per re-planning
+        pass, and the full per-turn history has to survive in `plan` for the journal to stay
+        an honest audit trail (not just "whatever the last turn decided"). `plan_reasoning`
+        is kept as a simple "latest turn" convenience field only -- the structural record
+        lives in `plan`, and each executed step's own `turn` (ToolStepLog.turn) ties it back
+        to the turn that planned it.
+        """
+        turn_entry = {
+            "turn": turn,
+            "reasoning": plan.reasoning,
+            "response_to_user": plan.response_to_user,
+            "estimated_record_impact": plan.estimated_record_impact,
+            "step_offset": step_offset,
+            "steps": [step.model_dump() for step in plan.steps],
+        }
+        # Reassign (not `.append()` in place) so the JSON column is recognized as dirty by
+        # SQLAlchemy's change tracking.
+        self._log.plan = [*(self._log.plan or []), turn_entry]
         self._log.plan_reasoning = plan.reasoning
-        self._log.plan = [step.model_dump() for step in plan.steps]
-        self._log.context_snapshot = context_snapshot
+        if context_snapshot is not None:
+            self._log.context_snapshot = context_snapshot
         await self._flush()
-        logger.info("[Task %d] Plan recorded: %d steps", self._log.id, len(plan.steps))
+        logger.info("[Task %d] Turn %d plan recorded: %d steps", self._log.id, turn, len(plan.steps))
 
     # ── Step Recording ────────────────────────────────────────────────────────
 
@@ -126,10 +174,19 @@ class TaskJournal:
         tool_name: str,
         parameters: dict[str, Any],
         reasoning: str | None = None,
+        turn: int = 1,
     ) -> None:
-        """Called immediately before a tool's execute() is invoked."""
+        """Called immediately before a tool's execute() is invoked.
+
+        Written with status="pending_approval" *before* either approval gate is checked --
+        this is deliberate, not a placeholder default: it's what makes a paused step always
+        identifiable later (the resume bootstrap finds the one step still in this status),
+        regardless of which gate (destructive tool tier, or plan-level record-impact
+        threshold) is the one that actually paused it.
+        """
         step = ToolStepLog(
             step_number=step_number,
+            turn=turn,
             tool_name=tool_name,
             parameters=parameters,
             reasoning=reasoning,
@@ -284,15 +341,16 @@ async def get_task_log_by_public_id(
 
 async def list_task_logs(
     db: "AsyncSession",
+    organization_id: int,
     page: int = 1,
     page_size: int = 20,
     status_filter: str | None = None,
 ) -> tuple[list[AITaskLog], int]:
-    """Paginated task log list with optional status filter."""
+    """Paginated task log list, scoped to one org, with an optional status filter."""
     from sqlalchemy import func
 
-    query = select(AITaskLog)
-    count_query = select(func.count(AITaskLog.id))
+    query = select(AITaskLog).where(AITaskLog.organization_id == organization_id)
+    count_query = select(func.count(AITaskLog.id)).where(AITaskLog.organization_id == organization_id)
 
     if status_filter:
         query = query.where(AITaskLog.status == status_filter)

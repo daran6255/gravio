@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from sqlalchemy import or_, select
 from sqlalchemy.orm import selectinload
 
-from app.ai.brain.schemas import ToolDefinition, ToolParameterSchema, ToolResult
+from app.ai.brain.schemas import ToolDefinition, ToolParameterSchema, ToolResult, ToolRiskTier
 from app.ai.mcp.base_tool import BaseTool
 from app.ai.mcp.registry import registry
 from app.ai.providers import get_llm_provider
@@ -56,7 +56,7 @@ class SummarizeLeavePatternsTool(BaseTool):
         ),
         category="hr",
         is_read_only=True,
-        requires_approval=False,
+        risk_tier=ToolRiskTier.READ_ONLY,
         parameters={
             "employee": ToolParameterSchema(type="string", description="Employee name to focus on. Omit for a team/org summary."),
             "days": ToolParameterSchema(type="integer", description="How many days back to look (default 90).", default=90),
@@ -134,7 +134,7 @@ class SummarizeEmployeeDocumentTool(BaseTool):
         ),
         category="hr",
         is_read_only=True,
-        requires_approval=False,
+        risk_tier=ToolRiskTier.READ_ONLY,
         parameters={
             "employee": ToolParameterSchema(type="string", description="The employee's name whose document should be summarized."),
             "document_type": ToolParameterSchema(type="string", description="Document type to narrow down which one, if the employee has several."),

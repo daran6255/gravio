@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 from typing import List, Optional
-from app.ai.brain.schemas import ToolDefinition
+from app.ai.brain.schemas import ToolDefinition, ToolRiskTier
 from app.ai.mcp.base_tool import BaseTool
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ class ToolRegistry:
 
             param_section = "\n".join(param_lines) if param_lines else "    (none)"
             read_only_tag = " [READ-ONLY]" if d.is_read_only else ""
-            approval_tag = " [REQUIRES HUMAN APPROVAL]" if d.requires_approval else ""
+            approval_tag = " [REQUIRES HUMAN APPROVAL]" if d.risk_tier == ToolRiskTier.DESTRUCTIVE else ""
 
             blocks.append(
                 f"TOOL: {d.name}{read_only_tag}{approval_tag}\n"

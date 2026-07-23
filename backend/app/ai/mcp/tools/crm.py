@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from sqlalchemy import or_, select
 from sqlalchemy.orm import selectinload
 
-from app.ai.brain.schemas import ToolDefinition, ToolParameterSchema, ToolResult
+from app.ai.brain.schemas import ToolDefinition, ToolParameterSchema, ToolResult, ToolRiskTier
 from app.ai.mcp.base_tool import BaseTool
 from app.ai.mcp.registry import registry
 from app.middleware.exceptions import BadRequestError, NotFoundError
@@ -80,7 +80,7 @@ class SearchCrmLeadsTool(BaseTool):
         ),
         category="crm",
         is_read_only=True,
-        requires_approval=False,
+        risk_tier=ToolRiskTier.READ_ONLY,
         parameters={
             "query": ToolParameterSchema(
                 type="string",
@@ -170,7 +170,7 @@ class GetCrmLeadDetailsTool(BaseTool):
         ),
         category="crm",
         is_read_only=True,
-        requires_approval=False,
+        risk_tier=ToolRiskTier.READ_ONLY,
         parameters={
             "lead": ToolParameterSchema(
                 type="string",
@@ -256,7 +256,7 @@ class LogCrmActivityTool(BaseTool):
         ),
         category="crm",
         is_read_only=False,
-        requires_approval=False,
+        risk_tier=ToolRiskTier.REVERSIBLE,
         parameters={
             "lead": ToolParameterSchema(type="string", description="The lead's title (or public ID)."),
             "activity_type": ToolParameterSchema(
@@ -314,7 +314,7 @@ class CreateCrmLeadTaskTool(BaseTool):
         ),
         category="crm",
         is_read_only=False,
-        requires_approval=False,
+        risk_tier=ToolRiskTier.REVERSIBLE,
         parameters={
             "lead": ToolParameterSchema(type="string", description="The lead's title (or public ID)."),
             "title": ToolParameterSchema(type="string", description="Short title for the task."),

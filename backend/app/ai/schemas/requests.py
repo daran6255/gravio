@@ -34,6 +34,20 @@ class AITaskRunRequest(BaseModel):
         default=False,
         description="If True, plan is produced but no tools are actually executed"
     )
+    confirmed: bool = Field(
+        default=False,
+        description=(
+            "Set by callers that already ran their own propose-then-confirm UX for this exact "
+            "request (e.g. IrisTaskPanel's preview-then-run flow) -- skips the engine's own "
+            "approval gate for this run. Leave False for any entry point where the user hasn't "
+            "already seen and accepted the plan (general chat, direct API calls)."
+        ),
+    )
+
+
+class AITaskApprovalRequest(BaseModel):
+    """Request body for POST /ai/tasks/{public_id}/approve and .../reject."""
+    reason: str | None = Field(default=None, description="Optional note on why this was approved/rejected")
 
 
 class JobRoleExtractionRequest(BaseModel):

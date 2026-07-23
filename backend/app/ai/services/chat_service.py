@@ -17,11 +17,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.ai.brain.engine import AIEngine
-from app.ai.brain.synthesizer import Synthesizer
+from app.ai.brain.events import EngineEventType
 from app.ai.brain.journal import TaskJournal
 from app.ai.providers import get_llm_provider
-from app.ai.mcp.registry import registry
-from app.ai.brain.exceptions import LLMAuthError, LLMRateLimitError
+from app.ai.brain.exceptions import ToolLimitExceededError
 from app.ai.models.ai_chat import AIChatSession, AIChatMessage
 from app.ai.models.ai_task_log import AITaskStatus, AITaskTrigger
 
@@ -42,7 +41,6 @@ class AIChatService:
         self._db = db
         self._user = user
         self._engine = AIEngine(db, user)
-        self._synthesizer = Synthesizer()
 
     # ── Persistence Logic ────────────────────────────────────────────────────
 
@@ -140,43 +138,44 @@ class AIChatService:
 
         full_content = ""
         try:
-            # Planning
-            yield f"data: {json.dumps({'status': 'planning', 'message': 'Planning response...'})}\n\n"
-            await journal.mark_planning()
-            from app.ai.brain.planner import Planner
-            planner = Planner(provider=provider, registry=registry, db=self._db)
-            
-            plan = await planner.plan(
-                task_hint=schema.content,
-                input_data={},
-                history=history,
+            # Drains the same plan -> execute -> (re-plan as needed) -> synthesize core the
+            # one-shot task-run endpoint uses -- journal finalization for every terminal
+            # outcome (done, failed, turn-limit) happens inside `_run_loop` itself now, so
+            # this loop only needs to translate events into SSE lines, not re-finalize.
+            async for event in self._engine._run_loop(
+                journal, provider, schema.content, input_data={}, history=history,
                 system_prompt_override=system_prompt_override,
-            )
-            await journal.record_plan(plan)
+            ):
+                if event.type == EngineEventType.PLANNING:
+                    yield f"data: {json.dumps({'status': 'planning', 'message': 'Planning response...'})}\n\n"
 
-            # Executing Tools
-            if plan.steps:
-                for step in plan.steps:
-                    yield f"data: {json.dumps({'status': 'executing', 'message': f'Running {step.tool_name}...'})}\n\n"
-            
-            _, results = await self._engine._execute_task_with_plan(plan, journal)
-            
-            # Synthesis & Token Streaming
-            yield f"data: {json.dumps({'status': 'typing'})}\n\n"
-            full_content = self._synthesizer.synthesize_tool_results(
-                results=results,
-                planned_response=plan.response_to_user
-            )
+                elif event.type == EngineEventType.STEP_START:
+                    yield f"data: {json.dumps({'status': 'executing', 'message': f'Running {event.tool_name}...'})}\n\n"
 
-            words = full_content.split(" ")
-            for i, word in enumerate(words):
-                token = word + (" " if i < len(words) - 1 else "")
-                yield f"data: {json.dumps({'token': token})}\n\n"
-                await asyncio.sleep(0.01) # Low latency streaming
+                elif event.type == EngineEventType.AWAITING_APPROVAL:
+                    full_content = event.response.summary or "This action needs your approval before it can continue."
+                    yield f"data: {json.dumps({'status': 'awaiting_approval', 'task_id': str(event.response.task_id), 'pending_tool': event.tool_name, 'message': full_content})}\n\n"
 
-            # Finalize
-            await journal.finalize(status=AITaskStatus.COMPLETED, summary=full_content)
-            yield f"data: {json.dumps({'status': 'completed', 'summary': full_content, 'task_db_id': journal.task_id})}\n\n"
+                elif event.type in (EngineEventType.DONE, EngineEventType.TURN_LIMIT_REACHED):
+                    yield f"data: {json.dumps({'status': 'typing'})}\n\n"
+                    full_content = event.response.summary or "I've processed your request."
+
+                    words = full_content.split(" ")
+                    for i, word in enumerate(words):
+                        token = word + (" " if i < len(words) - 1 else "")
+                        yield f"data: {json.dumps({'token': token})}\n\n"
+                        await asyncio.sleep(0.01)  # Low latency streaming
+
+                    yield f"data: {json.dumps({'status': 'completed', 'summary': full_content, 'task_db_id': journal.task_id})}\n\n"
+
+                elif event.type == EngineEventType.FAILED:
+                    full_content = f"⚠️ {event.response.error or event.response.summary or 'Something went wrong.'}"
+                    yield f"data: {json.dumps({'error': full_content, 'status': 'failed'})}\n\n"
+
+        except ToolLimitExceededError as e:
+            full_content = f"🤔 {e.message} Try asking for this in smaller batches."
+            await journal.finalize(status=AITaskStatus.FAILED, summary=full_content, error_message=e.message)
+            yield f"data: {json.dumps({'error': full_content, 'status': 'failed'})}\n\n"
 
         except Exception as e:
             logger.exception("Chat failed")

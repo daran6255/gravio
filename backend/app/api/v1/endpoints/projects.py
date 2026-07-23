@@ -541,6 +541,10 @@ async def execute_iris_action(
         trigger_type="manual",
         task_hint=payload.message,
         input_data=await _build_iris_input_data(db, task),
+        # This is the confirm step of IrisTaskPanel's own preview-then-confirm UX (see
+        # preview_iris_action above) -- the user already saw and accepted the plan, so skip
+        # the engine's own approval gate for this run.
+        confirmed=True,
     ))
     reply_text = result.summary or (f"⚠️ {result.error}" if result.error else "IRIS didn't return a result.")
     comment_log = await AuditService.record(

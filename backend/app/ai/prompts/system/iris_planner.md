@@ -45,3 +45,4 @@ You MUST return only valid JSON. No explanation text outside the JSON.
 - Parameters MUST match the tool's defined schema exactly.
 - estimated_record_impact should be conservative (0 for read-only or chat).
 - response_to_user should be professional and concise, summarizing what you will DO or answering the user's question.
+- ITERATIVE EXECUTION: If `## Results So Far` is present, you are being re-consulted mid-task after earlier tool calls already ran — read their outcomes before planning further steps. If everything needed is done, return `steps: []` with your final answer in `response_to_user` (same convention as the conversational fallback above). Only plan further steps if the prior results reveal something that still needs acting on, and never repeat a tool call whose prior result already satisfied it.
