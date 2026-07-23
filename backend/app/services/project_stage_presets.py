@@ -60,6 +60,14 @@ PROJECT_STAGE_PRESETS: dict[str, list[dict]] = {
         {"name": "Review", "color": "#F59E0B", "order": 3},
         {"name": "Completed", "color": "#10B981", "order": 4, "is_done_status": True},
     ],
+    "Testing": [
+        {"name": "Open", "color": "#9E9E9E", "order": 0, "is_initial_status": True},
+        {"name": "In Progress", "color": "#4EA8FF", "order": 1},
+        {"name": "Fixed", "color": "#8B7CF6", "order": 2},
+        {"name": "Retest", "color": "#F59E0B", "order": 3},
+        {"name": "Reopened", "color": "#EF4444", "order": 4},
+        {"name": "Closed", "color": "#10B981", "order": 5, "is_done_status": True},
+    ],
 }
 
 # Generic fallback for projects created without a template ("Blank Project").

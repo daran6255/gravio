@@ -112,6 +112,210 @@ PROJECT_TEMPLATES = {
             }
         ]
     },
+    "stlc_defect_management": {
+        "name": "Software Testing Life Cycle (STLC)",
+        "category": "Testing",
+        "description": "End-to-end software testing lifecycle with structured defect management.",
+        "tasks": [
+            {
+                "title": "Requirement Analysis & Test Strategy",
+                "description": "Analyze requirements for testability and draft the overall test strategy.",
+                "start_offset_days": 0,
+                "due_offset_days": 4,
+                "priority": "high",
+                "tags": [{"name": "analysis", "color": "#4EA8FF"}, {"name": "strategy", "color": "#8B7CF6"}],
+                "milestone": {"name": "Test Strategy Approved", "color": "#9C27B0"},
+                "subtasks": [
+                    {"title": "Review Requirement & Design Documents", "description": "Study SRS/design docs to identify testable requirements.", "start_offset_days": 0, "due_offset_days": 2, "priority": "medium", "tags": [{"name": "requirements", "color": "#64748B"}]},
+                    {"title": "Identify Automation Candidates", "description": "Flag requirements suitable for automated regression coverage.", "start_offset_days": 2, "due_offset_days": 3, "priority": "low", "tags": [{"name": "automation", "color": "#10B981"}]},
+                    {"title": "Draft Test Strategy Document", "description": "Define scope, approach, tools, and risk areas.", "start_offset_days": 3, "due_offset_days": 4, "priority": "high", "tags": [{"name": "strategy", "color": "#8B7CF6"}]}
+                ]
+            },
+            {
+                "title": "Test Planning",
+                "description": "Define scope, objectives, schedule, and entry/exit criteria for testing.",
+                "start_offset_days": 4,
+                "due_offset_days": 8,
+                "priority": "high",
+                "tags": [{"name": "planning", "color": "#4EA8FF"}],
+                "milestone": {"name": "Test Plan Sign-Off", "color": "#9C27B0"},
+                "subtasks": [
+                    {"title": "Define Scope & Objectives", "description": "Determine features in-scope and out-of-scope for testing.", "start_offset_days": 4, "due_offset_days": 6, "priority": "medium", "tags": [{"name": "scope", "color": "#64748B"}]},
+                    {"title": "Effort Estimation & Resource Planning", "description": "Estimate testing effort and assign QA resources.", "start_offset_days": 6, "due_offset_days": 7, "priority": "medium", "tags": [{"name": "planning", "color": "#4EA8FF"}]},
+                    {"title": "Define Entry & Exit Criteria", "description": "Set criteria for starting and completing each test phase.", "start_offset_days": 7, "due_offset_days": 8, "priority": "high", "tags": [{"name": "criteria", "color": "#F59E0B"}]}
+                ]
+            },
+            {
+                "title": "Test Case Design & Review",
+                "description": "Author test cases, prepare test data, and get peer review sign-off.",
+                "start_offset_days": 8,
+                "due_offset_days": 15,
+                "priority": "high",
+                "tags": [{"name": "test-design", "color": "#EC4899"}],
+                "milestone": {"name": "Test Cases Approved", "color": "#9C27B0"},
+                "subtasks": [
+                    {"title": "Write Test Cases & Scripts", "description": "Author manual test cases and automation scripts from requirements.", "start_offset_days": 8, "due_offset_days": 12, "priority": "high", "tags": [{"name": "test-cases", "color": "#EC4899"}]},
+                    {"title": "Prepare Test Data", "description": "Create and validate datasets needed for test execution.", "start_offset_days": 10, "due_offset_days": 13, "priority": "medium", "tags": [{"name": "test-data", "color": "#64748B"}]},
+                    {"title": "Peer Review of Test Cases", "description": "Review test cases for coverage gaps and correctness.", "start_offset_days": 13, "due_offset_days": 15, "priority": "medium", "tags": [{"name": "review", "color": "#EF4444"}]}
+                ]
+            },
+            {
+                "title": "Test Environment Setup",
+                "description": "Provision and validate the environment, tools, and automation framework.",
+                "start_offset_days": 15,
+                "due_offset_days": 18,
+                "priority": "medium",
+                "tags": [{"name": "environment", "color": "#64748B"}],
+                "subtasks": [
+                    {"title": "Provision Test Environment", "description": "Set up servers, databases, and test builds.", "start_offset_days": 15, "due_offset_days": 17, "priority": "medium", "tags": [{"name": "environment", "color": "#64748B"}]},
+                    {"title": "Smoke Test Environment Readiness", "description": "Run a smoke test to confirm the environment is stable for testing.", "start_offset_days": 17, "due_offset_days": 18, "priority": "high", "tags": [{"name": "smoke-test", "color": "#4EA8FF"}]}
+                ]
+            },
+            {
+                "title": "Test Execution",
+                "description": "Execute functional, regression, and exploratory test cases; log defects found.",
+                "start_offset_days": 18,
+                "due_offset_days": 28,
+                "priority": "high",
+                "tags": [{"name": "execution", "color": "#8B7CF6"}],
+                "milestone": {"name": "Test Execution Complete", "color": "#EF4444"},
+                "subtasks": [
+                    {"title": "Execute Functional Test Cases", "description": "Run planned test cases and record pass/fail results.", "start_offset_days": 18, "due_offset_days": 24, "priority": "high", "tags": [{"name": "functional", "color": "#4EA8FF"}]},
+                    {"title": "Execute Regression Suite", "description": "Run regression tests against previously stable areas.", "start_offset_days": 21, "due_offset_days": 26, "priority": "medium", "tags": [{"name": "regression", "color": "#10B981"}]},
+                    {"title": "Log Defects in Tracker", "description": "Raise defects with steps to reproduce, severity, and evidence.", "start_offset_days": 18, "due_offset_days": 28, "priority": "high", "tags": [{"name": "defect", "color": "#EF4444"}]}
+                ]
+            },
+            {
+                "title": "Defect Management",
+                "description": "Triage, prioritize, fix-verify, and track defects through to closure.",
+                "start_offset_days": 22,
+                "due_offset_days": 33,
+                "priority": "urgent",
+                "tags": [{"name": "defect-management", "color": "#EF4444"}],
+                "milestone": {"name": "Defect Backlog Cleared", "color": "#9C27B0"},
+                "subtasks": [
+                    {"title": "Defect Triage & Prioritization", "description": "Review new defects and assign severity/priority in daily triage.", "start_offset_days": 22, "due_offset_days": 26, "priority": "urgent", "tags": [{"name": "triage", "color": "#EF4444"}]},
+                    {"title": "Defect Root Cause & Fix", "description": "Development investigates root cause and applies a fix.", "start_offset_days": 24, "due_offset_days": 30, "priority": "high", "tags": [{"name": "fix", "color": "#8B7CF6"}]},
+                    {"title": "Defect Verification & Retest", "description": "Retest fixed defects and reopen if the issue persists.", "start_offset_days": 28, "due_offset_days": 32, "priority": "high", "tags": [{"name": "retest", "color": "#F59E0B"}]},
+                    {"title": "Defect Metrics & Reporting", "description": "Track defect density, aging, and closure rate.", "start_offset_days": 30, "due_offset_days": 33, "priority": "low", "tags": [{"name": "reporting", "color": "#64748B"}]}
+                ]
+            },
+            {
+                "title": "Regression & Final Retesting",
+                "description": "Run a full regression pass to confirm defect fixes did not break other areas.",
+                "start_offset_days": 32,
+                "due_offset_days": 37,
+                "priority": "high",
+                "tags": [{"name": "regression", "color": "#10B981"}],
+                "subtasks": [
+                    {"title": "Run Full Regression Suite", "description": "Execute the complete regression pack post fixes.", "start_offset_days": 32, "due_offset_days": 35, "priority": "high", "tags": [{"name": "regression", "color": "#10B981"}]},
+                    {"title": "Confirm Closed Defects", "description": "Verify all closed defects remain resolved.", "start_offset_days": 35, "due_offset_days": 37, "priority": "medium", "tags": [{"name": "verification", "color": "#4EA8FF"}]}
+                ]
+            },
+            {
+                "title": "Test Closure & Sign-off",
+                "description": "Summarize results, capture lessons learned, and obtain final QA sign-off.",
+                "start_offset_days": 37,
+                "due_offset_days": 41,
+                "priority": "medium",
+                "tags": [{"name": "closure", "color": "#9C27B0"}],
+                "milestone": {"name": "Test Closure Report", "color": "#10B981"},
+                "subtasks": [
+                    {"title": "Prepare Test Summary Report", "description": "Document coverage, defect stats, and exit criteria status.", "start_offset_days": 37, "due_offset_days": 39, "priority": "medium", "tags": [{"name": "reporting", "color": "#64748B"}]},
+                    {"title": "Final QA Sign-off", "description": "Get formal QA approval to release.", "start_offset_days": 39, "due_offset_days": 41, "priority": "high", "tags": [{"name": "approval", "color": "#10B981"}]}
+                ]
+            }
+        ]
+    },
+    "defect_management": {
+        "name": "Defect Management",
+        "category": "Testing",
+        "description": "Standalone defect lifecycle: logging, triage, resolution, verification, and closure.",
+        "tasks": [
+            {
+                "title": "Defect Logging & Intake",
+                "description": "Standardize how defects are reported and captured with full reproduction context.",
+                "start_offset_days": 0,
+                "due_offset_days": 3,
+                "priority": "high",
+                "tags": [{"name": "intake", "color": "#4EA8FF"}],
+                "milestone": {"name": "Defect Intake Process Live", "color": "#9C27B0"},
+                "subtasks": [
+                    {"title": "Standardize Defect Report Template", "description": "Define required fields: steps to reproduce, environment, evidence, severity.", "start_offset_days": 0, "due_offset_days": 1, "priority": "medium", "tags": [{"name": "process", "color": "#64748B"}]},
+                    {"title": "Log Defects with Repro Steps & Evidence", "description": "Capture incoming defects from testers and users with screenshots/logs.", "start_offset_days": 0, "due_offset_days": 3, "priority": "high", "tags": [{"name": "defect", "color": "#EF4444"}]},
+                    {"title": "Initial Severity & Priority Tagging", "description": "Apply a first-pass severity/priority to every newly logged defect.", "start_offset_days": 1, "due_offset_days": 3, "priority": "high", "tags": [{"name": "triage", "color": "#EF4444"}]}
+                ]
+            },
+            {
+                "title": "Defect Triage",
+                "description": "Review incoming defects, confirm severity/priority, and assign ownership.",
+                "start_offset_days": 3,
+                "due_offset_days": 6,
+                "priority": "urgent",
+                "tags": [{"name": "triage", "color": "#EF4444"}],
+                "milestone": {"name": "Triage SLA Defined", "color": "#9C27B0"},
+                "subtasks": [
+                    {"title": "Daily Triage Meeting Cadence", "description": "Set up a recurring triage sync between QA and dev leads.", "start_offset_days": 3, "due_offset_days": 4, "priority": "medium", "tags": [{"name": "process", "color": "#64748B"}]},
+                    {"title": "Confirm Severity & Priority", "description": "Validate or adjust severity/priority during triage.", "start_offset_days": 3, "due_offset_days": 6, "priority": "high", "tags": [{"name": "triage", "color": "#EF4444"}]},
+                    {"title": "Assign Owner & Target Fix Version", "description": "Route each defect to an owner and a target release.", "start_offset_days": 4, "due_offset_days": 6, "priority": "medium", "tags": [{"name": "assignment", "color": "#8B7CF6"}]}
+                ]
+            },
+            {
+                "title": "Defect Resolution",
+                "description": "Investigate root cause and implement fixes for assigned defects.",
+                "start_offset_days": 5,
+                "due_offset_days": 14,
+                "priority": "high",
+                "tags": [{"name": "fix", "color": "#8B7CF6"}],
+                "milestone": {"name": "Fix Backlog Cleared", "color": "#EF4444"},
+                "subtasks": [
+                    {"title": "Root Cause Analysis", "description": "Diagnose the underlying cause of each defect.", "start_offset_days": 5, "due_offset_days": 9, "priority": "high", "tags": [{"name": "analysis", "color": "#4EA8FF"}]},
+                    {"title": "Implement Fix", "description": "Apply the code change to resolve the defect.", "start_offset_days": 7, "due_offset_days": 13, "priority": "high", "tags": [{"name": "fix", "color": "#8B7CF6"}]},
+                    {"title": "Code Review of Fix", "description": "Peer review the fix before it goes to verification.", "start_offset_days": 12, "due_offset_days": 14, "priority": "medium", "tags": [{"name": "review", "color": "#EF4444"}]}
+                ]
+            },
+            {
+                "title": "Defect Verification & Retest",
+                "description": "Confirm fixes resolve the reported defect without introducing regressions.",
+                "start_offset_days": 10,
+                "due_offset_days": 18,
+                "priority": "high",
+                "tags": [{"name": "retest", "color": "#F59E0B"}],
+                "milestone": {"name": "Verification Complete", "color": "#10B981"},
+                "subtasks": [
+                    {"title": "Retest Fixed Defects", "description": "Re-run the original repro steps against the fix.", "start_offset_days": 10, "due_offset_days": 15, "priority": "high", "tags": [{"name": "retest", "color": "#F59E0B"}]},
+                    {"title": "Reopen Failed Fixes", "description": "Reopen and route back to development if the defect persists.", "start_offset_days": 12, "due_offset_days": 17, "priority": "urgent", "tags": [{"name": "reopened", "color": "#EF4444"}]},
+                    {"title": "Regression Check Around Fix", "description": "Verify the fix did not break adjacent functionality.", "start_offset_days": 14, "due_offset_days": 18, "priority": "medium", "tags": [{"name": "regression", "color": "#10B981"}]}
+                ]
+            },
+            {
+                "title": "Escalation & Aging Management",
+                "description": "Track stale defects and escalate critical/blocker issues that are past SLA.",
+                "start_offset_days": 12,
+                "due_offset_days": 20,
+                "priority": "medium",
+                "tags": [{"name": "escalation", "color": "#EF4444"}],
+                "subtasks": [
+                    {"title": "Identify Aging & Stale Defects", "description": "Flag defects open longer than SLA thresholds.", "start_offset_days": 12, "due_offset_days": 16, "priority": "medium", "tags": [{"name": "aging", "color": "#64748B"}]},
+                    {"title": "Escalate Blocker/Critical Defects", "description": "Notify leads and stakeholders on unresolved critical defects.", "start_offset_days": 14, "due_offset_days": 20, "priority": "urgent", "tags": [{"name": "escalation", "color": "#EF4444"}]}
+                ]
+            },
+            {
+                "title": "Defect Closure & Reporting",
+                "description": "Confirm closure criteria, publish metrics, and review lessons learned.",
+                "start_offset_days": 18,
+                "due_offset_days": 24,
+                "priority": "medium",
+                "tags": [{"name": "closure", "color": "#9C27B0"}],
+                "milestone": {"name": "Defect Cycle Closed", "color": "#10B981"},
+                "subtasks": [
+                    {"title": "Confirm Closure Criteria Met", "description": "Verify each defect meets the definition of done before closing.", "start_offset_days": 18, "due_offset_days": 21, "priority": "medium", "tags": [{"name": "closure", "color": "#9C27B0"}]},
+                    {"title": "Publish Defect Metrics Report", "description": "Report defect density, mean time to resolution, and reopen rate.", "start_offset_days": 20, "due_offset_days": 23, "priority": "medium", "tags": [{"name": "reporting", "color": "#64748B"}]},
+                    {"title": "Post-Mortem for Critical Defects", "description": "Run a retro on critical/blocker defects to prevent recurrence.", "start_offset_days": 22, "due_offset_days": 24, "priority": "low", "tags": [{"name": "retro", "color": "#8B7CF6"}]}
+                ]
+            }
+        ]
+    },
     "product_launch": {
         "name": "Product Launch Plan",
         "category": "Software",

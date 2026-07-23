@@ -96,4 +96,15 @@ export const PROJECT_STAGE_PRESETS: ProjectStagePreset[] = [
 			stage('Completed', '#10B981', 4, { done: true }),
 		],
 	},
+	{
+		category: 'Testing',
+		stages: [
+			stage('Open', '#9E9E9E', 0, { initial: true }),
+			stage('In Progress', '#4EA8FF', 1),
+			stage('Fixed', '#8B7CF6', 2),
+			stage('Retest', '#F59E0B', 3),
+			stage('Reopened', '#EF4444', 4),
+			stage('Closed', '#10B981', 5, { done: true }),
+		],
+	},
 ];
