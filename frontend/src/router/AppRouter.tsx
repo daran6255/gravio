@@ -23,6 +23,7 @@ import ProjectStatusPage from '../pages/projects/public/ProjectStatusPage';
 import EmployeesPage from '../pages/hr/admin/EmployeesPage';
 import DepartmentsPage from '../pages/hr/admin/DepartmentsPage';
 import DesignationsPage from '../pages/hr/admin/DesignationsPage';
+import LeaveTypesPage from '../pages/hr/admin/LeaveTypesPage';
 import ManagersPage from '../pages/hr/admin/ManagersPage';
 import ChecklistPage from '../pages/hr/admin/ChecklistPage';
 import DocumentVaultPage from '../pages/hr/admin/DocumentVaultPage';
@@ -107,6 +108,7 @@ const AppRouter: React.FC = () => {
 					<Route path="hr/admin/employees" element={<EmployeesPage />} />
 					<Route path="hr/admin/departments" element={<DepartmentsPage />} />
 					<Route path="hr/admin/designations" element={<DesignationsPage />} />
+					<Route path="hr/admin/leave-types" element={<LeaveTypesPage />} />
 					<Route path="hr/admin/managers" element={<ManagersPage />} />
 					<Route path="hr/admin/onboarding" element={<ChecklistPage />} />
 					<Route path="hr/admin/documents" element={<DocumentVaultPage />} />
@@ -156,6 +158,7 @@ const AppRouter: React.FC = () => {
 					<Route path="org/:orgId/hr/admin/employees" element={<EmployeesPage />} />
 					<Route path="org/:orgId/hr/admin/departments" element={<DepartmentsPage />} />
 					<Route path="org/:orgId/hr/admin/designations" element={<DesignationsPage />} />
+					<Route path="org/:orgId/hr/admin/leave-types" element={<LeaveTypesPage />} />
 					<Route path="org/:orgId/hr/admin/managers" element={<ManagersPage />} />
 					<Route path="org/:orgId/hr/admin/onboarding" element={<ChecklistPage />} />
 					<Route path="org/:orgId/hr/admin/documents" element={<DocumentVaultPage />} />

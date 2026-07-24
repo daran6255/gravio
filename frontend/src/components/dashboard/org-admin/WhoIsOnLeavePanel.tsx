@@ -126,7 +126,7 @@ export const WhoIsOnLeavePanel: React.FC = () => {
 							Who's On Leave
 						</Typography>
 					</Box>
-					<Link component={RouterLink} to="/hr/user/leaves" sx={{ display: 'flex', alignItems: 'center', color: 'primary.main', fontWeight: 700, fontSize: '0.8rem', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+					<Link component={RouterLink} to="/hr/user/leaves?tab=calendar" sx={{ display: 'flex', alignItems: 'center', color: 'primary.main', fontWeight: 700, fontSize: '0.8rem', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
 						Leaves Calendar <ChevronRight sx={{ fontSize: 16 }} />
 					</Link>
 				</Box>

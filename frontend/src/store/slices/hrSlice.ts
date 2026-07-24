@@ -27,6 +27,7 @@ import type {
 	HRLeaveTypeListItem, HRLeaveTypeResponse, HRLeaveTypeCreate, HRLeaveTypeUpdate,
 	HRLeaveBalanceResponse, HRLeaveBalanceUpdate,
 	HRLeaveRequestResponse, HRLeaveRequestCreate, HRLeaveApprovalRequest,
+	HRLeaveBulkApprovalRequest,
 	HRSalaryComponent, HRSalaryComponentCreate, HRSalaryComponentUpdate,
 	HRSalaryStructure, HRSalaryStructureCreate, HRSalaryStructureUpdate,
 	HREmployeeSalary, HREmployeeSalaryCreate,
@@ -520,6 +521,17 @@ export const approveRejectLeaveRequest = createAsyncThunk(
 			return await hrLeaveRequestApi.approveReject(arg.publicId, arg.payload);
 		} catch (error: any) {
 			return rejectWithValue(extractErrorMessage(error, 'Failed to resolve leave request'));
+		}
+	}
+);
+
+export const bulkApproveRejectLeaveRequests = createAsyncThunk(
+	'hr/bulkApproveRejectLeaveRequests',
+	async (payload: HRLeaveBulkApprovalRequest, { rejectWithValue }) => {
+		try {
+			return await hrLeaveRequestApi.bulkApproveReject(payload);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to bulk-resolve leave requests'));
 		}
 	}
 );

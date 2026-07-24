@@ -1,14 +1,16 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Box, Container, Grid, Skeleton, Stack, Tab, Tabs, alpha, useTheme, Alert } from '@mui/material';
 import {
 	HelpOutline as HelpIcon,
 	EventAvailableOutlined as MyLeavesIcon,
 	FactCheckOutlined as TeamApprovalsIcon,
+	CalendarMonthOutlined as CalendarTabIcon,
 } from '@mui/icons-material';
 import PageHeader from '../../../components/common/page-header';
 import { AddButton, HelpGuideButton } from '../../../components/common/button';
 import { responsiveStyles } from '../../../theme';
-import { fetchLeaveTypes, fetchMyLeaveBalances, fetchMyLeaveRequests } from '../../../store/slices/hrSlice';
+import { fetchLeaveTypes, fetchMyLeaveBalances, fetchMyLeaveRequests, fetchTeamLeaveRequests } from '../../../store/slices/hrSlice';
 import { fetchTeamUsers } from '../../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
@@ -17,6 +19,7 @@ import {
 	LeaveHistoryTable,
 	LeaveSnapshotBar,
 	TeamLeavesApprovalsTable,
+	LeaveCalendarView,
 } from '../../../components/hr/user/leave';
 import { ReportingEmployeesPanel } from '../../../components/hr/shared/ReportingEmployeesPanel';
 import { HelpGuideDrawer } from '../../../components/common/guide/HelpGuideDrawer';
@@ -90,17 +93,33 @@ const LeaveDashboardPage: React.FC = () => {
 		leaveTypes, leaveTypesLoading,
 		myLeaveBalances: balances, myLeaveBalancesLoading,
 		myLeaveRequests: requests, myLeaveRequestsLoading,
+		teamLeaveRequests,
 	} = useAppSelector((state) => state.hr);
 	const { users } = useAppSelector((state) => state.users);
 	const loading = leaveTypesLoading || myLeaveBalancesLoading || myLeaveRequestsLoading;
 
+	const [searchParams] = useSearchParams();
 	const [applyOpen, setApplyOpen] = useState(false);
-	const [activeTab, setActiveTab] = useState(0);
+	// Deep-link support: WhoIsOnLeavePanel's "Leaves Calendar" link opens straight
+	// to this tab via ?tab=calendar instead of landing on the (unrelated) default.
+	const [activeTab, setActiveTab] = useState(() => (searchParams.get('tab') === 'calendar' ? 1 : 0));
 	const [guideOpen, setGuideOpen] = useState(false);
 
 	const isManagerOrAdmin = useMemo(() => {
 		return user?.role === 'admin' || user?.role === 'manager' || user?.role === 'leadership' || user?.role === 'hr_manager';
 	}, [user?.role]);
+
+	// Calendar (and, for individual/solo accounts, My Leaves) are available to
+	// everyone -- Team Approvals only appears once there's a team to approve for.
+	const tabLabels = useMemo(() => {
+		const labels = ['My Leaves', 'Calendar'];
+		if (isManagerOrAdmin) labels.push('Team Approvals');
+		return labels;
+	}, [isManagerOrAdmin]);
+
+	useEffect(() => {
+		if (activeTab >= tabLabels.length) setActiveTab(0);
+	}, [tabLabels, activeTab]);
 
 	const myDirectReports = useMemo(() => {
 		if (!user) return [];
@@ -125,6 +144,7 @@ const LeaveDashboardPage: React.FC = () => {
 		fetchData();
 		if (isManagerOrAdmin) {
 			dispatch(fetchTeamUsers({ page: 1, pageSize: 200 }));
+			dispatch(fetchTeamLeaveRequests(undefined));
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isManagerOrAdmin]);
@@ -146,50 +166,51 @@ const LeaveDashboardPage: React.FC = () => {
 						}
 					/>
 
-					{isManagerOrAdmin && (
-						<Tabs
-							value={activeTab}
-							onChange={(_, v) => setActiveTab(v)}
-							TabIndicatorProps={{ sx: { display: 'none' } }}
-							sx={{
-								minHeight: 'auto',
-								bgcolor: 'action.hover',
-								borderRadius: '12px',
-								p: 0.5,
-								width: 'fit-content',
-								maxWidth: '100%',
-								'& .MuiTabs-flexContainer': { gap: 0.5 },
-								'& .MuiTab-root': {
-									minHeight: 40,
-									minWidth: 'auto',
-									borderRadius: '9px',
-									fontWeight: 700,
-									fontSize: '0.8125rem',
-									textTransform: 'none',
-									color: 'text.secondary',
-									px: 2,
-									py: 1,
-									transition: 'color 0.2s ease, background-color 0.2s ease'
-								},
-								'& .MuiTab-root .MuiTab-iconWrapper': {
-									marginRight: '6px',
-									fontSize: '1.1rem'
-								},
-								'& .MuiTab-root:hover': {
-									color: 'text.primary',
-									bgcolor: (t) => alpha(t.palette.text.primary, 0.04)
-								},
-								'& .Mui-selected': {
-									color: 'primary.main !important',
-									bgcolor: 'background.paper',
-									boxShadow: `0 1px 3px 0 ${alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.3 : 0.1)}`
-								}
-							}}
-						>
-							<Tab label="My Leaves" icon={<MyLeavesIcon fontSize="small" />} iconPosition="start" disableRipple />
+					<Tabs
+						value={activeTab}
+						onChange={(_, v) => setActiveTab(v)}
+						TabIndicatorProps={{ sx: { display: 'none' } }}
+						sx={{
+							minHeight: 'auto',
+							bgcolor: 'action.hover',
+							borderRadius: '12px',
+							p: 0.5,
+							width: 'fit-content',
+							maxWidth: '100%',
+							'& .MuiTabs-flexContainer': { gap: 0.5 },
+							'& .MuiTab-root': {
+								minHeight: 40,
+								minWidth: 'auto',
+								borderRadius: '9px',
+								fontWeight: 700,
+								fontSize: '0.8125rem',
+								textTransform: 'none',
+								color: 'text.secondary',
+								px: 2,
+								py: 1,
+								transition: 'color 0.2s ease, background-color 0.2s ease'
+							},
+							'& .MuiTab-root .MuiTab-iconWrapper': {
+								marginRight: '6px',
+								fontSize: '1.1rem'
+							},
+							'& .MuiTab-root:hover': {
+								color: 'text.primary',
+								bgcolor: (t) => alpha(t.palette.text.primary, 0.04)
+							},
+							'& .Mui-selected': {
+								color: 'primary.main !important',
+								bgcolor: 'background.paper',
+								boxShadow: `0 1px 3px 0 ${alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.3 : 0.1)}`
+							}
+						}}
+					>
+						<Tab label="My Leaves" icon={<MyLeavesIcon fontSize="small" />} iconPosition="start" disableRipple />
+						<Tab label="Calendar" icon={<CalendarTabIcon fontSize="small" />} iconPosition="start" disableRipple />
+						{isManagerOrAdmin && (
 							<Tab label="Team Approvals" icon={<TeamApprovalsIcon fontSize="small" />} iconPosition="start" disableRipple />
-						</Tabs>
-					)}
+						)}
+					</Tabs>
 
 					{loading ? (
 						<Stack spacing={3}>
@@ -197,7 +218,7 @@ const LeaveDashboardPage: React.FC = () => {
 							<Skeleton variant="rounded" height={180} />
 							<Skeleton variant="rounded" height={320} />
 						</Stack>
-					) : activeTab === 1 && isManagerOrAdmin ? (
+					) : tabLabels[activeTab] === 'Team Approvals' ? (
 						<Grid container spacing={3} alignItems="stretch">
 							<Grid size={{ xs: 12, md: 3 }}>
 								<ReportingEmployeesPanel members={myDirectReports} />
@@ -206,6 +227,11 @@ const LeaveDashboardPage: React.FC = () => {
 								<TeamLeavesApprovalsTable />
 							</Grid>
 						</Grid>
+					) : tabLabels[activeTab] === 'Calendar' ? (
+						<LeaveCalendarView
+							requests={isManagerOrAdmin ? teamLeaveRequests : requests}
+							scope={isManagerOrAdmin ? 'team' : 'mine'}
+						/>
 					) : (
 						<Stack spacing={3.5}>
 							{!loading && balances.filter((b) => !b.is_lop).length === 0 && (

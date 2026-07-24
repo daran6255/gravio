@@ -21,6 +21,7 @@ import {
 	AccountTreeOutlined as DepartmentsIcon,
 	WorkOutlined as DesignationsIcon,
 	SupervisedUserCircleOutlined as ManagersIcon,
+	EventNoteOutlined as LeaveTypesIcon,
 } from '@mui/icons-material';
 import type { SvgIconComponent } from '@mui/icons-material';
 
@@ -136,6 +137,12 @@ export const topNavigation: NavigationItem[] = [
 				label: 'Designations',
 				path: '/hr/admin/designations',
 				icon: DesignationsIcon,
+				roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
+			},
+			{
+				label: 'Leave Types',
+				path: '/hr/admin/leave-types',
+				icon: LeaveTypesIcon,
 				roles: ['admin', 'hr_admin', 'hr_manager', 'leadership'],
 			},
 			{

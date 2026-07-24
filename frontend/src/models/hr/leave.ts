@@ -145,3 +145,15 @@ export interface HRLeaveApprovalRequest {
 	status: 'approved' | 'rejected';
 	manager_notes?: string;
 }
+
+export interface HRLeaveBulkApprovalRequest {
+	public_ids: string[];
+	status: 'approved' | 'rejected';
+	manager_notes?: string;
+}
+
+export interface HRLeaveBulkApprovalResult {
+	resolved_ids: string[];
+	skipped_ids: string[];
+	total_resolved_count: number;
+}

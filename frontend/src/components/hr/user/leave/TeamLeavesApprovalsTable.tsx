@@ -6,6 +6,7 @@ import {
 	Typography,
 	Box,
 	Chip,
+	Checkbox,
 	IconButton,
 	Tooltip,
 	TextField,
@@ -18,7 +19,7 @@ import {
 	Tabs,
 	Tab
 } from '@mui/material';
-import { SubmitButton, CancelButton } from '../../../common/button';
+import { SubmitButton, CancelButton, AddButton } from '../../../common/button';
 import {
 	EventAvailable as LeaveIcon,
 	HourglassTop as PendingIcon,
@@ -29,7 +30,7 @@ import {
 	Close as CloseIcon
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
-import { fetchTeamLeaveRequests, approveRejectLeaveRequest } from '../../../../store/slices/hrSlice';
+import { fetchTeamLeaveRequests, approveRejectLeaveRequest, bulkApproveRejectLeaveRequests } from '../../../../store/slices/hrSlice';
 import type { HRLeaveRequestResponse } from '../../../../models/hr';
 import useToast from '../../../../hooks/useToast';
 import { DataTable, type ColumnDefinition } from '../../../common/table';
@@ -56,15 +57,18 @@ export const TeamLeavesApprovalsTable: React.FC = () => {
 
 	const [page, setPage] = useState(0);
 	const [rowsPerPage, setRowsPerPage] = useState(10);
+	const [selectedIds, setSelectedIds] = useState<string[]>([]);
+	const [bulkSubmitting, setBulkSubmitting] = useState(false);
 
 	// Fetch all team leave requests on mount
 	useEffect(() => {
 		dispatch(fetchTeamLeaveRequests(undefined));
 	}, [dispatch]);
 
-	// Reset page when tab changes
+	// Reset page and selection when tab changes
 	useEffect(() => {
 		setPage(0);
+		setSelectedIds([]);
 	}, [statusTab]);
 
 	// Filtered requests based on active tab
@@ -125,6 +129,37 @@ export const TeamLeavesApprovalsTable: React.FC = () => {
 			error(e || 'Failed to update leave request status');
 		} finally {
 			setSubmitting(false);
+		}
+	};
+
+	const pendingIdsOnPage = useMemo(
+		() => paginatedRequests.filter((r) => r.status === 'pending').map((r) => r.public_id),
+		[paginatedRequests]
+	);
+
+	const toggleSelect = (publicId: string) => {
+		setSelectedIds((prev) => (prev.includes(publicId) ? prev.filter((id) => id !== publicId) : [...prev, publicId]));
+	};
+
+	const toggleSelectAll = () => {
+		setSelectedIds((prev) => (prev.length === pendingIdsOnPage.length ? [] : pendingIdsOnPage));
+	};
+
+	const handleBulkApprove = async () => {
+		if (selectedIds.length === 0) return;
+		setBulkSubmitting(true);
+		try {
+			const result = await dispatch(bulkApproveRejectLeaveRequests({
+				public_ids: selectedIds,
+				status: 'approved',
+			})).unwrap();
+			success(`Approved ${result.total_resolved_count} leave request(s).`);
+			setSelectedIds([]);
+			dispatch(fetchTeamLeaveRequests(undefined));
+		} catch (e: any) {
+			error(e || 'Failed to bulk-approve leave requests');
+		} finally {
+			setBulkSubmitting(false);
 		}
 	};
 
@@ -214,6 +249,21 @@ export const TeamLeavesApprovalsTable: React.FC = () => {
 	};
 
 	const columns: ColumnDefinition<HRLeaveRequestResponse>[] = [
+		{
+			// Nominal id only (satisfies ColumnDefinition's keyof T typing) --
+			// renderRow fully controls this column's actual cell content.
+			id: 'id',
+			label: pendingIdsOnPage.length > 0 ? (
+				<Checkbox
+					size="small"
+					checked={selectedIds.length > 0 && selectedIds.length === pendingIdsOnPage.length}
+					indeterminate={selectedIds.length > 0 && selectedIds.length < pendingIdsOnPage.length}
+					onChange={toggleSelectAll}
+					sx={{ p: 0 }}
+				/>
+			) : '',
+			width: 40,
+		},
 		{ id: 'employee_name', label: 'TEAM MEMBER' },
 		{ id: 'leave_type_name', label: 'LEAVE TYPE' },
 		{ id: 'total_days', label: 'DURATION', align: 'center' },
@@ -225,6 +275,16 @@ export const TeamLeavesApprovalsTable: React.FC = () => {
 
 	const renderRow = (req: HRLeaveRequestResponse) => (
 		<TableRow key={req.public_id} hover sx={{ '&:last-child td': { border: 0 } }}>
+			<TableCell onClick={(e) => e.stopPropagation()}>
+				{req.status === 'pending' && (
+					<Checkbox
+						size="small"
+						checked={selectedIds.includes(req.public_id)}
+						onChange={() => toggleSelect(req.public_id)}
+						sx={{ p: 0 }}
+					/>
+				)}
+			</TableCell>
 			<TableCell>{renderMember(req)}</TableCell>
 			<TableCell>{renderLeaveType(req)}</TableCell>
 			<TableCell align="center">{renderDuration(req)}</TableCell>
@@ -301,11 +361,18 @@ export const TeamLeavesApprovalsTable: React.FC = () => {
 						spacing={1.5}
 						sx={{ width: '100%' }}
 					>
-						<Stack direction="row" spacing={1} alignItems="center">
-							<LeaveIcon sx={{ fontSize: 20, color: 'primary.main' }} />
-							<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-								Leave Approvals
-							</Typography>
+						<Stack direction="row" spacing={1.5} alignItems="center">
+							<Stack direction="row" spacing={1} alignItems="center">
+								<LeaveIcon sx={{ fontSize: 20, color: 'primary.main' }} />
+								<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+									Leave Approvals
+								</Typography>
+							</Stack>
+							{selectedIds.length > 0 && (
+								<AddButton hideIcon size="small" onClick={handleBulkApprove} disabled={bulkSubmitting} sx={{ px: 2 }}>
+									Approve Selected ({selectedIds.length})
+								</AddButton>
+							)}
 						</Stack>
 						<Tabs
 							value={statusTab}

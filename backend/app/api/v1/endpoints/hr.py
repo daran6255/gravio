@@ -27,6 +27,7 @@ from app.schemas.hr import (
     LeaveTypeCreate, LeaveTypeUpdate, LeaveTypeResponse,
     LeaveBalanceUpdate, LeaveBalanceResponse,
     LeaveRequestCreate, LeaveRequestUpdate, LeaveRequestResponse, LeaveApprovalRequest,
+    LeaveBulkApprovalRequest, LeaveBulkApprovalResult,
     SalaryComponentCreate, SalaryComponentUpdate, SalaryComponentResponse,
     SalaryStructureCreate, SalaryStructureUpdate, SalaryStructureResponse,
     EmployeeSalaryCreate, EmployeeSalaryUpdate, EmployeeSalaryResponse,
@@ -490,6 +491,24 @@ async def approve_reject_request(
         db, current_user.organization_id, public_id, current_user.id, payload,
         is_admin_override=current_user.role in HR_ADMIN_ROLES,
     )
+
+
+@router.post(
+    "/leaves/requests/bulk-approve-reject",
+    response_model=LeaveBulkApprovalResult,
+    summary="Approve or reject several leave requests in one call",
+)
+async def bulk_approve_reject_requests(
+    payload: LeaveBulkApprovalRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    approval = LeaveApprovalRequest(status=payload.status, manager_notes=payload.manager_notes)
+    result = await hr_service.bulk_approve_reject_leave_requests(
+        db, current_user.organization_id, current_user.id, payload.public_ids, approval,
+        is_admin_override=current_user.role in HR_ADMIN_ROLES,
+    )
+    return LeaveBulkApprovalResult(**result)
 
 
 @router.post(

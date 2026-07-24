@@ -3,7 +3,7 @@ import type { ProjectTask } from './projects/projectTask';
 
 export type TimesheetBillingType = 'billable' | 'non_billable';
 export type TimesheetStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
-export type HolidayType = 'public' | 'org' | 'custom';
+export type HolidayType = 'public' | 'org' | 'custom' | 'blackout';
 export type WeekUnlockStatus = 'pending' | 'approved' | 'denied';
 
 export interface TimesheetCategory {

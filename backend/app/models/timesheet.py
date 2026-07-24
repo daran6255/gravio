@@ -24,6 +24,10 @@ class HolidayType(str, enum.Enum):
     PUBLIC = "public"
     ORG = "org"
     CUSTOM = "custom"
+    # A date leave can't be requested across (e.g. quarter close) -- unlike the other
+    # three types, a BLACKOUT day is still a working day: it blocks new Leave
+    # requests (see HR's create_leave_request) rather than excusing anyone from work.
+    BLACKOUT = "blackout"
 
 class WeekUnlockStatus(str, enum.Enum):
     PENDING = "pending"
@@ -116,6 +120,14 @@ class ProjectTimeLog(BaseModel, TenantAwareMixin):
     )
     approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     is_holiday_override: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Set when this entry was auto-generated from an approved HR leave request (see
+    # app/services/hr.py's approve_reject_leave_request) rather than logged by hand --
+    # lets that same code find and remove these entries if the leave is later
+    # cancelled, and is how the Leave and Timesheet "Leave" category stay in sync
+    # instead of being two disconnected concepts that could double-count hours.
+    source_leave_request_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("hr_leave_requests.id", ondelete="CASCADE"), nullable=True, index=True
+    )
 
     # Relationships
     project: Mapped[Optional["Project"]] = relationship("Project")

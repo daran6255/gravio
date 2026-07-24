@@ -33,6 +33,9 @@ class NotificationType(str, enum.Enum):
     MEETING_CANCELLED_BY_CLIENT = "meeting_cancelled_by_client"
     TIMESHEET_WEEK_UNSUBMITTED = "timesheet_week_unsubmitted"
     TIMESHEET_PENDING_APPROVALS = "timesheet_pending_approvals"
+    LEAVE_REQUEST_SUBMITTED = "leave_request_submitted"
+    LEAVE_REQUEST_APPROVED = "leave_request_approved"
+    LEAVE_REQUEST_REJECTED = "leave_request_rejected"
 
 
 class Notification(BaseModel, TenantAwareMixin):

@@ -387,6 +387,18 @@ class LeaveApprovalRequest(BaseModel):
     manager_notes: Optional[str] = None
 
 
+class LeaveBulkApprovalRequest(BaseModel):
+    public_ids: list[uuid.UUID] = Field(..., min_length=1)
+    status: str = Field(..., pattern="^(approved|rejected)$")
+    manager_notes: Optional[str] = None
+
+
+class LeaveBulkApprovalResult(BaseModel):
+    resolved_ids: list[uuid.UUID]
+    skipped_ids: list[uuid.UUID]
+    total_resolved_count: int
+
+
 class LeaveRequestResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

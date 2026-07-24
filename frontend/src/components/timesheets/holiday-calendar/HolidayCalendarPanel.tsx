@@ -90,7 +90,8 @@ const HolidayCalendarPanel: React.FC = () => {
 		const configs: Record<string, { main: string; dark: string; label: string }> = {
 			public: { main: theme.palette.success.main, dark: theme.palette.success.dark, label: 'Public Holiday' },
 			org: { main: theme.palette.primary.main, dark: theme.palette.primary.dark, label: 'Company Holiday' },
-			custom: { main: theme.palette.warning.main, dark: theme.palette.warning.dark, label: 'Override Day' }
+			custom: { main: theme.palette.warning.main, dark: theme.palette.warning.dark, label: 'Override Day' },
+			blackout: { main: theme.palette.error.main, dark: theme.palette.error.dark, label: 'Blackout Date' }
 		};
 		const c = configs[holidayType];
 		return (
@@ -253,6 +254,7 @@ const HolidayCalendarPanel: React.FC = () => {
 								<MenuItem value="public">Public Holiday</MenuItem>
 								<MenuItem value="org">Organization Holiday</MenuItem>
 								<MenuItem value="custom">Custom Override Day</MenuItem>
+								<MenuItem value="blackout">Blackout Date (leave requests blocked)</MenuItem>
 							</TextField>
 
 							<TextField

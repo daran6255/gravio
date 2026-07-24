@@ -896,9 +896,19 @@ async def get_user_balances(db: AsyncSession, org_id: int, user_id: int, year: i
 
 
 async def allocate_balances_for_user(db: AsyncSession, org_id: int, user_id: int, year: int) -> None:
-    """Pre-allocate leave balance rows for active leave types if they don't exist"""
+    """Pre-allocate leave balance rows for active leave types if they don't exist.
+
+    A brand-new balance is:
+    - Prorated by join date if the employee joined partway through `year` -- someone
+      hired in October shouldn't get a full year's Casual Leave.
+    - Topped up with whatever's left unused from the prior year for carry-forward-
+      enabled types (capped at max_carry_forward) -- the policy toggle that
+      previously had no effect at all.
+    Existing employees with a non-carry-forward type (or no prior-year balance to
+    carry from) get the plain default_allocation, same as before.
+    """
     active_types = await list_leave_types(db, org_id, include_inactive=False)
-    
+
     # Check existing balances
     existing_result = await db.execute(
         select(HRLeaveBalance.leave_type_id).where(
@@ -911,24 +921,59 @@ async def allocate_balances_for_user(db: AsyncSession, org_id: int, user_id: int
         )
     )
     existing_type_ids = set(existing_result.scalars().all())
+    missing_types = [lt for lt in active_types if lt.id not in existing_type_ids]
+    if not missing_types:
+        return
 
-    created_any = False
-    for lt in active_types:
-        if lt.id not in existing_type_ids:
-            b = HRLeaveBalance(
-                organization_id=org_id,
-                user_id=user_id,
-                leave_type_id=lt.id,
-                year=year,
-                allocated=lt.default_allocation,
-                used=0.0,
-                pending=0.0,
+    profile_result = await db.execute(
+        select(HREmployeeProfile.date_of_joining).where(
+            HREmployeeProfile.user_id == user_id,
+            HREmployeeProfile.organization_id == org_id,
+            HREmployeeProfile.is_deleted == False,
+        )
+    )
+    date_of_joining = profile_result.scalar_one_or_none()
+
+    prior_result = await db.execute(
+        select(HRLeaveBalance).where(
+            and_(
+                HRLeaveBalance.user_id == user_id,
+                HRLeaveBalance.year == year - 1,
+                HRLeaveBalance.organization_id == org_id,
+                HRLeaveBalance.is_deleted == False,
             )
-            db.add(b)
-            created_any = True
+        )
+    )
+    prior_by_type = {b.leave_type_id: b for b in prior_result.scalars().all()}
 
-    if created_any:
-        await db.commit()
+    import calendar as _calendar
+
+    for lt in missing_types:
+        allocated = lt.default_allocation
+
+        if lt.id not in prior_by_type and date_of_joining and date_of_joining.year == year:
+            days_in_year = 366 if _calendar.isleap(year) else 365
+            days_remaining = (date(year, 12, 31) - date_of_joining).days + 1
+            allocated = round(lt.default_allocation * (days_remaining / days_in_year) * 2) / 2
+
+        if lt.is_carry_forward and lt.id in prior_by_type:
+            prior = prior_by_type[lt.id]
+            unused = max(0.0, prior.allocated - prior.used - prior.pending)
+            carried = min(unused, lt.max_carry_forward)
+            allocated = lt.default_allocation + carried
+
+        b = HRLeaveBalance(
+            organization_id=org_id,
+            user_id=user_id,
+            leave_type_id=lt.id,
+            year=year,
+            allocated=allocated,
+            used=0.0,
+            pending=0.0,
+        )
+        db.add(b)
+
+    await db.commit()
 
 
 async def update_leave_balance(db: AsyncSession, org_id: int, id: int, payload: LeaveBalanceUpdate) -> LeaveBalanceResponse:
@@ -1054,18 +1099,143 @@ async def get_leave_request(db: AsyncSession, org_id: int, public_id: uuid.UUID)
     return _leave_req_response(req)
 
 
+async def _working_days_in_range(db: AsyncSession, org_id: int, from_date: date, to_date: date):
+    """Working days in [from_date, to_date] for leave purposes -- Sundays and
+    configured public/org/custom holidays are excluded (already non-working days, so
+    they shouldn't consume leave balance or get an auto-generated timesheet entry).
+    Returns (working_days, first_blackout) where working_days is the actual list of
+    dates (not just a count) so callers like the leave-approval timesheet sync can
+    iterate them directly instead of re-deriving the same range; first_blackout is
+    the first BLACKOUT-type OrgHoliday hit in the range, if any -- those are still
+    working days, so they're not excluded from the list; the caller blocks the
+    request outright instead."""
+    from app.repositories.timesheet import OrgHolidayRepository
+    from app.services.timesheet import is_weekly_off
+    from app.models.timesheet import HolidayType
+
+    holidays = await OrgHolidayRepository.list_all(db, org_id, start_date=from_date, end_date=to_date)
+    blackout_by_date = {h.holiday_date: h for h in holidays if h.type == HolidayType.BLACKOUT}
+    off_dates = {h.holiday_date for h in holidays if h.type != HolidayType.BLACKOUT}
+
+    working_days: list[date] = []
+    first_blackout = None
+    d = from_date
+    while d <= to_date:
+        if d in blackout_by_date:
+            if first_blackout is None:
+                first_blackout = blackout_by_date[d]
+        elif not is_weekly_off(d) and d not in off_dates:
+            working_days.append(d)
+        d += timedelta(days=1)
+
+    return working_days, first_blackout
+
+
+async def _notify_leave_submitted(db: AsyncSession, org_id: int, req: HRLeaveRequest, requester: User) -> None:
+    """Notifies whoever needs to act on a newly-submitted request: the requester's
+    reporting manager, or -- if they have none -- every org admin/HR admin, so the
+    request doesn't just sit there with nobody aware of it (same fallback logic as
+    the approval escalation tier itself)."""
+    from app.models.notification import NotificationType
+    from app.models.user import UserRole
+    from app.services.notification import NotificationService
+
+    requester_name = requester.full_name or requester.email
+    message = f"{requester_name} requested {req.total_days:g} day(s) of leave from {req.from_date.isoformat()} to {req.to_date.isoformat()}."
+
+    recipient_ids: set[int] = set()
+    if requester.reporting_manager_id:
+        recipient_ids.add(requester.reporting_manager_id)
+    else:
+        admins_result = await db.execute(
+            select(User.id).where(
+                User.organization_id == org_id,
+                User.role.in_([UserRole.ADMIN, UserRole.HR_ADMIN]),
+                User.is_active == True,
+                User.is_deleted == False,
+                User.id != requester.id,
+            )
+        )
+        recipient_ids.update(r[0] for r in admins_result.all())
+
+    for recipient_id in recipient_ids:
+        await NotificationService.notify(
+            db, user_id=recipient_id, type=NotificationType.LEAVE_REQUEST_SUBMITTED,
+            title="New leave request", message=message,
+            entity_type="leave_request", entity_id=req.id, organization_id=org_id,
+        )
+
+
+async def _notify_leave_decision(db: AsyncSession, org_id: int, req: HRLeaveRequest, approved: bool) -> None:
+    """Notifies the employee once their request has been approved or rejected."""
+    from app.models.notification import NotificationType
+    from app.services.notification import NotificationService
+
+    if approved:
+        title, message, ntype = (
+            "Leave request approved",
+            f"Your leave request for {req.from_date.isoformat()} to {req.to_date.isoformat()} was approved.",
+            NotificationType.LEAVE_REQUEST_APPROVED,
+        )
+    else:
+        note = f" Note: {req.manager_notes}" if req.manager_notes else ""
+        title, message, ntype = (
+            "Leave request rejected",
+            f"Your leave request for {req.from_date.isoformat()} to {req.to_date.isoformat()} was rejected.{note}",
+            NotificationType.LEAVE_REQUEST_REJECTED,
+        )
+
+    await NotificationService.notify(
+        db, user_id=req.user_id, type=ntype, title=title, message=message,
+        entity_type="leave_request", entity_id=req.id, organization_id=org_id,
+    )
+
+
 async def create_leave_request(db: AsyncSession, org_id: int, user_id: int, payload: LeaveRequestCreate) -> LeaveRequestResponse:
     # 1. Dates validation
     if payload.to_date < payload.from_date:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="To Date cannot be before From Date")
 
-    # Calculate days
+    # 2. Overlap check -- one request can't sit inside another already pending or
+    # approved request for the same person.
+    overlap_result = await db.execute(
+        select(HRLeaveRequest.id).where(
+            and_(
+                HRLeaveRequest.user_id == user_id,
+                HRLeaveRequest.organization_id == org_id,
+                HRLeaveRequest.is_deleted == False,
+                HRLeaveRequest.status.in_([LeaveStatus.PENDING, LeaveStatus.APPROVED]),
+                HRLeaveRequest.from_date <= payload.to_date,
+                HRLeaveRequest.to_date >= payload.from_date,
+            )
+        ).limit(1)
+    )
+    if overlap_result.scalars().first() is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You already have a pending or approved leave request that overlaps these dates.",
+        )
+
+    # 3. Days calculation -- excludes weekends/holidays (already non-working) and
+    # blocks blackout dates outright (still working days, just off-limits for leave).
+    working_days, blackout_hit = await _working_days_in_range(db, org_id, payload.from_date, payload.to_date)
+    if blackout_hit:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"\"{blackout_hit.name}\" ({blackout_hit.holiday_date.isoformat()}) is a blackout date -- leave can't be requested across it.",
+        )
+
     if payload.is_half_day:
         days = 0.5
     else:
-        days = float((payload.to_date - payload.from_date).days + 1)
+        days = float(len(working_days))
+        if days <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="The selected date range has no working days to request leave for.",
+            )
 
-    # 2. Get leave type & verify balance
+    # 4. Get leave type & verify balance
     lt = await db.get(HRLeaveType, payload.leave_type_id)
     if not lt or lt.organization_id != org_id or not lt.is_active or lt.is_deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Leave type not found")
@@ -1117,7 +1287,12 @@ async def create_leave_request(db: AsyncSession, org_id: int, user_id: int, payl
 
     await db.commit()
     await db.refresh(req)
-    
+
+    requester = await db.get(User, user_id)
+    if requester:
+        await _notify_leave_submitted(db, org_id, req, requester)
+        await db.commit()
+
     # Reload request with relationships
     return await get_leave_request(db, org_id, req.public_id)
 
@@ -1165,10 +1340,90 @@ async def cancel_leave_request(db: AsyncSession, org_id: int, public_id: uuid.UU
             # If approved, return used days back to balance
             bal.used = max(0.0, bal.used - req.total_days)
 
+    was_approved = req.status == LeaveStatus.APPROVED
     req.status = LeaveStatus.CANCELLED
+    if was_approved:
+        await _remove_synced_timesheet_entries(db, org_id, req)
+
     await db.commit()
     await db.refresh(req, attribute_names=["updated_at"])
     return _leave_req_response(req)
+
+
+async def _sync_timesheet_entries_for_approved_leave(db: AsyncSession, org_id: int, req: HRLeaveRequest) -> None:
+    """Auto-fills the employee's timesheet with a 'Leave'-category entry for each
+    working day in the approved range -- pre-approved (the leave itself already
+    was) and tagged with source_leave_request_id -- so the HR leave request and the
+    Timesheet 'Leave' category stay in sync instead of being two disconnected
+    concepts that could silently diverge or double-count hours on the same day."""
+    from app.models.timesheet import ProjectTimeLog, TimesheetBillingType, TimesheetStatus, UserTimesheetCategory
+
+    category_result = await db.execute(
+        select(UserTimesheetCategory.id).where(
+            UserTimesheetCategory.organization_id == org_id,
+            UserTimesheetCategory.name == "Leave",
+            UserTimesheetCategory.is_org_default == True,
+            UserTimesheetCategory.is_deleted == False,
+        ).limit(1)
+    )
+    category_id = category_result.scalar_one_or_none()
+    if category_id is None:
+        # Org renamed/deleted its default "Leave" timesheet category -- nothing
+        # safe to attach the auto-entries to, so skip rather than guess.
+        return
+
+    working_days, _ = await _working_days_in_range(db, org_id, req.from_date, req.to_date)
+    hours_per_day = 4.0 if req.is_half_day else 8.0
+    leave_code = req.leave_type.code if req.leave_type else "leave"
+
+    for d in working_days:
+        # Don't overwrite a day the employee already logged something against under
+        # this same category -- leave it to them to reconcile rather than silently
+        # clobbering an existing entry.
+        existing = await db.execute(
+            select(ProjectTimeLog.id).where(
+                ProjectTimeLog.organization_id == org_id,
+                ProjectTimeLog.user_id == req.user_id,
+                ProjectTimeLog.log_date == d,
+                ProjectTimeLog.category_id == category_id,
+                ProjectTimeLog.is_deleted == False,
+            ).limit(1)
+        )
+        if existing.scalars().first() is not None:
+            continue
+
+        db.add(ProjectTimeLog(
+            organization_id=org_id,
+            user_id=req.user_id,
+            category_id=category_id,
+            log_date=d,
+            hours=hours_per_day,
+            notes=f"Auto-logged from approved {leave_code} request",
+            billing_type=TimesheetBillingType.NON_BILLABLE,
+            status=TimesheetStatus.APPROVED,
+            approved_by_id=req.approved_by_id,
+            approved_at=req.approved_at,
+            source_leave_request_id=req.id,
+        ))
+
+
+async def _remove_synced_timesheet_entries(db: AsyncSession, org_id: int, req: HRLeaveRequest) -> None:
+    """Removes the auto-generated timesheet entries created when this leave request
+    was approved -- called when an approved leave is later cancelled, so the
+    timesheet doesn't keep showing days the employee is no longer confirmed off."""
+    from app.models.timesheet import ProjectTimeLog
+
+    result = await db.execute(
+        select(ProjectTimeLog).where(
+            ProjectTimeLog.organization_id == org_id,
+            ProjectTimeLog.source_leave_request_id == req.id,
+            ProjectTimeLog.is_deleted == False,
+        )
+    )
+    now = datetime.utcnow()
+    for log in result.scalars().all():
+        log.is_deleted = True
+        log.deleted_at = now
 
 
 async def approve_reject_leave_request(
@@ -1232,25 +1487,64 @@ async def approve_reject_leave_request(
     )
     bal = bal_res.scalars().first()
 
-    if payload.status == "approved":
+    req.approved_by_id = manager_user_id
+    req.approved_at = datetime.utcnow()
+    req.manager_notes = payload.manager_notes
+
+    approved = payload.status == "approved"
+    if approved:
         req.status = LeaveStatus.APPROVED
         if bal:
             # Shift from pending to used
             bal.pending = max(0.0, bal.pending - req.total_days)
             bal.used += req.total_days
+        await _sync_timesheet_entries_for_approved_leave(db, org_id, req)
     else:
         req.status = LeaveStatus.REJECTED
         if bal:
             # Release pending days
             bal.pending = max(0.0, bal.pending - req.total_days)
 
-    req.approved_by_id = manager_user_id
-    req.approved_at = datetime.utcnow()
-    req.manager_notes = payload.manager_notes
-
     await db.commit()
     await db.refresh(req, attribute_names=["updated_at", "approved_by"])
+
+    await _notify_leave_decision(db, org_id, req, approved)
+    await db.commit()
+
     return _leave_req_response(req)
+
+
+async def bulk_approve_reject_leave_requests(
+    db: AsyncSession,
+    org_id: int,
+    manager_user_id: int,
+    public_ids: list[uuid.UUID],
+    payload: LeaveApprovalRequest,
+    is_admin_override: bool = False,
+) -> dict:
+    """Approves or rejects several requests in one call -- the manager-facing
+    equivalent of ticking several rows and hitting Approve once. Reuses
+    approve_reject_leave_request per item so every rule (authorization,
+    self-approval guard, balance shift, timesheet sync, notification) applies
+    identically; any request this approver isn't authorized for, or that's no
+    longer pending, is skipped rather than failing the whole batch."""
+    resolved_ids: list[uuid.UUID] = []
+    skipped_ids: list[uuid.UUID] = []
+
+    for public_id in public_ids:
+        try:
+            await approve_reject_leave_request(
+                db, org_id, public_id, manager_user_id, payload, is_admin_override=is_admin_override,
+            )
+            resolved_ids.append(public_id)
+        except HTTPException:
+            skipped_ids.append(public_id)
+
+    return {
+        "resolved_ids": resolved_ids,
+        "skipped_ids": skipped_ids,
+        "total_resolved_count": len(resolved_ids),
+    }
 
 
 # ===========================================================================

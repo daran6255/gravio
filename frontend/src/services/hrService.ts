@@ -9,6 +9,7 @@ import type {
 	HRLeaveTypeListItem, HRLeaveTypeResponse, HRLeaveTypeCreate, HRLeaveTypeUpdate,
 	HRLeaveBalanceResponse, HRLeaveBalanceUpdate,
 	HRLeaveRequestResponse, HRLeaveRequestCreate, HRLeaveApprovalRequest,
+	HRLeaveBulkApprovalRequest, HRLeaveBulkApprovalResult,
 	HRSalaryComponent, HRSalaryComponentCreate, HRSalaryComponentUpdate,
 	HRSalaryStructure, HRSalaryStructureCreate, HRSalaryStructureUpdate,
 	HREmployeeSalary, HREmployeeSalaryCreate,
@@ -152,6 +153,9 @@ export const hrLeaveRequestApi = {
 
 	approveReject: (publicId: string, payload: HRLeaveApprovalRequest): Promise<HRLeaveRequestResponse> =>
 		api.post(`/hr/leaves/requests/${publicId}/approve-reject`, payload).then(r => r.data),
+
+	bulkApproveReject: (payload: HRLeaveBulkApprovalRequest): Promise<HRLeaveBulkApprovalResult> =>
+		api.post('/hr/leaves/requests/bulk-approve-reject', payload).then(r => r.data),
 
 	cancel: (publicId: string): Promise<HRLeaveRequestResponse> =>
 		api.post(`/hr/leaves/requests/${publicId}/cancel`).then(r => r.data),
