@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import { Box, Container, Button, TextField, Tabs, Tab, RadioGroup, FormControlLabel, Radio, Typography, alpha } from '@mui/material';
-import { CalendarMonthOutlined, HistoryOutlined } from '@mui/icons-material';
+import { CalendarMonthOutlined, HistoryOutlined, LinkOutlined } from '@mui/icons-material';
 import PageHeader from '../../components/common/page-header';
 import { HelpGuideButton } from '../../components/common/button';
 import { WelcomeBanner } from '../../components/common/guide';
@@ -11,6 +11,7 @@ import ConfirmationDialog from '../../components/common/dialogbox/ConfirmationDi
 import {
 	NewMeetingDialog, RescheduleMeetingDialog, CompleteMeetingDialog,
 	WeekCalendarView, UpcomingMeetingsPanel, MeetingHistoryTable, MeetingsGuideDrawer,
+	AvailabilitySettingsPanel,
 } from '../../components/booking';
 import { useMeetingHistory } from '../../components/booking/meetings/hooks/useMeetingHistory';
 import { MEETINGS_GUIDE_CONTENT } from '../../data/meetingsGuideData';
@@ -24,7 +25,7 @@ const MyMeetingsPage: React.FC = () => {
 	const [guideOpen, setGuideOpen] = useState(false);
 	const { show: showWelcome, dismiss: handleDismissWelcome } = useDismissibleBanner('dismissedMeetingsWelcome');
 
-	const [activeTab, setActiveTab] = useState<'calendar' | 'history'>('calendar');
+	const [activeTab, setActiveTab] = useState<'calendar' | 'history' | 'booking-page'>('calendar');
 
 	const [calendarMeetings, setCalendarMeetings] = useState<ScheduledMeetingHost[]>([]);
 	const [newMeetingOpen, setNewMeetingOpen] = useState(false);
@@ -166,10 +167,13 @@ const MyMeetingsPage: React.FC = () => {
 				>
 					<Tab value="calendar" label="Calendar" icon={<CalendarMonthOutlined fontSize="small" />} iconPosition="start" disableRipple />
 					<Tab value="history" label="History" icon={<HistoryOutlined fontSize="small" />} iconPosition="start" disableRipple />
+					<Tab value="booking-page" label="Booking Page" icon={<LinkOutlined fontSize="small" />} iconPosition="start" disableRipple />
 				</Tabs>
 			</Box>
 
-			{activeTab === 'calendar' ? (
+			{activeTab === 'booking-page' ? (
+				<AvailabilitySettingsPanel />
+			) : activeTab === 'calendar' ? (
 				<Box sx={responsiveStyles.contentWithSidebar}>
 					<WeekCalendarView
 						meetings={calendarMeetings}

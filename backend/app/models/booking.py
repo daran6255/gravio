@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import enum
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, time
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import (
+    Boolean,
     Date,
     DateTime,
     Enum,
@@ -21,6 +22,7 @@ from sqlalchemy import (
     JSON,
     String,
     Text,
+    Time,
     Uuid,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -142,3 +144,87 @@ class ScheduledMeeting(BaseModel, TenantAwareMixin):
 
     def __repr__(self) -> str:
         return f"<ScheduledMeeting(id={self.id}, start_time={self.start_time}, status='{self.status}')>"
+
+
+# ---------------------------------------------------------------------------
+# Public self-service booking ("book a slot with me") — a host publishes a
+# weekly availability schedule behind a revocable share link; a client picks an
+# open slot themselves instead of the host creating every meeting by hand. Slot
+# computation and the actual meeting creation both live in app/services/booking.py
+# (compute_available_slots / public_book_slot), reusing create_meeting so a
+# self-booked meeting is a completely ordinary ScheduledMeeting afterward.
+# ---------------------------------------------------------------------------
+
+class HostAvailabilitySettings(BaseModel, TenantAwareMixin):
+    """One row per user — their public booking page configuration. Created lazily
+    (see get_or_create_availability_settings) the first time a user opens their
+    own availability settings, same lazy-seed convention used elsewhere in the app."""
+    __tablename__ = "host_availability_settings"
+
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True
+    )
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Looked up directly (no organization scoping needed -- it's the credential
+    # itself) by an unauthenticated visitor; rotates on regenerate, which is how an
+    # old link is revoked. Mirrors Project's share_token/share_enabled pattern.
+    share_token: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid, unique=True, index=True, nullable=True)
+
+    meeting_type_name: Mapped[str] = mapped_column(String(150), default="Meeting", nullable=False)
+    duration_minutes: Mapped[int] = mapped_column(Integer, default=30, nullable=False)
+    buffer_minutes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # A slot can't start less than this many hours from now -- gives the host some
+    # lead time instead of a client booking a meeting starting in two minutes.
+    min_notice_hours: Mapped[int] = mapped_column(Integer, default=4, nullable=False)
+    # How many days ahead a client can see/book a slot.
+    booking_window_days: Mapped[int] = mapped_column(Integer, default=30, nullable=False)
+
+    # IANA timezone the weekly rules below are defined in -- defaults to the host's
+    # own User.timezone at creation time, but kept independent of it afterward (a
+    # host changing their profile timezone shouldn't silently reinterpret an
+    # already-published weekly schedule).
+    timezone: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    location_type: Mapped[MeetingLocationType] = mapped_column(
+        Enum(MeetingLocationType, values_callable=lambda x: [e.value for e in x]),
+        default=MeetingLocationType.GOOGLE_MEET,
+        nullable=False,
+    )
+    # For offline/phone, the address/number reused on every booking. For
+    # google_meet, an explicit host-set link (e.g. a personal Zoom room) reused as-
+    # is; left blank, a fresh Jitsi room is generated per booking instead (see
+    # _resolve_booking_location in services/booking.py) so simultaneous bookings
+    # never collide in the same room.
+    location_detail: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+    rules: Mapped[list["HostAvailabilityRule"]] = relationship(
+        "HostAvailabilityRule", back_populates="settings", cascade="all, delete-orphan"
+    )
+
+    def __repr__(self) -> str:
+        return f"<HostAvailabilitySettings(user_id={self.user_id}, is_enabled={self.is_enabled})>"
+
+
+class HostAvailabilityRule(BaseModel, TenantAwareMixin):
+    """One recurring weekly availability window (e.g. Monday 9:00-17:00). A host can
+    have several rows for the same weekday (a morning window and an afternoon
+    window with a lunch gap between); slot generation treats each independently."""
+    __tablename__ = "host_availability_rules"
+
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    settings_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("host_availability_settings.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # 0=Monday .. 6=Sunday, matching Python's date.weekday() -- same convention
+    # already used for is_weekly_off in app/services/timesheet.py.
+    weekday: Mapped[int] = mapped_column(Integer, nullable=False)
+    start_time: Mapped[time] = mapped_column(Time, nullable=False)
+    end_time: Mapped[time] = mapped_column(Time, nullable=False)
+
+    settings: Mapped["HostAvailabilitySettings"] = relationship("HostAvailabilitySettings", back_populates="rules")
+
+    def __repr__(self) -> str:
+        return f"<HostAvailabilityRule(user_id={self.user_id}, weekday={self.weekday}, {self.start_time}-{self.end_time})>"

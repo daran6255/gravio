@@ -7,6 +7,14 @@ import type {
 	OrgMemberOption,
 	PublicMeetingView,
 	MeetingJoinInfo,
+	HostAvailabilitySettings,
+	HostAvailabilitySettingsUpdate,
+	HostAvailabilityShareLink,
+	AvailabilityRule,
+	PublicAvailabilityView,
+	AvailableSlotsResponse,
+	PublicBookingRequest,
+	PublicBookingConfirmation,
 } from '../models/booking/meeting';
 
 const bookingService = {
@@ -93,6 +101,48 @@ const bookingService = {
 	 * would, instead of opening the raw video link directly. */
 	hostGetMeetingJoinLink: async (publicId: string): Promise<{ join_url: string }> => {
 		const response = await api.get<{ join_url: string }>(`/bookings/meetings/${publicId}/join-link`);
+		return response.data;
+	},
+
+	// --- Host availability ("book a slot with me" self-service booking) ---
+	getAvailability: async (): Promise<HostAvailabilitySettings> => {
+		const response = await api.get<HostAvailabilitySettings>('/bookings/availability');
+		return response.data;
+	},
+	updateAvailability: async (payload: HostAvailabilitySettingsUpdate): Promise<HostAvailabilitySettings> => {
+		const response = await api.patch<HostAvailabilitySettings>('/bookings/availability', payload);
+		return response.data;
+	},
+	replaceAvailabilityRules: async (rules: AvailabilityRule[]): Promise<HostAvailabilitySettings> => {
+		const response = await api.put<HostAvailabilitySettings>('/bookings/availability/rules', { rules });
+		return response.data;
+	},
+	enableBookingLink: async (): Promise<HostAvailabilityShareLink> => {
+		const response = await api.post<HostAvailabilityShareLink>('/bookings/availability/enable');
+		return response.data;
+	},
+	regenerateBookingLink: async (): Promise<HostAvailabilityShareLink> => {
+		const response = await api.post<HostAvailabilityShareLink>('/bookings/availability/regenerate');
+		return response.data;
+	},
+	disableBookingLink: async (): Promise<HostAvailabilityShareLink> => {
+		const response = await api.delete<HostAvailabilityShareLink>('/bookings/availability');
+		return response.data;
+	},
+
+	// --- Public (no-login) self-service booking — token identifies the host ---
+	publicGetAvailability: async (token: string): Promise<PublicAvailabilityView> => {
+		const response = await api.get<PublicAvailabilityView>(`/bookings/public/availability/${token}`);
+		return response.data;
+	},
+	publicGetAvailableSlots: async (token: string, date: string): Promise<AvailableSlotsResponse> => {
+		const response = await api.get<AvailableSlotsResponse>(`/bookings/public/availability/${token}/slots`, {
+			params: { date },
+		});
+		return response.data;
+	},
+	publicBookSlot: async (token: string, payload: PublicBookingRequest): Promise<PublicBookingConfirmation> => {
+		const response = await api.post<PublicBookingConfirmation>(`/bookings/public/availability/${token}/book`, payload);
 		return response.data;
 	},
 };

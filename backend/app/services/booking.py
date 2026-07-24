@@ -19,15 +19,30 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import tenant_context
 from app.middleware.exceptions import BadRequestError, ConflictError, ForbiddenError, NotFoundError
-from app.models.booking import CancelledBy, MeetingLocationType, MeetingStatus, RecurrenceRule, ScheduledMeeting
+from app.models.booking import (
+    CancelledBy,
+    HostAvailabilityRule,
+    HostAvailabilitySettings,
+    MeetingLocationType,
+    MeetingStatus,
+    RecurrenceRule,
+    ScheduledMeeting,
+)
 from app.models.crm import ActivityType, CRMContact, CRMLead, LeadSource, LeadStatus
 from app.models.notification import NotificationType
 from app.models.reminder import ReminderStatus
 from app.models.user import User
-from app.repositories.booking import ScheduledMeetingRepository
+from app.repositories.booking import HostAvailabilityRepository, ScheduledMeetingRepository
 from app.repositories.crm import CRMActivityRepository
 from app.repositories.reminder import CRMReminderRepository
-from app.schemas.booking import MAX_RECURRING_OCCURRENCES, MeetingJoinInfo, ScheduleMeetingRequest
+from app.schemas.booking import (
+    MAX_RECURRING_OCCURRENCES,
+    AvailabilityRuleItem,
+    HostAvailabilitySettingsUpdate,
+    MeetingJoinInfo,
+    PublicBookingRequest,
+    ScheduleMeetingRequest,
+)
 from app.services.crm import CRMService
 from app.services.notification import NotificationService
 from app.utils.email import (
@@ -697,3 +712,201 @@ async def client_cancel_meeting(db: AsyncSession, *, meeting: ScheduledMeeting, 
         entity_type="scheduled_meeting", entity_id=updated.id, organization_id=updated.organization_id,
     )
     return updated
+
+
+# ── Public self-service booking ("book a slot with me") ────────────────────────
+#
+# A host publishes a weekly availability schedule behind a revocable share link;
+# a client picks an open slot themselves instead of the host creating every
+# meeting by hand. Deliberately leaner than the BookingPage/Google-Calendar-sync
+# concept an earlier migration removed (see 4c0b01681feb): just weekly recurring
+# rules and a share link, reusing create_meeting for the actual booking.
+
+async def get_or_create_availability_settings(db: AsyncSession, user: User) -> HostAvailabilitySettings:
+    settings = await HostAvailabilityRepository.get_settings_by_user(db, user.id)
+    if settings is not None:
+        return settings
+    return await HostAvailabilityRepository.create_settings(
+        db, user_id=user.id, organization_id=user.organization_id, timezone=user.timezone or "UTC",
+    )
+
+
+async def update_availability_settings(
+    db: AsyncSession, user: User, payload: HostAvailabilitySettingsUpdate,
+) -> HostAvailabilitySettings:
+    settings = await get_or_create_availability_settings(db, user)
+    data = payload.model_dump(exclude_unset=True, exclude_none=True)
+    updated = await HostAvailabilityRepository.update_settings(db, settings, **data)
+    await db.commit()
+    await db.refresh(updated, attribute_names=["rules"])
+    return updated
+
+
+async def replace_availability_rules(
+    db: AsyncSession, user: User, rules: list[AvailabilityRuleItem],
+) -> list[HostAvailabilityRule]:
+    settings = await get_or_create_availability_settings(db, user)
+    rule_dicts = [{"weekday": r.weekday, "start_time": r.start_time, "end_time": r.end_time} for r in rules]
+    created = await HostAvailabilityRepository.replace_rules(
+        db, settings=settings, user_id=user.id, organization_id=user.organization_id, rules=rule_dicts,
+    )
+    await db.commit()
+    return created
+
+
+async def enable_booking_link(db: AsyncSession, user: User) -> HostAvailabilitySettings:
+    """Idempotent: turns the booking page on, minting a share token only if this
+    host has never published one before (re-enabling after a disable reuses the
+    same link)."""
+    settings = await get_or_create_availability_settings(db, user)
+    updates: dict = {"is_enabled": True}
+    if settings.share_token is None:
+        updates["share_token"] = uuid.uuid4()
+    updated = await HostAvailabilityRepository.update_settings(db, settings, **updates)
+    await db.commit()
+    return updated
+
+
+async def regenerate_booking_link(db: AsyncSession, user: User) -> HostAvailabilitySettings:
+    """Rotates the share token -- how a previously-published link is revoked
+    without turning the booking page off altogether."""
+    settings = await get_or_create_availability_settings(db, user)
+    updated = await HostAvailabilityRepository.update_settings(db, settings, share_token=uuid.uuid4(), is_enabled=True)
+    await db.commit()
+    return updated
+
+
+async def disable_booking_link(db: AsyncSession, user: User) -> HostAvailabilitySettings:
+    settings = await get_or_create_availability_settings(db, user)
+    updated = await HostAvailabilityRepository.update_settings(db, settings, is_enabled=False)
+    await db.commit()
+    return updated
+
+
+async def get_public_availability_view(db: AsyncSession, token: uuid.UUID) -> tuple[HostAvailabilitySettings, User]:
+    settings = await HostAvailabilityRepository.get_settings_by_share_token(db, token)
+    if settings is None or not settings.is_enabled:
+        raise NotFoundError("This booking link is invalid or is no longer active.")
+    host = await db.get(User, settings.user_id)
+    if host is None:
+        raise NotFoundError("This booking link is invalid or is no longer active.")
+    return settings, host
+
+
+async def _compute_available_slots(
+    db: AsyncSession, *, settings: HostAvailabilitySettings, target_date: date,
+) -> list[tuple[datetime, datetime]]:
+    """Candidate slots for one host-local calendar day, minus anything already on
+    the host's calendar. Days/times are interpreted in settings.timezone (the
+    weekly rules' own timezone) -- the frontend converts each returned UTC start
+    into the visitor's own timezone for display, but which *day* a slot belongs to
+    is always the host's local day, not the visitor's."""
+    host_tz = ZoneInfo(settings.timezone)
+    weekday = target_date.weekday()
+    rules = [r for r in settings.rules if r.weekday == weekday and not r.is_deleted]
+    if not rules:
+        return []
+
+    duration = timedelta(minutes=settings.duration_minutes)
+    step = timedelta(minutes=settings.duration_minutes + settings.buffer_minutes)
+    earliest_utc = datetime.now(timezone.utc) + timedelta(hours=settings.min_notice_hours)
+
+    candidates: list[tuple[datetime, datetime]] = []
+    for rule in rules:
+        window_start = datetime.combine(target_date, rule.start_time, tzinfo=host_tz)
+        window_end = datetime.combine(target_date, rule.end_time, tzinfo=host_tz)
+        slot_start = window_start
+        while slot_start + duration <= window_end:
+            slot_end = slot_start + duration
+            start_utc = slot_start.astimezone(timezone.utc)
+            end_utc = slot_end.astimezone(timezone.utc)
+            if start_utc >= earliest_utc:
+                candidates.append((start_utc, end_utc))
+            slot_start += step
+
+    if not candidates:
+        return []
+
+    day_start_utc = min(c[0] for c in candidates)
+    day_end_utc = max(c[1] for c in candidates)
+    busy = await ScheduledMeetingRepository.list_overlapping(
+        db, host_user_id=settings.user_id, start_time=day_start_utc, end_time=day_end_utc,
+    )
+
+    def is_free(start_utc: datetime, end_utc: datetime) -> bool:
+        return all(not (m.start_time < end_utc and m.end_time > start_utc) for m in busy)
+
+    return [c for c in candidates if is_free(*c)]
+
+
+async def get_available_slots(
+    db: AsyncSession, *, settings: HostAvailabilitySettings, target_date: date,
+) -> list[datetime]:
+    """Public-facing wrapper: enforces the booking window (nothing before today or
+    beyond booking_window_days, both in the host's own local calendar) before
+    computing candidates -- a date outside that range simply has no slots, rather
+    than being an error."""
+    host_tz = ZoneInfo(settings.timezone)
+    today_local = datetime.now(host_tz).date()
+    if target_date < today_local or target_date > today_local + timedelta(days=settings.booking_window_days):
+        return []
+
+    token = tenant_context.set(settings.organization_id)
+    try:
+        pairs = await _compute_available_slots(db, settings=settings, target_date=target_date)
+    finally:
+        tenant_context.reset(token)
+    return [start for start, _ in pairs]
+
+
+def _resolve_booking_location(settings: HostAvailabilitySettings) -> tuple[MeetingLocationType, Optional[str]]:
+    """For offline/phone, the host's fixed address/number is reused as-is on every
+    booking. For google_meet with no fixed link set, a fresh unique Jitsi room is
+    generated per booking so simultaneous bookings never collide in the same room
+    -- a host who *did* set a fixed link (e.g. a personal Zoom room) gets that
+    reused instead, same as offline/phone."""
+    if settings.location_type == MeetingLocationType.GOOGLE_MEET and not settings.location_detail:
+        room = f"gravit-{uuid.uuid4().hex[:12]}"
+        return MeetingLocationType.GOOGLE_MEET, f"https://meet.jit.si/{room}"
+    return settings.location_type, settings.location_detail
+
+
+async def public_book_slot(
+    db: AsyncSession, *, token: uuid.UUID, payload: PublicBookingRequest,
+) -> tuple[ScheduledMeeting, str]:
+    """Books an open slot on a host's public availability page. Re-validates the
+    slot is still genuinely open (within the booking window/notice period, on an
+    actually-configured availability rule, and not raced by another visitor)
+    rather than trusting whatever the client last fetched, which could already be
+    stale. Returns (meeting, manage_link)."""
+    settings, host = await get_public_availability_view(db, token)
+
+    tenant_token = tenant_context.set(settings.organization_id)
+    try:
+        start_utc = payload.start_time.astimezone(timezone.utc)
+        end_utc = start_utc + timedelta(minutes=settings.duration_minutes)
+        host_tz = ZoneInfo(settings.timezone)
+        target_date = start_utc.astimezone(host_tz).date()
+
+        available = await get_available_slots(db, settings=settings, target_date=target_date)
+        if start_utc not in available:
+            raise ConflictError("This slot is no longer available -- please pick another time.")
+
+        location_type, location_detail = _resolve_booking_location(settings)
+        schedule_payload = ScheduleMeetingRequest(
+            start_time=start_utc,
+            end_time=end_utc,
+            client_name=payload.client_name,
+            client_email=payload.client_email,
+            host_timezone=settings.timezone,
+            attendee_timezone=payload.attendee_timezone,
+            meeting_title=f"{settings.meeting_type_name} with {payload.client_name}",
+            meeting_notes=payload.notes,
+            location_type=location_type,
+            location_detail=location_detail,
+            idempotency_key=payload.idempotency_key,
+        )
+        meeting, _ = await create_meeting(db, host=host, payload=schedule_payload)
+        return meeting, _manage_link(meeting)
+    finally:
+        tenant_context.reset(tenant_token)

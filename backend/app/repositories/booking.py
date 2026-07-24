@@ -8,7 +8,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.booking import MeetingStatus, ScheduledMeeting
+from app.models.booking import HostAvailabilityRule, HostAvailabilitySettings, MeetingStatus, ScheduledMeeting
 
 
 class ScheduledMeetingRepository:
@@ -191,3 +191,80 @@ class ScheduledMeetingRepository:
             )
         )
         return [row[0] for row in result.all()]
+
+
+class HostAvailabilityRepository:
+    @staticmethod
+    async def get_settings_by_user(db: AsyncSession, user_id: int) -> Optional[HostAvailabilitySettings]:
+        result = await db.execute(
+            select(HostAvailabilitySettings)
+            .options(selectinload(HostAvailabilitySettings.rules))
+            .where(HostAvailabilitySettings.user_id == user_id, HostAvailabilitySettings.is_deleted.is_(False))
+        )
+        return result.scalars().first()
+
+    @staticmethod
+    async def get_settings_by_share_token(db: AsyncSession, token: uuid.UUID) -> Optional[HostAvailabilitySettings]:
+        """Looked up by token alone -- no organization scoping, since the token
+        itself is the credential for an unauthenticated visitor with no tenant
+        context (same convention as Project's share_token lookup)."""
+        result = await db.execute(
+            select(HostAvailabilitySettings)
+            .options(selectinload(HostAvailabilitySettings.rules))
+            .where(HostAvailabilitySettings.share_token == token, HostAvailabilitySettings.is_deleted.is_(False))
+        )
+        return result.scalars().first()
+
+    @staticmethod
+    async def create_settings(db: AsyncSession, *, user_id: int, organization_id: int, timezone: str) -> HostAvailabilitySettings:
+        settings = HostAvailabilitySettings(user_id=user_id, organization_id=organization_id, timezone=timezone)
+        db.add(settings)
+        await db.flush()
+        await db.refresh(settings, attribute_names=["rules"])
+        return settings
+
+    @staticmethod
+    async def update_settings(db: AsyncSession, settings: HostAvailabilitySettings, **kwargs) -> HostAvailabilitySettings:
+        for key, val in kwargs.items():
+            if val is not None:
+                setattr(settings, key, val)
+        await db.flush()
+        return settings
+
+    @staticmethod
+    async def replace_rules(
+        db: AsyncSession, *, settings: HostAvailabilitySettings, user_id: int, organization_id: int,
+        rules: list[dict],
+    ) -> list[HostAvailabilityRule]:
+        """Wholesale replace -- the weekly schedule is small and edited as a whole
+        page, not row-by-row, so there's no reason to diff it (same approach as
+        Project's task-status board reset)."""
+        for existing in list(settings.rules):
+            await db.delete(existing)
+        await db.flush()
+
+        created = []
+        for r in rules:
+            rule = HostAvailabilityRule(
+                user_id=user_id,
+                organization_id=organization_id,
+                settings_id=settings.id,
+                weekday=r["weekday"],
+                start_time=r["start_time"],
+                end_time=r["end_time"],
+            )
+            db.add(rule)
+            created.append(rule)
+        await db.flush()
+        return created
+
+    @staticmethod
+    async def list_rules_for_weekday(db: AsyncSession, *, settings_id: int, weekday: int) -> list[HostAvailabilityRule]:
+        result = await db.execute(
+            select(HostAvailabilityRule).where(
+                HostAvailabilityRule.settings_id == settings_id,
+                HostAvailabilityRule.weekday == weekday,
+                HostAvailabilityRule.is_deleted.is_(False),
+            ).order_by(HostAvailabilityRule.start_time.asc())
+        )
+        return list(result.scalars().all())

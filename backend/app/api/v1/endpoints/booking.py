@@ -2,7 +2,7 @@
 with a client; no public discovery page, no availability rules."""
 
 import uuid
-from datetime import datetime, timezone as tz
+from datetime import date, datetime, timezone as tz
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, status
@@ -11,14 +11,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_active_user, require_roles
 from app.core.database import get_db
 from app.middleware.exceptions import NotFoundError
-from app.models.booking import CancelledBy, MeetingStatus
+from app.models.booking import CancelledBy, HostAvailabilitySettings, MeetingStatus
 from app.models.user import User, UserRole
 from app.repositories.booking import ScheduledMeetingRepository
 from app.schemas.booking import (
+    AvailabilityRuleItem,
+    AvailabilityRulesUpdateRequest,
+    AvailableSlotsResponse,
     CancelMeetingRequest,
     CompleteMeetingRequest,
+    HostAvailabilityShareLinkResponse,
+    HostAvailabilitySettingsResponse,
+    HostAvailabilitySettingsUpdate,
     MeetingJoinInfo,
     OrgMemberOption,
+    PublicAvailabilityView,
+    PublicBookingConfirmation,
+    PublicBookingRequest,
     PublicMeetingView,
     RescheduleMeetingRequest,
     ScheduleMeetingRequest,
@@ -201,6 +210,126 @@ async def host_get_meeting_join_link(
     token = create_meeting_join_token(meeting.public_id)
     base_url = settings.FRONTEND_URL or "http://localhost:5173"
     return {"join_url": f"{base_url}/meetings/join?token={token}"}
+
+
+# ── Host availability ("book a slot with me" self-service booking) ───────────────
+
+def _availability_settings_response(settings: HostAvailabilitySettings) -> HostAvailabilitySettingsResponse:
+    return HostAvailabilitySettingsResponse(
+        is_enabled=settings.is_enabled,
+        share_token=settings.share_token,
+        meeting_type_name=settings.meeting_type_name,
+        duration_minutes=settings.duration_minutes,
+        buffer_minutes=settings.buffer_minutes,
+        min_notice_hours=settings.min_notice_hours,
+        booking_window_days=settings.booking_window_days,
+        timezone=settings.timezone,
+        location_type=settings.location_type,
+        location_detail=settings.location_detail,
+        rules=[
+            AvailabilityRuleItem(weekday=r.weekday, start_time=r.start_time, end_time=r.end_time)
+            for r in settings.rules if not r.is_deleted
+        ],
+    )
+
+
+@router.get("/availability", response_model=HostAvailabilitySettingsResponse)
+async def get_my_availability(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> HostAvailabilitySettingsResponse:
+    settings = await booking_service.get_or_create_availability_settings(db, current_user)
+    return _availability_settings_response(settings)
+
+
+@router.patch("/availability", response_model=HostAvailabilitySettingsResponse)
+async def update_my_availability(
+    payload: HostAvailabilitySettingsUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> HostAvailabilitySettingsResponse:
+    settings = await booking_service.update_availability_settings(db, current_user, payload)
+    return _availability_settings_response(settings)
+
+
+@router.put("/availability/rules", response_model=HostAvailabilitySettingsResponse)
+async def replace_my_availability_rules(
+    payload: AvailabilityRulesUpdateRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> HostAvailabilitySettingsResponse:
+    """Wholesale replace of the weekly schedule -- the whole page is edited and
+    saved at once, not row-by-row (mirrors Project's task-status board reset)."""
+    await booking_service.replace_availability_rules(db, current_user, payload.rules)
+    settings = await booking_service.get_or_create_availability_settings(db, current_user)
+    return _availability_settings_response(settings)
+
+
+@router.post("/availability/enable", response_model=HostAvailabilityShareLinkResponse)
+async def enable_my_booking_link(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> HostAvailabilityShareLinkResponse:
+    settings = await booking_service.enable_booking_link(db, current_user)
+    return HostAvailabilityShareLinkResponse(is_enabled=settings.is_enabled, share_token=settings.share_token)
+
+
+@router.post("/availability/regenerate", response_model=HostAvailabilityShareLinkResponse)
+async def regenerate_my_booking_link(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> HostAvailabilityShareLinkResponse:
+    settings = await booking_service.regenerate_booking_link(db, current_user)
+    return HostAvailabilityShareLinkResponse(is_enabled=settings.is_enabled, share_token=settings.share_token)
+
+
+@router.delete("/availability", response_model=HostAvailabilityShareLinkResponse)
+async def disable_my_booking_link(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> HostAvailabilityShareLinkResponse:
+    settings = await booking_service.disable_booking_link(db, current_user)
+    return HostAvailabilityShareLinkResponse(is_enabled=settings.is_enabled, share_token=settings.share_token)
+
+
+# ── Public (no-login) self-service booking — token identifies the host ───────────
+
+@router.get("/public/availability/{token}", response_model=PublicAvailabilityView)
+async def public_get_availability(token: uuid.UUID, db: AsyncSession = Depends(get_db)) -> PublicAvailabilityView:
+    settings, host = await booking_service.get_public_availability_view(db, token)
+    return PublicAvailabilityView(
+        host_name=host.full_name or host.email,
+        meeting_type_name=settings.meeting_type_name,
+        duration_minutes=settings.duration_minutes,
+        location_type=settings.location_type,
+        timezone=settings.timezone,
+        booking_window_days=settings.booking_window_days,
+        min_notice_hours=settings.min_notice_hours,
+    )
+
+
+@router.get("/public/availability/{token}/slots", response_model=AvailableSlotsResponse)
+async def public_get_available_slots(
+    token: uuid.UUID,
+    date_param: date = Query(..., alias="date"),
+    db: AsyncSession = Depends(get_db),
+) -> AvailableSlotsResponse:
+    settings, _host = await booking_service.get_public_availability_view(db, token)
+    slots = await booking_service.get_available_slots(db, settings=settings, target_date=date_param)
+    return AvailableSlotsResponse(date=date_param, slots=slots)
+
+
+@router.post(
+    "/public/availability/{token}/book",
+    response_model=PublicBookingConfirmation,
+    status_code=status.HTTP_201_CREATED,
+)
+async def public_book_availability_slot(
+    token: uuid.UUID, payload: PublicBookingRequest, db: AsyncSession = Depends(get_db),
+) -> PublicBookingConfirmation:
+    meeting, manage_link = await booking_service.public_book_slot(db, token=token, payload=payload)
+    view = await _public_meeting_view(db, meeting)
+    return PublicBookingConfirmation(meeting=view, manage_link=manage_link)
 
 
 # ── Public (no-login) client self-service — token identifies the meeting ─────────

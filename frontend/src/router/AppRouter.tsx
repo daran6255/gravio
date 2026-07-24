@@ -18,6 +18,7 @@ import TimesheetPage from '../pages/timesheets/TimesheetPage';
 import { MyMeetingsPage, TeamMeetingsPage } from '../pages/booking';
 import ManageMeetingPage from '../pages/booking/public/ManageMeetingPage';
 import JoinMeetingPage from '../pages/booking/public/JoinMeetingPage';
+import BookingPage from '../pages/booking/public/BookingPage';
 import ProjectStatusPage from '../pages/projects/public/ProjectStatusPage';
 // HR Admin Pages
 import EmployeesPage from '../pages/hr/admin/EmployeesPage';
@@ -71,6 +72,9 @@ const AppRouter: React.FC = () => {
 
 			{/* Public — a client views a read-only project status page via a share link, no login */}
 			<Route path="/projects/status" element={<ProjectStatusPage />} />
+
+			{/* Public — anyone books an open slot on a host's published availability, no login */}
+			<Route path="/book" element={<BookingPage />} />
 
 			<Route element={<ProtectedRoute />}>
 				{/* Protected Routes */}

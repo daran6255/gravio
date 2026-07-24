@@ -1,7 +1,7 @@
 """Pydantic validation schemas for Meetings."""
 
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
@@ -193,3 +193,123 @@ class OrgMemberOption(BaseModel):
     id: int
     full_name: Optional[str] = None
     email: str
+
+
+# --- Public self-service booking ("book a slot with me") ---
+# A host publishes a weekly availability schedule behind a revocable share link;
+# a client picks an open slot themselves instead of the host creating every
+# meeting by hand. See app/services/booking.py's compute_available_slots /
+# public_book_slot -- the latter reuses create_meeting, so a self-booked meeting
+# is an ordinary ScheduledMeeting afterward, no separate code path.
+
+class AvailabilityRuleItem(BaseModel):
+    """One weekly recurring window -- 0=Monday .. 6=Sunday, matching Python's
+    date.weekday() (same convention as is_weekly_off in services/timesheet.py)."""
+    model_config = ConfigDict(from_attributes=True)
+    weekday: int = Field(..., ge=0, le=6)
+    start_time: time
+    end_time: time
+
+    @model_validator(mode="after")
+    def _validate_range(self) -> "AvailabilityRuleItem":
+        if self.end_time <= self.start_time:
+            raise ValueError("end_time must be after start_time")
+        return self
+
+
+def _validate_iana_timezone(v: Optional[str]) -> Optional[str]:
+    if v is None:
+        return v
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+    try:
+        ZoneInfo(v)
+    except ZoneInfoNotFoundError:
+        raise ValueError(f"Unknown IANA timezone: '{v}'")
+    return v
+
+
+class HostAvailabilitySettingsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    is_enabled: bool
+    share_token: Optional[uuid.UUID] = None
+    meeting_type_name: str
+    duration_minutes: int
+    buffer_minutes: int
+    min_notice_hours: int
+    booking_window_days: int
+    timezone: str
+    location_type: MeetingLocationType
+    location_detail: Optional[str] = None
+    rules: list[AvailabilityRuleItem] = Field(default_factory=list)
+
+
+class HostAvailabilitySettingsUpdate(BaseModel):
+    meeting_type_name: Optional[str] = Field(None, min_length=1, max_length=150)
+    duration_minutes: Optional[int] = Field(None, ge=5, le=480)
+    buffer_minutes: Optional[int] = Field(None, ge=0, le=120)
+    min_notice_hours: Optional[int] = Field(None, ge=0, le=336)
+    booking_window_days: Optional[int] = Field(None, ge=1, le=180)
+    timezone: Optional[str] = None
+    location_type: Optional[MeetingLocationType] = None
+    location_detail: Optional[str] = Field(None, max_length=500)
+
+    @field_validator("timezone")
+    @classmethod
+    def _tz(cls, v: Optional[str]) -> Optional[str]:
+        return _validate_iana_timezone(v)
+
+
+class AvailabilityRulesUpdateRequest(BaseModel):
+    rules: list[AvailabilityRuleItem] = Field(default_factory=list)
+
+
+class HostAvailabilityShareLinkResponse(BaseModel):
+    is_enabled: bool
+    share_token: Optional[uuid.UUID] = None
+
+
+class PublicAvailabilityView(BaseModel):
+    """What an unauthenticated visitor sees before picking a slot -- deliberately
+    thin, no internal ids."""
+    host_name: str
+    meeting_type_name: str
+    duration_minutes: int
+    location_type: MeetingLocationType
+    timezone: str
+    booking_window_days: int
+    min_notice_hours: int
+
+
+class AvailableSlotsResponse(BaseModel):
+    date: date
+    # UTC start times -- the frontend renders each in the visitor's own timezone.
+    slots: list[datetime] = Field(default_factory=list)
+
+
+class PublicBookingRequest(BaseModel):
+    start_time: datetime = Field(..., description="The exact slot start, timezone-aware")
+    client_name: str = Field(..., min_length=1, max_length=150)
+    client_email: EmailStr
+    attendee_timezone: str
+    notes: Optional[str] = Field(None, max_length=2000)
+    idempotency_key: str = Field(..., min_length=8, max_length=100)
+
+    @field_validator("start_time")
+    @classmethod
+    def _require_timezone_aware(cls, v: datetime) -> datetime:
+        if v.tzinfo is None:
+            raise ValueError("must be timezone-aware")
+        return v
+
+    @field_validator("attendee_timezone")
+    @classmethod
+    def _tz(cls, v: str) -> str:
+        return _validate_iana_timezone(v)
+
+
+class PublicBookingConfirmation(BaseModel):
+    """Returned immediately on a successful booking -- the client also gets a full
+    confirmation email (.ics + this same manage link), but the on-screen
+    confirmation doesn't depend on that email actually arriving."""
+    meeting: PublicMeetingView
+    manage_link: str

@@ -67,6 +67,86 @@ export interface OrgMemberOption {
 	email: string;
 }
 
+// ---------------------------------------------------------------------------
+// Public self-service booking ("book a slot with me")
+// ---------------------------------------------------------------------------
+
+/** One weekly recurring availability window. weekday: 0=Monday .. 6=Sunday
+ * (matches Python's date.weekday(), same convention used by the backend). */
+export interface AvailabilityRule {
+	weekday: number;
+	/** "HH:MM" (24h), e.g. "09:00" */
+	start_time: string;
+	end_time: string;
+}
+
+/** Matches backend's HostAvailabilitySettingsResponse (GET /bookings/availability). */
+export interface HostAvailabilitySettings {
+	is_enabled: boolean;
+	share_token?: string;
+	meeting_type_name: string;
+	duration_minutes: number;
+	buffer_minutes: number;
+	min_notice_hours: number;
+	booking_window_days: number;
+	timezone: string;
+	location_type: MeetingLocationType;
+	location_detail?: string;
+	rules: AvailabilityRule[];
+}
+
+/** Matches backend's HostAvailabilitySettingsUpdate. */
+export interface HostAvailabilitySettingsUpdate {
+	meeting_type_name?: string;
+	duration_minutes?: number;
+	buffer_minutes?: number;
+	min_notice_hours?: number;
+	booking_window_days?: number;
+	timezone?: string;
+	location_type?: MeetingLocationType;
+	location_detail?: string;
+}
+
+/** Matches backend's HostAvailabilityShareLinkResponse. */
+export interface HostAvailabilityShareLink {
+	is_enabled: boolean;
+	share_token?: string;
+}
+
+/** Matches backend's PublicAvailabilityView — what an unauthenticated visitor sees
+ * before picking a slot. */
+export interface PublicAvailabilityView {
+	host_name: string;
+	meeting_type_name: string;
+	duration_minutes: number;
+	location_type: MeetingLocationType;
+	timezone: string;
+	booking_window_days: number;
+	min_notice_hours: number;
+}
+
+/** Matches backend's AvailableSlotsResponse — slots are UTC ISO start times. */
+export interface AvailableSlotsResponse {
+	date: string;
+	slots: string[];
+}
+
+/** Matches backend's PublicBookingRequest. */
+export interface PublicBookingRequest {
+	start_time: string;
+	client_name: string;
+	client_email: string;
+	attendee_timezone: string;
+	notes?: string;
+	idempotency_key: string;
+}
+
+/** Matches backend's PublicBookingConfirmation. */
+export interface PublicBookingConfirmation {
+	meeting: PublicMeetingView;
+	manage_link: string;
+}
+
 /** Matches backend's ScheduleMeetingRequest — a host scheduling a meeting directly
  * with a client, at an exact start/end time and a location they type in themselves. */
 export interface ScheduleMeetingRequest {
