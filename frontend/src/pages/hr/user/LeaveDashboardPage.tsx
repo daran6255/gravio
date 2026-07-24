@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Box, Container, Grid, Skeleton, Stack, Tab, Tabs, alpha, useTheme, Alert } from '@mui/material';
+import { useSearchParams, Link as RouterLink } from 'react-router-dom';
+import { Box, Container, Grid, Skeleton, Stack, Tab, Tabs, alpha, useTheme, Alert, Link } from '@mui/material';
 import {
 	HelpOutline as HelpIcon,
 	EventAvailableOutlined as MyLeavesIcon,
@@ -109,18 +109,6 @@ const LeaveDashboardPage: React.FC = () => {
 		return user?.role === 'admin' || user?.role === 'manager' || user?.role === 'leadership' || user?.role === 'hr_manager';
 	}, [user?.role]);
 
-	// Calendar (and, for individual/solo accounts, My Leaves) are available to
-	// everyone -- Team Approvals only appears once there's a team to approve for.
-	const tabLabels = useMemo(() => {
-		const labels = ['My Leaves', 'Calendar'];
-		if (isManagerOrAdmin) labels.push('Team Approvals');
-		return labels;
-	}, [isManagerOrAdmin]);
-
-	useEffect(() => {
-		if (activeTab >= tabLabels.length) setActiveTab(0);
-	}, [tabLabels, activeTab]);
-
 	const myDirectReports = useMemo(() => {
 		if (!user) return [];
 		return users
@@ -133,6 +121,24 @@ const LeaveDashboardPage: React.FC = () => {
 				avatar: null
 			}));
 	}, [users, user]);
+
+	// A solo/individual account is technically "admin" but has nobody to approve
+	// for -- users only gets populated (via fetchTeamUsers below) when isManagerOrAdmin,
+	// so users.length === 1 there means "just me". Anyone with actual direct reports
+	// always gets the tab regardless.
+	const hasTeamToApprove = isManagerOrAdmin && (myDirectReports.length > 0 || users.length > 1);
+
+	// Calendar (and, for individual/solo accounts, My Leaves) are available to
+	// everyone -- Team Approvals only appears once there's a team to approve for.
+	const tabLabels = useMemo(() => {
+		const labels = ['My Leaves', 'Calendar'];
+		if (hasTeamToApprove) labels.push('Team Approvals');
+		return labels;
+	}, [hasTeamToApprove]);
+
+	useEffect(() => {
+		if (activeTab >= tabLabels.length) setActiveTab(0);
+	}, [tabLabels, activeTab]);
 
 	const fetchData = () => {
 		dispatch(fetchLeaveTypes(undefined));
@@ -207,7 +213,7 @@ const LeaveDashboardPage: React.FC = () => {
 					>
 						<Tab label="My Leaves" icon={<MyLeavesIcon fontSize="small" />} iconPosition="start" disableRipple />
 						<Tab label="Calendar" icon={<CalendarTabIcon fontSize="small" />} iconPosition="start" disableRipple />
-						{isManagerOrAdmin && (
+						{hasTeamToApprove && (
 							<Tab label="Team Approvals" icon={<TeamApprovalsIcon fontSize="small" />} iconPosition="start" disableRipple />
 						)}
 					</Tabs>
@@ -229,8 +235,8 @@ const LeaveDashboardPage: React.FC = () => {
 						</Grid>
 					) : tabLabels[activeTab] === 'Calendar' ? (
 						<LeaveCalendarView
-							requests={isManagerOrAdmin ? teamLeaveRequests : requests}
-							scope={isManagerOrAdmin ? 'team' : 'mine'}
+							requests={hasTeamToApprove ? teamLeaveRequests : requests}
+							scope={hasTeamToApprove ? 'team' : 'mine'}
 						/>
 					) : (
 						<Stack spacing={3.5}>
@@ -245,7 +251,17 @@ const LeaveDashboardPage: React.FC = () => {
 										bgcolor: alpha(theme.palette.warning.main, 0.02)
 									}}
 								>
-									No leave entitlements have been configured for you for the current year ({new Date().getFullYear()}). Please contact your HR administrator to set up your annual leave allocations.
+									{user?.role === 'admin' || user?.role === 'hr_admin' ? (
+										<>
+											No leave entitlements have been configured for the current year ({new Date().getFullYear()}) yet.{' '}
+											<Link component={RouterLink} to="/hr/admin/leave-types" sx={{ fontWeight: 700 }}>
+												Set up leave types
+											</Link>
+											{' '}to start requesting leave.
+										</>
+									) : (
+										<>No leave entitlements have been configured for you for the current year ({new Date().getFullYear()}). Please contact your HR administrator to set up your annual leave allocations.</>
+									)}
 								</Alert>
 							)}
 							<LeaveSnapshotBar balances={balances} requests={requests} />
