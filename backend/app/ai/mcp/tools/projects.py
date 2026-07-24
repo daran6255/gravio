@@ -230,9 +230,10 @@ class UpdateProjectTaskTool(BaseTool):
         description=(
             "Updates fields on an existing project task or subtask: title, description, status, "
             "priority, estimated_hours, actual_hours, assignee, due_date, start_date, billing_type, "
-            "tags, task_type, or milestone. Only the fields provided are changed -- omit anything "
-            "that shouldn't move. Use search_project_tasks first if you don't already have the "
-            "task's exact title or public ID."
+            "tags, task_type, milestone, participants, parent_task, or arbitrary custom fields. "
+            "Only the fields provided are changed -- omit anything that shouldn't move. Use "
+            "search_project_tasks first if you don't already have the task's exact title or "
+            "public ID."
         ),
         category="productivity",
         is_read_only=False,
@@ -255,6 +256,22 @@ class UpdateProjectTaskTool(BaseTool):
             ),
             "task_type": ToolParameterSchema(type="string", description="New task type, e.g. 'Bug', 'Feature', 'Story', or a custom type name."),
             "milestone": ToolParameterSchema(type="string", description="Name of the milestone to attach this task to."),
+            "participants": ToolParameterSchema(
+                type="array",
+                description="Full replacement list of extra participants on this task, by email or full name. Replaces the manually-added set -- doesn't affect the assignee or subtask owners, who're always included automatically.",
+            ),
+            "parent_task": ToolParameterSchema(
+                type="string",
+                description="Title or public ID of another task in the same project to move this task under, making it a subtask. Pass an empty string to make it a top-level task instead.",
+            ),
+            "custom_fields_set": ToolParameterSchema(
+                type="object",
+                description="Arbitrary custom field name/value pairs to add or update, e.g. {\"Client Ref\": \"ABC-123\"}.",
+            ),
+            "custom_fields_remove": ToolParameterSchema(
+                type="array",
+                description="Names of arbitrary custom fields to delete from the task.",
+            ),
         },
         required_parameters=["task"],
     )
@@ -336,15 +353,66 @@ class UpdateProjectTaskTool(BaseTool):
             ]
             changed_labels.append(f"tags to [{', '.join(names)}]" if names else "tags cleared")
 
-        if params.get("task_type") or params.get("milestone"):
-            custom_fields = dict(task.custom_fields or {})
-            if params.get("task_type"):
-                custom_fields["task_type"] = str(params["task_type"]).strip()
-                changed_labels.append(f"task type to '{custom_fields['task_type']}'")
-            if params.get("milestone"):
-                custom_fields["milestone"] = str(params["milestone"]).strip()
-                changed_labels.append(f"milestone to '{custom_fields['milestone']}'")
+        custom_fields_touched = False
+        custom_fields = dict(task.custom_fields or {})
+
+        if params.get("task_type"):
+            custom_fields["task_type"] = str(params["task_type"]).strip()
+            changed_labels.append(f"task type to '{custom_fields['task_type']}'")
+            custom_fields_touched = True
+
+        if params.get("milestone"):
+            custom_fields["milestone"] = str(params["milestone"]).strip()
+            changed_labels.append(f"milestone to '{custom_fields['milestone']}'")
+            custom_fields_touched = True
+
+        if params.get("participants") is not None:
+            participant_ids: list[int] = []
+            participant_names: list[str] = []
+            for identifier in (params.get("participants") or []):
+                person = await _resolve_assignee(db, user.organization_id, str(identifier))
+                if person is None:
+                    return ToolResult(success=False, message=f"No user matching '{identifier}' was found.", error="not_found")
+                participant_ids.append(person.id)
+                participant_names.append(person.full_name)
+            custom_fields["participants"] = participant_ids
+            changed_labels.append(f"participants to [{', '.join(participant_names)}]" if participant_names else "participants cleared")
+            custom_fields_touched = True
+
+        if params.get("custom_fields_set"):
+            for key, value in dict(params["custom_fields_set"]).items():
+                custom_fields[str(key)] = value
+            changed_labels.append(f"custom fields set: {', '.join(dict(params['custom_fields_set']).keys())}")
+            custom_fields_touched = True
+
+        if params.get("custom_fields_remove"):
+            removed = []
+            for key in (params.get("custom_fields_remove") or []):
+                if str(key) in custom_fields:
+                    del custom_fields[str(key)]
+                    removed.append(str(key))
+            if removed:
+                changed_labels.append(f"custom fields removed: {', '.join(removed)}")
+                custom_fields_touched = True
+
+        if custom_fields_touched:
             update_fields["custom_fields"] = custom_fields
+
+        if "parent_task" in params:
+            new_parent_raw = str(params["parent_task"] or "").strip()
+            if not new_parent_raw:
+                update_fields["parent_task_id"] = None
+                changed_labels.append("moved to top-level (no parent)")
+            else:
+                new_parent = await _resolve_task(db, user.organization_id, new_parent_raw)
+                if new_parent is None:
+                    return ToolResult(success=False, message=f"No task matching '{new_parent_raw}' was found.", error="not_found")
+                if new_parent.public_id == task.public_id:
+                    return ToolResult(success=False, message="A task can't be its own parent.", error="invalid_params")
+                if new_parent.project_id != task.project_id:
+                    return ToolResult(success=False, message=f"'{new_parent.title}' is in a different project -- tasks can only be reparented within the same project.", error="invalid_params")
+                update_fields["parent_task_id"] = new_parent.id
+                changed_labels.append(f"parent task to '{new_parent.title}'")
 
         if not update_fields:
             return ToolResult(success=False, message="No recognized fields were provided to update.", error="invalid_params")
