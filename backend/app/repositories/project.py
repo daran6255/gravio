@@ -269,7 +269,11 @@ class ProjectRepository:
     @staticmethod
     async def get_budget_actuals(db: AsyncSession, *, project_id: int) -> dict:
         """Estimated effort (from tasks) vs hours actually logged against this project
-        (from timesheets, by billing type). Rejected time entries don't count as real work."""
+        (from timesheets, by billing type and approval status). Rejected time entries
+        don't count as real work. APPROVED and not-yet-approved (draft/submitted) hours
+        are kept separate -- only manager-approved hours are real "actuals"; the rest is
+        surfaced as "pending" so a spend estimate never counts hours before they're
+        actually signed off."""
         from app.models.timesheet import ProjectTimeLog, TimesheetBillingType, TimesheetStatus
 
         estimated_result = await db.execute(
@@ -280,20 +284,26 @@ class ProjectRepository:
         estimated_hours_total = float(estimated_result.scalar_one() or 0)
 
         logged_result = await db.execute(
-            select(ProjectTimeLog.billing_type, func.sum(ProjectTimeLog.hours))
+            select(ProjectTimeLog.billing_type, ProjectTimeLog.status, func.sum(ProjectTimeLog.hours))
             .where(
                 ProjectTimeLog.project_id == project_id,
                 ProjectTimeLog.is_deleted.is_(False),
                 ProjectTimeLog.status != TimesheetStatus.REJECTED,
             )
-            .group_by(ProjectTimeLog.billing_type)
+            .group_by(ProjectTimeLog.billing_type, ProjectTimeLog.status)
         )
-        hours_by_billing_type = {row[0]: float(row[1]) for row in logged_result.all()}
+        hours_by_key: dict[tuple, float] = {(row[0], row[1]): float(row[2]) for row in logged_result.all()}
+
+        def _sum(billing_type: TimesheetBillingType, *, approved_only: bool) -> float:
+            statuses = [TimesheetStatus.APPROVED] if approved_only else [TimesheetStatus.DRAFT, TimesheetStatus.SUBMITTED]
+            return sum(hours_by_key.get((billing_type, s), 0.0) for s in statuses)
 
         return {
             "estimated_hours_total": estimated_hours_total,
-            "billable_hours_logged": hours_by_billing_type.get(TimesheetBillingType.BILLABLE, 0.0),
-            "non_billable_hours_logged": hours_by_billing_type.get(TimesheetBillingType.NON_BILLABLE, 0.0),
+            "billable_hours_logged": _sum(TimesheetBillingType.BILLABLE, approved_only=True),
+            "non_billable_hours_logged": _sum(TimesheetBillingType.NON_BILLABLE, approved_only=True),
+            "billable_hours_pending": _sum(TimesheetBillingType.BILLABLE, approved_only=False),
+            "non_billable_hours_pending": _sum(TimesheetBillingType.NON_BILLABLE, approved_only=False),
         }
 
 

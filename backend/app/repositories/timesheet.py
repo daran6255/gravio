@@ -193,6 +193,21 @@ class TimesheetUserSettingsRepository:
         await db.flush()
         return settings
 
+    @staticmethod
+    async def list_for_users(db: AsyncSession, organization_id: int, user_ids: Sequence[int]) -> Sequence[TimesheetUserSettings]:
+        """Existing settings rows only (no auto-create) -- a user with no row yet
+        simply has no override, and callers should treat that as every field's
+        default (e.g. weekly_hours_target unset = the 40h fallback)."""
+        if not user_ids:
+            return []
+        result = await db.execute(
+            select(TimesheetUserSettings).where(
+                TimesheetUserSettings.organization_id == organization_id,
+                TimesheetUserSettings.user_id.in_(user_ids),
+            )
+        )
+        return result.scalars().all()
+
 
 class ProjectTimeLogRepository:
     @staticmethod
@@ -236,6 +251,20 @@ class ProjectTimeLogRepository:
             ).limit(1)
         )
         return result.scalars().first() is not None
+
+    @staticmethod
+    async def list_users_with_pending_approvals(db: AsyncSession, organization_id: int) -> Sequence[int]:
+        """Distinct user_ids (across the whole org) with at least one SUBMITTED
+        (non-deleted) entry -- used by the reminder scheduler to nudge whoever
+        approves each of them (their reporting manager, or any admin)."""
+        result = await db.execute(
+            select(ProjectTimeLog.user_id).where(
+                ProjectTimeLog.organization_id == organization_id,
+                ProjectTimeLog.status == TimesheetStatus.SUBMITTED,
+                ProjectTimeLog.is_deleted.is_(False),
+            ).distinct()
+        )
+        return [row[0] for row in result.all()]
 
     @staticmethod
     async def list_for_user(db: AsyncSession, organization_id: int, user_id: int, start_date: date, end_date: date) -> Sequence[ProjectTimeLog]:
@@ -460,16 +489,17 @@ class TimesheetWeekUnlockRequestRepository:
 
     @staticmethod
     async def list_for_manager(
-        db: AsyncSession, organization_id: int, manager_id: int
+        db: AsyncSession, organization_id: int, manager_id: int, *, org_wide: bool = False,
     ) -> Sequence[TimesheetWeekUnlockRequest]:
-        """Only requests from this manager's own direct reports -- admin does not grant
-        a blanket bypass here, matching the reporting_manager_id rule enforced everywhere
-        else (approve/reject/revoke)."""
+        """Requests from this manager's own direct reports -- or, when `org_wide` is
+        set (an org ADMIN acting as the escalation tier, see can_manage_timesheet_for),
+        every request in the org regardless of who the requester's manager is."""
         conditions = [
             TimesheetWeekUnlockRequest.organization_id == organization_id,
             TimesheetWeekUnlockRequest.is_deleted.is_(False),
-            User.reporting_manager_id == manager_id,
         ]
+        if not org_wide:
+            conditions.append(User.reporting_manager_id == manager_id)
         stmt = (
             select(TimesheetWeekUnlockRequest)
             .options(selectinload(TimesheetWeekUnlockRequest.user))

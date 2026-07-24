@@ -22,8 +22,10 @@ import {
 	BeachAccess as HolidayIcon,
 	Error as RejectedIcon,
 	LockOutlined as LockIcon,
+	WarningAmberOutlined as OvertimeIcon,
 } from '@mui/icons-material';
 import type { ProjectTimeLog, OrgHoliday, TimesheetWeekUnlockRequest } from '../../../models/timesheet';
+import { DEFAULT_WEEKLY_HOURS_TARGET } from '../../../models/timesheet';
 import TimesheetStatusBadge from '../shared/TimesheetStatusBadge';
 import { BaseDialog } from '../../common/dialogbox';
 import { DataTableEmpty } from '../../common/table';
@@ -48,6 +50,8 @@ interface WeeklyTimesheetGridProps {
 	unlockRequestLoading: boolean;
 	/** Manager-granted exception to log time on holidays/Sundays -- without it, holiday cells are read-only. */
 	canLogOnHolidays: boolean;
+	/** From the user's own TimesheetUserSettings; falls back to DEFAULT_WEEKLY_HOURS_TARGET when unset. */
+	weeklyHoursTarget?: number;
 }
 
 const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
@@ -63,9 +67,11 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 	myUnlockRequests,
 	onRequestUnlock,
 	unlockRequestLoading,
-	canLogOnHolidays
+	canLogOnHolidays,
+	weeklyHoursTarget
 }) => {
 	const theme = useTheme();
+	const target = weeklyHoursTarget ?? DEFAULT_WEEKLY_HOURS_TARGET;
 	const isDark = theme.palette.mode === 'dark';
 	const todayStr = React.useMemo(() => {
 		const d = new Date();
@@ -115,7 +121,7 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 					p: 2
 				}}
 			>
-				<Stack direction="row" alignItems="center" spacing={2}>
+				<Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap" rowGap={1}>
 					<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
 						Week Status:
 					</Typography>
@@ -125,6 +131,18 @@ const WeeklyTimesheetGrid: React.FC<WeeklyTimesheetGridProps> = ({
 							<Box sx={{ display: 'flex', alignItems: 'center', color: 'error.main', cursor: 'help' }}>
 								<RejectedIcon fontSize="small" sx={{ mr: 0.5 }} />
 								<Typography variant="caption" sx={{ fontWeight: 600 }}>Rejection Reason</Typography>
+							</Box>
+						</Tooltip>
+					)}
+					<Box sx={{ width: '1px', height: 20, bgcolor: 'divider' }} />
+					<Typography variant="body2" sx={{ fontWeight: 700, color: grandTotal > target ? 'warning.main' : 'text.secondary' }}>
+						{formatHoursDisplay(grandTotal)} / {formatHoursDisplay(target)}h target
+					</Typography>
+					{grandTotal > target && (
+						<Tooltip title={`${formatHoursDisplay(grandTotal - target)}h over your ${formatHoursDisplay(target)}h weekly target`}>
+							<Box sx={{ display: 'flex', alignItems: 'center', color: 'warning.main', cursor: 'help' }}>
+								<OvertimeIcon fontSize="small" sx={{ mr: 0.5 }} />
+								<Typography variant="caption" sx={{ fontWeight: 700 }}>Overtime</Typography>
 							</Box>
 						</Tooltip>
 					)}

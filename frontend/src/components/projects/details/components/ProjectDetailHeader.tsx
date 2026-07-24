@@ -378,6 +378,7 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 						budgetActuals.budget != null
 						|| budgetActuals.estimated_hours_total > 0
 						|| budgetActuals.actual_hours_logged_total > 0
+						|| budgetActuals.pending_hours_total > 0
 					) && (
 						<Box sx={{ mt: 2 }}>
 							<Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 0.75 }} flexWrap="wrap" rowGap={0.5}>
@@ -388,7 +389,7 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 									</Typography>
 									{budgetActuals.estimated_spend != null && (
 										<Tooltip
-											title={`Estimated spend = (budget ÷ ${budgetActuals.estimated_hours_total}h estimated) × ${budgetActuals.billable_hours_logged}h billable logged. Modeled from existing estimates and timesheets -- not an invoiced amount.`}
+											title={`Estimated spend = (budget ÷ ${budgetActuals.estimated_hours_total}h estimated) × ${budgetActuals.billable_hours_logged}h approved billable hours. Modeled from existing estimates and timesheets -- not an invoiced amount. Submitted-but-not-yet-approved hours are shown separately as "pending" and aren't counted here.`}
 											arrow
 										>
 											<InfoOutlined sx={{ fontSize: '0.85rem', color: 'text.disabled', cursor: 'help' }} />
@@ -399,7 +400,7 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 									{budgetActuals.estimated_spend != null && budgetActuals.budget != null ? (
 										`${formatMoney(budgetActuals.estimated_spend, budgetActuals.currency)} of ${formatMoney(budgetActuals.budget, budgetActuals.currency)} · ${budgetActuals.budget_utilization_pct}%`
 									) : (
-										`${budgetActuals.actual_hours_logged_total}h logged of ${budgetActuals.estimated_hours_total}h estimated${budgetActuals.hours_utilization_pct != null ? ` · ${budgetActuals.hours_utilization_pct}%` : ''}`
+										`${budgetActuals.actual_hours_logged_total}h approved of ${budgetActuals.estimated_hours_total}h estimated${budgetActuals.hours_utilization_pct != null ? ` · ${budgetActuals.hours_utilization_pct}%` : ''}`
 									)}
 								</Typography>
 							</Stack>
@@ -417,8 +418,16 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({ projec
 								}}
 							/>
 							<Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>
-								{budgetActuals.estimated_hours_total}h estimated &middot; {budgetActuals.billable_hours_logged}h billable logged &middot; {budgetActuals.non_billable_hours_logged}h non-billable logged
+								{budgetActuals.estimated_hours_total}h estimated &middot; {budgetActuals.billable_hours_logged}h billable approved &middot; {budgetActuals.non_billable_hours_logged}h non-billable approved
 							</Typography>
+							{budgetActuals.pending_hours_total > 0 && (
+								<Tooltip title="Submitted but not yet approved by a manager -- not counted in the spend estimate above until it's signed off.">
+									<Typography variant="caption" sx={{ display: 'block', mt: 0.25, color: 'warning.main', cursor: 'help' }}>
+										+ {budgetActuals.pending_hours_total}h pending approval
+										{budgetActuals.estimated_pending_spend != null && ` (~${formatMoney(budgetActuals.estimated_pending_spend, budgetActuals.currency)} if approved)`}
+									</Typography>
+								</Tooltip>
+							)}
 						</Box>
 					)}
 

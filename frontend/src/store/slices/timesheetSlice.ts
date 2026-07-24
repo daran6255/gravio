@@ -4,9 +4,11 @@ import type {
 	TimesheetCategory,
 	OrgHoliday,
 	TimesheetUserSettings,
+	TimesheetTeamSettingsRow,
 	ProjectTimeLog,
 	TimesheetReportRow,
-	TimesheetWeekUnlockRequest
+	TimesheetWeekUnlockRequest,
+	TimesheetBulkApproveResult
 } from '../../models/timesheet';
 
 function extractErrorMessage(error: any, fallback: string): string {
@@ -82,6 +84,9 @@ interface TimesheetState {
 	unlockRequestMutating: boolean;
 	unlockRequestError: string | null;
 
+	teamSettings: TimesheetTeamSettingsRow[];
+	teamSettingsLoading: boolean;
+
 	actionLoading: boolean;
 	actionError: string | null;
 }
@@ -121,6 +126,9 @@ const initialState: TimesheetState = {
 
 	unlockRequestMutating: false,
 	unlockRequestError: null,
+
+	teamSettings: [],
+	teamSettingsLoading: false,
 
 	actionLoading: false,
 	actionError: null
@@ -359,6 +367,28 @@ export const unapproveWeek = createAsyncThunk(
 	}
 );
 
+export const bulkApproveWeek = createAsyncThunk(
+	'timesheets/bulkApproveWeek',
+	async (arg: { userIds: number[]; startDate: string; endDate: string }, { rejectWithValue }) => {
+		try {
+			return await timesheetService.bulkApproveWeek(arg.userIds, arg.startDate, arg.endDate);
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to bulk-approve timesheets'));
+		}
+	}
+);
+
+export const fetchTeamSettings = createAsyncThunk(
+	'timesheets/fetchTeamSettings',
+	async (_: void | undefined, { rejectWithValue }) => {
+		try {
+			return await timesheetService.getTeamSettings();
+		} catch (error: any) {
+			return rejectWithValue(extractErrorMessage(error, 'Failed to fetch team timesheet settings'));
+		}
+	}
+);
+
 // --- Week Unlock Requests ---
 export const requestWeekUnlock = createAsyncThunk(
 	'timesheets/requestWeekUnlock',
@@ -545,7 +575,13 @@ const timesheetSlice = createSlice({
 				state.userSettingsError = action.payload as string;
 			})
 			.addCase(updateUserSettings.fulfilled, (state, action: PayloadAction<TimesheetUserSettings>) => {
-				state.userSettings = action.payload;
+				if (state.userSettings?.user_id === action.payload.user_id) {
+					state.userSettings = action.payload;
+				}
+				const idx = state.teamSettings.findIndex((s) => s.user_id === action.payload.user_id);
+				if (idx !== -1) {
+					state.teamSettings[idx] = { ...state.teamSettings[idx], ...action.payload };
+				}
 			})
 
 			// Team Logs
@@ -604,6 +640,31 @@ const timesheetSlice = createSlice({
 				state.teamUnlockRequests = state.teamUnlockRequests.map((r) =>
 					r.id === action.payload.id ? action.payload : r
 				);
+			})
+
+			// Bulk Approve
+			.addCase(bulkApproveWeek.pending, (state) => {
+				state.actionLoading = true;
+				state.actionError = null;
+			})
+			.addCase(bulkApproveWeek.fulfilled, (state, _action: PayloadAction<TimesheetBulkApproveResult>) => {
+				state.actionLoading = false;
+			})
+			.addCase(bulkApproveWeek.rejected, (state, action) => {
+				state.actionLoading = false;
+				state.actionError = action.payload as string;
+			})
+
+			// Team Settings (weekly hour targets, holiday-logging overrides)
+			.addCase(fetchTeamSettings.pending, (state) => {
+				state.teamSettingsLoading = true;
+			})
+			.addCase(fetchTeamSettings.fulfilled, (state, action: PayloadAction<TimesheetTeamSettingsRow[]>) => {
+				state.teamSettingsLoading = false;
+				state.teamSettings = action.payload;
+			})
+			.addCase(fetchTeamSettings.rejected, (state) => {
+				state.teamSettingsLoading = false;
 			})
 
 			// Report Rows

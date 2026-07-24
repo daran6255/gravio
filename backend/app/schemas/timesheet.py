@@ -54,10 +54,13 @@ class OrgHolidayResponse(OrgHolidayBase):
 class TimesheetUserSettingsBase(BaseModel):
     can_log_on_holidays: bool = False
     max_retroactive_days: Optional[int] = None
+    # Null means "use the org-wide 40h default" -- see TimesheetService.DEFAULT_WEEKLY_HOURS_TARGET.
+    weekly_hours_target: Optional[float] = None
 
 class TimesheetUserSettingsUpdate(BaseModel):
     can_log_on_holidays: Optional[bool] = None
     max_retroactive_days: Optional[int] = None
+    weekly_hours_target: Optional[float] = Field(None, gt=0, le=168)
 
 class TimesheetUserSettingsResponse(TimesheetUserSettingsBase):
     model_config = ConfigDict(from_attributes=True)
@@ -161,6 +164,22 @@ class TimesheetSubmitWeekRequest(BaseModel):
 
 class TimesheetApproveRejectRequest(BaseModel):
     rejection_note: Optional[str] = None
+
+class TimesheetBulkApproveRequest(BaseModel):
+    user_ids: list[int] = Field(..., min_length=1)
+    start_date: date  # Monday of the week
+    end_date: date    # Sunday of the week
+
+class TimesheetBulkApproveResult(BaseModel):
+    approved_user_ids: list[int]
+    skipped_user_ids: list[int]  # not this approver's report (and not admin), or nothing to approve
+    total_approved_count: int
+
+class TimesheetTeamSettingsRow(TimesheetUserSettingsResponse):
+    """A direct report's (or, for an admin, any org member's) own settings row,
+    listed alongside their name so the team-approvals UI can show per-person
+    weekly targets without an N+1 fetch per row."""
+    user_name: str
 
 class TimesheetReportFilter(BaseModel):
     start_date: date

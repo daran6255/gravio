@@ -137,6 +137,29 @@ class UserRepository:
         return user
 
     @staticmethod
+    async def list_active_organization_ids(db: AsyncSession) -> list[int]:
+        """Distinct organization_ids with at least one active, non-deleted user --
+        used by background scans (e.g. the timesheet reminder task) that need to
+        process every org in turn under its own tenant_context."""
+        from sqlalchemy import distinct
+
+        result = await db.execute(
+            select(distinct(User.organization_id)).where(
+                User.organization_id.is_not(None), User.is_active.is_(True), User.is_deleted.is_(False),
+            )
+        )
+        return [row[0] for row in result.all()]
+
+    @staticmethod
+    async def list_active_for_org(db: AsyncSession, organization_id: int) -> list[User]:
+        result = await db.execute(
+            select(User).where(
+                User.organization_id == organization_id, User.is_active.is_(True), User.is_deleted.is_(False),
+            )
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
     async def list_by_organization(
         db: AsyncSession,
         organization_id: int,

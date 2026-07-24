@@ -3,9 +3,11 @@ import type {
 	TimesheetCategory,
 	OrgHoliday,
 	TimesheetUserSettings,
+	TimesheetTeamSettingsRow,
 	ProjectTimeLog,
 	TimesheetReportRow,
-	TimesheetWeekUnlockRequest
+	TimesheetWeekUnlockRequest,
+	TimesheetBulkApproveResult
 } from '../models/timesheet';
 
 const timesheetService = {
@@ -157,6 +159,20 @@ const timesheetService = {
 	// Also used as "Revoke" -- resets a SUBMITTED or APPROVED week back to draft.
 	unapproveWeek: async (targetUserId: number, startDate: string, endDate: string): Promise<{ success: boolean; unapproved_count: number }> => {
 		const response = await api.post(`/timesheets/users/${targetUserId}/unapprove`, { start_date: startDate, end_date: endDate });
+		return response.data;
+	},
+
+	bulkApproveWeek: async (userIds: number[], startDate: string, endDate: string): Promise<TimesheetBulkApproveResult> => {
+		const response = await api.post('/timesheets/team/bulk-approve', {
+			user_ids: userIds,
+			start_date: startDate,
+			end_date: endDate
+		});
+		return response.data;
+	},
+
+	getTeamSettings: async (): Promise<TimesheetTeamSettingsRow[]> => {
+		const response = await api.get('/timesheets/team/settings');
 		return response.data;
 	},
 

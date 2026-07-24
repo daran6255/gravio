@@ -23,6 +23,24 @@ class NotificationRepository:
         return result.scalars().first()
 
     @staticmethod
+    async def exists_for_entity(
+        db: AsyncSession, *, user_id: int, type, entity_type: str, entity_id: int,
+    ) -> bool:
+        """Whether this exact (user, type, entity) notification was already sent --
+        used by background schedulers to dedupe recurring reminders (e.g. so a
+        timesheet-unsubmitted nudge for a given week only ever goes out once)."""
+        result = await db.execute(
+            select(Notification.id).where(
+                Notification.user_id == user_id,
+                Notification.type == type,
+                Notification.entity_type == entity_type,
+                Notification.entity_id == entity_id,
+                Notification.is_deleted.is_(False),
+            ).limit(1)
+        )
+        return result.scalars().first() is not None
+
+    @staticmethod
     async def list_for_user(
         db: AsyncSession,
         *,

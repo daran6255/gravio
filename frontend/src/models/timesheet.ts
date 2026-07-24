@@ -32,9 +32,18 @@ export interface TimesheetUserSettings {
 	user_id: number;
 	can_log_on_holidays: boolean;
 	max_retroactive_days?: number;
+	/** Null means "use the org-wide 40h default". */
+	weekly_hours_target?: number;
 	created_at: string;
 	updated_at: string;
 }
+
+/** A team member's own settings row, listed alongside their name -- see GET /timesheets/team/settings. */
+export interface TimesheetTeamSettingsRow extends TimesheetUserSettings {
+	user_name: string;
+}
+
+export const DEFAULT_WEEKLY_HOURS_TARGET = 40;
 
 export interface ProjectTimeLog {
 	id: number;
@@ -75,6 +84,12 @@ export interface TimesheetSubmitWeekRequest {
 
 export interface TimesheetApproveRejectRequest {
 	rejection_note?: string;
+}
+
+export interface TimesheetBulkApproveResult {
+	approved_user_ids: number[];
+	skipped_user_ids: number[];
+	total_approved_count: number;
 }
 
 export interface TimesheetWeekUnlockRequest {

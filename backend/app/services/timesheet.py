@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.project import Project, ProjectTask
-from app.models.timesheet import ProjectTimeLog, TimesheetWeekUnlockRequest, WeekUnlockStatus
+from app.models.timesheet import ProjectTimeLog, TimesheetStatus, TimesheetWeekUnlockRequest, WeekUnlockStatus
 from app.repositories.timesheet import (
     OrgHolidayRepository,
     ProjectTimeLogRepository,
@@ -91,7 +91,98 @@ class TimesheetLockService:
         )
 
 
+def can_manage_timesheet_for(current_user: "User", target_user: "User") -> bool:
+    """Two-tier approval authorization: a user's direct reporting manager is always
+    authorized, and an org ADMIN is authorized for every user org-wide as a fallback/
+    escalation tier -- covering the case where the direct manager is unavailable, or
+    where a user (e.g. a manager themselves) has no reporting_manager_id set at all.
+    Managers still only ever see/act on their own direct reports."""
+    from app.models.user import UserRole
+    return target_user.reporting_manager_id == current_user.id or current_user.role == UserRole.ADMIN
+
+
 class TimesheetService:
+    # Applied when a user has no weekly_hours_target override set (TimesheetUserSettings).
+    DEFAULT_WEEKLY_HOURS_TARGET = 40.0
+
+    @staticmethod
+    async def bulk_approve_week(
+        db: AsyncSession, current_user: "User", user_ids: list[int], start_date: date, end_date: date,
+    ) -> dict:
+        """Approves the given week for every listed user this approver is authorized
+        for (their direct reports, or -- for an admin -- anyone org-wide); anyone else
+        in the list is silently skipped rather than failing the whole batch, so one
+        stray id (e.g. a stale row from a slow-refreshing UI) doesn't block the rest."""
+        from app.repositories.user import UserRepository
+
+        approved_user_ids: list[int] = []
+        skipped_user_ids: list[int] = []
+        total_approved_count = 0
+
+        for user_id in user_ids:
+            target_user = await UserRepository.get_by_id(db, user_id)
+            if not target_user or not can_manage_timesheet_for(current_user, target_user):
+                skipped_user_ids.append(user_id)
+                continue
+
+            count = await ProjectTimeLogRepository.approve_reject_week(
+                db, organization_id=current_user.organization_id, user_id=user_id,
+                start_date=start_date, end_date=end_date,
+                status=TimesheetStatus.APPROVED, approved_by_id=current_user.id,
+            )
+            if count == 0:
+                skipped_user_ids.append(user_id)
+                continue
+
+            approved_user_ids.append(user_id)
+            total_approved_count += count
+
+        return {
+            "approved_user_ids": approved_user_ids,
+            "skipped_user_ids": skipped_user_ids,
+            "total_approved_count": total_approved_count,
+        }
+
+    @staticmethod
+    async def get_team_settings(db: AsyncSession, current_user: "User") -> list[dict]:
+        """Per-person weekly_hours_target (and other settings) for everyone the
+        current user can manage -- their direct reports, or org-wide for an admin --
+        so the team-approvals UI can flag overtime without an N+1 settings fetch."""
+        from app.models.user import User, UserRole
+
+        if current_user.role == UserRole.ADMIN:
+            result = await db.execute(
+                select(User).where(User.organization_id == current_user.organization_id, User.is_deleted.is_(False))
+            )
+        else:
+            result = await db.execute(
+                select(User).where(
+                    User.reporting_manager_id == current_user.id, User.is_deleted.is_(False),
+                )
+            )
+        team = list(result.scalars().all())
+        if not team:
+            return []
+
+        settings_rows = await TimesheetUserSettingsRepository.list_for_users(
+            db, current_user.organization_id, [u.id for u in team]
+        )
+        settings_by_user = {s.user_id: s for s in settings_rows}
+
+        return [
+            {
+                "id": settings_by_user[u.id].id if u.id in settings_by_user else 0,
+                "user_id": u.id,
+                "user_name": u.full_name or u.email,
+                "can_log_on_holidays": settings_by_user[u.id].can_log_on_holidays if u.id in settings_by_user else False,
+                "max_retroactive_days": settings_by_user[u.id].max_retroactive_days if u.id in settings_by_user else None,
+                "weekly_hours_target": float(settings_by_user[u.id].weekly_hours_target) if u.id in settings_by_user and settings_by_user[u.id].weekly_hours_target is not None else None,
+                "created_at": settings_by_user[u.id].created_at if u.id in settings_by_user else u.created_at,
+                "updated_at": settings_by_user[u.id].updated_at if u.id in settings_by_user else u.updated_at,
+            }
+            for u in team
+        ]
+
     @staticmethod
     async def create_time_log(
         db: AsyncSession, current_user: "User", payload: "ProjectTimeLogCreate"

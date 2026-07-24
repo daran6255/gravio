@@ -42,7 +42,10 @@ import {
 	fetchTeamWeekUnlockRequests,
 	approveWeekUnlock,
 	denyWeekUnlock,
-	fetchUserSettings
+	fetchUserSettings,
+	bulkApproveWeek,
+	fetchTeamSettings,
+	updateUserSettings
 } from '../../store/slices/timesheetSlice';
 import { fetchTeamUsers } from '../../store/slices/userSlice';
 import { ReportingEmployeesPanel } from '../../components/hr/shared/ReportingEmployeesPanel';
@@ -182,10 +185,11 @@ const TimesheetPage: React.FC = () => {
 	const {
 		myTimeLogs, teamTimeLogs, holidays, actionLoading, actionError,
 		myUnlockRequests, teamUnlockRequests, teamUnlockRequestsLoading, unlockRequestMutating,
-		userSettings
+		userSettings, teamSettings
 	} = useAppSelector((state) => state.timesheets);
 
-	const isManagerOrAdmin = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+	const isAdmin = currentUser?.role === 'admin';
+	const isManagerOrAdmin = isAdmin || currentUser?.role === 'manager';
 	const hasReportingManager = currentUser?.reporting_manager_id != null;
 
 	// Navigation Date State (defaults to current week's Monday)
@@ -263,6 +267,7 @@ const TimesheetPage: React.FC = () => {
 			if (tabLabels[activeTab] === 'Team Approvals') {
 				loadTeamTimesheet();
 				dispatch(fetchTeamUsers({ page: 1, pageSize: 200 }));
+				dispatch(fetchTeamSettings());
 			}
 		}
 	}, [currentMonday, activeTab, currentUser, tabLabels]);
@@ -364,6 +369,30 @@ const TimesheetPage: React.FC = () => {
 			loadTeamTimesheet();
 		} catch (err) {}
 	};
+
+	const handleBulkApproveTeam = async (userIds: number[]) => {
+		try {
+			const result = await dispatch(bulkApproveWeek({ userIds, startDate: startDateStr, endDate: endDateStr })).unwrap();
+			toast.success(`Approved ${result.approved_user_ids.length} team member(s)' timesheets.`);
+			loadTeamTimesheet();
+		} catch (err: any) {
+			toast.error(err || 'Failed to bulk-approve timesheets');
+		}
+	};
+
+	const handleSetWeeklyTarget = async (userId: number, hours: number) => {
+		try {
+			await dispatch(updateUserSettings({ userId, data: { weekly_hours_target: hours } })).unwrap();
+			toast.success('Weekly hour target updated');
+		} catch (err: any) {
+			toast.error(err || 'Failed to update weekly hour target');
+		}
+	};
+
+	const weeklyHourTargets = useMemo(
+		() => Object.fromEntries(teamSettings.map((s) => [s.user_id, s.weekly_hours_target])),
+		[teamSettings]
+	);
 
 	// Week unlock requests
 	const handleRequestUnlock = async (reason?: string) => {
@@ -538,6 +567,7 @@ const TimesheetPage: React.FC = () => {
 						onRequestUnlock={handleRequestUnlock}
 						unlockRequestLoading={unlockRequestMutating}
 						canLogOnHolidays={userSettings?.can_log_on_holidays ?? false}
+						weeklyHoursTarget={userSettings?.weekly_hours_target}
 					/>
 				</Stack>
 			)}
@@ -558,8 +588,12 @@ const TimesheetPage: React.FC = () => {
 							onApprove={handleApproveTeamMember}
 							onReject={handleRejectTeamMember}
 							onUnapprove={handleUnapproveTeamMember}
+							onBulkApprove={handleBulkApproveTeam}
 							actionLoading={actionLoading}
 							currentUserId={currentUser?.id}
+							isAdmin={isAdmin}
+							weeklyHourTargets={weeklyHourTargets}
+							onSetWeeklyTarget={handleSetWeeklyTarget}
 						/>
 					</Grid>
 				</Grid>

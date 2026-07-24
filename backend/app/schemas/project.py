@@ -184,14 +184,24 @@ class ProjectBudgetActualsResponse(BaseModel):
     display_budget: Optional[float] = None
     display_currency: Optional[str] = None
     estimated_hours_total: float = 0
+    # "Logged" here means manager-APPROVED hours only -- see estimated_pending_spend
+    # below for hours that have been submitted but not yet approved.
     billable_hours_logged: float = 0
     non_billable_hours_logged: float = 0
     actual_hours_logged_total: float = 0
+    # Draft/submitted hours -- real work, but not yet signed off by a manager, so it's
+    # not counted in estimated_spend/budget_utilization_pct (only approved hours are).
+    billable_hours_pending: float = 0
+    non_billable_hours_pending: float = 0
+    pending_hours_total: float = 0
     hours_utilization_pct: Optional[float] = None
     # budget / estimated_hours_total -- the only hourly rate derivable from existing
     # data, since no per-user or per-task rate is recorded anywhere in the system.
     implied_hourly_rate: Optional[float] = None
     estimated_spend: Optional[float] = None
+    # What estimated_spend would become if every pending (not-yet-approved) billable
+    # hour were approved as-is -- a heads-up, not counted in budget_utilization_pct.
+    estimated_pending_spend: Optional[float] = None
     budget_utilization_pct: Optional[float] = None
     is_over_budget: bool = False
 

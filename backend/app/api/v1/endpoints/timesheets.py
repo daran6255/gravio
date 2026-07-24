@@ -16,7 +16,8 @@ from app.schemas.timesheet import (
     TimesheetUserSettingsUpdate, TimesheetUserSettingsResponse,
     ProjectTimeLogCreate, ProjectTimeLogUpdate, ProjectTimeLogResponse,
     TimesheetSubmitWeekRequest, TimesheetApproveRejectRequest, TimesheetReportRow,
-    TimesheetWeekUnlockRequestCreate, TimesheetWeekUnlockResolve, TimesheetWeekUnlockRequestResponse
+    TimesheetWeekUnlockRequestCreate, TimesheetWeekUnlockResolve, TimesheetWeekUnlockRequestResponse,
+    TimesheetBulkApproveRequest, TimesheetBulkApproveResult, TimesheetTeamSettingsRow,
 )
 from app.repositories.timesheet import (
     TimesheetCategoryRepository, OrgHolidayRepository,
@@ -24,7 +25,7 @@ from app.repositories.timesheet import (
     TimesheetWeekUnlockRequestRepository
 )
 from app.repositories.user import UserRepository
-from app.services.timesheet import TimesheetLockService, TimesheetService, get_week_bounds, is_weekly_off
+from app.services.timesheet import TimesheetLockService, TimesheetService, get_week_bounds, is_weekly_off, can_manage_timesheet_for
 from app.middleware.exceptions import NotFoundError, BadRequestError, ForbiddenError
 
 router = APIRouter(prefix="/timesheets", tags=["timesheets"])
@@ -446,9 +447,9 @@ async def get_team_logs(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
 ):
-    """Retrieve submitted timesheet entries for approval, routed strictly by reporting
-    manager -- each manager (admin or not) only sees their own direct reports' entries,
-    matching the same reporting_manager_id rule enforced on approve/reject/revoke."""
+    """Retrieve submitted timesheet entries for approval. A MANAGER only sees their own
+    direct reports' entries; an ADMIN sees every entry in the org (the escalation tier --
+    see can_manage_timesheet_for), matching the same rule enforced on approve/reject/revoke."""
     conditions = [
         ProjectTimeLog.organization_id == current_user.organization_id,
         ProjectTimeLog.log_date >= start_date,
@@ -456,10 +457,11 @@ async def get_team_logs(
         ProjectTimeLog.is_deleted.is_(False)
     ]
 
-    stmt_reports = select(User.id).where(User.reporting_manager_id == current_user.id)
-    report_ids_res = await db.execute(stmt_reports)
-    report_ids = [r[0] for r in report_ids_res.all()]
-    conditions.append(ProjectTimeLog.user_id.in_(report_ids))
+    if current_user.role != UserRole.ADMIN:
+        stmt_reports = select(User.id).where(User.reporting_manager_id == current_user.id)
+        report_ids_res = await db.execute(stmt_reports)
+        report_ids = [r[0] for r in report_ids_res.all()]
+        conditions.append(ProjectTimeLog.user_id.in_(report_ids))
 
     if user_id:
         conditions.append(ProjectTimeLog.user_id == user_id)
@@ -482,6 +484,35 @@ async def get_team_logs(
     result = await db.execute(stmt)
     return result.scalars().all()
 
+@router.post("/team/bulk-approve", response_model=TimesheetBulkApproveResult)
+async def bulk_approve_team_week(
+    payload: TimesheetBulkApproveRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
+):
+    """Approve one week for several team members in a single call -- the manager-facing
+    equivalent of ticking several rows and hitting Approve once, instead of one request
+    per person. Anyone in the list this approver isn't authorized for (or who has
+    nothing submitted for that week) is skipped rather than failing the whole batch."""
+    result = await TimesheetService.bulk_approve_week(
+        db, current_user, payload.user_ids, payload.start_date, payload.end_date
+    )
+    await db.commit()
+    return TimesheetBulkApproveResult(**result)
+
+
+@router.get("/team/settings", response_model=List[TimesheetTeamSettingsRow])
+async def get_team_timesheet_settings(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
+):
+    """Per-person timesheet settings (weekly hour target, holiday-logging override) for
+    everyone this user manages -- their direct reports, or org-wide for an ADMIN --
+    so the team-approvals UI can flag overtime without a fetch per row."""
+    rows = await TimesheetService.get_team_settings(db, current_user)
+    return [TimesheetTeamSettingsRow(**row) for row in rows]
+
+
 @router.post("/users/{target_user_id}/approve")
 async def approve_user_week(
     target_user_id: int,
@@ -489,10 +520,10 @@ async def approve_user_week(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
 ):
-    """Approve a user's submitted logs for a week. Only that user's allocated
-    reporting manager may approve -- admin does not grant a blanket bypass here."""
+    """Approve a user's submitted logs for a week. Authorized for that user's direct
+    reporting manager, or any org ADMIN as the escalation tier."""
     target_user = await UserRepository.get_by_id(db, target_user_id)
-    if not target_user or target_user.reporting_manager_id != current_user.id:
+    if not target_user or not can_manage_timesheet_for(current_user, target_user):
         raise ForbiddenError("You can only approve timesheets for your direct reports")
 
     approved = await ProjectTimeLogRepository.approve_reject_week(
@@ -511,13 +542,13 @@ async def reject_user_week(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
 ):
-    """Reject a user's submitted logs for a week with a reason. Only that user's
-    allocated reporting manager may reject."""
+    """Reject a user's submitted logs for a week with a reason. Authorized for that
+    user's direct reporting manager, or any org ADMIN as the escalation tier."""
     if not payload.rejection_note or not payload.rejection_note.strip():
         raise BadRequestError("Rejection reason is required")
 
     target_user = await UserRepository.get_by_id(db, target_user_id)
-    if not target_user or target_user.reporting_manager_id != current_user.id:
+    if not target_user or not can_manage_timesheet_for(current_user, target_user):
         raise ForbiddenError("You can only reject timesheets for your direct reports")
 
     rejected = await ProjectTimeLogRepository.approve_reject_week(
@@ -537,15 +568,16 @@ async def unapprove_user_week(
     current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
 ):
     """Revoke a wrongly submitted or approved week back to draft, so the employee can
-    fix and resubmit it. Only that user's allocated reporting manager may revoke.
-    Unlike Reject, no note is required -- this is for "that shouldn't have gone
-    through" corrections rather than a formal quality rejection.
+    fix and resubmit it. Authorized for that user's direct reporting manager, or any
+    org ADMIN as the escalation tier. Unlike Reject, no note is required -- this is
+    for "that shouldn't have gone through" corrections rather than a formal quality
+    rejection.
 
     If the week has already ended, revoking it would otherwise immediately re-lock it
     behind the past-week lock -- so this also auto-grants an unlock for that week.
     """
     target_user = await UserRepository.get_by_id(db, target_user_id)
-    if not target_user or target_user.reporting_manager_id != current_user.id:
+    if not target_user or not can_manage_timesheet_for(current_user, target_user):
         raise ForbiddenError("You can only revoke timesheets for your direct reports")
 
     unapproved = await ProjectTimeLogRepository.unapprove_week(
@@ -626,9 +658,10 @@ async def team_week_unlock_requests(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
 ):
-    """Requests routed to this manager -- their own direct reports only."""
+    """Requests routed to this manager -- their own direct reports only, or every
+    request org-wide for an ADMIN (the escalation tier)."""
     return await TimesheetWeekUnlockRequestRepository.list_for_manager(
-        db, current_user.organization_id, current_user.id
+        db, current_user.organization_id, current_user.id, org_wide=current_user.role == UserRole.ADMIN,
     )
 
 @router.post("/week-unlock-requests/{request_id}/approve", response_model=TimesheetWeekUnlockRequestResponse)
@@ -639,13 +672,14 @@ async def approve_week_unlock(
     current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
 ):
     """Grant a pending unlock request -- the employee can then edit/submit that week once.
-    Only that user's allocated reporting manager may resolve it."""
+    Authorized for that user's direct reporting manager, or any org ADMIN as the
+    escalation tier."""
     req = await TimesheetWeekUnlockRequestRepository.get_by_id(db, request_id)
     if not req or req.organization_id != current_user.organization_id:
         raise NotFoundError("Unlock request not found")
 
     target_user = await UserRepository.get_by_id(db, req.user_id)
-    if not target_user or target_user.reporting_manager_id != current_user.id:
+    if not target_user or not can_manage_timesheet_for(current_user, target_user):
         raise ForbiddenError("You can only resolve unlock requests from your direct reports")
 
     if req.status != WeekUnlockStatus.PENDING:
@@ -665,13 +699,14 @@ async def deny_week_unlock(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER]))
 ):
-    """Deny a pending unlock request. Only that user's allocated reporting manager may resolve it."""
+    """Deny a pending unlock request. Authorized for that user's direct reporting
+    manager, or any org ADMIN as the escalation tier."""
     req = await TimesheetWeekUnlockRequestRepository.get_by_id(db, request_id)
     if not req or req.organization_id != current_user.organization_id:
         raise NotFoundError("Unlock request not found")
 
     target_user = await UserRepository.get_by_id(db, req.user_id)
-    if not target_user or target_user.reporting_manager_id != current_user.id:
+    if not target_user or not can_manage_timesheet_for(current_user, target_user):
         raise ForbiddenError("You can only resolve unlock requests from your direct reports")
 
     if req.status != WeekUnlockStatus.PENDING:

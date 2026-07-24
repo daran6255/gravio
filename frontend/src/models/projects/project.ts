@@ -124,14 +124,21 @@ export interface ProjectBudgetActuals {
 	display_budget?: number;
 	display_currency?: string;
 	estimated_hours_total: number;
+	/** Manager-APPROVED hours only. */
 	billable_hours_logged: number;
 	non_billable_hours_logged: number;
 	actual_hours_logged_total: number;
+	/** Draft/submitted (not yet approved) hours -- real work, not yet counted as spend. */
+	billable_hours_pending: number;
+	non_billable_hours_pending: number;
+	pending_hours_total: number;
 	hours_utilization_pct?: number;
 	/** budget / estimated_hours_total -- a modeled rate, not a recorded one. */
 	implied_hourly_rate?: number;
-	/** implied_hourly_rate * billable_hours_logged -- an estimate, not a booked cost. */
+	/** implied_hourly_rate * billable_hours_logged (approved only) -- an estimate, not a booked cost. */
 	estimated_spend?: number;
+	/** What estimated_spend would become if every pending hour were approved as-is. */
+	estimated_pending_spend?: number;
 	budget_utilization_pct?: number;
 	is_over_budget: boolean;
 }

@@ -4,12 +4,14 @@ import {
 	TableCell,
 	Typography,
 	IconButton,
+	Checkbox,
 	Box,
 	Collapse,
 	Stack,
 	TextField,
 	Tooltip,
 	Divider,
+	Chip,
 	alpha,
 	useTheme
 } from '@mui/material';
@@ -18,13 +20,16 @@ import {
 	KeyboardArrowUp as CollapseIcon,
 	TaskAlt as ApproveIcon,
 	Cancel as RejectIcon,
-	Undo as RevokeIcon
+	Undo as RevokeIcon,
+	WarningAmberOutlined as OvertimeIcon,
+	ScheduleOutlined as TargetIcon
 } from '@mui/icons-material';
 import type { ProjectTimeLog } from '../../../models/timesheet';
 import TimesheetStatusBadge from '../shared/TimesheetStatusBadge';
 import { formatHoursDisplay } from '../weekly-grid';
 import { BaseDialog, ConfirmationDialog } from '../../common/dialogbox';
 import { CancelButton, SubmitButton } from '../../common/button';
+import { AddButton } from '../../common/button';
 import { DataTable, DataTableActions, type ColumnDefinition, type TableMenuAction } from '../../common/table';
 import { useTeamApprovals, groupLogsByProject, type ProjectGroup } from './hooks/useTeamApprovals';
 
@@ -35,11 +40,17 @@ interface TeamTimesheetTableProps {
 	onApprove: (userId: number) => void;
 	onReject: (userId: number, reason: string) => void;
 	onUnapprove: (userId: number) => void;
+	onBulkApprove: (userIds: number[]) => void;
 	actionLoading: boolean;
-	/** Only rows where the team member's reporting_manager_id equals this get action
-	 * buttons -- the backend enforces the same rule, this just avoids showing buttons
-	 * that would 403 (e.g. an admin browsing another manager's direct reports). */
+	/** Only rows the viewer is authorized to act on get action buttons -- their own
+	 * direct reports, or (for an admin) every row org-wide. The backend enforces the
+	 * same two-tier rule (can_manage_timesheet_for), this just avoids showing buttons
+	 * that would 403. */
 	currentUserId?: number;
+	isAdmin?: boolean;
+	/** user_id -> weekly hour target, from GET /timesheets/team/settings. */
+	weeklyHourTargets?: Record<number, number | undefined>;
+	onSetWeeklyTarget: (userId: number, hours: number) => void;
 }
 
 const formatWeekRange = (startDate: string, endDate: string): string => {
@@ -56,7 +67,9 @@ interface UserGroupedTimesheet {
 	status: 'draft' | 'submitted' | 'approved' | 'rejected';
 	rejectionNote?: string;
 	logs: ProjectTimeLog[];
-	isMyDirectReport: boolean;
+	isManageable: boolean;
+	weeklyHoursTarget: number;
+	isOvertime: boolean;
 }
 
 const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
@@ -66,10 +79,29 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 	onApprove,
 	onReject,
 	onUnapprove,
+	onBulkApprove,
 	actionLoading,
-	currentUserId
+	currentUserId,
+	isAdmin,
+	weeklyHourTargets,
+	onSetWeeklyTarget
 }) => {
 	const theme = useTheme();
+	const [targetEditTarget, setTargetEditTarget] = React.useState<UserGroupedTimesheet | null>(null);
+	const [targetHoursInput, setTargetHoursInput] = React.useState('');
+
+	const handleOpenTargetDialog = (sheet: UserGroupedTimesheet) => {
+		setTargetEditTarget(sheet);
+		setTargetHoursInput(String(sheet.weeklyHoursTarget));
+	};
+
+	const handleSaveTarget = () => {
+		const hours = Number(targetHoursInput);
+		if (targetEditTarget && hours > 0 && hours <= 168) {
+			onSetWeeklyTarget(targetEditTarget.userId, hours);
+			setTargetEditTarget(null);
+		}
+	};
 
 	const {
 		expandedUser, setExpandedUser,
@@ -80,13 +112,38 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 		rowsPerPage, setRowsPerPage,
 		groupedTimesheets,
 		paginatedTimesheets,
+		selectedUserIds,
+		selectableUserIds,
+		toggleSelectUser,
+		toggleSelectAll,
+		clearSelection,
 		handleOpenRejectDialog,
 		handleCloseRejectDialog,
 		handleConfirmReject,
 		handleConfirmRevoke
-	} = useTeamApprovals({ logs, onReject, onUnapprove, currentUserId });
+	} = useTeamApprovals({ logs, onReject, onUnapprove, currentUserId, isAdmin, weeklyHourTargets });
+
+	const handleBulkApprove = () => {
+		if (selectedUserIds.length === 0) return;
+		onBulkApprove(selectedUserIds);
+		clearSelection();
+	};
 
 	const columns: ColumnDefinition<UserGroupedTimesheet>[] = [
+		{
+			// Nominal id only -- renderRow fully controls cell content per row, this
+			// just needs to satisfy ColumnDefinition's `keyof T` typing.
+			id: 'isManageable',
+			label: selectableUserIds.length > 0 ? (
+				<Checkbox
+					size="small"
+					checked={selectedUserIds.length > 0 && selectedUserIds.length === selectableUserIds.length}
+					indeterminate={selectedUserIds.length > 0 && selectedUserIds.length < selectableUserIds.length}
+					onChange={toggleSelectAll}
+				/>
+			) : '',
+			width: 40
+		},
 		{ id: 'userId', label: '', width: 50 },
 		{ id: 'userName', label: 'Team Member' },
 		{ id: 'totalHours', label: 'Total Hours', align: 'center' },
@@ -190,12 +247,30 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 				onClick: () => setRevokeTarget(sheet),
 				disabled: actionLoading,
 				hidden: sheet.status !== 'submitted' && sheet.status !== 'approved'
+			},
+			{
+				label: 'Set Weekly Target',
+				icon: <TargetIcon fontSize="small" />,
+				onClick: () => handleOpenTargetDialog(sheet),
+				disabled: actionLoading,
+				divider: true
 			}
 		];
+
+		const isSelectable = sheet.status === 'submitted' && sheet.isManageable;
 
 		return (
 			<React.Fragment key={sheet.userId}>
 				<TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
+					<TableCell onClick={(e) => e.stopPropagation()}>
+						{isSelectable && (
+							<Checkbox
+								size="small"
+								checked={selectedUserIds.includes(sheet.userId)}
+								onChange={() => toggleSelectUser(sheet.userId)}
+							/>
+						)}
+					</TableCell>
 					<TableCell>
 						<IconButton
 							size="small"
@@ -213,15 +288,32 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 						</Typography>
 					</TableCell>
 					<TableCell align="center">
-						<Typography variant="body2" sx={{ fontWeight: 700 }}>
-							{formatHoursDisplay(sheet.totalHours)}
-						</Typography>
+						<Stack direction="row" spacing={0.75} alignItems="center" justifyContent="center">
+							<Typography variant="body2" sx={{ fontWeight: 700 }}>
+								{formatHoursDisplay(sheet.totalHours)}
+							</Typography>
+							<Typography variant="caption" color="text.secondary">
+								/ {formatHoursDisplay(sheet.weeklyHoursTarget)}
+							</Typography>
+							{sheet.isOvertime && (
+								<Tooltip title={`Over their ${formatHoursDisplay(sheet.weeklyHoursTarget)} weekly target`}>
+									<Chip
+										size="small"
+										icon={<OvertimeIcon sx={{ fontSize: '0.85rem !important' }} />}
+										label="Overtime"
+										color="warning"
+										variant="outlined"
+										sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, '& .MuiChip-label': { px: 0.75 } }}
+									/>
+								</Tooltip>
+							)}
+						</Stack>
 					</TableCell>
 					<TableCell align="center">
 						<TimesheetStatusBadge status={sheet.status} />
 					</TableCell>
 					<TableCell align="right" sx={{ pr: 3 }} onClick={(e) => e.stopPropagation()}>
-						{sheet.isMyDirectReport ? (
+						{sheet.isManageable ? (
 							<Stack direction="row" justifyContent="flex-end">
 								<DataTableActions item={sheet} tooltipTitle="Approval Actions" actions={actions} />
 							</Stack>
@@ -236,7 +328,7 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 				</TableRow>
 
 				<TableRow>
-					<TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
+					<TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
 						<Collapse in={isExpanded} timeout="auto" unmountOnExit>
 							<Box sx={{ margin: 2, p: 2, bgcolor: 'action.hover', borderRadius: 4 }}>
 								<Typography variant="subtitle2" gutterBottom component="div" sx={{ fontWeight: 700, mb: 2 }}>
@@ -276,10 +368,17 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 				onRowsPerPageChange={(newRows) => { setRowsPerPage(newRows); setPage(0); }}
 				searchTerm=""
 				headerActions={
-					<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ width: '100%' }}>
-						<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-							Team Timesheets
-						</Typography>
+					<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ width: '100%' }} flexWrap="wrap" rowGap={1}>
+						<Stack direction="row" spacing={1.5} alignItems="center">
+							<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+								Team Timesheets
+							</Typography>
+							{selectedUserIds.length > 0 && (
+								<AddButton hideIcon size="small" onClick={handleBulkApprove} disabled={actionLoading} sx={{ px: 2 }}>
+									Approve Selected ({selectedUserIds.length})
+								</AddButton>
+							)}
+						</Stack>
 						<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary' }}>
 							Week: {formatWeekRange(startDate, endDate)}
 						</Typography>
@@ -334,6 +433,38 @@ const TeamTimesheetTable: React.FC<TeamTimesheetTableProps> = ({
 				severity="warning"
 				loading={actionLoading}
 			/>
+
+			<BaseDialog
+				open={!!targetEditTarget}
+				onClose={() => setTargetEditTarget(null)}
+				title="Set Weekly Hour Target"
+				subtitle={targetEditTarget ? `For ${targetEditTarget.userName}` : undefined}
+				maxWidth="xs"
+				actions={
+					<>
+						<CancelButton onClick={() => setTargetEditTarget(null)} variant="outlined" />
+						<SubmitButton
+							onClick={handleSaveTarget}
+							disabled={!(Number(targetHoursInput) > 0 && Number(targetHoursInput) <= 168)}
+						>
+							Save
+						</SubmitButton>
+					</>
+				}
+			>
+				<Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+					Used to flag overtime on their weekly grid and here in team approvals. Defaults to 40h if never set.
+				</Typography>
+				<TextField
+					label="Weekly hours target"
+					type="number"
+					value={targetHoursInput}
+					onChange={(e) => setTargetHoursInput(e.target.value)}
+					fullWidth
+					autoFocus
+					inputProps={{ min: 1, max: 168, step: 0.5 }}
+				/>
+			</BaseDialog>
 		</Box>
 	);
 };

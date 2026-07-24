@@ -245,9 +245,15 @@ class ProjectService:
         actuals = await ProjectRepository.get_budget_actuals(db, project_id=project.id)
 
         estimated_hours_total = actuals["estimated_hours_total"]
+        # "Actual" hours = manager-approved only -- draft/submitted entries haven't
+        # been signed off yet, so they're kept separate as "pending" rather than
+        # counted toward spend (a week can still be rejected after submission).
         billable_hours_logged = actuals["billable_hours_logged"]
         non_billable_hours_logged = actuals["non_billable_hours_logged"]
         actual_hours_logged_total = billable_hours_logged + non_billable_hours_logged
+        billable_hours_pending = actuals["billable_hours_pending"]
+        non_billable_hours_pending = actuals["non_billable_hours_pending"]
+        pending_hours_total = billable_hours_pending + non_billable_hours_pending
 
         hours_utilization_pct = (
             round(actual_hours_logged_total / estimated_hours_total * 100, 1)
@@ -260,11 +266,13 @@ class ProjectService:
         implied_hourly_rate = None
         estimated_spend = None
         budget_utilization_pct = None
+        estimated_pending_spend = None
         if project.budget and estimated_hours_total > 0:
             budget_float = float(project.budget)
             implied_hourly_rate = round(budget_float / estimated_hours_total, 2)
             estimated_spend = round(implied_hourly_rate * billable_hours_logged, 2)
             budget_utilization_pct = round(estimated_spend / budget_float * 100, 1)
+            estimated_pending_spend = round(implied_hourly_rate * billable_hours_pending, 2)
 
         return {
             "project": project,
@@ -272,9 +280,13 @@ class ProjectService:
             "billable_hours_logged": billable_hours_logged,
             "non_billable_hours_logged": non_billable_hours_logged,
             "actual_hours_logged_total": actual_hours_logged_total,
+            "billable_hours_pending": billable_hours_pending,
+            "non_billable_hours_pending": non_billable_hours_pending,
+            "pending_hours_total": pending_hours_total,
             "hours_utilization_pct": hours_utilization_pct,
             "implied_hourly_rate": implied_hourly_rate,
             "estimated_spend": estimated_spend,
+            "estimated_pending_spend": estimated_pending_spend,
             "budget_utilization_pct": budget_utilization_pct,
             "is_over_budget": budget_utilization_pct is not None and budget_utilization_pct > 100,
         }

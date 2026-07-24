@@ -31,6 +31,8 @@ class NotificationType(str, enum.Enum):
     TRIAL_EXTENSION_REQUESTED = "trial_extension_requested"
     MEETING_RESCHEDULED_BY_CLIENT = "meeting_rescheduled_by_client"
     MEETING_CANCELLED_BY_CLIENT = "meeting_cancelled_by_client"
+    TIMESHEET_WEEK_UNSUBMITTED = "timesheet_week_unsubmitted"
+    TIMESHEET_PENDING_APPROVALS = "timesheet_pending_approvals"
 
 
 class Notification(BaseModel, TenantAwareMixin):

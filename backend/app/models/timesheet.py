@@ -70,6 +70,9 @@ class TimesheetUserSettings(BaseModel, TenantAwareMixin):
     )
     can_log_on_holidays: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     max_retroactive_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    # Null means "use the default" (40h) -- see TimesheetService.DEFAULT_WEEKLY_HOURS_TARGET.
+    # Kept per-user (not org-wide) since part-time/contract staff commonly need a different one.
+    weekly_hours_target: Mapped[Optional[float]] = mapped_column(Numeric(5, 2), nullable=True)
 
     # Relationships
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
