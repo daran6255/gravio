@@ -10,11 +10,10 @@ import {
 	AutoAwesome as PremiumIcon,
 	Warning as WarningIcon,
 	BoltOutlined as CreditsIcon,
-	AutoAwesome as IrisChatIcon,
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { useNavigate } from 'react-router-dom';
-import { toggleSidebar, toggleChatDrawer } from '../../store/slices/uiSlice';
+import { toggleSidebar } from '../../store/slices/uiSlice';
 import { useColorMode } from '../../theme/ThemeContext';
 import GlobalSearch from '../common/GlobalSearch';
 import NotificationBell from './NotificationBell';
@@ -332,20 +331,6 @@ const Navbar: React.FC = () => {
 					>
 						{mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
 					</IconButton>
-
-					{/* Ask IRIS -- opens the AI chat drawer */}
-					{user?.organization && (
-						<Tooltip title="Ask IRIS" arrow>
-							<IconButton
-								onClick={() => dispatch(toggleChatDrawer())}
-								color="inherit"
-								sx={{ color: '#8B7CF6' }}
-								aria-label="Open IRIS chat"
-							>
-								<IrisChatIcon />
-							</IconButton>
-						</Tooltip>
-					)}
 
 					{/* Notification Bell */}
 					<Box sx={{ color: theme.palette.text.secondary }}>
