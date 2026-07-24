@@ -702,6 +702,57 @@ async def update_employee_profile(
 # Leave Types CRUD
 # ===========================================================================
 
+# The standard starter set every org needs before Leave Management is usable at
+# all -- see seed_default_leave_types below. Kept here (not in the standalone
+# app/scripts/seed_leave_types.py) so onboarding and the lazy-seed fallback share
+# one definition instead of drifting.
+DEFAULT_LEAVE_TYPES = [
+    {"name": "Sick Leave", "code": "SL", "default_allocation": 12.0, "is_carry_forward": False, "is_lop": False},
+    {"name": "Casual Leave", "code": "CL", "default_allocation": 12.0, "is_carry_forward": False, "is_lop": False},
+    {"name": "Earned Leave", "code": "EL", "default_allocation": 15.0, "is_carry_forward": True, "max_carry_forward": 30.0, "is_lop": False},
+    {"name": "Loss of Pay", "code": "LOP", "default_allocation": 0.0, "is_carry_forward": False, "is_lop": True},
+]
+
+
+async def seed_default_leave_types(db: AsyncSession, org_id: int) -> list[HRLeaveType]:
+    """Creates the standard leave-type set (Sick/Casual/Earned/Loss-of-Pay) for an
+    org that has none yet -- without at least one leave type, Leave Management is
+    entirely unusable (no type to request against). Idempotent: a no-op, returning
+    [], if the org already has any leave type (active or not). Called from
+    onboarding for new orgs, and lazily from list_leave_types below for any org
+    created before this seeding existed."""
+    existing = await db.execute(
+        select(HRLeaveType.id).where(
+            HRLeaveType.organization_id == org_id, HRLeaveType.is_deleted == False
+        ).limit(1)
+    )
+    if existing.scalars().first() is not None:
+        return []
+
+    created = []
+    for lt_def in DEFAULT_LEAVE_TYPES:
+        lt = HRLeaveType(
+            organization_id=org_id,
+            name=lt_def["name"],
+            code=lt_def["code"],
+            default_allocation=lt_def["default_allocation"],
+            is_carry_forward=lt_def.get("is_carry_forward", False),
+            max_carry_forward=lt_def.get("max_carry_forward", 0.0),
+            is_lop=lt_def["is_lop"],
+            is_active=True,
+        )
+        db.add(lt)
+        created.append(lt)
+    # Flush only -- does NOT commit, matching the repository-layer convention (e.g.
+    # TimesheetCategoryRepository.seed_defaults): the caller (onboarding's request
+    # transaction, or the auto-commit at the end of the GET request that triggered
+    # the lazy-seed fallback below) owns the commit boundary.
+    await db.flush()
+    for lt in created:
+        await db.refresh(lt)
+    return created
+
+
 async def list_leave_types(db: AsyncSession, org_id: int, include_inactive: bool = False) -> list[HRLeaveType]:
     q = select(HRLeaveType).where(
         and_(HRLeaveType.organization_id == org_id, HRLeaveType.is_deleted == False)
@@ -709,7 +760,18 @@ async def list_leave_types(db: AsyncSession, org_id: int, include_inactive: bool
     if not include_inactive:
         q = q.where(HRLeaveType.is_active == True)
     result = await db.execute(q.order_by(HRLeaveType.name))
-    return list(result.scalars().all())
+    types = list(result.scalars().all())
+
+    # Orgs created before default leave-type seeding existed (or where onboarding
+    # was skipped) would otherwise show an empty list with no way to ever request
+    # leave -- lazily seed the standard set, mirroring the same fallback pattern
+    # used for project task statuses and timesheet categories.
+    if not types:
+        await seed_default_leave_types(db, org_id)
+        result = await db.execute(q.order_by(HRLeaveType.name))
+        types = list(result.scalars().all())
+
+    return types
 
 
 async def create_leave_type(db: AsyncSession, org_id: int, payload: LeaveTypeCreate) -> HRLeaveType:
@@ -1137,6 +1199,21 @@ async def approve_reject_leave_request(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only approve or reject leave requests for your direct reports",
         )
+
+    # Self-approval guard: an admin approving their own request bypasses the
+    # reporting-manager check above entirely, so without this an org ADMIN could
+    # rubber-stamp their own leave with nobody else ever reviewing it. Exempted only
+    # when the requester is the organization's sole active user -- there (a true
+    # solo/individual account) nobody else could ever approve it, so requiring a
+    # second person would make Leave Management unusable rather than safer.
+    if manager_user_id == req.user_id:
+        from app.repositories.user import UserRepository
+        org_users = await UserRepository.list_active_for_org(db, org_id)
+        if len(org_users) > 1:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You cannot approve or reject your own leave request. Ask another admin or your reporting manager to review it.",
+            )
 
     if req.status != LeaveStatus.PENDING:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Can only approve/reject pending requests")

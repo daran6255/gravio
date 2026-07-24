@@ -90,6 +90,11 @@ async def onboard_organization(
     from app.repositories.timesheet import TimesheetCategoryRepository
     await TimesheetCategoryRepository.seed_defaults(db, org.id)
 
+    # Seed default leave types (Sick/Casual/Earned/Loss-of-Pay) -- without at least
+    # one, Leave Management has nothing to request against and is unusable.
+    from app.services import hr as hr_service
+    await hr_service.seed_default_leave_types(db, org.id)
+
     # ── 4. Hash password ──────────────────────────────────────────────────────
     hashed_pw = get_password_hash(payload.admin_user.password)
 
