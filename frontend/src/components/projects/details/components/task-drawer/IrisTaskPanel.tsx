@@ -124,6 +124,11 @@ export const IrisTaskPanel: React.FC<IrisTaskPanelProps> = ({ open, onClose, tas
 	const [previewing, setPreviewing] = useState(false);
 	const [confirming, setConfirming] = useState(false);
 	const [resultText, setResultText] = useState<string | null>(null);
+	// IRIS came back with no concrete tool calls -- `response_to_user` is a clarifying
+	// question (e.g. "when should the reminder fire?"), not a plan to approve. Confirm/Cancel
+	// don't make sense here since there's nothing to run yet; the user needs to actually
+	// answer before IRIS can propose anything.
+	const [followUp, setFollowUp] = useState('');
 
 	// Insights/estimate are cached per task (keyed by public_id) so opening and closing the
 	// panel repeatedly shows the same numbers instead of asking the LLM fresh every time --
@@ -174,6 +179,7 @@ export const IrisTaskPanel: React.FC<IrisTaskPanelProps> = ({ open, onClose, tas
 		setPreview(null);
 		setResultText(null);
 		setMessage('');
+		setFollowUp('');
 		// Manual control -- insights/estimate each cost an LLM call, so don't fire them
 		// automatically on every open. Seed from this session's cache if the user already
 		// fetched them once; otherwise leave both null so the section shows its "Get ..."
@@ -202,6 +208,18 @@ export const IrisTaskPanel: React.FC<IrisTaskPanelProps> = ({ open, onClose, tas
 		}
 	};
 
+	// Folds the user's answer to IRIS's clarifying question back into a single instruction and
+	// re-previews it. preview()/execute() are both single-shot (no server-side conversation
+	// history for this quick-action panel -- unlike the full chat drawer), so the question and
+	// answer are threaded together client-side into the next `message` instead.
+	const handleClarify = async () => {
+		const answer = followUp.trim();
+		if (!answer || previewing) return;
+		const question = preview?.response_to_user || 'Could you clarify?';
+		setFollowUp('');
+		await handleAsk(`${message}\n\nIRIS asked: "${question}"\nMy answer: ${answer}`);
+	};
+
 	const handleConfirm = async () => {
 		setConfirming(true);
 		try {
@@ -227,6 +245,9 @@ export const IrisTaskPanel: React.FC<IrisTaskPanelProps> = ({ open, onClose, tas
 		await onUpdateField({ estimated_hours: estimate.estimated_hours });
 		toast.success(`Estimate set to ${estimate.estimated_hours}h`);
 	};
+
+	// No tool calls planned yet -- IRIS is asking for more information, not proposing an action.
+	const needsClarification = !!preview && preview.steps.length === 0;
 
 	const health = insights ? HEALTH_META[insights.health] : null;
 	const HealthIcon = health?.Icon || CheckCircleOutlineRounded;
@@ -446,7 +467,7 @@ export const IrisTaskPanel: React.FC<IrisTaskPanelProps> = ({ open, onClose, tas
 								<Stack direction="row" spacing={0.75} alignItems="center">
 									<AutoAwesome sx={{ fontSize: 15, color: brand }} />
 									<Typography variant="caption" sx={{ fontWeight: 700, color: brand, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>
-										IRIS proposes
+										{needsClarification ? 'IRIS needs more detail' : 'IRIS proposes'}
 									</Typography>
 								</Stack>
 								{preview.response_to_user && (
@@ -464,21 +485,60 @@ export const IrisTaskPanel: React.FC<IrisTaskPanelProps> = ({ open, onClose, tas
 										))}
 									</Stack>
 								)}
-								<Stack direction="row" spacing={1} sx={{ pt: 0.5 }}>
-									<Button
-										size="small"
-										variant="contained"
-										startIcon={confirming ? <CircularProgress size={13} sx={{ color: '#fff' }} /> : <CheckOutlined sx={{ fontSize: 15 }} />}
-										onClick={handleConfirm}
-										disabled={confirming}
-										sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px', bgcolor: brand, boxShadow: 'none', '&:hover': { bgcolor: '#7a6ae0', boxShadow: 'none' } }}
-									>
-										{confirming ? 'Working…' : 'Confirm'}
-									</Button>
-									<Button size="small" variant="text" onClick={() => setPreview(null)} disabled={confirming} sx={{ textTransform: 'none', fontWeight: 600, color: 'text.secondary' }}>
-										Cancel
-									</Button>
-								</Stack>
+								{needsClarification ? (
+									<Stack spacing={1} sx={{ pt: 0.5 }}>
+										<Stack direction="row" spacing={1}>
+											<TextField
+												fullWidth
+												autoFocus
+												size="small"
+												placeholder="Type your answer…"
+												value={followUp}
+												onChange={(e) => setFollowUp(e.target.value)}
+												onKeyDown={(e) => { if (e.key === 'Enter') handleClarify(); }}
+												disabled={previewing}
+												sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: theme.palette.background.paper } }}
+											/>
+											<IconButton
+												onClick={handleClarify}
+												disabled={previewing || !followUp.trim()}
+												sx={{
+													bgcolor: followUp.trim() ? brand : 'action.disabledBackground',
+													color: '#fff',
+													'&:hover': { bgcolor: '#7a6ae0' },
+													'&.Mui-disabled': { color: 'action.disabled' },
+												}}
+											>
+												{previewing ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : <SendRounded fontSize="small" />}
+											</IconButton>
+										</Stack>
+										<Button
+											size="small"
+											variant="text"
+											onClick={() => { setPreview(null); setFollowUp(''); }}
+											disabled={previewing}
+											sx={{ alignSelf: 'flex-start', textTransform: 'none', fontWeight: 600, color: 'text.secondary' }}
+										>
+											Cancel
+										</Button>
+									</Stack>
+								) : (
+									<Stack direction="row" spacing={1} sx={{ pt: 0.5 }}>
+										<Button
+											size="small"
+											variant="contained"
+											startIcon={confirming ? <CircularProgress size={13} sx={{ color: '#fff' }} /> : <CheckOutlined sx={{ fontSize: 15 }} />}
+											onClick={handleConfirm}
+											disabled={confirming}
+											sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px', bgcolor: brand, boxShadow: 'none', '&:hover': { bgcolor: '#7a6ae0', boxShadow: 'none' } }}
+										>
+											{confirming ? 'Working…' : 'Confirm'}
+										</Button>
+										<Button size="small" variant="text" onClick={() => setPreview(null)} disabled={confirming} sx={{ textTransform: 'none', fontWeight: 600, color: 'text.secondary' }}>
+											Cancel
+										</Button>
+									</Stack>
+								)}
 							</Stack>
 						) : (
 							<>
