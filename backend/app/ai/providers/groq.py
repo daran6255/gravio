@@ -49,7 +49,7 @@ class GroqProvider(LLMProvider):
         else:
             self._pool = _get_key_pool()
 
-        if not self._pool.has_keys():
+        if not self._pool.has_keys() or not self._pool.has_live_keys():
             raise LLMAuthError("groq")
 
     @property
@@ -77,52 +77,76 @@ class GroqProvider(LLMProvider):
             "max_tokens": max_tokens,
         }
 
-        last_error: LLMRateLimitError | None = None
+        last_error: LLMProviderError | None = None
         for attempt in range(self._pool.size):
-            key = await self._pool.get_key()
+            try:
+                key = await self._pool.get_key()
+            except RuntimeError:
+                break  # every key went dead mid-loop
             headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
 
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                resp = await client.post(self.BASE_URL, json=payload, headers=headers)
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    resp = await client.post(self.BASE_URL, json=payload, headers=headers)
+            except (httpx.TimeoutException, httpx.ConnectError, httpx.RequestError) as e:
+                logger.warning(
+                    "Groq key #%d/%d network error (%s) on attempt %d/%d — rotating to next key",
+                    self._pool.key_index(key), self._pool.size, e, attempt + 1, self._pool.size,
+                )
+                last_error = LLMProviderError(f"Groq network error: {e}", provider="groq")
+                continue
 
-                if resp.status_code == 413:
-                    # Groq reports "request too large for this model" as a 413 whose body
-                    # still carries code=="rate_limit_exceeded" (it's a token-budget error,
-                    # not an RPM one) -- treating that as a per-key rate limit would rotate
-                    # through and cool down every key in the pool for a request that's too
-                    # big for all of them equally. Fail fast instead so the resilient
-                    # wrapper can fall back to another provider without burning 60s per key.
-                    raise LLMProviderError(
-                        f"Request too large for Groq model '{self._model}' (413).", provider="groq",
-                    )
+            if resp.status_code == 413:
+                # Groq reports "request too large for this model" as a 413 whose body
+                # still carries code=="rate_limit_exceeded" (it's a token-budget error,
+                # not an RPM one) -- treating that as a per-key rate limit would rotate
+                # through and cool down every key in the pool for a request that's too
+                # big for all of them equally. Fail fast instead so the resilient
+                # wrapper can fall back to another provider without burning 60s per key.
+                raise LLMProviderError(
+                    f"Request too large for Groq model '{self._model}' (413).", provider="groq",
+                )
 
-                if resp.status_code == 429:
-                    retry_after = resp.headers.get("retry-after")
-                    await self._pool.mark_rate_limited(key, float(retry_after) if retry_after else None)
-                    logger.warning(
-                        "Groq key #%d/%d rate-limited (attempt %d/%d) — rotating to next key",
-                        self._pool.key_index(key), self._pool.size, attempt + 1, self._pool.size,
-                    )
-                    last_error = LLMRateLimitError(provider="groq", retry_after=int(float(retry_after)) if retry_after else None)
-                    continue
+            if resp.status_code == 429:
+                retry_after = resp.headers.get("retry-after")
+                await self._pool.mark_rate_limited(key, float(retry_after) if retry_after else None)
+                logger.warning(
+                    "Groq key #%d/%d rate-limited (attempt %d/%d) — rotating to next key",
+                    self._pool.key_index(key), self._pool.size, attempt + 1, self._pool.size,
+                )
+                last_error = LLMRateLimitError(provider="groq", retry_after=int(float(retry_after)) if retry_after else None)
+                continue
 
-                if not resp.is_success:
-                    try:
-                        error_data = resp.json()
-                        if error_data.get("error", {}).get("code") == "rate_limit_exceeded":
-                            await self._pool.mark_rate_limited(key)
-                            last_error = LLMRateLimitError(provider="groq")
-                            continue
-                    except Exception:
-                        pass
-                    raise LLMProviderError(f"Groq error: {resp.text}", provider="groq")
+            if resp.status_code in (401, 403):
+                await self._pool.mark_dead(key)
+                last_error = LLMProviderError(f"Groq auth error ({resp.status_code}) on key #{self._pool.key_index(key)}.", provider="groq")
+                continue
 
-                data = resp.json()
-                content = data["choices"][0]["message"]["content"]
-                tokens_used = data.get("usage", {}).get("total_tokens")
-                return LLMResponse(content=content, tokens_used=tokens_used, raw_response=data)
+            if resp.status_code >= 500:
+                logger.warning(
+                    "Groq key #%d/%d server error (%d) on attempt %d/%d — rotating to next key",
+                    self._pool.key_index(key), self._pool.size, resp.status_code, attempt + 1, self._pool.size,
+                )
+                last_error = LLMProviderError(f"Groq server error ({resp.status_code}): {resp.text}", provider="groq")
+                continue
 
-        # Every key in the pool was rate-limited.
+            if not resp.is_success:
+                try:
+                    error_data = resp.json()
+                    if error_data.get("error", {}).get("code") == "rate_limit_exceeded":
+                        await self._pool.mark_rate_limited(key)
+                        last_error = LLMRateLimitError(provider="groq")
+                        continue
+                except Exception:
+                    pass
+                raise LLMProviderError(f"Groq error: {resp.text}", provider="groq")
+
+            data = resp.json()
+            content = data["choices"][0]["message"]["content"]
+            tokens_used = data.get("usage", {}).get("total_tokens")
+            return LLMResponse(content=content, tokens_used=tokens_used, raw_response=data)
+
+        # Every key in the pool failed (rate-limited, dead, erroring, or unreachable).
         raise last_error or LLMRateLimitError(provider="groq")
 
     async def stream_complete(self, system_prompt, user_message, temperature=0.2, max_tokens=4096) -> AsyncGenerator[str, None]:
@@ -139,57 +163,89 @@ class GroqProvider(LLMProvider):
             "stream_options": {"include_usage": True},
         }
 
-        last_error: LLMRateLimitError | None = None
+        last_error: LLMProviderError | None = None
         for attempt in range(self._pool.size):
-            key = await self._pool.get_key()
+            try:
+                key = await self._pool.get_key()
+            except RuntimeError:
+                break  # every key went dead mid-loop
             headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+            yielded_any = False
 
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                async with client.stream("POST", self.BASE_URL, json=payload, headers=headers) as response:
-                    if response.status_code == 413:
-                        # See the non-streaming complete() for why 413 must not be treated
-                        # as a rotatable per-key rate limit.
-                        raise LLMProviderError(
-                            f"Request too large for Groq model '{self._model}' (413).", provider="groq",
-                        )
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    async with client.stream("POST", self.BASE_URL, json=payload, headers=headers) as response:
+                        if response.status_code == 413:
+                            # See the non-streaming complete() for why 413 must not be treated
+                            # as a rotatable per-key rate limit.
+                            raise LLMProviderError(
+                                f"Request too large for Groq model '{self._model}' (413).", provider="groq",
+                            )
 
-                    if response.status_code == 429:
-                        retry_after = response.headers.get("retry-after")
-                        await self._pool.mark_rate_limited(key, float(retry_after) if retry_after else None)
-                        logger.warning(
-                            "Groq key #%d/%d rate-limited on stream (attempt %d/%d) — rotating",
-                            self._pool.key_index(key), self._pool.size, attempt + 1, self._pool.size,
-                        )
-                        last_error = LLMRateLimitError(provider="groq", retry_after=int(float(retry_after)) if retry_after else None)
-                        continue
-
-                    if not response.is_success:
-                        error_text = await response.aread()
-                        raise LLMProviderError(f"Groq streaming error: {error_text.decode()}", provider="groq")
-
-                    async for line in response.aiter_lines():
-                        if not line.startswith("data: "):
+                        if response.status_code == 429:
+                            retry_after = response.headers.get("retry-after")
+                            await self._pool.mark_rate_limited(key, float(retry_after) if retry_after else None)
+                            logger.warning(
+                                "Groq key #%d/%d rate-limited on stream (attempt %d/%d) — rotating",
+                                self._pool.key_index(key), self._pool.size, attempt + 1, self._pool.size,
+                            )
+                            last_error = LLMRateLimitError(provider="groq", retry_after=int(float(retry_after)) if retry_after else None)
                             continue
 
-                        data_str = line[6:]
-                        if data_str == "[DONE]":
-                            return
-
-                        try:
-                            data = json.loads(data_str)
-                        except json.JSONDecodeError:
+                        if response.status_code in (401, 403):
+                            await self._pool.mark_dead(key)
+                            last_error = LLMProviderError(f"Groq auth error ({response.status_code}) on key #{self._pool.key_index(key)}.", provider="groq")
                             continue
 
-                        usage = data.get("usage")
-                        if usage:
-                            self._last_stream_usage = usage.get("total_tokens")
-
-                        choices = data.get("choices") or []
-                        if not choices:
+                        if response.status_code >= 500:
+                            logger.warning(
+                                "Groq key #%d/%d server error (%d) on stream attempt %d/%d — rotating",
+                                self._pool.key_index(key), self._pool.size, response.status_code, attempt + 1, self._pool.size,
+                            )
+                            error_text = await response.aread()
+                            last_error = LLMProviderError(f"Groq server error ({response.status_code}): {error_text.decode()}", provider="groq")
                             continue
-                        delta = choices[0].get("delta", {}).get("content", "")
-                        if delta:
-                            yield delta
-                    return  # stream completed successfully on this key
+
+                        if not response.is_success:
+                            error_text = await response.aread()
+                            raise LLMProviderError(f"Groq streaming error: {error_text.decode()}", provider="groq")
+
+                        async for line in response.aiter_lines():
+                            if not line.startswith("data: "):
+                                continue
+
+                            data_str = line[6:]
+                            if data_str == "[DONE]":
+                                return
+
+                            try:
+                                data = json.loads(data_str)
+                            except json.JSONDecodeError:
+                                continue
+
+                            usage = data.get("usage")
+                            if usage:
+                                self._last_stream_usage = usage.get("total_tokens")
+
+                            choices = data.get("choices") or []
+                            if not choices:
+                                continue
+                            delta = choices[0].get("delta", {}).get("content", "")
+                            if delta:
+                                yielded_any = True
+                                yield delta
+                        return  # stream completed successfully on this key
+            except (httpx.TimeoutException, httpx.ConnectError, httpx.RequestError) as e:
+                if yielded_any:
+                    # Partial content already reached the caller -- can't silently splice in a
+                    # fresh completion from another key without producing incoherent output.
+                    # Let ResilientLLMProvider's own "failed mid-stream" handling take over.
+                    raise LLMProviderError(f"Groq network error mid-stream: {e}", provider="groq") from e
+                logger.warning(
+                    "Groq key #%d/%d network error (%s) on stream attempt %d/%d — rotating to next key",
+                    self._pool.key_index(key), self._pool.size, e, attempt + 1, self._pool.size,
+                )
+                last_error = LLMProviderError(f"Groq network error: {e}", provider="groq")
+                continue
 
         raise last_error or LLMRateLimitError(provider="groq")

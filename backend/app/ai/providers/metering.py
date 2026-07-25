@@ -77,6 +77,15 @@ class MeteredLLMProvider(LLMProvider):
 
         response = await self._inner.complete(system_prompt, user_message, temperature, clamped_max_tokens)
 
+        if not response.content or not response.content.strip():
+            # A technically-successful call that produced nothing usable -- no real value
+            # delivered, so no charge (mirrors the empty-stream guard below).
+            logger.warning(
+                "Empty response from '%s' — not charging any credits for this call.",
+                self._inner.provider_name,
+            )
+            return response
+
         tokens_used = response.tokens_used or 0
         cost = ai_credit_service.compute_credit_cost(max(tokens_used, 1), self._inner.provider_name)
         await AICreditRepository.deduct(
@@ -94,9 +103,20 @@ class MeteredLLMProvider(LLMProvider):
         clamped_max_tokens = await self._clamp_max_tokens(wallet, max_tokens)
 
         accumulated_chars = 0
+        accumulated_text = []
         async for chunk in self._inner.stream_complete(system_prompt, user_message, temperature, clamped_max_tokens):
             accumulated_chars += len(chunk)
+            accumulated_text.append(chunk)
             yield chunk
+
+        if not "".join(accumulated_text).strip():
+            # A technically-successful stream that produced nothing usable -- no real value
+            # delivered, so no charge (mirrors the empty-response guard in complete() above).
+            logger.warning(
+                "Empty stream from '%s' — not charging any credits for this call.",
+                self._inner.provider_name,
+            )
+            return
 
         # Some providers (Groq, via stream_options.include_usage) expose real usage on the
         # underlying instance after the stream completes. ResilientLLMProvider tracks which

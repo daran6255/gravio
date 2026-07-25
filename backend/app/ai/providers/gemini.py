@@ -37,14 +37,18 @@ class GeminiProvider(LLMProvider):
                 "responseMimeType": "application/json",
             },
         }
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(url, json=payload)
-            if not resp.is_success:
-                raise LLMProviderError(f"Gemini error: {resp.text}", provider="gemini")
-            data = resp.json()
-            content = data["candidates"][0]["content"]["parts"][0]["text"]
-            tokens_used = data.get("usageMetadata", {}).get("totalTokenCount")
-            return LLMResponse(content=content, tokens_used=tokens_used, raw_response=data)
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                resp = await client.post(url, json=payload)
+        except (httpx.TimeoutException, httpx.ConnectError, httpx.RequestError) as e:
+            raise LLMProviderError(f"Gemini network error: {e}", provider="gemini") from e
+
+        if not resp.is_success:
+            raise LLMProviderError(f"Gemini error: {resp.text}", provider="gemini")
+        data = resp.json()
+        content = data["candidates"][0]["content"]["parts"][0]["text"]
+        tokens_used = data.get("usageMetadata", {}).get("totalTokenCount")
+        return LLMResponse(content=content, tokens_used=tokens_used, raw_response=data)
 
     async def stream_complete(self, system_prompt, user_message, temperature=0.2, max_tokens=4096) -> AsyncGenerator[str, None]:
         url = f"{self.BASE_URL}/{self._model}:streamGenerateContent?key={self._api_key}"
@@ -58,22 +62,25 @@ class GeminiProvider(LLMProvider):
             },
         }
         
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            async with client.stream("POST", url, json=payload) as response:
-                if not response.is_success:
-                    error_text = await response.aread()
-                    raise LLMProviderError(f"Gemini streaming error: {error_text.decode()}", provider="gemini")
-                
-                # Gemini stream returns a JSON array of objects
-                async for line in response.aiter_lines():
-                    if not line or line.strip() == "[" or line.strip() == "]":
-                        continue
-                    
-                    try:
-                        # Strip comma if it's not the last element
-                        clean_line = line.strip().rstrip(",")
-                        data = json.loads(clean_line)
-                        token = data["candidates"][0]["content"]["parts"][0]["text"]
-                        yield token
-                    except (json.JSONDecodeError, KeyError, IndexError):
-                        continue
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                async with client.stream("POST", url, json=payload) as response:
+                    if not response.is_success:
+                        error_text = await response.aread()
+                        raise LLMProviderError(f"Gemini streaming error: {error_text.decode()}", provider="gemini")
+
+                    # Gemini stream returns a JSON array of objects
+                    async for line in response.aiter_lines():
+                        if not line or line.strip() == "[" or line.strip() == "]":
+                            continue
+
+                        try:
+                            # Strip comma if it's not the last element
+                            clean_line = line.strip().rstrip(",")
+                            data = json.loads(clean_line)
+                            token = data["candidates"][0]["content"]["parts"][0]["text"]
+                            yield token
+                        except (json.JSONDecodeError, KeyError, IndexError):
+                            continue
+        except (httpx.TimeoutException, httpx.ConnectError, httpx.RequestError) as e:
+            raise LLMProviderError(f"Gemini network error: {e}", provider="gemini") from e

@@ -20,9 +20,16 @@ from app.ai.brain.engine import AIEngine
 from app.ai.brain.events import EngineEventType
 from app.ai.brain.journal import TaskJournal
 from app.ai.providers import get_llm_provider
+from app.ai.providers.alerts import alert_full_exhaustion
 from app.ai.brain.exceptions import ToolLimitExceededError
 from app.ai.models.ai_chat import AIChatSession, AIChatMessage
 from app.ai.models.ai_task_log import AITaskStatus, AITaskTrigger
+from app.middleware.exceptions import AIServiceUnavailableError
+
+# Fixed, non-alarming copy for unexpected failures -- never interpolate str(exception) into
+# what the user sees (may contain raw provider/API text); the real detail goes to logs and
+# journal.error_message (admin-visible), not the chat bubble.
+_GENERIC_FAILURE_MESSAGE = "⚠️ Something went wrong on my end — please try again."
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -122,7 +129,8 @@ class AIChatService:
                 action_type="chat_message",
             )
         except Exception as e:
-            yield f"data: {json.dumps({'error': str(e), 'status': 'failed'})}\n\n"
+            logger.exception("Could not initialize an LLM provider for chat")
+            yield f"data: {json.dumps({'error': _GENERIC_FAILURE_MESSAGE, 'status': 'failed'})}\n\n"
             return
 
         journal = await TaskJournal.create(
@@ -177,12 +185,23 @@ class AIChatService:
             await journal.finalize(status=AITaskStatus.FAILED, summary=full_content, error_message=e.message)
             yield f"data: {json.dumps({'error': full_content, 'status': 'failed'})}\n\n"
 
+        except AIServiceUnavailableError as e:
+            errors = (e.detail or {}).get("errors", {})
+            full_content = e.message
+            await journal.finalize(
+                status=AITaskStatus.FAILED, summary=full_content,
+                error_message=f"Full provider exhaustion: {errors}",
+            )
+            await alert_full_exhaustion(
+                self._db, organization_id=self._user.organization_id, errors=errors, context="chat message",
+            )
+            yield f"data: {json.dumps({'error': full_content, 'status': 'failed'})}\n\n"
+
         except Exception as e:
             logger.exception("Chat failed")
-            msg = f"⚠️ **Error:** {str(e)}"
-            await journal.finalize(status=AITaskStatus.FAILED, summary=msg, error_message=str(e))
-            yield f"data: {json.dumps({'error': msg, 'status': 'failed'})}\n\n"
-            full_content = msg
+            await journal.finalize(status=AITaskStatus.FAILED, summary=_GENERIC_FAILURE_MESSAGE, error_message=str(e))
+            yield f"data: {json.dumps({'error': _GENERIC_FAILURE_MESSAGE, 'status': 'failed'})}\n\n"
+            full_content = _GENERIC_FAILURE_MESSAGE
 
         # 5. Persist Assistant Message
         if full_content:

@@ -191,8 +191,8 @@ export const useAIChat = (enabled: boolean) => {
 			}, controller.signal);
 		} catch (error: any) {
 			if (error?.name !== 'AbortError') {
-				finalizeStreaming('⚠️ Lost connection to IRIS before it could reply.');
-				toast.error('IRIS chat stream was interrupted.');
+				finalizeStreaming('IRIS lost its train of thought — please try sending that again.');
+				toast.error('Please try sending that again.');
 			}
 		} finally {
 			setSending(false);

@@ -33,9 +33,14 @@ from app.ai.schemas import AITaskRunRequest, AITaskRunResponse
 from app.ai.brain.journal import TaskJournal
 from app.ai.mcp.registry import registry as global_registry
 import app.ai.mcp.tools  # Trigger tool discovery and registration
+from app.ai.providers.alerts import alert_full_exhaustion
 from app.core.config import settings
-from app.middleware.exceptions import BadRequestError, ForbiddenError
+from app.middleware.exceptions import AIServiceUnavailableError, BadRequestError, ForbiddenError
 from app.ai.models.ai_task_log import AITaskStatus, AITaskTrigger
+
+# Fixed, non-alarming copy for unexpected failures -- never interpolate str(exception) into
+# what the user sees; the real detail goes to logs and journal.error_message (admin-visible).
+_GENERIC_FAILURE_MESSAGE = "An unexpected error occurred — please try again."
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -149,6 +154,17 @@ class AIEngine:
             )
             return self._build_response(journal, status="failed", error=error_msg)
 
+        except AIServiceUnavailableError as e:
+            errors = (e.detail or {}).get("errors", {})
+            await journal.finalize(
+                status=AITaskStatus.FAILED, summary=e.message,
+                error_message=f"Full provider exhaustion: {errors}",
+            )
+            await alert_full_exhaustion(
+                self._db, organization_id=self._user.organization_id, errors=errors, context="agentic task run",
+            )
+            return self._build_response(journal, status="failed", error=e.message)
+
         except Exception as e:
             logger.exception("Unexpected error in AIEngine.run — task_id=%d", journal.task_id)
             await journal.finalize(
@@ -156,7 +172,7 @@ class AIEngine:
                 summary="💥 An unexpected error occurred.",
                 error_message=str(e),
             )
-            return self._build_response(journal, status="failed", error=str(e))
+            return self._build_response(journal, status="failed", error=_GENERIC_FAILURE_MESSAGE)
 
     async def resume(
         self,
@@ -218,6 +234,17 @@ class AIEngine:
             )
             return self._build_response(journal, status="failed", error=error_msg)
 
+        except AIServiceUnavailableError as e:
+            errors = (e.detail or {}).get("errors", {})
+            await journal.finalize(
+                status=AITaskStatus.FAILED, summary=e.message,
+                error_message=f"Full provider exhaustion: {errors}",
+            )
+            await alert_full_exhaustion(
+                self._db, organization_id=self._user.organization_id, errors=errors, context="agentic task resume",
+            )
+            return self._build_response(journal, status="failed", error=e.message)
+
         except Exception as e:
             logger.exception("Unexpected error in AIEngine.resume — task_id=%d", journal.task_id)
             await journal.finalize(
@@ -225,7 +252,7 @@ class AIEngine:
                 summary="💥 An unexpected error occurred.",
                 error_message=str(e),
             )
-            return self._build_response(journal, status="failed", error=str(e))
+            return self._build_response(journal, status="failed", error=_GENERIC_FAILURE_MESSAGE)
 
     async def _resume_execution(self, journal: TaskJournal, provider: Any) -> AITaskRunResponse:
         """Core resume logic -- called inside the timeout guard, mirrors `_execute_task`'s

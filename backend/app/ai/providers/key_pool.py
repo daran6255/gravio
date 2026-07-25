@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 class _KeyState:
     key: str
     cooldown_until: float = 0.0  # monotonic time; <= now means usable
+    dead: bool = False  # permanently broken (auth/config) -- never rotated back in
 
 
 @dataclass
@@ -53,21 +54,30 @@ class APIKeyPool:
     def size(self) -> int:
         return len(self._states)
 
+    def has_live_keys(self) -> bool:
+        """True if at least one key isn't permanently dead (may still be cooling down)."""
+        return any(not s.dead for s in self._states)
+
     async def get_key(self) -> str:
-        """Return the next usable key, round-robin. If every key is cooling down, returns the
-        one whose cooldown expires soonest (best effort — caller will likely fail fast anyway)."""
+        """Return the next usable key, round-robin, skipping dead keys entirely. If every live
+        key is cooling down, returns the one whose cooldown expires soonest (best effort --
+        caller will likely fail fast anyway)."""
         if not self._states:
             raise RuntimeError("APIKeyPool has no keys configured.")
 
         async with self._lock:
+            live_states = [s for s in self._states if not s.dead]
+            if not live_states:
+                raise RuntimeError("APIKeyPool: every key is dead.")
+
             now = time.monotonic()
             for _ in range(len(self._states)):
                 candidate = self._states[self._cursor]
                 self._cursor = (self._cursor + 1) % len(self._states)
-                if candidate.cooldown_until <= now:
+                if not candidate.dead and candidate.cooldown_until <= now:
                     return candidate.key
 
-            soonest = min(self._states, key=lambda s: s.cooldown_until)
+            soonest = min(live_states, key=lambda s: s.cooldown_until)
             return soonest.key
 
     async def mark_rate_limited(self, key: str, retry_after: float | None = None) -> None:
@@ -78,6 +88,21 @@ class APIKeyPool:
                     logger.warning(
                         "Groq key ...%s cooling down for %.0fs after a rate limit",
                         key[-4:], retry_after or self.cooldown_seconds,
+                    )
+                    break
+
+    async def mark_dead(self, key: str) -> None:
+        """Permanently excludes `key` from rotation after a repeated auth/config failure (not a
+        transient rate limit -- no cooldown will fix this). Logged at ERROR since a dead key is
+        a standing configuration problem the team needs to notice and rotate credentials for."""
+        async with self._lock:
+            for state in self._states:
+                if state.key == key:
+                    state.dead = True
+                    logger.error(
+                        "Groq key #%d ...%s marked DEAD after an authentication/config failure "
+                        "-- excluded from rotation until the process restarts with a fixed key.",
+                        self.key_index(key), key[-4:],
                     )
                     break
 

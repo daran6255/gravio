@@ -36,6 +36,7 @@ class NotificationType(str, enum.Enum):
     LEAVE_REQUEST_SUBMITTED = "leave_request_submitted"
     LEAVE_REQUEST_APPROVED = "leave_request_approved"
     LEAVE_REQUEST_REJECTED = "leave_request_rejected"
+    AI_PROVIDER_EXHAUSTED = "ai_provider_exhausted"
 
 
 class Notification(BaseModel, TenantAwareMixin):

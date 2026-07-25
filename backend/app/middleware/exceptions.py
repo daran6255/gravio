@@ -123,13 +123,25 @@ class ServiceUnavailableError(AppError):
 
 
 class AIServiceUnavailableError(ServiceUnavailableError):
-    """Raised when the primary AI provider AND its configured fallback both fail (HTTP 503).
+    """Raised when the primary AI provider AND its configured fallback both fail (HTTP 503) --
+    i.e. every key on every configured provider has been exhausted (Groq's 3 keys, then Gemini).
 
     Distinct from AICreditsExhaustedError: this means the AI infrastructure itself is down
     (rate-limited/erroring on every configured provider), not that the org is out of credits.
-    """
-    message: str = "AI is temporarily unavailable. Please try again in a moment."
 
-    def __init__(self, primary: str | None = None, fallback: str | None = None, **kwargs):
-        detail = {"primary_provider": primary, "fallback_provider": fallback}
+    The user-facing `message` is deliberately soft/in-context rather than a raw "service down"
+    banner -- callers that need the full diagnostic picture (which providers/keys were tried,
+    with what errors) should read `detail["errors"]`, not this message, and log/alert on it
+    separately (see resilient.py and chat_service.py's full-exhaustion handling).
+    """
+    message: str = "IRIS is taking a little longer than usual to respond. Please try again in a moment."
+
+    def __init__(
+        self,
+        primary: str | None = None,
+        fallback: str | None = None,
+        errors: dict[str, str] | None = None,
+        **kwargs,
+    ):
+        detail = {"primary_provider": primary, "fallback_provider": fallback, "errors": errors or {}}
         super().__init__(detail=detail, **kwargs)

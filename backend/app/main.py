@@ -19,6 +19,7 @@ from app.middleware.garbage_collector import GarbageCollectorMiddleware, memory_
 from app.services.reminder_scheduler import reminder_check_task
 from app.services.meeting_scheduler import meeting_maintenance_task
 from app.services.timesheet_reminder_scheduler import timesheet_reminder_task
+from app.ai.providers.health_check import health_check_task
 from app.api.v1.router import router as v1_router
 from loguru import logger
 from fastapi.exceptions import RequestValidationError
@@ -43,11 +44,16 @@ async def lifespan(app: FastAPI):
     # Start the timesheet reminder task (unsubmitted-week + pending-approval nudges)
     timesheet_reminder = asyncio.create_task(timesheet_reminder_task(interval_seconds=21600))
 
+    # Start the AI provider health-check task (proactively probes a tripped Groq/Gemini circuit
+    # breaker so it can recover even without real user traffic -- see providers/health_check.py)
+    ai_health_check = asyncio.create_task(health_check_task(interval_seconds=60))
+
     # Stashed on app.state so /health can report whether these are still alive
     app.state.monitor_task = monitor_task
     app.state.reminder_task = reminder_task
     app.state.meeting_maintenance_task = meeting_maintenance
     app.state.timesheet_reminder_task = timesheet_reminder
+    app.state.ai_health_check_task = ai_health_check
 
     # You can uncomment this to create tables on startup (not recommended for production)
     # await init_db()
@@ -85,6 +91,13 @@ async def lifespan(app: FastAPI):
     timesheet_reminder.cancel()
     try:
         await timesheet_reminder
+    except asyncio.CancelledError:
+        pass
+
+    # Cancel AI provider health-check task
+    ai_health_check.cancel()
+    try:
+        await ai_health_check
     except asyncio.CancelledError:
         pass
 

@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.ai.brain.exceptions import LLMProviderError
 from app.ai.providers.base import LLMProvider
+from app.ai.providers.circuit_breaker import get_circuit_breaker
 from app.ai.providers.resilient import ResilientLLMProvider
 from app.ai.providers.metering import MeteredLLMProvider
 
@@ -62,18 +63,21 @@ async def get_llm_provider(
     """
     provider_name = override or settings.AI_PROVIDER
     primary = _build_provider(provider_name)
+    primary_breaker = await get_circuit_breaker(primary.provider_name)
 
     fallback_name = settings.AI_FALLBACK_PROVIDER
     fallback = None
+    fallback_breaker = None
     if fallback_name and fallback_name.lower().strip() != provider_name.lower().strip():
         try:
             fallback = _build_provider(fallback_name)
+            fallback_breaker = await get_circuit_breaker(fallback.provider_name)
         except LLMProviderError as e:
             # Fallback provider misconfigured (e.g. no API key) — degrade to no-fallback rather
             # than fail every primary call outright.
             logger.warning("AI_FALLBACK_PROVIDER '%s' could not be built (%s); fallback disabled.", fallback_name, e)
 
-    resilient = ResilientLLMProvider(primary, fallback)
+    resilient = ResilientLLMProvider(primary, fallback, primary_breaker, fallback_breaker)
 
     if org_id is None:
         return resilient
