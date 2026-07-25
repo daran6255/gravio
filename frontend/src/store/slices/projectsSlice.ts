@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import projectService from '../../services/projectService';
 import crmService from '../../services/crmService';
+import { fetchReminders } from './crmSlice';
 import type { Project, ProjectCreate, ProjectUpdate, ProjectStatus, DealConvertToProjectRequest, ProjectStats, DealProjectConversionPreview } from '../../models/projects/project';
 import type {
 	ProjectTask,
@@ -310,13 +311,17 @@ export const addTaskComment = createAsyncThunk(
 );
 
 /** Confirms and runs an IRIS action on a task. IRIS may have changed the task's own fields
- * (status, hours, etc. via update_project_task) as well as posted a reply comment, so this
- * refreshes both the task list (source of truth for `latestTask` in the drawer) and the
- * history/comments thread -- a plain `addTaskComment` only needs the latter. */
+ * (status, hours, etc. via update_project_task), created a reminder (set_task_reminder), as
+ * well as posted a reply comment, so this refreshes the task list (source of truth for
+ * `latestTask` in the drawer), the history/comments thread, and this task's reminders --
+ * a plain `addTaskComment` only needs the history. Without the reminders refresh, IRIS setting
+ * a reminder wrote straight to the DB but the drawer's reminder badge (which reads from
+ * crmSlice's `state.reminders`, populated once on drawer open) never learned about it until the
+ * whole page was reloaded. */
 export const runIrisAction = createAsyncThunk(
 	'projects/runIrisAction',
 	async (
-		{ taskPublicId, projectPublicId, message }: { taskPublicId: string; projectPublicId: string; message: string },
+		{ taskId, taskPublicId, projectPublicId, message }: { taskId: number; taskPublicId: string; projectPublicId: string; message: string },
 		{ dispatch, rejectWithValue }
 	) => {
 		try {
@@ -326,6 +331,7 @@ export const runIrisAction = createAsyncThunk(
 			await Promise.all([
 				dispatch(fetchTaskHistory(taskPublicId)),
 				dispatch(fetchProjectTasks(projectPublicId)),
+				dispatch(fetchReminders({ entityType: 'project_task', entityId: taskId })),
 			]);
 			return comment;
 		} catch (error: any) {

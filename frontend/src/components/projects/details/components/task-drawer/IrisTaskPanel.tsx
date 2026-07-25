@@ -223,7 +223,7 @@ export const IrisTaskPanel: React.FC<IrisTaskPanelProps> = ({ open, onClose, tas
 	const handleConfirm = async () => {
 		setConfirming(true);
 		try {
-			await dispatch(runIrisAction({ taskPublicId: task.public_id, projectPublicId, message: message.trim() })).unwrap();
+			await dispatch(runIrisAction({ taskId: task.id, taskPublicId: task.public_id, projectPublicId, message: message.trim() })).unwrap();
 			setResultText('Done — see the task and its comment history for what changed.');
 			setPreview(null);
 			setMessage('');
