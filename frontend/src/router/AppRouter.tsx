@@ -5,6 +5,7 @@ import Dashboard from '../pages/dashboard';
 import OrgManagement from '../pages/org/OrgManagement';
 import { OrgConsole } from '../components/orgs';
 import ProtectedRoute from './ProtectedRoute';
+import RootRoute from './RootRoute';
 import MainLayout from '../components/layout/MainLayout';
 import SettingsLayout from '../components/layout/SettingsLayout';
 import SuccessPage from '../pages/common/SuccessPage';
@@ -43,6 +44,9 @@ const LegacyAuthRedirect: React.FC<{ to: string }> = ({ to }) => {
 const AppRouter: React.FC = () => {
 	return (
 		<Routes>
+			{/* Public marketing landing page — redirects signed-in users to their dashboard */}
+			<Route path="/" element={<RootRoute />} />
+
 			<Route path="/auth/login" element={<Login />} />
 			<Route path="/auth/register" element={<Register />} />
 			<Route path="/auth/forgot-password" element={<ForgotPassword />} />
@@ -79,7 +83,6 @@ const AppRouter: React.FC = () => {
 			<Route element={<ProtectedRoute />}>
 				{/* Protected Routes */}
 				<Route element={<MainLayout />}>
-					<Route path="/" element={<Navigate to="/dashboard" replace />} />
 					<Route path="dashboard" element={<Dashboard />} />
 					<Route path="users" element={<OrgManagement />} />
 					<Route path="organizations" element={<OrgConsole />} />

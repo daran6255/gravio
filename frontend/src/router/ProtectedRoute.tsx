@@ -66,15 +66,12 @@ const ProtectedRoute: React.FC = () => {
 	}
 
 	// Redirect tenant users if they access a route without the /org/:orgId prefix
+	// ("/" is handled by RootRoute before ProtectedRoute ever mounts, so pathname is never "/" here)
 	if (user?.organization?.public_id) {
 		const orgPrefix = `/org/${user.organization.public_id}`;
 		if (!location.pathname.startsWith('/org/') && location.pathname !== '/organizations') {
-			const targetPath = location.pathname === '/' ? '/dashboard' : location.pathname;
-			return <Navigate to={`${orgPrefix}${targetPath}${location.search}`} replace />;
+			return <Navigate to={`${orgPrefix}${location.pathname}${location.search}`} replace />;
 		}
-	} else if (location.pathname === '/') {
-		// Super Admin root redirect
-		return <Navigate to="/dashboard" replace />;
 	}
 
 	// User is authenticated, render protected content
