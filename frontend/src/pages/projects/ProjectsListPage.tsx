@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { Box, Container, Grid, Stack } from '@mui/material';
-import { HelpOutline as HelpIcon } from '@mui/icons-material';
+import {
+	HelpOutline as HelpIcon,
+	AutoAwesome,
+	ChatBubbleOutlineRounded,
+	ScheduleOutlined,
+	AccountTreeOutlined,
+	ShieldOutlined,
+	LightbulbOutlined,
+} from '@mui/icons-material';
 import { responsiveStyles } from '../../theme';
 import PageHeader from '../../components/common/page-header';
 import { HelpGuideButton } from '../../components/common/button';
@@ -20,7 +28,7 @@ import {
 const guideContent = {
 	icon: HelpIcon,
 	title: 'Projects Workspace Guide',
-	subtitle: 'Learn how to create projects, configure tasks, and assign team members.',
+	subtitle: 'Learn how to create projects, manage tasks, and work with IRIS.',
 	banner: {
 		title: 'Welcome to your Projects Workspace!',
 		description: 'Configure delivery projects, assign owners, and track deliverables. Let\'s get started by creating your first project.'
@@ -28,49 +36,100 @@ const guideContent = {
 	tabs: [
 		{
 			label: 'Project Setup',
-			intro: 'Follow these steps to establish a new delivery project:',
+			intro: 'Three steps to get a new delivery project up and running:',
 			steps: [
 				{
 					marker: '1',
 					accent: 'primary' as const,
-					title: 'Create Project Workspace',
-					description: 'Click "Create Project" or convert won deals from CRM to initialize a delivery workspace.'
+					title: 'Create the project',
+					description: 'Click "Create Project" to start one from scratch, or convert a Won deal from the CRM — either way, a new delivery workspace is set up for you.'
 				},
 				{
 					marker: '2',
 					accent: 'info' as const,
-					title: 'Assign Project Owner',
-					description: 'Set a manager or administrator as the project owner to oversee deliverables, timelines, and budgets.'
+					title: 'Assign a project owner',
+					description: 'Pick a manager or administrator as the owner. They\'re responsible for deliverables, timelines, and budget for this project.'
 				},
 				{
 					marker: '3',
 					accent: 'success' as const,
-					title: 'Manage Timelines & Budgets',
-					description: 'Set start/end dates and allocate estimated hours to measure performance and delivery efficiency.'
+					title: 'Set timelines & budget',
+					description: 'Add a start/end date and an estimated-hours budget. These are what the Projects dashboard uses to flag things as on track, at risk, or overdue.'
 				}
 			]
 		},
 		{
 			label: 'Tasks & Sub-tasks',
-			intro: 'Define operational tasks and sub-tasks within your project. Here is how creation fields help your team:',
+			intro: 'Open a project to break its work into tasks, and tasks into sub-tasks. Here\'s what each field is for:',
 			steps: [
 				{
 					marker: '1',
 					accent: 'primary' as const,
-					title: 'Hierarchy (Tasks & Sub-tasks)',
-					description: 'Break down deliverables into parent tasks (e.g., "Frontend") and child sub-tasks (e.g., "Dashboard UI"). This structure helps organize work scopes clearly.'
+					title: 'Tasks vs. sub-tasks',
+					description: 'A task is a chunk of work (e.g. "Frontend"). A sub-task is a smaller piece of it (e.g. "Dashboard UI"). Use both to keep a project organized instead of one long flat list.'
 				},
 				{
 					marker: '2',
 					accent: 'info' as const,
-					title: 'Key Fields Explained',
-					description: '• Title: Defines the deliverable.\n• Assignees: Only assigned resources can select and log hours on this task in their weekly timesheets.\n• Estimated Hours: Sets an effort budget.\n• Billing Type: Mark as Billable or Non-Billable.'
+					title: 'The fields that matter most',
+					description: '• Title — what needs to get done.\n• Assignees — only people assigned to a task can log hours against it in their weekly timesheet.\n• Estimated Hours — the effort budget you\'re measuring actuals against.\n• Billing Type — Billable or Non-Billable, so client hours and internal work don\'t get mixed up.'
 				},
 				{
 					marker: '3',
 					accent: 'success' as const,
-					title: 'How It Helps You',
-					description: '• Restricts unauthorized logging by resource allocation.\n• Compares estimated hours vs. actual logged timesheet hours in real-time.\n• Distinguishes billable clients hours from internal overhead tasks.'
+					title: 'Why it\'s worth setting up properly',
+					description: '• Prevents people from logging time on work that isn\'t theirs.\n• Lets you compare estimated vs. actual hours in real time.\n• Keeps billable client hours cleanly separated from internal overhead.'
+				}
+			]
+		},
+		{
+			label: 'Ask IRIS',
+			intro: 'IRIS is your AI co-worker inside every task. Open a task and click "Ask IRIS" (top-right of the task drawer) to use it. Nothing IRIS suggests is applied until you click Confirm.',
+			infoSections: [
+				{
+					heading: 'What IRIS can do for a task',
+					cards: [
+						{
+							title: 'Get insights',
+							icons: [AutoAwesome],
+							description: 'IRIS reads the task and tells you if it\'s On track, At risk, or Blocked, with plain-language reasons and suggestions — useful for a quick health check before a status meeting.'
+						},
+						{
+							title: 'Get an estimate',
+							icons: [ScheduleOutlined],
+							description: 'IRIS suggests an hour estimate based on the task\'s description and similar work, with a short rationale. One click applies it to the task\'s Estimated Hours field.'
+						},
+						{
+							title: 'Ask it to make changes',
+							icons: [ChatBubbleOutlineRounded, AccountTreeOutlined],
+							description: 'Type a plain-English instruction — "break this into subtasks", "mark all subtasks done", "bump this to high priority", "summarize the comments" — or use the quick-action chips for the common ones.'
+						},
+						{
+							title: 'Enhance a description',
+							icons: [AutoAwesome],
+							description: 'While writing or editing a task\'s description, click "Enhance with IRIS" to fix typos, tighten the wording, or expand a rough note into a fuller description.'
+						}
+					]
+				}
+			],
+			tips: [
+				{
+					icon: ShieldOutlined,
+					accent: 'primary' as const,
+					title: 'IRIS always proposes before it acts',
+					description: 'Every request first shows a plan — the exact fields it will change or subtasks it will create. Nothing happens until you click Confirm, and you can cancel or ask a follow-up question instead.'
+				},
+				{
+					icon: LightbulbOutlined,
+					accent: 'success' as const,
+					title: 'If IRIS asks a question, just answer it',
+					description: 'Sometimes IRIS needs more detail before it can propose a plan (e.g. "how many subtasks?"). Reply in the same box — it remembers what you originally asked and re-plans with your answer.'
+				},
+				{
+					icon: AutoAwesome,
+					accent: 'info' as const,
+					title: 'Every IRIS action is logged',
+					description: 'Anything IRIS confirms and does shows up in the task\'s "Recent activity" and full history, so the rest of the team can see what changed and why.'
 				}
 			]
 		}
