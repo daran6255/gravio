@@ -78,7 +78,7 @@ const Dashboard: React.FC = () => {
 							<TeamRoleDistributionPanel />
 						</Grid>
 						<Grid size={{ xs: 12, md: 4 }}>
-							<AiUsageChartPanel />
+							<AiUsageChartPanel scope="organization" />
 						</Grid>
 						<Grid size={{ xs: 12, md: 4 }}>
 							<OrgAdminQuickActions />

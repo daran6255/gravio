@@ -1,26 +1,46 @@
-import React from 'react';
-import { Card, CardContent, Typography, Box, useTheme, alpha } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, Typography, Box, useTheme, alpha, Skeleton } from '@mui/material';
 import { Bolt } from '@mui/icons-material';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAppSelector } from '../../../store/hooks';
+import aiService, { type AIUsageSummary } from '../../../services/aiService';
 
-const MOCK_DATA = [
-	{ date: 'Jul 12', usage: 12 },
-	{ date: 'Jul 13', usage: 15 },
-	{ date: 'Jul 14', usage: 8 },
-	{ date: 'Jul 15', usage: 22 },
-	{ date: 'Jul 16', usage: 19 },
-	{ date: 'Jul 17', usage: 28 },
-	{ date: 'Jul 18', usage: 35 },
-];
+interface AiUsageChartPanelProps {
+	/** 'organization' combines every member's usage (org-admin view); 'mine' is just the caller's own. */
+	scope?: 'mine' | 'organization';
+}
 
-export const AiUsageChartPanel: React.FC = () => {
+export const AiUsageChartPanel: React.FC<AiUsageChartPanelProps> = ({ scope = 'mine' }) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const org = useAppSelector((state) => state.auth.user?.organization);
 
+	const [usage, setUsage] = useState<AIUsageSummary | null>(null);
+	const [loading, setLoading] = useState(true);
+
+	useEffect(() => {
+		let cancelled = false;
+		setLoading(true);
+		aiService.getUsageSummary(scope)
+			.then((u) => {
+				if (!cancelled) setUsage(u);
+			})
+			.catch(() => {})
+			.finally(() => {
+				if (!cancelled) setLoading(false);
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [scope]);
+
 	const aiLimit = org?.plan?.ai_monthly_limit ?? 100;
-	const totalUsedThisWeek = MOCK_DATA.reduce((sum, d) => sum + d.usage, 0);
+
+	const chartData = (usage?.daily_trend || []).slice(-7).map((d) => ({
+		date: new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+		usage: d.credits,
+	}));
+	const totalUsedThisWeek = chartData.reduce((sum, d) => sum + d.usage, 0);
 
 	const cardBg = theme.gradients.card;
 
@@ -48,43 +68,63 @@ export const AiUsageChartPanel: React.FC = () => {
 					</Box>
 				</Box>
 
-				<Box display="flex" gap={2} sx={{ mb: 2 }}>
-					<Box>
-						<Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', lineHeight: 1 }}>
-							{totalUsedThisWeek}
-						</Typography>
-						<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-							Consumed this week
-						</Typography>
-					</Box>
-					<Box sx={{ width: '1px', bgcolor: theme.palette.divider }} />
-					<Box>
-						<Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', lineHeight: 1 }}>
-							{Math.max(0, aiLimit - totalUsedThisWeek)}
-						</Typography>
-						<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-							Remaining quota
-						</Typography>
-					</Box>
-				</Box>
+				{loading ? (
+					<>
+						<Box display="flex" gap={2} sx={{ mb: 2 }}>
+							<Skeleton variant="text" width={80} height={40} />
+							<Skeleton variant="text" width={80} height={40} />
+						</Box>
+						<Skeleton variant="rounded" sx={{ flexGrow: 1, minHeight: 110 }} />
+					</>
+				) : (
+					<>
+						<Box display="flex" gap={2} sx={{ mb: 2 }}>
+							<Box>
+								<Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', lineHeight: 1 }}>
+									{totalUsedThisWeek}
+								</Typography>
+								<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+									Consumed this week
+								</Typography>
+							</Box>
+							<Box sx={{ width: '1px', bgcolor: theme.palette.divider }} />
+							<Box>
+								<Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', lineHeight: 1 }}>
+									{Math.max(0, aiLimit - (usage?.total_credits_consumed ?? 0))}
+								</Typography>
+								<Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+									Remaining quota
+								</Typography>
+							</Box>
+						</Box>
 
-				<Box sx={{ flexGrow: 1, minHeight: 110, width: '100%' }}>
-					<ResponsiveContainer width="100%" height="100%">
-						<AreaChart data={MOCK_DATA} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-							<defs>
-								<linearGradient id="aiUsageGradient" x1="0" y1="0" x2="0" y2="1">
-									<stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={isDark ? 0.35 : 0.25} />
-									<stop offset="95%" stopColor={theme.palette.primary.main} stopOpacity={0} />
-								</linearGradient>
-							</defs>
-							<CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'} />
-							<XAxis dataKey="date" tickLine={false} axisLine={false} style={{ fontSize: '0.62rem', fontWeight: 600, fill: theme.palette.text.secondary }} />
-							<YAxis tickLine={false} axisLine={false} style={{ fontSize: '0.62rem', fontWeight: 600, fill: theme.palette.text.secondary }} />
-							<Tooltip contentStyle={{ background: theme.palette.background.paper, border: `1px solid ${theme.palette.divider}`, borderRadius: 8, fontSize: 11 }} />
-							<Area type="monotone" dataKey="usage" stroke={theme.palette.primary.main} strokeWidth={2.5} fillOpacity={1} fill="url(#aiUsageGradient)" />
-						</AreaChart>
-					</ResponsiveContainer>
-				</Box>
+						<Box sx={{ flexGrow: 1, minHeight: 110, width: '100%' }}>
+							{chartData.length > 0 ? (
+								<ResponsiveContainer width="100%" height="100%">
+									<AreaChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+										<defs>
+											<linearGradient id="aiUsageGradient" x1="0" y1="0" x2="0" y2="1">
+												<stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={isDark ? 0.35 : 0.25} />
+												<stop offset="95%" stopColor={theme.palette.primary.main} stopOpacity={0} />
+											</linearGradient>
+										</defs>
+										<CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'} />
+										<XAxis dataKey="date" tickLine={false} axisLine={false} style={{ fontSize: '0.62rem', fontWeight: 600, fill: theme.palette.text.secondary }} />
+										<YAxis tickLine={false} axisLine={false} style={{ fontSize: '0.62rem', fontWeight: 600, fill: theme.palette.text.secondary }} />
+										<Tooltip contentStyle={{ background: theme.palette.background.paper, border: `1px solid ${theme.palette.divider}`, borderRadius: 8, fontSize: 11 }} />
+										<Area type="monotone" dataKey="usage" stroke={theme.palette.primary.main} strokeWidth={2.5} fillOpacity={1} fill="url(#aiUsageGradient)" />
+									</AreaChart>
+								</ResponsiveContainer>
+							) : (
+								<Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+									<Typography variant="caption" color="text.secondary">
+										No AI usage yet this week.
+									</Typography>
+								</Box>
+							)}
+						</Box>
+					</>
+				)}
 			</CardContent>
 		</Card>
 	);
