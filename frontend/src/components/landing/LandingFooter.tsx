@@ -48,7 +48,7 @@ const LandingFooter: React.FC = () => {
 							component="img"
 							src="/assets/img/logo/gravit-light.svg"
 							alt="Gravit"
-							sx={{ height: 28, cursor: 'pointer', mb: 2 }}
+							sx={{ height: 48, cursor: 'pointer', mb: 2 }}
 							onClick={() => navigate('/')}
 						/>
 						<Typography sx={{ color: theme.palette.text.secondary, fontSize: '0.9rem', lineHeight: 1.6, maxWidth: 280 }}>

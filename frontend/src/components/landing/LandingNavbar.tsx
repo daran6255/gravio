@@ -53,7 +53,7 @@ const LandingNavbar: React.FC = () => {
 						component="img"
 						src="/assets/img/logo/gravit-light.svg"
 						alt="Gravit"
-						sx={{ height: 32, cursor: 'pointer' }}
+						sx={{ height: 48, cursor: 'pointer' }}
 						onClick={() => navigate('/')}
 					/>
 
