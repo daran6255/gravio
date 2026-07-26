@@ -23,11 +23,11 @@ const CAPABILITIES = [
 ];
 
 const ORBIT_ITEMS = [
-	{ icon: GroupsIcon, color: '#8B7CF6', radius: 66, duration: 16, delay: 0, reverse: false },
-	{ icon: ScheduleIcon, color: '#f59e0b', radius: 66, duration: 16, delay: -8, reverse: false },
-	{ icon: AccountTreeIcon, color: '#4EA8FF', radius: 118, duration: 24, delay: 0, reverse: true },
-	{ icon: BadgeIcon, color: '#10b981', radius: 118, duration: 24, delay: -8, reverse: true },
-	{ icon: CalendarMonthIcon, color: '#ef4444', radius: 118, duration: 24, delay: -16, reverse: true },
+	{ icon: GroupsIcon, color: '#8B7CF6', radius: 66, duration: 9, delay: 0, reverse: false },
+	{ icon: ScheduleIcon, color: '#f59e0b', radius: 66, duration: 9, delay: -4.5, reverse: false },
+	{ icon: AccountTreeIcon, color: '#4EA8FF', radius: 118, duration: 15, delay: 0, reverse: true },
+	{ icon: BadgeIcon, color: '#10b981', radius: 118, duration: 15, delay: -5, reverse: true },
+	{ icon: CalendarMonthIcon, color: '#ef4444', radius: 118, duration: 15, delay: -10, reverse: true },
 ];
 
 const FEED_ITEMS = [
@@ -40,18 +40,23 @@ const FEED_ITEMS = [
 ];
 
 const spin = keyframes`from { transform: rotate(0deg); } to { transform: rotate(360deg); }`;
-const spinCounter = keyframes`from { transform: rotate(-0deg); } to { transform: rotate(-360deg); }`;
 const spinReverse = keyframes`from { transform: rotate(360deg); } to { transform: rotate(0deg); }`;
-const spinReverseCounter = keyframes`from { transform: rotate(-360deg); } to { transform: rotate(-0deg); }`;
+
+const counterSpin = keyframes`
+	from { transform: translate(-50%, -50%) rotate(0deg); }
+	to { transform: translate(-50%, -50%) rotate(-360deg); }
+`;
+const counterSpinReverse = keyframes`
+	from { transform: translate(-50%, -50%) rotate(-360deg); }
+	to { transform: translate(-50%, -50%) rotate(0deg); }
+`;
 const slideFadeIn = keyframes`from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); }`;
 
 const OrbitingCircles: React.FC = () => {
 	const theme = useTheme();
-	const reduced = prefersReducedMotion();
 
 	return (
 		<Box sx={{ position: 'relative', width: 260, height: 260, mx: 'auto' }}>
-			{/* Ring guides */}
 			{[132, 236].map((size) => (
 				<Box
 					key={size}
@@ -68,7 +73,6 @@ const OrbitingCircles: React.FC = () => {
 				/>
 			))}
 
-			{/* IRIS core */}
 			<Box
 				sx={{
 					position: 'absolute',
@@ -98,9 +102,8 @@ const OrbitingCircles: React.FC = () => {
 						left: '50%',
 						width: 0,
 						height: 0,
-						animation: reduced ? 'none' : `${item.reverse ? spinReverse : spin} ${item.duration}s linear infinite`,
+						animation: `${item.reverse ? spinReverse : spin} ${item.duration}s linear infinite`,
 						animationDelay: `${item.delay}s`,
-						transform: reduced ? `rotate(${(i * 360) / ORBIT_ITEMS.length}deg)` : undefined,
 					}}
 				>
 					<Box
@@ -108,8 +111,7 @@ const OrbitingCircles: React.FC = () => {
 							position: 'absolute',
 							top: 0,
 							left: item.radius,
-							transform: 'translate(-50%, -50%)',
-							animation: reduced ? 'none' : `${item.reverse ? spinReverseCounter : spinCounter} ${item.duration}s linear infinite`,
+							animation: `${item.reverse ? counterSpinReverse : counterSpin} ${item.duration}s linear infinite`,
 							animationDelay: `${item.delay}s`,
 						}}
 					>
