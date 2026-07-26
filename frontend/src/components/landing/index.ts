@@ -3,6 +3,7 @@ export { default as HeroSection } from './HeroSection';
 export { default as LogosStrip } from './LogosStrip';
 export { default as ProblemSection } from './ProblemSection';
 export { default as FeaturesSection } from './FeaturesSection';
+export { default as DashboardPreviewSection } from './DashboardPreviewSection';
 export { default as IRISSection } from './IRISSection';
 export { default as HowItWorksSection } from './HowItWorksSection';
 export { default as TestimonialsSection } from './TestimonialsSection';

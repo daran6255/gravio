@@ -8,6 +8,7 @@ import {
 	LogosStrip,
 	ProblemSection,
 	FeaturesSection,
+	DashboardPreviewSection,
 	IRISSection,
 	HowItWorksSection,
 	TrustStrip,
@@ -33,6 +34,7 @@ const LandingPage: React.FC = () => {
 				<LogosStrip />
 				<ProblemSection />
 				<FeaturesSection />
+				<DashboardPreviewSection />
 				<IRISSection />
 				<HowItWorksSection />
 				<TrustStrip />
