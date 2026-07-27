@@ -95,6 +95,7 @@ const pulse = keyframes`
 
 // Large avatar stack + flowing progress track, filling the card's upper/main area.
 const PipelineVisual: React.FC<{ color: string }> = ({ color }) => {
+	const theme = useTheme();
 	const { ref, visible } = useOnceVisible<HTMLDivElement>();
 	const segments = [
 		{ width: 55, shade: 0.35 },
@@ -112,7 +113,7 @@ const PipelineVisual: React.FC<{ color: string }> = ({ color }) => {
 							width: { xs: 44, sm: 54 },
 							height: { xs: 44, sm: 54 },
 							borderRadius: '50%',
-							border: '3px solid #0B0D12',
+							border: `3px solid ${theme.palette.background.default}`,
 							background: `linear-gradient(135deg, ${alpha(color, 0.95 - i * 0.08)}, ${alpha(color, 0.5 - i * 0.05)})`,
 							boxShadow: `0 10px 24px ${alpha(color, 0.4)}`,
 							ml: i === 0 ? 0 : -1.75,
@@ -167,6 +168,7 @@ const BoardVisual: React.FC<{ color: string }> = ({ color }) => {
 // Large SVG progress ring standing in for "hours logged" — animates its sweep
 // once on scroll-in via stroke-dashoffset (transform/opacity-adjacent, GPU friendly).
 const TimesheetVisual: React.FC<{ color: string }> = ({ color }) => {
+	const theme = useTheme();
 	const { ref, visible } = useOnceVisible<HTMLDivElement>();
 	const size = 168;
 	const stroke = 11;
@@ -183,7 +185,7 @@ const TimesheetVisual: React.FC<{ color: string }> = ({ color }) => {
 					viewBox={`0 0 ${size} ${size}`}
 					style={{ transform: 'rotate(-90deg)', filter: `drop-shadow(0 0 18px ${alpha(color, 0.45)})` }}
 				>
-					<circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={alpha('#ffffff', 0.1)} strokeWidth={stroke} />
+					<circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={alpha(theme.palette.text.primary, 0.1)} strokeWidth={stroke} />
 					<circle
 						cx={size / 2}
 						cy={size / 2}
@@ -197,7 +199,7 @@ const TimesheetVisual: React.FC<{ color: string }> = ({ color }) => {
 						style={{ transition: 'stroke-dashoffset 900ms ease-out' }}
 					/>
 				</svg>
-				<Typography sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: { xs: '1.4rem', sm: '1.7rem' }, fontWeight: 800, color: '#ffffff' }}>
+				<Typography sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: { xs: '1.4rem', sm: '1.7rem' }, fontWeight: 800, color: theme.palette.common.white }}>
 					72%
 				</Typography>
 			</Box>
@@ -230,25 +232,28 @@ const HRVisual: React.FC<{ color: string }> = ({ color }) => (
 );
 
 // Enlarged calendar grid with one highlighted, pulsing booked slot.
-const BookingVisual: React.FC<{ color: string }> = ({ color }) => (
-	<Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pb: '24%' }}>
-		<Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: { xs: 0.8, sm: 1 }, width: { xs: 196, sm: 234 } }}>
-			{Array.from({ length: 21 }).map((_, i) => (
-				<Box
-					key={i}
-					sx={{
-						aspectRatio: '1',
-						borderRadius: '6px',
-						background: i === 15 ? `linear-gradient(135deg, ${color}, ${alpha(color, 0.7)})` : alpha('#ffffff', 0.08),
-						boxShadow: i === 15 ? `0 8px 20px ${alpha(color, 0.55)}` : 'none',
-						animation: i === 15 ? `${pulse} 2.4s ease-in-out infinite` : 'none',
-						'@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-					}}
-				/>
-			))}
+const BookingVisual: React.FC<{ color: string }> = ({ color }) => {
+	const theme = useTheme();
+	return (
+		<Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pb: '24%' }}>
+			<Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: { xs: 0.8, sm: 1 }, width: { xs: 196, sm: 234 } }}>
+				{Array.from({ length: 21 }).map((_, i) => (
+					<Box
+						key={i}
+						sx={{
+							aspectRatio: '1',
+							borderRadius: '6px',
+							background: i === 15 ? `linear-gradient(135deg, ${color}, ${alpha(color, 0.7)})` : alpha(theme.palette.text.primary, 0.08),
+							boxShadow: i === 15 ? `0 8px 20px ${alpha(color, 0.55)}` : 'none',
+							animation: i === 15 ? `${pulse} 2.4s ease-in-out infinite` : 'none',
+							'@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+						}}
+					/>
+				))}
+			</Box>
 		</Box>
-	</Box>
-);
+	);
+};
 
 const FeaturesSection: React.FC = () => {
 	const theme = useTheme();
@@ -320,8 +325,8 @@ const FeaturesSection: React.FC = () => {
 										minHeight: { xs: 300, sm: 340, md: 380 },
 										borderRadius: bentoRadius,
 										overflow: 'hidden',
-										border: `1px solid ${alpha('#ffffff', 0.08)}`,
-										background: `radial-gradient(120% 90% at 50% 0%, ${alpha(module.color, 0.4)} 0%, ${alpha(module.color, 0.1)} 45%, #0B0D12 100%)`,
+										border: `1px solid ${theme.palette.divider}`,
+										background: `radial-gradient(120% 90% at 50% 0%, ${alpha(module.color, 0.4)} 0%, ${alpha(module.color, 0.1)} 45%, ${theme.palette.background.default} 100%)`,
 										boxShadow: `0 1px 2px rgba(15,23,42,0.04), 0 12px 28px -20px ${alpha(module.color, 0.4)}`,
 										transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 320ms ease-out, border-color 320ms ease-out',
 										'&:hover': {
@@ -348,7 +353,7 @@ const FeaturesSection: React.FC = () => {
 											position: 'absolute',
 											inset: 0,
 											opacity: 0.5,
-											backgroundImage: `radial-gradient(${alpha('#ffffff', 0.14)} 1px, transparent 1px)`,
+											backgroundImage: `radial-gradient(${alpha(theme.palette.text.primary, 0.14)} 1px, transparent 1px)`,
 											backgroundSize: '18px 18px',
 											maskImage: 'radial-gradient(ellipse at 50% 20%, black 0%, transparent 72%)',
 											WebkitMaskImage: 'radial-gradient(ellipse at 50% 20%, black 0%, transparent 72%)',
@@ -370,7 +375,7 @@ const FeaturesSection: React.FC = () => {
 										sx={{
 											position: 'absolute',
 											inset: 0,
-											background: `radial-gradient(320px circle at var(--x, 50%) var(--y, 50%), ${alpha('#ffffff', 0.08)}, transparent 70%)`,
+											background: `radial-gradient(320px circle at var(--x, 50%) var(--y, 50%), ${alpha(theme.palette.text.primary, 0.08)}, transparent 70%)`,
 											opacity: 0,
 											transition: 'opacity 250ms ease-out',
 											pointerEvents: 'none',
@@ -398,8 +403,8 @@ const FeaturesSection: React.FC = () => {
 												display: 'flex',
 												alignItems: 'center',
 												justifyContent: 'center',
-												bgcolor: alpha('#ffffff', 0.12),
-												border: `1px solid ${alpha('#ffffff', 0.18)}`,
+												bgcolor: alpha(theme.palette.text.primary, 0.12),
+												border: `1px solid ${theme.palette.divider}`,
 												backdropFilter: 'blur(8px)',
 												transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
 												mb: 1.75,
@@ -411,7 +416,7 @@ const FeaturesSection: React.FC = () => {
 											sx={{
 												fontWeight: 800,
 												fontSize: isWide ? '1.25rem' : '1.1rem',
-												color: '#ffffff',
+												color: theme.palette.common.white,
 												mb: 0.75,
 												lineHeight: 1.3,
 												letterSpacing: '-0.01em',
@@ -419,7 +424,7 @@ const FeaturesSection: React.FC = () => {
 										>
 											{module.lead}
 										</Typography>
-										<Typography sx={{ color: alpha('#ffffff', 0.75), fontSize: '0.88rem', lineHeight: 1.55, maxWidth: isWide ? 440 : undefined }}>
+										<Typography sx={{ color: alpha(theme.palette.common.white, 0.75), fontSize: '0.88rem', lineHeight: 1.55, maxWidth: isWide ? 440 : undefined }}>
 											{module.description}
 										</Typography>
 

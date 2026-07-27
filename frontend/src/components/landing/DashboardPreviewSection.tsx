@@ -501,20 +501,25 @@ const DashboardPreviewSection: React.FC = () => {
 							{/* App body */}
 							<Stack direction="row">
 								{/* Sidebar */}
-								<Box sx={{ display: { xs: 'none', sm: 'block' }, width: 176, flexShrink: 0, bgcolor: '#0B0D12', p: 2 }}>
-									<Box component="img" src="/assets/img/logo/gravit-dark.svg" alt="Gravit" sx={{ height: 18, mb: 2, display: 'block' }} />
-									<Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 2, p: 0.75, borderRadius: 1.5, bgcolor: alpha('#F4F5F7', 0.05) }}>
+								<Box sx={{ display: { xs: 'none', sm: 'block' }, width: 176, flexShrink: 0, bgcolor: theme.layout.sidebar.background, borderRight: `1px solid ${theme.layout.sidebar.divider}`, p: 2 }}>
+									<Box
+										component="img"
+										src={theme.palette.mode === 'dark' ? '/assets/img/logo/gravit-light.svg' : '/assets/img/logo/gravit-dark.svg'}
+										alt="Gravit"
+										sx={{ height: 18, mb: 2, display: 'block' }}
+									/>
+									<Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 2, p: 0.75, borderRadius: 1.5, bgcolor: theme.layout.sidebar.hoverBg }}>
 										<Box sx={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: theme.gradients.brandDiagonal }}>
-											<Typography sx={{ fontSize: '0.5rem', fontWeight: 800, color: '#fff' }}>NL</Typography>
+											<Typography sx={{ fontSize: '0.5rem', fontWeight: 800, color: theme.palette.common.white }}>NL</Typography>
 										</Box>
-										<Typography sx={{ fontSize: '0.58rem', fontWeight: 700, color: alpha('#F4F5F7', 0.85) }} noWrap>
+										<Typography sx={{ fontSize: '0.58rem', fontWeight: 700, color: theme.layout.sidebar.text }} noWrap>
 											Northline IT
 										</Typography>
 									</Stack>
 									<Stack spacing={1.25}>
 										{NAV_GROUPS.map((group) => (
 											<Box key={group.label}>
-												<Typography sx={{ fontSize: '0.52rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: alpha('#F4F5F7', 0.35), mb: 0.4, px: 1 }}>
+												<Typography sx={{ fontSize: '0.52rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: theme.layout.sidebar.textMuted, mb: 0.4, px: 1 }}>
 													{group.label}
 												</Typography>
 												<Stack spacing={0.15}>
@@ -524,10 +529,10 @@ const DashboardPreviewSection: React.FC = () => {
 															direction="row"
 															alignItems="center"
 															spacing={0.85}
-															sx={{ px: 1, py: 0.4, borderRadius: 1, bgcolor: item.active ? alpha('#8B7CF6', 0.18) : 'transparent' }}
+															sx={{ px: 1, py: 0.4, borderRadius: 1, bgcolor: item.active ? alpha(theme.palette.primary.main, 0.18) : 'transparent' }}
 														>
-															<item.icon sx={{ fontSize: 12, color: item.active ? '#B2A7FF' : alpha('#F4F5F7', 0.55) }} />
-															<Typography sx={{ fontSize: '0.62rem', fontWeight: item.active ? 700 : 500, color: item.active ? '#F4F5F7' : alpha('#F4F5F7', 0.55) }} noWrap>
+															<item.icon sx={{ fontSize: 12, color: item.active ? theme.palette.primary.light : alpha(theme.layout.sidebar.text, 0.55) }} />
+															<Typography sx={{ fontSize: '0.62rem', fontWeight: item.active ? 700 : 500, color: item.active ? theme.layout.sidebar.textHover : alpha(theme.layout.sidebar.text, 0.55) }} noWrap>
 																{item.label}
 															</Typography>
 														</Stack>

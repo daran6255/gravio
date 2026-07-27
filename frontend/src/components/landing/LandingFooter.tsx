@@ -46,7 +46,7 @@ const LandingFooter: React.FC = () => {
 					<Box>
 						<Box
 							component="img"
-							src="/assets/img/logo/gravit-light.svg"
+							src={theme.palette.mode === 'dark' ? '/assets/img/logo/gravit-dark.svg' : '/assets/img/logo/gravit-light.svg'}
 							alt="Gravit"
 							sx={{ height: 48, cursor: 'pointer', mb: 2 }}
 							onClick={() => navigate('/')}

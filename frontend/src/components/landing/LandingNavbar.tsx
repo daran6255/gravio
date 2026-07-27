@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Button, Container, IconButton, Drawer, Stack, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { Menu as MenuIcon, Close as CloseIcon } from '@mui/icons-material';
+import { Menu as MenuIcon, Close as CloseIcon, LightMode as LightModeIcon, DarkMode as DarkModeIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useResponsive } from '../../theme/responsive';
+import { useColorMode } from '../../theme/ThemeContext';
 
 const NAV_LINKS = [
 	{ label: 'Platform', href: '#platform' },
@@ -20,6 +21,7 @@ const LandingNavbar: React.FC = () => {
 	const theme = useTheme();
 	const navigate = useNavigate();
 	const { isMobile } = useResponsive();
+	const { mode, toggleColorMode } = useColorMode();
 	const [scrolled, setScrolled] = useState(false);
 	const [menuOpen, setMenuOpen] = useState(false);
 
@@ -52,7 +54,7 @@ const LandingNavbar: React.FC = () => {
 				<Box sx={{ height: 72, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
 					<Box
 						component="img"
-						src="/assets/img/logo/gravit-light.svg"
+						src={theme.palette.mode === 'dark' ? '/assets/img/logo/gravit-dark.svg' : '/assets/img/logo/gravit-light.svg'}
 						alt="Gravit"
 						sx={{ height: 48, cursor: 'pointer' }}
 						onClick={() => navigate('/')}
@@ -87,6 +89,9 @@ const LandingNavbar: React.FC = () => {
 
 					{!isMobile ? (
 						<Stack direction="row" spacing={1.5} alignItems="center">
+							<IconButton onClick={toggleColorMode} sx={{ color: theme.palette.text.primary, mr: 0.5 }} aria-label="Toggle theme">
+								{mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+							</IconButton>
 							<Button onClick={() => navigate('/auth/login')} sx={{ color: theme.palette.text.primary, fontWeight: 600 }}>
 								Sign In
 							</Button>
@@ -106,9 +111,14 @@ const LandingNavbar: React.FC = () => {
 							</Button>
 						</Stack>
 					) : (
-						<IconButton onClick={() => setMenuOpen(true)} sx={{ color: theme.palette.text.primary }} aria-label="Open menu">
-							<MenuIcon />
-						</IconButton>
+						<Stack direction="row" spacing={1} alignItems="center">
+							<IconButton onClick={toggleColorMode} sx={{ color: theme.palette.text.primary }} aria-label="Toggle theme">
+								{mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+							</IconButton>
+							<IconButton onClick={() => setMenuOpen(true)} sx={{ color: theme.palette.text.primary }} aria-label="Open menu">
+								<MenuIcon />
+							</IconButton>
+						</Stack>
 					)}
 				</Box>
 			</Container>
@@ -155,6 +165,14 @@ const LandingNavbar: React.FC = () => {
 					>
 						Start Free Trial
 					</Button>
+					<Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 1, pt: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
+						<Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: theme.palette.text.primary }}>
+							{mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
+						</Typography>
+						<IconButton onClick={toggleColorMode} sx={{ color: theme.palette.text.primary }} aria-label="Toggle theme">
+							{mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+						</IconButton>
+					</Stack>
 				</Stack>
 			</Drawer>
 		</Box>
