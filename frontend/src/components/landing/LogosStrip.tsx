@@ -26,7 +26,7 @@ const LogosStrip: React.FC = () => {
 	const track = [...PLACEHOLDER_LOGOS, ...PLACEHOLDER_LOGOS];
 
 	return (
-		<Box component="section" sx={{ bgcolor: theme.palette.background.default, borderBottom: `1px solid ${theme.palette.divider}`, py: 5 }}>
+		<Box component="section" sx={{ bgcolor: theme.palette.background.default, borderBottom: `1px solid ${theme.palette.divider}`, py: 5, overflowX: 'hidden' }}>
 			<Container maxWidth="lg">
 				<Typography
 					sx={{
@@ -59,7 +59,6 @@ const LogosStrip: React.FC = () => {
 					sx={{
 						width: 'max-content',
 						animation: `${scroll} 32s linear infinite`,
-						'@media (prefers-reduced-motion: reduce)': { animation: 'none' },
 					}}
 				>
 					{track.map((logo, i) => (

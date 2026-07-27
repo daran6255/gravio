@@ -13,8 +13,6 @@ import {
 } from '@mui/icons-material';
 import Reveal from './Reveal';
 
-const prefersReducedMotion = () =>
-	typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const CAPABILITIES = [
 	{ title: 'It plans', description: 'Breaks a request into concrete steps using what\'s already in your CRM, projects, and HR.' },
@@ -144,7 +142,6 @@ const AnimatedFeed: React.FC = () => {
 	const [items, setItems] = useState(() => FEED_ITEMS.slice(0, 3).map((text, i) => ({ id: i, text })));
 
 	useEffect(() => {
-		if (prefersReducedMotion()) return;
 		const interval = setInterval(() => {
 			setItems((prev) => {
 				const text = FEED_ITEMS[nextIndexRef.current % FEED_ITEMS.length];

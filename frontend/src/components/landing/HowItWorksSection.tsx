@@ -10,12 +10,11 @@ import {
 } from '@mui/icons-material';
 import Reveal from './Reveal';
 
-const prefersReducedMotion = () =>
-	typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 
 const useOnceVisible = <T extends HTMLElement>() => {
 	const ref = useRef<T | null>(null);
-	const [visible, setVisible] = useState(prefersReducedMotion());
+	const [visible, setVisible] = useState(false);
 	useEffect(() => {
 		if (visible) return;
 		const node = ref.current;
@@ -25,7 +24,7 @@ const useOnceVisible = <T extends HTMLElement>() => {
 				setVisible(true);
 				observer.disconnect();
 			}
-		}, { threshold: 0.35 });
+		}, { threshold: 0.05 });
 		observer.observe(node);
 		return () => observer.disconnect();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -58,11 +57,11 @@ const HowItWorksSection: React.FC = () => {
 	// Plays once, the moment the steps scroll into view: each circle lights up
 	// (active pulse), then flips to a green check before the next one starts —
 	// reads as the steps completing one by one, not a static checklist.
-	const [doneCount, setDoneCount] = useState(prefersReducedMotion() ? STEPS.length : 0);
+	const [doneCount, setDoneCount] = useState(0);
 	const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
 	useEffect(() => {
-		if (!visible || prefersReducedMotion()) return;
+		if (!visible) return;
 		let cancelled = false;
 		let timeoutId: ReturnType<typeof setTimeout>;
 
