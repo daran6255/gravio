@@ -70,7 +70,7 @@ const AppRouter: React.FC = () => {
 			<Route path="/maintenance" element={<MaintenancePage />} />
 
 			{/* Public legal pages — linked from the marketing footer */}
-			<Route path="/privacy" element={<PrivacyPolicyPage />} />
+			<Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
 			<Route path="/terms" element={<TermsPage />} />
 			<Route path="/cookies" element={<CookiePolicyPage />} />
 

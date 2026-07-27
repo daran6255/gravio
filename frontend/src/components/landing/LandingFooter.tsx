@@ -20,7 +20,7 @@ const FOOTER_COLUMNS = [
 		heading: 'Trust & Legal',
 		links: [
 			{ label: 'Security Center', href: '#security' },
-			{ label: 'Privacy Policy', href: '/privacy' },
+			{ label: 'Privacy Policy', href: '/privacy-policy' },
 			{ label: 'Terms & Conditions', href: '/terms' },
 			{ label: 'Cookie Settings', href: '/cookies' },
 		],
@@ -166,7 +166,7 @@ const LandingFooter: React.FC = () => {
 						</Typography>
 						<Stack direction="row" spacing={3} flexWrap="wrap" rowGap={1}>
 							{[
-								{ label: 'Privacy Policy', href: '/privacy' },
+								{ label: 'Privacy Policy', href: '/privacy-policy' },
 								{ label: 'Terms & Conditions', href: '/terms' },
 								{ label: 'Cookie Policy', href: '/cookies' },
 							].map((link) => (

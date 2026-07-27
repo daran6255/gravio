@@ -49,23 +49,31 @@ const Footer: React.FC = () => {
 			</Typography>
 
 			<Box sx={{ display: 'flex', gap: { xs: 2, sm: 3 }, flexWrap: 'wrap', justifyContent: 'center' }}>
-				{['Terms of Service', 'Privacy Policy', 'Cookie Settings', 'Security'].map((item) => (
-					<Link
-						key={item}
-						component={item === 'Terms of Service' || item === 'Privacy Policy' ? RouterLink : 'a'}
-						to={item === 'Terms of Service' ? '/terms' : item === 'Privacy Policy' ? '/privacy-policy' : undefined}
-						href={item !== 'Terms of Service' && item !== 'Privacy Policy' ? '#' : undefined}
-						underline="none"
-						sx={(theme) => ({
-							color: 'text.secondary',
-							...theme.typography.footerLink,
-							'&:hover': { color: theme.palette.primary.main },
-							transition: 'color 0.2s',
-						})}
-					>
-						{item}
-					</Link>
-				))}
+				{['Terms of Service', 'Privacy Policy', 'Cookie Settings', 'Security'].map((item) => {
+					const routes: Record<string, string> = {
+						'Terms of Service': '/terms',
+						'Privacy Policy': '/privacy-policy',
+						'Cookie Settings': '/cookies',
+					};
+					const to = routes[item];
+					return (
+						<Link
+							key={item}
+							component={to ? RouterLink : 'a'}
+							to={to}
+							href={!to ? '#' : undefined}
+							underline="none"
+							sx={(theme) => ({
+								color: 'text.secondary',
+								...theme.typography.footerLink,
+								'&:hover': { color: theme.palette.primary.main },
+								transition: 'color 0.2s',
+							})}
+						>
+							{item}
+						</Link>
+					);
+				})}
 			</Box>
 		</Box>
 	);
