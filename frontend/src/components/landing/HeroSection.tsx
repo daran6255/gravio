@@ -121,7 +121,7 @@ const HeroSection: React.FC = () => {
 				<Reveal delay={120}>
 					<Box
 						sx={{
-							maxWidth: 860,
+							maxWidth: 960,
 							mx: 'auto',
 							borderRadius: theme.layout.radius.card,
 							border: `1px solid ${theme.palette.divider}`,
