@@ -4,7 +4,6 @@ import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { ArrowForward as ArrowForwardIcon, AutoAwesome as AutoAwesomeIcon } from '@mui/icons-material';
 import Reveal from './Reveal';
-import HeroFlowDiagram from './HeroFlowDiagram';
 
 const HeroSection: React.FC = () => {
 	const theme = useTheme();
@@ -114,24 +113,6 @@ const HeroSection: React.FC = () => {
 								See How It Works
 							</Button>
 						</Stack>
-					</Box>
-				</Reveal>
-
-				{/* Animated flow visual: five tools converging into one AI layer */}
-				<Reveal delay={120}>
-					<Box
-						sx={{
-							maxWidth: 960,
-							mx: 'auto',
-							borderRadius: theme.layout.radius.card,
-							border: `1px solid ${theme.palette.divider}`,
-							background: theme.gradients.card,
-							backdropFilter: 'blur(20px)',
-							boxShadow: '0 24px 60px -24px rgba(15, 23, 42, 0.18)',
-							p: { xs: 3, sm: 5 },
-						}}
-					>
-						<HeroFlowDiagram />
 					</Box>
 				</Reveal>
 			</Container>
