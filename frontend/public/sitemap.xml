@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Gravit is a single-page marketing site today (all sections below "/" are
+  in-page anchors, not separate crawlable routes). Everything else in the app
+  (dashboard, CRM, projects, etc.) sits behind authentication and shouldn't be
+  indexed. Add entries here if standalone marketing pages (e.g. /pricing,
+  /about) are ever split out of the landing page.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://gravit.taydens.com/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

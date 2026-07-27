@@ -10,6 +10,7 @@ const NAV_LINKS = [
 	{ label: 'IRIS', href: '#iris' },
 	{ label: 'Pricing', href: '#pricing' },
 	{ label: 'FAQ', href: '#faq' },
+	{ label: 'Contact', href: '#contact' },
 ];
 
 const prefersReducedMotion = () =>

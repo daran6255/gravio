@@ -31,11 +31,24 @@ const FAQS = [
 	},
 ];
 
+// Built directly from FAQS above so the structured data can never drift out of
+// sync with what's actually rendered on the page.
+const faqJsonLd = {
+	'@context': 'https://schema.org',
+	'@type': 'FAQPage',
+	mainEntity: FAQS.map((faq) => ({
+		'@type': 'Question',
+		name: faq.question,
+		acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+	})),
+};
+
 const FAQSection: React.FC = () => {
 	const theme = useTheme();
 
 	return (
 		<Box component="section" id="faq" sx={{ bgcolor: theme.palette.background.paper, py: { xs: 9, md: 12 } }}>
+			<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
 			<Container maxWidth="md">
 				<Reveal>
 					<Typography component="h2" variant="h2" sx={{ color: theme.palette.text.primary, textAlign: 'center', mb: { xs: 6, md: 7 } }}>

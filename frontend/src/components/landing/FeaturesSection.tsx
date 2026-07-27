@@ -42,13 +42,14 @@ const useOnceVisible = <T extends HTMLElement>() => {
 };
 
 // Bento-grid spans on a 4-column desktop grid (sum to 4 per row): CRM+Projects (2+2),
-// then Timesheets+HR&Payroll+Booking (1+2+1). Every card carries its own small,
-// always-on animated visual matched to its subject.
+// then Timesheets+HR&Payroll+Booking (1+2+1). Every card carries a full-bleed animated
+// visual matched to its subject, in the Magic UI bento-grid composition (visual behind,
+// scrim + icon/title/description anchored at the base).
 const MODULES = [
 	{
 		icon: GroupsIcon,
 		lead: 'Never lose a lead in your inbox again.',
-		description: 'Every call and email gets logged as an activity IRIS can reference later — nothing falls through the cracks.',
+		description: 'Every call and email gets logged as an activity IRIS can reference later.',
 		color: '#8B7CF6',
 		colSpan: { xs: 1, sm: 2, md: 2 },
 		visual: 'pipeline' as const,
@@ -56,7 +57,7 @@ const MODULES = [
 	{
 		icon: AccountTreeIcon,
 		lead: 'Know exactly where every project stands.',
-		description: 'Boards, tasks, and timelines for delivery work — plus a shareable status link so clients stay updated without a login.',
+		description: 'Boards, tasks, and timelines, plus a shareable status link for clients.',
 		color: '#4EA8FF',
 		colSpan: { xs: 1, sm: 2, md: 2 },
 		visual: 'board' as const,
@@ -64,7 +65,7 @@ const MODULES = [
 	{
 		icon: ScheduleIcon,
 		lead: 'Get paid for every hour you work.',
-		description: 'Log billable time against real projects and clients — no spreadsheets, no separate subscription.',
+		description: 'Log billable time against real projects and clients — no spreadsheets.',
 		color: '#f59e0b',
 		colSpan: { xs: 1, sm: 2, md: 1 },
 		visual: 'timesheet' as const,
@@ -72,7 +73,7 @@ const MODULES = [
 	{
 		icon: BadgeIcon,
 		lead: 'Run payroll without a second system.',
-		description: 'Employee records, leave, payslips, and salary structures, right alongside the client work your team bills for.',
+		description: 'Employee records, leave, payslips, and salary structures — one place.',
 		color: '#10b981',
 		colSpan: { xs: 1, sm: 2, md: 2 },
 		visual: 'hr' as const,
@@ -80,7 +81,7 @@ const MODULES = [
 	{
 		icon: CalendarMonthIcon,
 		lead: 'Stop the back-and-forth over scheduling.',
-		description: 'Publish a booking page for prospects and clients — reschedule or cancel without another email thread.',
+		description: 'Publish a booking page for prospects and clients to self-serve.',
 		color: '#ef4444',
 		colSpan: { xs: 1, sm: 2, md: 1 },
 		visual: 'booking' as const,
@@ -92,75 +93,70 @@ const pulse = keyframes`
 	50% { opacity: 1; transform: scale(1); }
 `;
 
-const shimmer = keyframes`
-	0% { transform: translateX(-100%); }
-	100% { transform: translateX(320%); }
-`;
-
+// Large avatar stack + flowing progress track, filling the card's upper/main area.
 const PipelineVisual: React.FC<{ color: string }> = ({ color }) => {
 	const { ref, visible } = useOnceVisible<HTMLDivElement>();
-	// Widths as a share of the bar's total track — each segment grows independently
-	// left-to-right on scroll-in rather than being statically sized.
 	const segments = [
-		{ width: 50, shade: 0.25 },
-		{ width: 33, shade: 0.5 },
-		{ width: 17, shade: 1 },
+		{ width: 55, shade: 0.35 },
+		{ width: 34, shade: 0.6 },
+		{ width: 18, shade: 1 },
 	];
 
 	return (
-		<Stack ref={ref} spacing={1.25} sx={{ mb: 3 }}>
-			<Stack direction="row" spacing={-0.75}>
-				{[0, 1, 2, 3].map((i) => (
+		<Box ref={ref} sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', px: { xs: 5, sm: 7 }, pb: '28%' }}>
+			<Stack direction="row" spacing={-1.75} sx={{ mb: 3.5 }}>
+				{[0, 1, 2, 3, 4].map((i) => (
 					<Box
 						key={i}
 						sx={{
-							width: 28,
-							height: 28,
+							width: { xs: 44, sm: 54 },
+							height: { xs: 44, sm: 54 },
 							borderRadius: '50%',
-							border: '2.5px solid',
-							borderColor: 'background.paper',
-							background: `linear-gradient(135deg, ${alpha(color, 0.5 + i * 0.1)}, ${alpha(color, 0.25 + i * 0.1)})`,
-							boxShadow: `0 2px 6px ${alpha(color, 0.25)}`,
-							ml: i === 0 ? 0 : -0.75,
+							border: '3px solid #0B0D12',
+							background: `linear-gradient(135deg, ${alpha(color, 0.95 - i * 0.08)}, ${alpha(color, 0.5 - i * 0.05)})`,
+							boxShadow: `0 10px 24px ${alpha(color, 0.4)}`,
+							ml: i === 0 ? 0 : -1.75,
 						}}
 					/>
 				))}
 			</Stack>
-			<Stack direction="row" spacing={0.6} sx={{ height: 7 }}>
+			<Stack direction="row" spacing={1} sx={{ width: '100%', maxWidth: 320, height: { xs: 10, sm: 12 } }}>
 				{segments.map((seg, i) => (
 					<Box
 						key={i}
 						sx={{
 							width: `${seg.width}%`,
-							borderRadius: 4,
+							borderRadius: 6,
 							bgcolor: alpha(color, seg.shade),
+							boxShadow: i === segments.length - 1 ? `0 0 24px ${alpha(color, 0.65)}` : 'none',
 							transform: visible ? 'scaleX(1)' : 'scaleX(0)',
 							transformOrigin: 'left center',
-							transition: `transform 600ms ease-out ${i * 150}ms`,
+							transition: `transform 700ms ease-out ${i * 150}ms`,
 						}}
 					/>
 				))}
 			</Stack>
-		</Stack>
+		</Box>
 	);
 };
 
+// Kanban-style bars, enlarged to read as the dominant shape in the card.
 const BoardVisual: React.FC<{ color: string }> = ({ color }) => {
 	const { ref, visible } = useOnceVisible<HTMLDivElement>();
-	const heights = [0.5, 1, 0.7, 0.3];
+	const heights = [0.42, 0.85, 1, 0.58, 0.32];
 
 	return (
-		<Stack ref={ref} direction="row" spacing={1.25} alignItems="flex-end" sx={{ height: 44, mb: 3 }}>
+		<Stack ref={ref} direction="row" spacing={{ xs: 1.5, sm: 2 }} alignItems="flex-end" justifyContent="center" sx={{ position: 'absolute', inset: 0, px: { xs: 5, sm: 7 }, pb: '24%' }}>
 			{heights.map((h, i) => (
 				<Box
 					key={i}
 					sx={{
-						flex: 1,
-						height: visible ? `${h * 100}%` : '4%',
-						borderRadius: '6px 6px 2px 2px',
-						background: `linear-gradient(180deg, ${alpha(color, 0.85 - i * 0.1)}, ${alpha(color, 0.35 - i * 0.05)})`,
-						boxShadow: `0 4px 10px -4px ${alpha(color, 0.4)}`,
-						transition: `height 600ms ease-out ${i * 100}ms`,
+						width: { xs: 24, sm: 32 },
+						height: visible ? `${h * 72}%` : '4%',
+						borderRadius: '10px 10px 4px 4px',
+						background: `linear-gradient(180deg, ${alpha(color, 0.95 - i * 0.08)}, ${alpha(color, 0.4 - i * 0.04)})`,
+						boxShadow: `0 12px 26px -8px ${alpha(color, 0.5)}`,
+						transition: `height 700ms ease-out ${i * 90}ms`,
 					}}
 				/>
 			))}
@@ -168,69 +164,89 @@ const BoardVisual: React.FC<{ color: string }> = ({ color }) => {
 	);
 };
 
-const TimesheetVisual: React.FC<{ color: string }> = ({ color }) => (
-	<Box sx={{ mb: 3, height: 28, display: 'flex', alignItems: 'center' }}>
-		<Box sx={{ position: 'relative', width: '100%', height: 7, borderRadius: 4, bgcolor: alpha(color, 0.15), overflow: 'hidden' }}>
-			<Box
-				sx={{
-					position: 'absolute',
-					inset: 0,
-					width: '35%',
-					borderRadius: 4,
-					background: `linear-gradient(90deg, ${color} 0%, ${alpha(color, 0.6)} 100%)`,
-					boxShadow: `0 0 12px ${alpha(color, 0.5)}`,
-				}}
-			/>
-			<Box
-				sx={{
-					position: 'absolute',
-					inset: 0,
-					width: '30%',
-					background: `linear-gradient(90deg, transparent, ${alpha('#ffffff', 0.7)}, transparent)`,
-					animation: `${shimmer} 2.6s ease-in-out infinite`,
-					'@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-				}}
-			/>
+// Large SVG progress ring standing in for "hours logged" — animates its sweep
+// once on scroll-in via stroke-dashoffset (transform/opacity-adjacent, GPU friendly).
+const TimesheetVisual: React.FC<{ color: string }> = ({ color }) => {
+	const { ref, visible } = useOnceVisible<HTMLDivElement>();
+	const size = 168;
+	const stroke = 11;
+	const r = (size - stroke) / 2;
+	const circumference = 2 * Math.PI * r;
+	const progress = 0.72;
+
+	return (
+		<Box ref={ref} sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pb: '22%' }}>
+			<Box sx={{ position: 'relative', width: { xs: 140, sm: size }, height: { xs: 140, sm: size } }}>
+				<svg
+					width="100%"
+					height="100%"
+					viewBox={`0 0 ${size} ${size}`}
+					style={{ transform: 'rotate(-90deg)', filter: `drop-shadow(0 0 18px ${alpha(color, 0.45)})` }}
+				>
+					<circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={alpha('#ffffff', 0.1)} strokeWidth={stroke} />
+					<circle
+						cx={size / 2}
+						cy={size / 2}
+						r={r}
+						fill="none"
+						stroke={color}
+						strokeWidth={stroke}
+						strokeLinecap="round"
+						strokeDasharray={circumference}
+						strokeDashoffset={visible ? circumference * (1 - progress) : circumference}
+						style={{ transition: 'stroke-dashoffset 900ms ease-out' }}
+					/>
+				</svg>
+				<Typography sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: { xs: '1.4rem', sm: '1.7rem' }, fontWeight: 800, color: '#ffffff' }}>
+					72%
+				</Typography>
+			</Box>
+		</Box>
+	);
+};
+
+// Grid of pulsing avatars, enlarged into a near-full team roster shape.
+const HRVisual: React.FC<{ color: string }> = ({ color }) => (
+	<Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pb: '24%' }}>
+		<Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: { xs: 1.5, sm: 2 }, width: { xs: 180, sm: 232 } }}>
+			{Array.from({ length: 8 }).map((_, i) => (
+				<Box
+					key={i}
+					sx={{
+						width: { xs: 34, sm: 44 },
+						height: { xs: 34, sm: 44 },
+						borderRadius: '50%',
+						background: `linear-gradient(135deg, ${alpha(color, 0.9)}, ${alpha(color, 0.4)})`,
+						border: `1.5px solid ${alpha(color, 0.55)}`,
+						boxShadow: `0 8px 18px -4px ${alpha(color, 0.45)}`,
+						animation: `${pulse} 3s ease-in-out infinite`,
+						animationDelay: `${i * 0.25}s`,
+						'@media (prefers-reduced-motion: reduce)': { animation: 'none', opacity: 0.85 },
+					}}
+				/>
+			))}
 		</Box>
 	</Box>
 );
 
-const HRVisual: React.FC<{ color: string }> = ({ color }) => (
-	<Stack direction="row" spacing={1.1} sx={{ mb: 3 }}>
-		{[0, 1, 2, 3, 4].map((i) => (
-			<Box
-				key={i}
-				sx={{
-					width: 26,
-					height: 26,
-					borderRadius: '50%',
-					background: `linear-gradient(135deg, ${alpha(color, 0.5)}, ${alpha(color, 0.2)})`,
-					border: `1px solid ${alpha(color, 0.3)}`,
-					animation: `${pulse} 3s ease-in-out infinite`,
-					animationDelay: `${i * 0.4}s`,
-					'@media (prefers-reduced-motion: reduce)': { animation: 'none', opacity: 0.6 },
-				}}
-			/>
-		))}
-	</Stack>
-);
-
+// Enlarged calendar grid with one highlighted, pulsing booked slot.
 const BookingVisual: React.FC<{ color: string }> = ({ color }) => (
-	<Box sx={{ mb: 3, display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.6, maxWidth: 168 }}>
-		{Array.from({ length: 14 }).map((_, i) => (
-			<Box
-				key={i}
-				sx={{
-					width: '100%',
-					aspectRatio: '1',
-					borderRadius: 1,
-					background: i === 9 ? `linear-gradient(135deg, ${color}, ${alpha(color, 0.7)})` : alpha(color, 0.12),
-					boxShadow: i === 9 ? `0 3px 10px ${alpha(color, 0.5)}` : 'none',
-					animation: i === 9 ? `${pulse} 2.2s ease-in-out infinite` : 'none',
-					'@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-				}}
-			/>
-		))}
+	<Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pb: '24%' }}>
+		<Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: { xs: 0.8, sm: 1 }, width: { xs: 196, sm: 234 } }}>
+			{Array.from({ length: 21 }).map((_, i) => (
+				<Box
+					key={i}
+					sx={{
+						aspectRatio: '1',
+						borderRadius: '6px',
+						background: i === 15 ? `linear-gradient(135deg, ${color}, ${alpha(color, 0.7)})` : alpha('#ffffff', 0.08),
+						boxShadow: i === 15 ? `0 8px 20px ${alpha(color, 0.55)}` : 'none',
+						animation: i === 15 ? `${pulse} 2.4s ease-in-out infinite` : 'none',
+						'@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+					}}
+				/>
+			))}
+		</Box>
 	</Box>
 );
 
@@ -301,110 +317,133 @@ const FeaturesSection: React.FC = () => {
 									sx={{
 										position: 'relative',
 										height: '100%',
-										p: { xs: 3, sm: 4 },
-										pb: 5.5,
+										minHeight: { xs: 300, sm: 340, md: 380 },
 										borderRadius: bentoRadius,
-										border: `1px solid ${theme.palette.divider}`,
-										background: `linear-gradient(160deg, ${theme.palette.background.paper} 0%, ${alpha(module.color, 0.02)} 100%)`,
-										boxShadow: `0 1px 2px rgba(15,23,42,0.04), 0 12px 28px -20px ${alpha(module.color, 0.35)}`,
 										overflow: 'hidden',
-										transition: 'transform 280ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 280ms ease-out, border-color 280ms ease-out',
-										'&::after': {
-											content: '""',
-											position: 'absolute',
-											top: -60,
-											right: -60,
-											width: 180,
-											height: 180,
-											borderRadius: '50%',
-											background: `radial-gradient(circle, ${alpha(module.color, 0.16)} 0%, transparent 72%)`,
-											pointerEvents: 'none',
-											transition: 'opacity 280ms ease-out, transform 280ms ease-out',
+										border: `1px solid ${alpha('#ffffff', 0.08)}`,
+										background: `radial-gradient(120% 90% at 50% 0%, ${alpha(module.color, 0.4)} 0%, ${alpha(module.color, 0.1)} 45%, #0B0D12 100%)`,
+										boxShadow: `0 1px 2px rgba(15,23,42,0.04), 0 12px 28px -20px ${alpha(module.color, 0.4)}`,
+										transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 320ms ease-out, border-color 320ms ease-out',
+										'&:hover': {
+											transform: 'translateY(-8px)',
+											borderColor: alpha(module.color, 0.6),
+											boxShadow: `0 1px 2px rgba(15,23,42,0.04), 0 28px 56px -20px ${alpha(module.color, 0.55)}`,
 										},
-										'&::before': {
-											content: '""',
+										'&:hover .bento-cursor-glow': { opacity: 1 },
+										'&:hover .bento-visual-layer': { transform: 'scale(1.045)' },
+										'&:hover .bento-icon-chip': { transform: 'scale(1.06)' },
+										'&:hover .bento-learn-more': { opacity: 1, transform: 'translateY(0)' },
+										'@media (hover: none)': { '& .bento-cursor-glow': { display: 'none' } },
+										'@media (prefers-reduced-motion: reduce)': {
+											transition: 'border-color 200ms ease-out, box-shadow 200ms ease-out',
+											'&:hover': { transform: 'none' },
+											'& .bento-visual-layer': { transition: 'none' },
+											'&:hover .bento-visual-layer': { transform: 'none' },
+										},
+									}}
+								>
+									{/* Faint dot-grid texture beneath the visual, for depth */}
+									<Box
+										sx={{
 											position: 'absolute',
 											inset: 0,
-											borderRadius: 'inherit',
-											background: `radial-gradient(320px circle at var(--x, 50%) var(--y, 50%), ${alpha(module.color, 0.14)}, transparent 70%)`,
+											opacity: 0.5,
+											backgroundImage: `radial-gradient(${alpha('#ffffff', 0.14)} 1px, transparent 1px)`,
+											backgroundSize: '18px 18px',
+											maskImage: 'radial-gradient(ellipse at 50% 20%, black 0%, transparent 72%)',
+											WebkitMaskImage: 'radial-gradient(ellipse at 50% 20%, black 0%, transparent 72%)',
+										}}
+									/>
+
+									{/* Full-bleed visual, scaled up slightly on hover for a parallax-like depth effect */}
+									<Box className="bento-visual-layer" sx={{ position: 'absolute', inset: 0, transition: 'transform 500ms cubic-bezier(0.22, 1, 0.36, 1)', willChange: 'transform' }}>
+										{module.visual === 'pipeline' && <PipelineVisual color={module.color} />}
+										{module.visual === 'board' && <BoardVisual color={module.color} />}
+										{module.visual === 'timesheet' && <TimesheetVisual color={module.color} />}
+										{module.visual === 'hr' && <HRVisual color={module.color} />}
+										{module.visual === 'booking' && <BookingVisual color={module.color} />}
+									</Box>
+
+									{/* Cursor-follow glow */}
+									<Box
+										className="bento-cursor-glow"
+										sx={{
+											position: 'absolute',
+											inset: 0,
+											background: `radial-gradient(320px circle at var(--x, 50%) var(--y, 50%), ${alpha('#ffffff', 0.08)}, transparent 70%)`,
 											opacity: 0,
 											transition: 'opacity 250ms ease-out',
 											pointerEvents: 'none',
-										},
-										'&:hover': {
-											transform: 'translateY(-6px)',
-											borderColor: alpha(module.color, 0.5),
-											boxShadow: `0 1px 2px rgba(15,23,42,0.04), 0 24px 48px -20px ${alpha(module.color, 0.5)}`,
-										},
-										'&:hover::after': { transform: 'scale(1.15)' },
-										'&:hover::before': { opacity: 1 },
-										'&:hover .bento-icon-chip': { transform: 'rotate(-6deg) scale(1.06)' },
-										'&:hover .bento-learn-more': { opacity: 1, transform: 'translateX(0)' },
-										'@media (hover: none)': { '&::before': { display: 'none' } },
-									}}
-								>
-									{module.visual === 'pipeline' && <PipelineVisual color={module.color} />}
-									{module.visual === 'board' && <BoardVisual color={module.color} />}
-									{module.visual === 'timesheet' && <TimesheetVisual color={module.color} />}
-									{module.visual === 'hr' && <HRVisual color={module.color} />}
-									{module.visual === 'booking' && <BookingVisual color={module.color} />}
+										}}
+									/>
 
+									{/* Bottom-to-top scrim so the content below stays readable over any visual */}
 									<Box
-										className="bento-icon-chip"
-										sx={{
-											position: 'relative',
-											width: 52,
-											height: 52,
-											borderRadius: '16px',
-											display: 'flex',
-											alignItems: 'center',
-											justifyContent: 'center',
-											background: `linear-gradient(135deg, ${alpha(module.color, 0.22)}, ${alpha(module.color, 0.06)})`,
-											border: `1px solid ${alpha(module.color, 0.18)}`,
-											boxShadow: `0 6px 16px -6px ${alpha(module.color, 0.4)}`,
-											transition: 'transform 280ms cubic-bezier(0.22, 1, 0.36, 1)',
-											mb: 2.75,
-										}}
-									>
-										<module.icon sx={{ fontSize: 26, color: module.color }} />
-									</Box>
-									<Typography
-										sx={{
-											position: 'relative',
-											fontWeight: 800,
-											fontSize: isWide ? '1.3rem' : '1.15rem',
-											color: theme.palette.text.primary,
-											mb: 1.25,
-											lineHeight: 1.3,
-											letterSpacing: '-0.01em',
-										}}
-									>
-										{module.lead}
-									</Typography>
-									<Typography sx={{ position: 'relative', color: theme.palette.text.secondary, fontSize: '0.92rem', lineHeight: 1.65, maxWidth: isWide ? 420 : undefined }}>
-										{module.description}
-									</Typography>
-
-									<Stack
-										className="bento-learn-more"
-										direction="row"
-										alignItems="center"
-										spacing={0.5}
-										onClick={scrollToPreview}
 										sx={{
 											position: 'absolute',
-											left: { xs: 24, sm: 32 },
-											bottom: 20,
-											cursor: 'pointer',
-											opacity: 0,
-											transform: 'translateX(-6px)',
-											transition: 'opacity 220ms ease-out, transform 220ms ease-out',
-											'&:hover .bento-arrow': { transform: 'translateX(3px)' },
+											inset: 0,
+											background: `linear-gradient(to top, ${alpha('#000000', 0.92)} 0%, ${alpha('#000000', 0.55)} 34%, transparent 64%)`,
+											pointerEvents: 'none',
 										}}
-									>
-										<Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: module.color }}>See it in the product</Typography>
-										<ArrowForwardIcon className="bento-arrow" sx={{ fontSize: 14, color: module.color, transition: 'transform 200ms ease-out' }} />
-									</Stack>
+									/>
+
+									{/* Icon + title + description, anchored to the card base on top of the scrim */}
+									<Box sx={{ position: 'absolute', left: 0, right: 0, bottom: 0, p: { xs: 3, sm: 3.5 } }}>
+										<Box
+											className="bento-icon-chip"
+											sx={{
+												width: 44,
+												height: 44,
+												borderRadius: '14px',
+												display: 'flex',
+												alignItems: 'center',
+												justifyContent: 'center',
+												bgcolor: alpha('#ffffff', 0.12),
+												border: `1px solid ${alpha('#ffffff', 0.18)}`,
+												backdropFilter: 'blur(8px)',
+												transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+												mb: 1.75,
+											}}
+										>
+											<module.icon sx={{ fontSize: 22, color: module.color }} />
+										</Box>
+										<Typography
+											sx={{
+												fontWeight: 800,
+												fontSize: isWide ? '1.25rem' : '1.1rem',
+												color: '#ffffff',
+												mb: 0.75,
+												lineHeight: 1.3,
+												letterSpacing: '-0.01em',
+											}}
+										>
+											{module.lead}
+										</Typography>
+										<Typography sx={{ color: alpha('#ffffff', 0.75), fontSize: '0.88rem', lineHeight: 1.55, maxWidth: isWide ? 440 : undefined }}>
+											{module.description}
+										</Typography>
+
+										{/* Reserved-height row so the hover reveal never shifts layout */}
+										<Box sx={{ height: 24, mt: 1 }}>
+											<Stack
+												className="bento-learn-more"
+												direction="row"
+												alignItems="center"
+												spacing={0.5}
+												onClick={scrollToPreview}
+												sx={{
+													cursor: 'pointer',
+													opacity: 0,
+													transform: 'translateY(6px)',
+													transition: 'opacity 240ms ease-out, transform 240ms ease-out',
+													'&:hover .bento-arrow': { transform: 'translateX(3px)' },
+												}}
+											>
+												<Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: module.color }}>See it in the product</Typography>
+												<ArrowForwardIcon className="bento-arrow" sx={{ fontSize: 14, color: module.color, transition: 'transform 200ms ease-out' }} />
+											</Stack>
+										</Box>
+									</Box>
 								</Box>
 							</Reveal>
 						);

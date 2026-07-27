@@ -3,6 +3,7 @@ import { Box } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import { getThemeByMode } from '../../theme/theme';
 import {
+	AnnouncementBar,
 	LandingNavbar,
 	HeroSection,
 	LogosStrip,
@@ -15,6 +16,7 @@ import {
 	TestimonialsSection,
 	PricingTeaserSection,
 	FAQSection,
+	ContactSection,
 	CTASection,
 	LandingFooter,
 } from '../../components/landing';
@@ -25,10 +27,20 @@ import {
 // theme.palette/gradients/layout as usual and gets the light variant for free.
 const landingTheme = getThemeByMode('light');
 
+const organizationJsonLd = {
+	'@context': 'https://schema.org',
+	'@type': 'Organization',
+	name: 'Gravit',
+	url: 'https://gravit.taydens.com/',
+	logo: 'https://gravit.taydens.com/assets/img/logo/gravit-light.svg',
+};
+
 const LandingPage: React.FC = () => {
 	return (
 		<ThemeProvider theme={landingTheme}>
 			<Box component="main" sx={{ bgcolor: landingTheme.palette.background.paper, minHeight: '100vh' }}>
+				<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
+				<AnnouncementBar />
 				<LandingNavbar />
 				<HeroSection />
 				<LogosStrip />
@@ -41,6 +53,7 @@ const LandingPage: React.FC = () => {
 				<TestimonialsSection />
 				<PricingTeaserSection />
 				<FAQSection />
+				<ContactSection />
 				<CTASection />
 				<LandingFooter />
 			</Box>
