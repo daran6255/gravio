@@ -2,25 +2,9 @@ import React from 'react';
 import { Box, Button, Container, Stack, Typography, alpha } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
-import {
-	ArrowForward as ArrowForwardIcon,
-	AutoAwesome as AutoAwesomeIcon,
-	Groups as GroupsIcon,
-	AccountTree as AccountTreeIcon,
-	Schedule as ScheduleIcon,
-	Badge as BadgeIcon,
-	CalendarMonth as CalendarMonthIcon,
-	KeyboardDoubleArrowDown as ArrowDownIcon,
-} from '@mui/icons-material';
+import { ArrowForward as ArrowForwardIcon, AutoAwesome as AutoAwesomeIcon } from '@mui/icons-material';
 import Reveal from './Reveal';
-
-const SOURCE_MODULES = [
-	{ label: 'CRM', icon: GroupsIcon },
-	{ label: 'Projects', icon: AccountTreeIcon },
-	{ label: 'Timesheets', icon: ScheduleIcon },
-	{ label: 'HR & Payroll', icon: BadgeIcon },
-	{ label: 'Booking', icon: CalendarMonthIcon },
-];
+import HeroFlowDiagram from './HeroFlowDiagram';
 
 const HeroSection: React.FC = () => {
 	const theme = useTheme();
@@ -133,7 +117,7 @@ const HeroSection: React.FC = () => {
 					</Box>
 				</Reveal>
 
-				{/* Abstract flow visual: five tools converging into one AI layer */}
+				{/* Animated flow visual: five tools converging into one AI layer */}
 				<Reveal delay={120}>
 					<Box
 						sx={{
@@ -147,59 +131,7 @@ const HeroSection: React.FC = () => {
 							p: { xs: 3, sm: 5 },
 						}}
 					>
-						<Stack direction="row" flexWrap="wrap" justifyContent="center" gap={1.5} sx={{ mb: 3 }}>
-							{SOURCE_MODULES.map((mod) => (
-								<Stack
-									key={mod.label}
-									direction="row"
-									alignItems="center"
-									spacing={1}
-									sx={{
-										px: 2,
-										py: 1,
-										borderRadius: theme.layout.radius.pill,
-										border: `1px solid ${theme.palette.divider}`,
-										bgcolor: theme.palette.background.paper,
-									}}
-								>
-									<mod.icon sx={{ fontSize: 18, color: theme.palette.text.secondary }} />
-									<Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: theme.palette.text.primary }}>
-										{mod.label}
-									</Typography>
-								</Stack>
-							))}
-						</Stack>
-
-						<Stack alignItems="center" spacing={0.5} sx={{ mb: 3 }}>
-							<ArrowDownIcon sx={{ color: theme.palette.text.secondary, opacity: 0.5 }} />
-							<Typography sx={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: theme.palette.text.secondary }}>
-								Unified by
-							</Typography>
-						</Stack>
-
-						<Stack
-							direction="row"
-							alignItems="center"
-							justifyContent="center"
-							spacing={1.5}
-							sx={{
-								mx: 'auto',
-								maxWidth: 340,
-								px: 3,
-								py: 2,
-								borderRadius: theme.layout.radius.card,
-								background: theme.gradients.brandDiagonal,
-								boxShadow: `0 12px 30px -10px ${alpha(theme.palette.primary.main, 0.5)}`,
-							}}
-						>
-							<AutoAwesomeIcon sx={{ color: '#ffffff' }} />
-							<Box>
-								<Typography sx={{ fontWeight: 800, color: '#ffffff', lineHeight: 1.2 }}>IRIS</Typography>
-								<Typography sx={{ fontSize: '0.75rem', color: alpha('#ffffff', 0.85) }}>
-									One AI, full cross-module context
-								</Typography>
-							</Box>
-						</Stack>
+						<HeroFlowDiagram />
 					</Box>
 				</Reveal>
 			</Container>
