@@ -123,7 +123,7 @@ const OrbitingCircles: React.FC = () => {
 								display: 'flex',
 								alignItems: 'center',
 								justifyContent: 'center',
-								bgcolor: theme.palette.background.paper,
+								backgroundColor: theme.palette.background.paper,
 								border: `1px solid ${theme.palette.divider}`,
 								boxShadow: '0 6px 16px -6px rgba(15, 23, 42, 0.2)',
 							}}

@@ -43,6 +43,7 @@ const LogosStrip: React.FC = () => {
 				</Typography>
 			</Container>
 
+			{/* Full-width mask so fades reach the viewport edges */}
 			<Box
 				sx={{
 					overflow: 'hidden',

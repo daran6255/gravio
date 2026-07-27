@@ -67,17 +67,35 @@ const HowItWorksSection: React.FC = () => {
 		let timeoutId: ReturnType<typeof setTimeout>;
 
 		const runStep = (i: number) => {
-			if (cancelled || i >= STEPS.length) return;
+			if (cancelled) return;
+			// Activate this step (pulse + scale)
 			setActiveIndex(i);
+			setDoneCount(i); // steps before i are green; i is active
+
 			timeoutId = setTimeout(() => {
 				if (cancelled) return;
+				// Mark it done (green check)
 				setDoneCount(i + 1);
 				setActiveIndex(null);
-				timeoutId = setTimeout(() => runStep(i + 1), 280);
-			}, 550);
+
+				timeoutId = setTimeout(() => {
+					if (i + 1 < STEPS.length) {
+						// Move to the next step
+						runStep(i + 1);
+					} else {
+						// All done — pause briefly then restart from zero
+						timeoutId = setTimeout(() => {
+							if (cancelled) return;
+							setDoneCount(0);
+							setActiveIndex(null);
+							timeoutId = setTimeout(() => runStep(0), 300);
+						}, 1200);
+					}
+				}, 280);
+			}, 650);
 		};
 
-		timeoutId = setTimeout(() => runStep(0), 450);
+		timeoutId = setTimeout(() => runStep(0), 500);
 		return () => {
 			cancelled = true;
 			clearTimeout(timeoutId);
