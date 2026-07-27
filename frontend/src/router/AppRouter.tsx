@@ -13,6 +13,7 @@ import NotFoundPage from '../pages/common/NotFoundPage';
 import MaintenancePage from '../pages/common/MaintenancePage';
 import PrivacyPolicyPage from '../pages/common/PrivacyPolicyPage';
 import TermsPage from '../pages/common/TermsPage';
+import CookiePolicyPage from '../pages/common/CookiePolicyPage';
 import BillingSettings from '../pages/settings/BillingSettings';
 import AICreditsUsagePage from '../pages/settings/AICreditsUsagePage';
 import { LeadsPage, DealsPage, CompaniesPage, TasksPage } from '../pages/crm';
@@ -71,6 +72,7 @@ const AppRouter: React.FC = () => {
 			{/* Public legal pages — linked from the marketing footer */}
 			<Route path="/privacy" element={<PrivacyPolicyPage />} />
 			<Route path="/terms" element={<TermsPage />} />
+			<Route path="/cookies" element={<CookiePolicyPage />} />
 
 			{/* Public — a client manages their own meeting via a tokenized email link, no login */}
 			<Route path="/meetings/manage" element={<ManageMeetingPage />} />
