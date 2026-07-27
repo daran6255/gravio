@@ -212,9 +212,9 @@ We may update this Privacy Policy from time to time to reflect changes in our pr
 
 If you have any questions about this Privacy Policy or how we handle your data, please contact us:
 
-**[Insert Company Legal Name]**
-[Insert Registered Address]
-Email: [Insert privacy-policy@gravit.taydens.com]
+**Taydens Pvt. Ltd.**\n
+Surampatti, Erode - 638009\n
+Email: privacy-policy@gravit.taydens.com
 
 ---
 
