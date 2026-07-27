@@ -56,14 +56,14 @@ const AnnouncementBar: React.FC = () => {
 							'&:hover .announcement-cta': { transform: 'translateX(3px)' },
 						}}
 					>
-						<Typography sx={{ fontSize: { xs: '0.78rem', sm: '0.85rem' }, fontWeight: 600, color: '#ffffff', textAlign: 'center' }}>
+						<Typography sx={{ fontSize: { xs: theme.typography.caption.fontSize, sm: theme.typography.body2.fontSize }, fontWeight: 600, color: theme.palette.common.white, textAlign: 'center' }}>
 							{ANNOUNCEMENT.emoji} {ANNOUNCEMENT.message}
 						</Typography>
 						<Stack direction="row" alignItems="center" spacing={0.4} sx={{ flexShrink: 0 }}>
-							<Typography sx={{ fontSize: { xs: '0.78rem', sm: '0.85rem' }, fontWeight: 800, color: '#ffffff', textDecoration: 'underline', textUnderlineOffset: '2px' }}>
+							<Typography sx={{ fontSize: { xs: theme.typography.caption.fontSize, sm: theme.typography.body2.fontSize }, fontWeight: 800, color: theme.palette.common.white, textDecoration: 'underline', textUnderlineOffset: '2px' }}>
 								{ANNOUNCEMENT.ctaLabel}
 							</Typography>
-							<ArrowForwardIcon className="announcement-cta" sx={{ fontSize: 14, color: '#ffffff', transition: 'transform 200ms ease-out' }} />
+							<ArrowForwardIcon className="announcement-cta" sx={{ fontSize: 14, color: theme.palette.common.white, transition: 'transform 200ms ease-out' }} />
 						</Stack>
 					</Stack>
 				</Stack>
@@ -77,9 +77,9 @@ const AnnouncementBar: React.FC = () => {
 						right: { xs: 8, sm: 16 },
 						top: '50%',
 						transform: 'translateY(-50%)',
-						color: '#ffffff',
+						color: theme.palette.common.white,
 						p: 0.75,
-						'&:hover': { bgcolor: alpha('#ffffff', 0.16) },
+						'&:hover': { bgcolor: alpha(theme.palette.common.white, 0.16) },
 					}}
 				>
 					<CloseIcon sx={{ fontSize: 16 }} />

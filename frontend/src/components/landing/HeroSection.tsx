@@ -54,7 +54,7 @@ const HeroSection: React.FC = () => {
 							}}
 						>
 							<AutoAwesomeIcon sx={{ fontSize: 16, color: theme.palette.primary.main }} />
-							<Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: theme.palette.text.primary }}>
+							<Typography sx={{ fontSize: theme.typography.chipLabel.fontSize, fontWeight: 700, color: theme.palette.text.primary }}>
 								One system, one AI — not five separate subscriptions
 							</Typography>
 						</Box>
@@ -62,7 +62,7 @@ const HeroSection: React.FC = () => {
 						<Typography
 							component="h1"
 							variant="h1"
-							sx={{ color: theme.palette.text.primary, mb: 3, fontSize: { xs: '2.25rem', sm: '2.75rem', md: '3.35rem' } }}
+							sx={{ color: theme.palette.text.primary, mb: 3 }}
 						>
 							Run your service business on one platform,{' '}
 							<Box component="span" sx={{ color: theme.palette.primary.main }}>
@@ -70,7 +70,7 @@ const HeroSection: React.FC = () => {
 							</Box>
 						</Typography>
 
-						<Typography sx={{ color: theme.palette.text.secondary, fontSize: '1.15rem', lineHeight: 1.65, maxWidth: 620, mx: 'auto', mb: 5 }}>
+						<Typography sx={{ color: theme.palette.text.secondary, fontSize: theme.typography.body1.fontSize, lineHeight: 1.65, maxWidth: 620, mx: 'auto', mb: 5 }}>
 							Gravit replaces your CRM, project management, timesheets, HR & payroll, and meeting
 							scheduling tools with one system — tied together by IRIS, an AI agent that works across
 							all of it, so you stop paying every tool extra for its own bolted-on AI.
@@ -84,9 +84,9 @@ const HeroSection: React.FC = () => {
 								onClick={() => navigate('/auth/register')}
 								sx={{
 									bgcolor: theme.palette.primary.main,
-									color: '#ffffff',
+									color: theme.palette.common.white,
 									fontWeight: 700,
-									fontSize: '1rem',
+									fontSize: theme.typography.button.fontSize,
 									px: 3.5,
 									py: 1.4,
 									borderRadius: theme.layout.radius.button,
@@ -103,7 +103,7 @@ const HeroSection: React.FC = () => {
 									color: theme.palette.text.primary,
 									borderColor: theme.palette.divider,
 									fontWeight: 700,
-									fontSize: '1rem',
+									fontSize: theme.typography.button.fontSize,
 									px: 3.5,
 									py: 1.4,
 									borderRadius: theme.layout.radius.button,

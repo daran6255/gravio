@@ -51,7 +51,7 @@ const LandingFooter: React.FC = () => {
 							sx={{ height: 48, cursor: 'pointer', mb: 2 }}
 							onClick={() => navigate('/')}
 						/>
-						<Typography sx={{ color: theme.palette.text.secondary, fontSize: '0.9rem', lineHeight: 1.6, maxWidth: 280 }}>
+						<Typography sx={{ color: theme.palette.text.secondary, fontSize: theme.typography.body2.fontSize, lineHeight: 1.6, maxWidth: 280 }}>
 							One system, one AI, instead of five separate subscriptions — built for IT services firms,
 							consultancies, and staffing agencies.
 						</Typography>
@@ -59,7 +59,7 @@ const LandingFooter: React.FC = () => {
 
 					{FOOTER_COLUMNS.map((col) => (
 						<Box key={col.heading}>
-							<Typography sx={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: theme.palette.text.secondary, mb: 2 }}>
+							<Typography sx={{ fontSize: theme.typography.caption.fontSize, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: theme.palette.text.secondary, mb: 2 }}>
 								{col.heading}
 							</Typography>
 							<Stack spacing={1.5}>
@@ -69,7 +69,7 @@ const LandingFooter: React.FC = () => {
 										component="a"
 										href={link.href}
 										onClick={handleLinkClick(link.href)}
-										sx={{ fontSize: '0.9rem', fontWeight: 500, color: theme.palette.text.primary, textDecoration: 'none', cursor: 'pointer', '&:hover': { color: theme.palette.primary.main } }}
+										sx={{ fontSize: theme.typography.body2.fontSize, fontWeight: 500, color: theme.palette.text.primary, textDecoration: 'none', cursor: 'pointer', '&:hover': { color: theme.palette.primary.main } }}
 									>
 										{link.label}
 									</Typography>
@@ -80,7 +80,7 @@ const LandingFooter: React.FC = () => {
 				</Box>
 
 				<Box sx={{ pt: 3, borderTop: `1px solid ${theme.palette.divider}` }}>
-					<Typography sx={{ color: theme.palette.text.secondary, fontSize: '0.8rem' }}>
+					<Typography sx={{ color: theme.palette.text.secondary, fontSize: theme.typography.caption.fontSize }}>
 						© {year} Taydens. All rights reserved.
 					</Typography>
 				</Box>

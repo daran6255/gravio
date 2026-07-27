@@ -408,13 +408,13 @@ const DashboardPreviewSection: React.FC = () => {
 			<Container maxWidth="lg">
 				<Reveal>
 					<Box sx={{ textAlign: 'center', maxWidth: 620, mx: 'auto', mb: { xs: 8, md: 10 } }}>
-						<Typography sx={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: theme.palette.accent.dark, mb: 1.5 }}>
+						<Typography sx={{ fontSize: theme.typography.chipLabel.fontSize, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: theme.palette.accent.dark, mb: 1.5 }}>
 							See It In Action
 						</Typography>
 						<Typography component="h2" variant="h2" sx={{ color: theme.palette.text.primary, mb: 2 }}>
 							See your whole business in one screen
 						</Typography>
-						<Typography sx={{ color: theme.palette.text.secondary, fontSize: '1.05rem', lineHeight: 1.65 }}>
+						<Typography sx={{ color: theme.palette.text.secondary, fontSize: theme.typography.body1.fontSize, lineHeight: 1.65 }}>
 							No tab-switching, no exporting spreadsheets to piece the picture together — everything
 							that matters is already on one screen when you log in.
 						</Typography>
@@ -587,13 +587,13 @@ const DashboardPreviewSection: React.FC = () => {
 						>
 							<Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 1 }}>
 								<Box sx={{ width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: theme.gradients.brandDiagonal }}>
-									<AutoAwesomeIcon sx={{ fontSize: 11, color: '#fff' }} />
+									<AutoAwesomeIcon sx={{ fontSize: 11, color: theme.palette.common.white }} />
 								</Box>
-								<Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: theme.palette.text.primary }}>IRIS</Typography>
+								<Typography sx={{ fontSize: theme.typography.caption.fontSize, fontWeight: 700, color: theme.palette.text.primary }}>IRIS</Typography>
 							</Stack>
 							<Stack direction="row" spacing={0.6} alignItems="flex-start">
 								<CheckCircleIcon sx={{ fontSize: 13, color: theme.palette.success.main, mt: 0.2, flexShrink: 0 }} />
-								<Typography sx={{ fontSize: '0.68rem', color: theme.palette.text.secondary, lineHeight: 1.4 }}>
+								<Typography sx={{ fontSize: theme.typography.caption.fontSize, color: theme.palette.text.secondary, lineHeight: 1.4 }}>
 									Moved 3 tasks to Done and notified the team.
 								</Typography>
 							</Stack>
@@ -602,7 +602,7 @@ const DashboardPreviewSection: React.FC = () => {
 						{/* Annotation callouts — desktop only, decorative */}
 						<Box sx={{ display: { xs: 'none', lg: 'block' }, position: 'absolute', top: '6%', left: 0, maxWidth: 190 }}>
 							<Box sx={{ borderRadius: theme.layout.radius.card, border: `1px solid ${theme.palette.divider}`, bgcolor: theme.palette.background.paper, boxShadow: '0 12px 30px -14px rgba(15,23,42,0.25)', px: 1.75, py: 1.25 }}>
-								<Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: theme.palette.text.primary, lineHeight: 1.4 }}>
+								<Typography sx={{ fontSize: theme.typography.caption.fontSize, fontWeight: 600, color: theme.palette.text.primary, lineHeight: 1.4 }}>
 									Ask IRIS to update three tasks at once — done in one sentence.
 								</Typography>
 							</Box>
@@ -610,7 +610,7 @@ const DashboardPreviewSection: React.FC = () => {
 
 						<Box sx={{ display: { xs: 'none', lg: 'block' }, position: 'absolute', top: '48%', right: 0, maxWidth: 190 }}>
 							<Box sx={{ borderRadius: theme.layout.radius.card, border: `1px solid ${theme.palette.divider}`, bgcolor: theme.palette.background.paper, boxShadow: '0 12px 30px -14px rgba(15,23,42,0.25)', px: 1.75, py: 1.25 }}>
-								<Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: theme.palette.text.primary, lineHeight: 1.4 }}>
+								<Typography sx={{ fontSize: theme.typography.caption.fontSize, fontWeight: 600, color: theme.palette.text.primary, lineHeight: 1.4 }}>
 									See every deal, project, and meeting without opening a spreadsheet.
 								</Typography>
 							</Box>

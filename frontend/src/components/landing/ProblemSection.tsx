@@ -17,7 +17,7 @@ const ProblemSection: React.FC = () => {
 		<Box component="section" sx={{ bgcolor: theme.palette.background.paper, py: { xs: 9, md: 12 } }}>
 			<Container maxWidth="md">
 				<Reveal>
-					<Typography sx={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: theme.palette.primary.main, mb: 1.5, textAlign: 'center' }}>
+					<Typography sx={{ fontSize: theme.typography.chipLabel.fontSize, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: theme.palette.primary.main, mb: 1.5, textAlign: 'center' }}>
 						The Problem
 					</Typography>
 					<Typography component="h2" variant="h2" sx={{ color: theme.palette.text.primary, mb: 5, textAlign: 'center' }}>
@@ -53,7 +53,7 @@ const ProblemSection: React.FC = () => {
 								>
 									<CloseIcon sx={{ fontSize: 16, color: theme.palette.error.main }} />
 								</Box>
-								<Typography sx={{ color: theme.palette.text.primary, fontSize: '1.02rem', lineHeight: 1.6, pt: 0.25 }}>
+								<Typography sx={{ color: theme.palette.text.primary, fontSize: theme.typography.body1.fontSize, lineHeight: 1.6, pt: 0.25 }}>
 									{point}
 								</Typography>
 							</Stack>

@@ -24,7 +24,7 @@ const HowItWorksSection: React.FC = () => {
 			<Container maxWidth="lg">
 				<Reveal>
 					<Box sx={{ textAlign: 'center', maxWidth: 560, mx: 'auto', mb: { xs: 6, md: 7 } }}>
-						<Typography sx={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: theme.palette.accent.dark, mb: 1.5 }}>
+						<Typography sx={{ fontSize: theme.typography.chipLabel.fontSize, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: theme.palette.accent.dark, mb: 1.5 }}>
 							How It Works
 						</Typography>
 						<Typography component="h2" variant="h2" sx={{ color: theme.palette.text.primary }}>
@@ -75,13 +75,13 @@ const HowItWorksSection: React.FC = () => {
 								>
 									<step.icon sx={{ fontSize: 26, color: theme.palette.primary.main }} />
 								</Box>
-								<Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: theme.palette.primary.main, mb: 0.5 }}>
+								<Typography sx={{ fontSize: theme.typography.caption.fontSize, fontWeight: 700, color: theme.palette.primary.main, mb: 0.5 }}>
 									STEP {i + 1}
 								</Typography>
-								<Typography sx={{ fontWeight: 700, fontSize: '1.05rem', color: theme.palette.text.primary, mb: 1 }}>
+								<Typography sx={{ fontWeight: 700, fontSize: theme.typography.h6.fontSize, color: theme.palette.text.primary, mb: 1 }}>
 									{step.title}
 								</Typography>
-								<Typography sx={{ color: theme.palette.text.secondary, fontSize: '0.9rem', lineHeight: 1.6 }}>
+								<Typography sx={{ color: theme.palette.text.secondary, fontSize: theme.typography.body2.fontSize, lineHeight: 1.6 }}>
 									{step.description}
 								</Typography>
 							</Box>

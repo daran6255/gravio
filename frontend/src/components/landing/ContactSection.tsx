@@ -108,13 +108,13 @@ const ContactSection: React.FC = () => {
 				<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '0.95fr 1.05fr' }, gap: { xs: 6, md: 8 }, alignItems: 'start' }}>
 					<Reveal>
 						<Box>
-							<Typography sx={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: theme.palette.accent.dark, mb: 1.5 }}>
+							<Typography sx={{ fontSize: theme.typography.chipLabel.fontSize, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: theme.palette.accent.dark, mb: 1.5 }}>
 								Get In Touch
 							</Typography>
 							<Typography component="h2" variant="h2" sx={{ color: theme.palette.text.primary, mb: 2 }}>
 								Have questions before you start?
 							</Typography>
-							<Typography sx={{ color: theme.palette.text.secondary, fontSize: '1.05rem', lineHeight: 1.65, mb: 5, maxWidth: 440 }}>
+							<Typography sx={{ color: theme.palette.text.secondary, fontSize: theme.typography.body1.fontSize, lineHeight: 1.65, mb: 5, maxWidth: 440 }}>
 								No sales pitch, no pressure. Ask us anything about Gravit and a real person on the team
 								will get back to you — no account required.
 							</Typography>
@@ -156,13 +156,13 @@ const ContactSection: React.FC = () => {
 											<opt.icon sx={{ fontSize: 20, color: theme.palette.primary.main }} />
 										</Box>
 										<Box>
-											<Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: theme.palette.text.primary }}>
+											<Typography sx={{ fontWeight: 700, fontSize: theme.typography.body1.fontSize, color: theme.palette.text.primary }}>
 												{opt.label}
 											</Typography>
-											<Typography sx={{ fontWeight: 600, fontSize: '0.88rem', color: theme.palette.primary.main, mb: 0.25 }}>
+											<Typography sx={{ fontWeight: 600, fontSize: theme.typography.body2.fontSize, color: theme.palette.primary.main, mb: 0.25 }}>
 												{opt.value}
 											</Typography>
-											<Typography sx={{ fontSize: '0.82rem', color: theme.palette.text.secondary, lineHeight: 1.5 }}>
+											<Typography sx={{ fontSize: theme.typography.caption.fontSize, color: theme.palette.text.secondary, lineHeight: 1.5 }}>
 												{opt.description}
 											</Typography>
 										</Box>
@@ -245,7 +245,7 @@ const ContactSection: React.FC = () => {
 										sx={{ p: 1.75, borderRadius: theme.layout.radius.card, bgcolor: alpha(theme.palette.success.main, 0.1) }}
 									>
 										<CheckCircleIcon sx={{ color: theme.palette.success.main, fontSize: 20, flexShrink: 0 }} />
-										<Typography sx={{ fontSize: '0.88rem', fontWeight: 600, color: theme.palette.text.primary }}>
+										<Typography sx={{ fontSize: theme.typography.body2.fontSize, fontWeight: 600, color: theme.palette.text.primary }}>
 											Thanks — we've got your message and will reply within one business day.
 										</Typography>
 									</Stack>
@@ -259,7 +259,7 @@ const ContactSection: React.FC = () => {
 										sx={{ p: 1.75, borderRadius: theme.layout.radius.card, bgcolor: alpha(theme.palette.error.main, 0.1) }}
 									>
 										<ErrorIcon sx={{ color: theme.palette.error.main, fontSize: 20, flexShrink: 0 }} />
-										<Typography sx={{ fontSize: '0.88rem', fontWeight: 600, color: theme.palette.text.primary }}>
+										<Typography sx={{ fontSize: theme.typography.body2.fontSize, fontWeight: 600, color: theme.palette.text.primary }}>
 											Something went wrong sending that. Please try again, or email us directly at hello@gravit.taydens.com.
 										</Typography>
 									</Stack>
@@ -272,15 +272,15 @@ const ContactSection: React.FC = () => {
 									disabled={status === 'submitting'}
 									sx={{
 										bgcolor: theme.palette.primary.main,
-										color: '#ffffff',
+										color: theme.palette.common.white,
 										fontWeight: 700,
-										fontSize: '1rem',
+										fontSize: theme.typography.button.fontSize,
 										py: 1.4,
 										borderRadius: theme.layout.radius.button,
 										'&:hover': { bgcolor: theme.palette.primary.dark },
 									}}
 								>
-									{status === 'submitting' ? <CircularProgress size={22} sx={{ color: '#ffffff' }} /> : 'Send Message'}
+									{status === 'submitting' ? <CircularProgress size={22} sx={{ color: theme.palette.common.white }} /> : 'Send Message'}
 								</Button>
 							</Stack>
 						</Box>

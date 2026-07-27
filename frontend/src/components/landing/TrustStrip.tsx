@@ -20,7 +20,7 @@ const TrustStrip: React.FC = () => {
 					{TRUST_POINTS.map((point) => (
 						<Stack key={point.label} direction="row" alignItems="center" spacing={1}>
 							<point.icon sx={{ fontSize: 18, color: theme.palette.accent.dark }} />
-							<Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: theme.palette.text.secondary }}>
+							<Typography sx={{ fontSize: theme.typography.body2.fontSize, fontWeight: 600, color: theme.palette.text.secondary }}>
 								{point.label}
 							</Typography>
 						</Stack>

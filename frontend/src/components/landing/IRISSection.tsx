@@ -22,14 +22,6 @@ const CAPABILITIES = [
 	{ title: 'It asks before anything risky', description: 'Pauses for your OK before anything destructive, like cancelling a meeting.' },
 ];
 
-const ORBIT_ITEMS = [
-	{ icon: GroupsIcon, color: '#8B7CF6', radius: 66, duration: 9, delay: 0, reverse: false },
-	{ icon: ScheduleIcon, color: '#f59e0b', radius: 66, duration: 9, delay: -4.5, reverse: false },
-	{ icon: AccountTreeIcon, color: '#4EA8FF', radius: 118, duration: 15, delay: 0, reverse: true },
-	{ icon: BadgeIcon, color: '#10b981', radius: 118, duration: 15, delay: -5, reverse: true },
-	{ icon: CalendarMonthIcon, color: '#ef4444', radius: 118, duration: 15, delay: -10, reverse: true },
-];
-
 const FEED_ITEMS = [
 	'Logged the call with Meridian Consulting',
 	'Created 3 follow-up tasks for the Q3 proposal',
@@ -54,6 +46,14 @@ const slideFadeIn = keyframes`from { opacity: 0; transform: translateY(6px); } t
 
 const OrbitingCircles: React.FC = () => {
 	const theme = useTheme();
+
+	const orbitItems = [
+		{ icon: GroupsIcon, color: theme.palette.primary.main, radius: 66, duration: 9, delay: 0, reverse: false },
+		{ icon: ScheduleIcon, color: theme.palette.warning.main, radius: 66, duration: 9, delay: -4.5, reverse: false },
+		{ icon: AccountTreeIcon, color: theme.palette.accent.main, radius: 118, duration: 15, delay: 0, reverse: true },
+		{ icon: BadgeIcon, color: theme.palette.success.main, radius: 118, duration: 15, delay: -5, reverse: true },
+		{ icon: CalendarMonthIcon, color: theme.palette.error.main, radius: 118, duration: 15, delay: -10, reverse: true },
+	];
 
 	return (
 		<Box sx={{ position: 'relative', width: 260, height: 260, mx: 'auto' }}>
@@ -90,10 +90,10 @@ const OrbitingCircles: React.FC = () => {
 					zIndex: 2,
 				}}
 			>
-				<AutoAwesomeIcon sx={{ fontSize: 30, color: '#ffffff' }} />
+				<AutoAwesomeIcon sx={{ fontSize: 30, color: theme.palette.common.white }} />
 			</Box>
 
-			{ORBIT_ITEMS.map((item, i) => (
+			{orbitItems.map((item, i) => (
 				<Box
 					key={i}
 					sx={{
@@ -174,7 +174,7 @@ const AnimatedFeed: React.FC = () => {
 					}}
 				>
 					<CheckCircleIcon sx={{ fontSize: 14, color: theme.palette.success.main, flexShrink: 0 }} />
-					<Typography sx={{ fontSize: '0.8rem', color: theme.palette.text.primary, lineHeight: 1.4 }}>{item.text}</Typography>
+					<Typography sx={{ fontSize: theme.typography.body2.fontSize, color: theme.palette.text.primary, lineHeight: 1.4 }}>{item.text}</Typography>
 				</Stack>
 			))}
 		</Stack>
@@ -205,14 +205,14 @@ const IRISSection: React.FC = () => {
 					<Reveal>
 						<Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
 							<AutoAwesomeIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
-							<Typography sx={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: theme.palette.primary.main }}>
+							<Typography sx={{ fontSize: theme.typography.chipLabel.fontSize, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: theme.palette.primary.main }}>
 								Meet IRIS
 							</Typography>
 						</Stack>
 						<Typography component="h2" variant="h2" sx={{ color: theme.palette.text.primary, mb: 2.5 }}>
 							It's the one teammate who can see your whole business
 						</Typography>
-						<Typography sx={{ color: theme.palette.text.secondary, fontSize: '1.05rem', lineHeight: 1.65, mb: 5 }}>
+						<Typography sx={{ color: theme.palette.text.secondary, fontSize: theme.typography.body1.fontSize, lineHeight: 1.65, mb: 5 }}>
 							Every other tool gives you a chatbot bolted onto its own little corner. IRIS sits in
 							the middle of everything — sales, delivery, time, people — and can actually do
 							something about what it sees, with you always able to say no first.
@@ -222,7 +222,7 @@ const IRISSection: React.FC = () => {
 							{CAPABILITIES.map((cap) => (
 								<Box key={cap.title}>
 									<Typography sx={{ fontWeight: 700, color: theme.palette.text.primary, mb: 0.25 }}>{cap.title}</Typography>
-									<Typography sx={{ color: theme.palette.text.secondary, fontSize: '0.9rem', lineHeight: 1.6 }}>{cap.description}</Typography>
+									<Typography sx={{ color: theme.palette.text.secondary, fontSize: theme.typography.body2.fontSize, lineHeight: 1.6 }}>{cap.description}</Typography>
 								</Box>
 							))}
 						</Stack>
@@ -241,7 +241,7 @@ const IRISSection: React.FC = () => {
 						>
 							<OrbitingCircles />
 
-							<Typography sx={{ textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: theme.palette.text.secondary, mt: 3, mb: 2 }}>
+							<Typography sx={{ textAlign: 'center', fontSize: theme.typography.caption.fontSize, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: theme.palette.text.secondary, mt: 3, mb: 2 }}>
 								Working right now
 							</Typography>
 
@@ -254,7 +254,7 @@ const IRISSection: React.FC = () => {
 								sx={{ mt: 2.5, p: 1.5, borderRadius: theme.layout.radius.card, border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}`, bgcolor: alpha(theme.palette.warning.main, 0.08) }}
 							>
 								<LockIcon sx={{ fontSize: 16, color: theme.palette.warning.dark }} />
-								<Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: theme.palette.text.primary }}>
+								<Typography sx={{ fontSize: theme.typography.caption.fontSize, fontWeight: 600, color: theme.palette.text.primary }}>
 									Anything risky — like cancelling a meeting — always waits for your OK first.
 								</Typography>
 							</Stack>

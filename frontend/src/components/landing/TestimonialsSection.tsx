@@ -51,13 +51,13 @@ const TestimonialsSection: React.FC = () => {
 								}}
 							>
 								<FormatQuoteIcon sx={{ fontSize: 28, color: alpha(theme.palette.primary.main, 0.35), mb: 1.5 }} />
-								<Typography sx={{ color: theme.palette.text.primary, fontSize: '0.95rem', lineHeight: 1.65, mb: 3, flex: 1 }}>
+								<Typography sx={{ color: theme.palette.text.primary, fontSize: theme.typography.body1.fontSize, lineHeight: 1.65, mb: 3, flex: 1 }}>
 									&ldquo;{item.quote}&rdquo;
 								</Typography>
 								<Stack spacing={0.25}>
-									<Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: theme.palette.text.primary }}>{item.role}</Typography>
-									<Typography sx={{ fontSize: '0.8rem', color: theme.palette.text.secondary }}>{item.company}</Typography>
-									<Typography sx={{ fontSize: '0.7rem', color: alpha(theme.palette.text.secondary, 0.7), fontStyle: 'italic', mt: 0.75 }}>
+									<Typography sx={{ fontWeight: 700, fontSize: theme.typography.body2.fontSize, color: theme.palette.text.primary }}>{item.role}</Typography>
+									<Typography sx={{ fontSize: theme.typography.caption.fontSize, color: theme.palette.text.secondary }}>{item.company}</Typography>
+									<Typography sx={{ fontSize: theme.typography.caption.fontSize, color: alpha(theme.palette.text.secondary, 0.7), fontStyle: 'italic', mt: 0.75 }}>
 										Illustrative example
 									</Typography>
 								</Stack>

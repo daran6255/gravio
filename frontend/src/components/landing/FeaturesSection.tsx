@@ -199,7 +199,7 @@ const TimesheetVisual: React.FC<{ color: string }> = ({ color }) => {
 						style={{ transition: 'stroke-dashoffset 900ms ease-out' }}
 					/>
 				</svg>
-				<Typography sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: { xs: '1.4rem', sm: '1.7rem' }, fontWeight: 800, color: theme.palette.common.white }}>
+				<Typography sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: { xs: theme.typography.h5.fontSize, sm: theme.typography.h4.fontSize }, fontWeight: 800, color: theme.palette.common.white }}>
 					72%
 				</Typography>
 			</Box>
@@ -292,13 +292,13 @@ const FeaturesSection: React.FC = () => {
 			<Container maxWidth="lg" sx={{ position: 'relative' }}>
 				<Reveal>
 					<Box sx={{ textAlign: 'center', maxWidth: 640, mx: 'auto', mb: { xs: 6, md: 7 } }}>
-						<Typography sx={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: theme.palette.accent.dark, mb: 1.5 }}>
+						<Typography sx={{ fontSize: theme.typography.chipLabel.fontSize, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: theme.palette.accent.dark, mb: 1.5 }}>
 							The Platform
 						</Typography>
 						<Typography component="h2" variant="h2" sx={{ color: theme.palette.text.primary, mb: 2 }}>
 							Everything your business runs on, in one place
 						</Typography>
-						<Typography sx={{ color: theme.palette.text.secondary, fontSize: '1.05rem', lineHeight: 1.65 }}>
+						<Typography sx={{ color: theme.palette.text.secondary, fontSize: theme.typography.body1.fontSize, lineHeight: 1.65 }}>
 							Every part of your day-to-day, sharing the same data and the same AI help.
 						</Typography>
 					</Box>
@@ -415,7 +415,7 @@ const FeaturesSection: React.FC = () => {
 										<Typography
 											sx={{
 												fontWeight: 800,
-												fontSize: isWide ? '1.25rem' : '1.1rem',
+												fontSize: isWide ? theme.typography.h6.fontSize : theme.typography.body1.fontSize,
 												color: theme.palette.common.white,
 												mb: 0.75,
 												lineHeight: 1.3,
@@ -424,7 +424,7 @@ const FeaturesSection: React.FC = () => {
 										>
 											{module.lead}
 										</Typography>
-										<Typography sx={{ color: alpha(theme.palette.common.white, 0.75), fontSize: '0.88rem', lineHeight: 1.55, maxWidth: isWide ? 440 : undefined }}>
+										<Typography sx={{ color: alpha(theme.palette.common.white, 0.75), fontSize: theme.typography.body2.fontSize, lineHeight: 1.55, maxWidth: isWide ? 440 : undefined }}>
 											{module.description}
 										</Typography>
 
@@ -444,7 +444,7 @@ const FeaturesSection: React.FC = () => {
 													'&:hover .bento-arrow': { transform: 'translateX(3px)' },
 												}}
 											>
-												<Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: module.color }}>See it in the product</Typography>
+												<Typography sx={{ fontSize: theme.typography.caption.fontSize, fontWeight: 700, color: module.color }}>See it in the product</Typography>
 												<ArrowForwardIcon className="bento-arrow" sx={{ fontSize: 14, color: module.color, transition: 'transform 200ms ease-out' }} />
 											</Stack>
 										</Box>

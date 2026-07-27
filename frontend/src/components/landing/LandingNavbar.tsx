@@ -72,7 +72,7 @@ const LandingNavbar: React.FC = () => {
 										handleAnchorClick(link.href);
 									}}
 									sx={{
-										fontSize: '0.9rem',
+										fontSize: theme.typography.body2.fontSize,
 										fontWeight: 600,
 										color: theme.palette.text.secondary,
 										textDecoration: 'none',
@@ -100,7 +100,7 @@ const LandingNavbar: React.FC = () => {
 								onClick={() => navigate('/auth/register')}
 								sx={{
 									bgcolor: theme.palette.primary.main,
-									color: '#ffffff',
+									color: theme.palette.common.white,
 									fontWeight: 700,
 									px: 2.5,
 									borderRadius: theme.layout.radius.button,
@@ -144,7 +144,7 @@ const LandingNavbar: React.FC = () => {
 								e.preventDefault();
 								handleAnchorClick(link.href);
 							}}
-							sx={{ fontSize: '1.05rem', fontWeight: 600, color: theme.palette.text.primary, textDecoration: 'none', cursor: 'pointer' }}
+							sx={{ fontSize: theme.typography.body1.fontSize, fontWeight: 600, color: theme.palette.text.primary, textDecoration: 'none', cursor: 'pointer' }}
 						>
 							{link.label}
 						</Typography>
@@ -161,12 +161,12 @@ const LandingNavbar: React.FC = () => {
 						fullWidth
 						variant="contained"
 						onClick={() => navigate('/auth/register')}
-						sx={{ bgcolor: theme.palette.primary.main, color: '#ffffff', fontWeight: 700 }}
+						sx={{ bgcolor: theme.palette.primary.main, color: theme.palette.common.white, fontWeight: 700 }}
 					>
 						Start Free Trial
 					</Button>
 					<Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 1, pt: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
-						<Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: theme.palette.text.primary }}>
+						<Typography sx={{ fontSize: theme.typography.body2.fontSize, fontWeight: 600, color: theme.palette.text.primary }}>
 							{mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
 						</Typography>
 						<IconButton onClick={toggleColorMode} sx={{ color: theme.palette.text.primary }} aria-label="Toggle theme">

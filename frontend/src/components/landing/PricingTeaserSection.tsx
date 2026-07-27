@@ -201,13 +201,13 @@ const PricingTeaserSection: React.FC = () => {
 			<Container maxWidth="lg">
 				<Reveal>
 					<Box sx={{ textAlign: 'center', maxWidth: 600, mx: 'auto', mb: 4 }}>
-						<Typography sx={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: theme.palette.accent.dark, mb: 1.5 }}>
+						<Typography sx={{ fontSize: theme.typography.chipLabel.fontSize, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: theme.palette.accent.dark, mb: 1.5 }}>
 							Pricing
 						</Typography>
 						<Typography component="h2" variant="h2" sx={{ color: theme.palette.text.primary, mb: 2 }}>
 							Simple pricing, whether it's just you or a growing team
 						</Typography>
-						<Typography sx={{ color: theme.palette.text.secondary, fontSize: '1.05rem' }}>
+						<Typography sx={{ color: theme.palette.text.secondary, fontSize: theme.typography.body1.fontSize }}>
 							IRIS is built into every plan — no separate AI bill to worry about.
 						</Typography>
 					</Box>
@@ -234,7 +234,7 @@ const PricingTeaserSection: React.FC = () => {
 									color: theme.palette.text.secondary,
 									'&.Mui-selected': {
 										bgcolor: theme.palette.primary.main,
-										color: '#ffffff',
+										color: theme.palette.common.white,
 										'&:hover': { bgcolor: theme.palette.primary.dark },
 									},
 								},
@@ -243,7 +243,7 @@ const PricingTeaserSection: React.FC = () => {
 							<ToggleButton value="solo">Solo</ToggleButton>
 							<ToggleButton value="team">Team</ToggleButton>
 						</ToggleButtonGroup>
-						<Typography sx={{ fontSize: '0.85rem', color: theme.palette.text.secondary }}>
+						<Typography sx={{ fontSize: theme.typography.body2.fontSize, color: theme.palette.text.secondary }}>
 							{mode === 'solo' ? "Solo — it's just you" : 'Team — you and the people you work with'}
 						</Typography>
 					</Stack>
@@ -278,22 +278,22 @@ const PricingTeaserSection: React.FC = () => {
 											bgcolor: theme.palette.primary.main,
 										}}
 									>
-										<Typography sx={{ fontSize: '0.65rem', fontWeight: 800, color: '#ffffff', letterSpacing: '0.05em' }}>
+										<Typography sx={{ fontSize: theme.typography.caption.fontSize, fontWeight: 800, color: theme.palette.common.white, letterSpacing: '0.05em' }}>
 											MOST POPULAR
 										</Typography>
 									</Box>
 								)}
 
-								<Typography sx={{ fontWeight: 700, fontSize: '1.05rem', color: theme.palette.text.primary, mb: 0.5 }}>
+								<Typography sx={{ fontWeight: 700, fontSize: theme.typography.body1.fontSize, color: theme.palette.text.primary, mb: 0.5 }}>
 									{plan.name}
 								</Typography>
-								<Typography sx={{ fontSize: '0.78rem', color: theme.palette.text.secondary, mb: 1.5 }}>{plan.seatsLabel}</Typography>
+								<Typography sx={{ fontSize: theme.typography.caption.fontSize, color: theme.palette.text.secondary, mb: 1.5 }}>{plan.seatsLabel}</Typography>
 
 								<Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ mb: 2 }}>
-									<Typography sx={{ fontWeight: 800, fontSize: '1.9rem', color: theme.palette.text.primary }}>
+									<Typography sx={{ fontWeight: 800, fontSize: theme.typography.h3.fontSize, color: theme.palette.text.primary }}>
 										{plan.price === 0 ? 'Free' : formatINR(plan.price)}
 									</Typography>
-									{plan.price > 0 && <Typography sx={{ fontSize: '0.8rem', color: theme.palette.text.secondary }}>{plan.priceSuffix}</Typography>}
+									{plan.price > 0 && <Typography sx={{ fontSize: theme.typography.caption.fontSize, color: theme.palette.text.secondary }}>{plan.priceSuffix}</Typography>}
 								</Stack>
 
 								<Stack
@@ -303,7 +303,7 @@ const PricingTeaserSection: React.FC = () => {
 									sx={{ mb: 2.5, p: 1.25, borderRadius: theme.layout.radius.card, bgcolor: alpha(theme.palette.primary.main, 0.06) }}
 								>
 									<SmartToyIcon sx={{ fontSize: 16, color: theme.palette.primary.main, mt: 0.2, flexShrink: 0 }} />
-									<Typography sx={{ fontSize: '0.78rem', color: theme.palette.text.primary, lineHeight: 1.5, fontWeight: 600 }}>
+									<Typography sx={{ fontSize: theme.typography.caption.fontSize, color: theme.palette.text.primary, lineHeight: 1.5, fontWeight: 600 }}>
 										{aiFramingLine(plan)}
 									</Typography>
 								</Stack>
@@ -312,13 +312,13 @@ const PricingTeaserSection: React.FC = () => {
 									{plan.features.map((feature) => (
 										<Stack key={feature} direction="row" spacing={1} alignItems="flex-start">
 											<CheckIcon sx={{ fontSize: 15, color: theme.palette.success.main, mt: 0.3, flexShrink: 0 }} />
-											<Typography sx={{ fontSize: '0.82rem', color: theme.palette.text.primary, lineHeight: 1.5 }}>{feature}</Typography>
+											<Typography sx={{ fontSize: theme.typography.body2.fontSize, color: theme.palette.text.primary, lineHeight: 1.5 }}>{feature}</Typography>
 										</Stack>
 									))}
 									{plan.notCovered?.map((feature) => (
 										<Stack key={feature} direction="row" spacing={1} alignItems="flex-start" sx={{ opacity: 0.5 }}>
 											<CloseIcon sx={{ fontSize: 15, color: theme.palette.text.secondary, mt: 0.3, flexShrink: 0 }} />
-											<Typography sx={{ fontSize: '0.82rem', color: theme.palette.text.secondary, lineHeight: 1.5, textDecoration: 'line-through' }}>
+											<Typography sx={{ fontSize: theme.typography.body2.fontSize, color: theme.palette.text.secondary, lineHeight: 1.5, textDecoration: 'line-through' }}>
 												{feature}
 											</Typography>
 										</Stack>
@@ -333,7 +333,7 @@ const PricingTeaserSection: React.FC = () => {
 										fontWeight: 700,
 										borderRadius: theme.layout.radius.button,
 										...(plan.popular
-											? { bgcolor: theme.palette.primary.main, color: '#ffffff', '&:hover': { bgcolor: theme.palette.primary.dark } }
+											? { bgcolor: theme.palette.primary.main, color: theme.palette.common.white, '&:hover': { bgcolor: theme.palette.primary.dark } }
 											: { color: theme.palette.text.primary, borderColor: theme.palette.divider }),
 									}}
 								>
@@ -355,7 +355,7 @@ const PricingTeaserSection: React.FC = () => {
 						display: 'block',
 						textAlign: 'center',
 						mt: 4,
-						fontSize: '0.9rem',
+						fontSize: theme.typography.button.fontSize,
 						fontWeight: 600,
 						color: theme.palette.primary.main,
 						textDecoration: 'none',

@@ -31,7 +31,7 @@ const LogosStrip: React.FC = () => {
 				<Typography
 					sx={{
 						textAlign: 'center',
-						fontSize: '0.75rem',
+						fontSize: theme.typography.caption.fontSize,
 						fontWeight: 700,
 						letterSpacing: '0.1em',
 						textTransform: 'uppercase',
@@ -63,8 +63,8 @@ const LogosStrip: React.FC = () => {
 				>
 					{track.map((logo, i) => (
 						<Stack key={`${logo.name}-${i}`} direction="row" alignItems="center" spacing={1} sx={{ opacity: 0.55, flexShrink: 0 }}>
-							<Typography sx={{ fontSize: '1.1rem', color: theme.palette.text.secondary, lineHeight: 1 }}>{logo.mark}</Typography>
-							<Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: theme.palette.text.secondary, letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
+							<Typography sx={{ fontSize: theme.typography.body1.fontSize, color: theme.palette.text.secondary, lineHeight: 1 }}>{logo.mark}</Typography>
+							<Typography sx={{ fontSize: theme.typography.body2.fontSize, fontWeight: 700, color: theme.palette.text.secondary, letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
 								{logo.name}
 							</Typography>
 						</Stack>
@@ -72,7 +72,7 @@ const LogosStrip: React.FC = () => {
 				</Stack>
 			</Box>
 
-			<Typography sx={{ textAlign: 'center', fontSize: '0.7rem', color: theme.palette.text.secondary, opacity: 0.7, mt: 2.5, fontStyle: 'italic' }}>
+			<Typography sx={{ textAlign: 'center', fontSize: theme.typography.caption.fontSize, color: theme.palette.text.secondary, opacity: 0.7, mt: 2.5, fontStyle: 'italic' }}>
 				Sample marks shown for illustration
 			</Typography>
 		</Box>

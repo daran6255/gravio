@@ -78,12 +78,12 @@ const FAQSection: React.FC = () => {
 									id={`faq-panel-${i}-header`}
 									sx={{ px: 3, py: 0.5 }}
 								>
-									<Typography sx={{ fontWeight: 700, fontSize: '0.98rem', color: theme.palette.text.primary }}>
+									<Typography sx={{ fontWeight: 700, fontSize: theme.typography.body1.fontSize, color: theme.palette.text.primary }}>
 										{faq.question}
 									</Typography>
 								</AccordionSummary>
 								<AccordionDetails sx={{ px: 3, pb: 2.5 }}>
-									<Typography sx={{ color: theme.palette.text.secondary, fontSize: '0.92rem', lineHeight: 1.65 }}>
+									<Typography sx={{ color: theme.palette.text.secondary, fontSize: theme.typography.body2.fontSize, lineHeight: 1.65 }}>
 										{faq.answer}
 									</Typography>
 								</AccordionDetails>

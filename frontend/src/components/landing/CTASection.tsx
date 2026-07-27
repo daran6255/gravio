@@ -25,10 +25,10 @@ const CTASection: React.FC = () => {
 							boxShadow: `0 24px 60px -24px ${alpha(theme.palette.primary.main, 0.45)}`,
 						}}
 					>
-						<Typography component="h2" variant="h2" sx={{ color: '#ffffff', mb: 2 }}>
+						<Typography component="h2" variant="h2" sx={{ color: theme.palette.common.white, mb: 2 }}>
 							Ready to run everything from one system?
 						</Typography>
-						<Typography sx={{ color: alpha('#ffffff', 0.85), fontSize: '1.05rem', mb: 4, maxWidth: 480, mx: 'auto' }}>
+						<Typography sx={{ color: alpha(theme.palette.common.white, 0.85), fontSize: theme.typography.body1.fontSize, mb: 4, maxWidth: 480, mx: 'auto' }}>
 							Start a free trial and let IRIS start working across your CRM, projects, and team from day one.
 						</Typography>
 						<Button
@@ -37,14 +37,14 @@ const CTASection: React.FC = () => {
 							endIcon={<ArrowForwardIcon />}
 							onClick={() => navigate('/auth/register')}
 							sx={{
-								bgcolor: '#ffffff',
+								bgcolor: theme.palette.common.white,
 								color: theme.palette.primary.dark,
 								fontWeight: 700,
-								fontSize: '1rem',
+								fontSize: theme.typography.button.fontSize,
 								px: 4,
 								py: 1.4,
 								borderRadius: theme.layout.radius.button,
-								'&:hover': { bgcolor: alpha('#ffffff', 0.9) },
+								'&:hover': { bgcolor: alpha(theme.palette.common.white, 0.9) },
 							}}
 						>
 							Start Free Trial
