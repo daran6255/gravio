@@ -2,7 +2,6 @@ import React from 'react';
 import { Box } from '@mui/material';
 import {
 	AnnouncementBar,
-	LandingNavbar,
 	HeroSection,
 	LogosStrip,
 	ProblemSection,
@@ -16,8 +15,9 @@ import {
 	FAQSection,
 	ContactSection,
 	CTASection,
-	LandingFooter,
 } from '../../components/landing';
+import LandingNavbar from '../../components/layout/LandingNavbar';
+import LandingFooter from '../../components/layout/LandingFooter';
 
 const organizationJsonLd = {
 	'@context': 'https://schema.org',

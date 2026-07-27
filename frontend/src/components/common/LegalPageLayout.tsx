@@ -4,7 +4,8 @@ import { ThemeProvider } from '@mui/material/styles';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getThemeByMode } from '../../theme/theme';
-import { LandingNavbar, LandingFooter } from '../landing';
+import LandingNavbar from '../layout/LandingNavbar';
+import LandingFooter from '../layout/LandingFooter';
 
 // Legal pages always present in light mode, same precedent as the rest of the
 // marketing site (see LandingPage.tsx).

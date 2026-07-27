@@ -1,5 +1,4 @@
 export { default as AnnouncementBar } from './AnnouncementBar';
-export { default as LandingNavbar } from './LandingNavbar';
 export { default as HeroSection } from './HeroSection';
 export { default as LogosStrip } from './LogosStrip';
 export { default as ProblemSection } from './ProblemSection';
@@ -13,5 +12,4 @@ export { default as FAQSection } from './FAQSection';
 export { default as ContactSection } from './ContactSection';
 export { default as TrustStrip } from './TrustStrip';
 export { default as CTASection } from './CTASection';
-export { default as LandingFooter } from './LandingFooter';
 export { default as Reveal } from './Reveal';
