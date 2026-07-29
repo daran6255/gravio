@@ -103,4 +103,10 @@ npm run dev
 To test the entire containerized stack locally (App + DB + Nginx proxy):
 ```bash
 docker-compose up --build
-```
+```
+
+---
+
+## 📄 License
+
+This project is licensed under a proprietary Commercial License. See the [LICENSE](file:///c:/External-projects/Taydens/gravit/LICENSE) file for details. Copyright (c) 2026 Taydens. All rights reserved.
