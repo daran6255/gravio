@@ -56,9 +56,9 @@ We maintain comprehensive documentation for developers and operators:
 
 | Environment | Purpose | App URL | API Documentation |
 | :--- | :--- | :--- | :--- |
-| **Development** | Active integration and sandbox experimentation. | [https://dev.winvinaya.com](https://dev.winvinaya.com) | [API Docs](https://dev-api.winvinaya.com/docs) |
-| **QA** | Testing of release candidates and stable features. | [https://qa.winvinaya.com](https://qa.winvinaya.com) | [API Docs](https://qa-api.winvinaya.com/docs) |
-| **Production** | Live, stable ecosystem for users and tenants. | [https://winvinaya.com](https://winvinaya.com) | [API Docs](https://api.winvinaya.com/docs) |
+| **Development** | Active integration and sandbox experimentation. | [https://dev-gravit.taydens.com](https://dev-gravit.taydens.com) | [API Docs](https://dev-gravit.taydens.com/docs) |
+| **QA** | Testing of release candidates and stable features. | [https://qa-gravit.taydens.com](https://qa-gravit.taydens.com) | [API Docs](https://qa-gravit.taydens.com/docs) |
+| **Production** | Live, stable ecosystem for users and tenants. | [https://gravit.taydens.com](https://gravit.taydens.com) | [API Docs](https://gravit.taydens.com/docs) |
 
 ---
 

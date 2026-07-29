@@ -53,9 +53,9 @@ npm run lint
 We follow a branch-based workflow with automated CI/CD.
 1. Create a feature branch from `develop`.
 2. Open a Pull Request to `develop` to trigger the **Pull Request CI** (Linting, Building, Backend Tests).
-3. Merging to `develop` triggers deployment to the [Development Environment](https://dev.winvinaya.com).
-4. Merging to `qa` triggers deployment to the [QA Environment](https://qa.winvinaya.com).
-5. Merging to `main` triggers deployment to [Production](https://winvinaya.com).
+3. Merging to `develop` triggers deployment to the [Development Environment](https://dev-gravit.taydens.com).
+4. Merging to `qa` triggers deployment to the [QA Environment](https://qa-gravit.taydens.com).
+5. Merging to `main` triggers deployment to [Production](https://gravit.taydens.com).
 
 Refer to [CI/CD Workflow Guide](file:///c:/External-projects/Taydens/gravit/docs/CI_CD_WORKFLOW_GUIDE.md) for more details.
 
