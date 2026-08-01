@@ -19,6 +19,7 @@ import type {
 	HRChecklistTemplate, HRChecklistInstance, HREmployeeDocument,
 	HeadcountReport,
 } from '../models/hr';
+import type { IrisPreviewResponse, IrisActivityEntry } from '../models/iris';
 
 interface PaginatedResponse<T> {
 	items: T[];
@@ -159,6 +160,21 @@ export const hrLeaveRequestApi = {
 
 	cancel: (publicId: string): Promise<HRLeaveRequestResponse> =>
 		api.post(`/hr/leaves/requests/${publicId}/cancel`).then(r => r.data),
+};
+
+// ---------------------------------------------------------------------------
+// Leave — IRIS Assist
+// ---------------------------------------------------------------------------
+
+export const hrLeaveIrisApi = {
+	previewIrisAction: (message: string): Promise<IrisPreviewResponse> =>
+		api.post('/hr/leaves/iris/preview', { message }).then(r => r.data),
+
+	executeIrisAction: (message: string): Promise<IrisActivityEntry> =>
+		api.post('/hr/leaves/iris/execute', { message }).then(r => r.data),
+
+	getIrisActivity: (): Promise<IrisActivityEntry[]> =>
+		api.get('/hr/leaves/iris/activity').then(r => r.data),
 };
 
 // ---------------------------------------------------------------------------

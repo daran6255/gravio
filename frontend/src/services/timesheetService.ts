@@ -9,6 +9,7 @@ import type {
 	TimesheetWeekUnlockRequest,
 	TimesheetBulkApproveResult
 } from '../models/timesheet';
+import type { IrisPreviewResponse, IrisActivityEntry } from '../models/iris';
 
 const timesheetService = {
 	// ==========================================
@@ -223,6 +224,24 @@ const timesheetService = {
 		billing_type?: string | null;
 	}): Promise<TimesheetReportRow[]> => {
 		const response = await api.get('/timesheets/report', { params });
+		return response.data;
+	},
+
+	// ==========================================
+	// 7. IRIS ASSIST
+	// ==========================================
+	previewIrisAction: async (message: string): Promise<IrisPreviewResponse> => {
+		const response = await api.post<IrisPreviewResponse>('/timesheets/iris/preview', { message });
+		return response.data;
+	},
+
+	executeIrisAction: async (message: string): Promise<IrisActivityEntry> => {
+		const response = await api.post<IrisActivityEntry>('/timesheets/iris/execute', { message });
+		return response.data;
+	},
+
+	getIrisActivity: async (): Promise<IrisActivityEntry[]> => {
+		const response = await api.get<IrisActivityEntry[]>('/timesheets/iris/activity');
 		return response.data;
 	}
 };

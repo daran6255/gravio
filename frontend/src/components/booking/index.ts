@@ -7,3 +7,4 @@ export { default as UpcomingMeetingsPanel } from './meetings/UpcomingMeetingsPan
 export { default as MeetingHistoryTable } from './meetings/MeetingHistoryTable';
 export { default as MeetingsGuideDrawer } from './meetings/MeetingsGuideDrawer';
 export { default as AvailabilitySettingsPanel } from './meetings/AvailabilitySettingsPanel';
+export { default as IrisMeetingPanel } from './IrisMeetingPanel';

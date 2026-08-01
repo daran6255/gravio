@@ -11,5 +11,6 @@ from app.ai.mcp.tools import crm  # noqa: F401
 from app.ai.mcp.tools import projects  # noqa: F401
 from app.ai.mcp.tools import timesheets  # noqa: F401
 from app.ai.mcp.tools import hr  # noqa: F401
+from app.ai.mcp.tools import leaves  # noqa: F401
 from app.ai.mcp.tools import booking  # noqa: F401
 

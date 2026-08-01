@@ -17,6 +17,7 @@ import {
 	ChevronRight as NextIcon,
 	Today as CurrentIcon,
 	HelpOutline as HelpIcon,
+	AutoAwesome as IrisIcon,
 	ScheduleOutlined as MyTimesheetIcon,
 	FactCheckOutlined as TeamApprovalsIcon,
 	LockOpenOutlined as UnlockRequestsIcon,
@@ -58,6 +59,7 @@ import TimeLogEntryFormDialog from '../../components/timesheets/log-entry-dialog
 import ManagerAllocationPanel from '../../components/timesheets/manager-allocation';
 import HolidayCalendarPanel from '../../components/timesheets/holiday-calendar';
 import WeekUnlockRequestsPanel from '../../components/timesheets/week-unlock-requests';
+import IrisTimesheetPanel from '../../components/timesheets/IrisTimesheetPanel';
 import useToast from '../../hooks/useToast';
 import type { ProjectTimeLog } from '../../models/timesheet';
 
@@ -197,6 +199,7 @@ const TimesheetPage: React.FC = () => {
 	const [activeTab, setActiveTab] = useState(0);
 
 	const [guideOpen, setGuideOpen] = useState(false);
+	const [irisOpen, setIrisOpen] = useState(false);
 	const [showBanner, setShowBanner] = useState(() => {
 		return currentUser?.role === 'admin' && !localStorage.getItem('dismissed_timesheet_onboarding');
 	});
@@ -465,6 +468,15 @@ const TimesheetPage: React.FC = () => {
 					</Button>
 				</Stack>
 			)}
+			<Button
+				size="small"
+				variant="outlined"
+				startIcon={<IrisIcon fontSize="small" />}
+				onClick={() => setIrisOpen(true)}
+				sx={{ borderRadius: '10px', fontWeight: 700, textTransform: 'none' }}
+			>
+				Ask IRIS
+			</Button>
 			<HelpGuideButton onClick={() => setGuideOpen(true)} />
 		</Stack>
 	);
@@ -632,6 +644,13 @@ const TimesheetPage: React.FC = () => {
 				open={guideOpen}
 				onClose={() => setGuideOpen(false)}
 				content={guideContent}
+			/>
+
+			{/* IRIS Assist Panel */}
+			<IrisTimesheetPanel
+				open={irisOpen}
+				onClose={() => setIrisOpen(false)}
+				onActionConfirmed={loadMyTimesheet}
 			/>
 
 			</Container>

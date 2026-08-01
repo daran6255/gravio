@@ -9,13 +9,14 @@ meeting goes through the exact same conflict-checked path the New Meeting form d
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import date as date_type, datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any
+from zoneinfo import ZoneInfo
 
 from app.ai.brain.schemas import ToolDefinition, ToolParameterSchema, ToolResult, ToolRiskTier
 from app.ai.mcp.base_tool import BaseTool
 from app.ai.mcp.registry import registry
-from app.middleware.exceptions import BadRequestError, NotFoundError
+from app.middleware.exceptions import BadRequestError, ConflictError, NotFoundError
 from app.models.booking import CancelledBy, MeetingLocationType, MeetingStatus
 from app.repositories.booking import ScheduledMeetingRepository
 from app.schemas.booking import ScheduleMeetingRequest
@@ -24,6 +25,17 @@ from app.services import booking as booking_service
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
     from app.models.user import User
+
+
+async def _suggest_slots(db: "AsyncSession", user: "User", around: datetime, limit: int = 3) -> list[dict]:
+    """Up to `limit` open slots on the same host-local calendar day as `around`, so a
+    scheduling conflict can offer alternatives in the same turn instead of a dead end."""
+    settings = await booking_service.get_or_create_availability_settings(db, user)
+    host_tz = ZoneInfo(settings.timezone)
+    target_date = around.astimezone(host_tz).date()
+    starts = await booking_service.get_available_slots(db, settings=settings, target_date=target_date)
+    duration = timedelta(minutes=settings.duration_minutes)
+    return [{"start_time": s.isoformat(), "end_time": (s + duration).isoformat()} for s in starts[:limit]]
 
 
 class ScheduleMeetingTool(BaseTool):
@@ -89,7 +101,15 @@ class ScheduleMeetingTool(BaseTool):
             # client-side double-submit risk here since the LLM calls this tool once per plan step.
             idempotency_key=f"ai-{uuid.uuid4()}",
         )
-        meeting, _occurrences_created = await booking_service.create_meeting(db, host=user, payload=payload)
+        try:
+            meeting, _occurrences_created = await booking_service.create_meeting(db, host=user, payload=payload)
+        except ConflictError as e:
+            suggestions = await _suggest_slots(db, user, start_time)
+            message = e.message
+            if suggestions:
+                times = ", ".join(s["start_time"] for s in suggestions)
+                message += f" Open times that day: {times}."
+            return ToolResult(success=False, message=message, error="conflict", data={"suggested_slots": suggestions})
 
         return ToolResult(
             success=True,
@@ -106,6 +126,47 @@ class ScheduleMeetingTool(BaseTool):
             },
             records_affected=1,
         )
+
+
+class FindAvailableSlotsTool(BaseTool):
+    """Reports the current user's own open meeting slots on a given day, per their
+    configured availability rules and existing calendar."""
+
+    definition = ToolDefinition(
+        name="find_available_slots",
+        description=(
+            "Finds the current user's own open meeting slots on a given day, based on their "
+            "configured availability rules and duration/buffer settings, minus anything already "
+            "on their calendar. Use for 'when am I free tomorrow' or before scheduling, to avoid "
+            "a conflict. Resolve relative dates ('tomorrow', 'this week') to a concrete YYYY-MM-DD "
+            "date using the current date given in context -- for a multi-day range, call this "
+            "once per day."
+        ),
+        category="booking",
+        is_read_only=True,
+        risk_tier=ToolRiskTier.READ_ONLY,
+        parameters={
+            "target_date": ToolParameterSchema(type="string", description="Day to check, YYYY-MM-DD."),
+        },
+        required_parameters=["target_date"],
+    )
+
+    async def execute(self, params: dict[str, Any], db: "AsyncSession", user: "User") -> ToolResult:
+        try:
+            target_date = date_type.fromisoformat(str(params["target_date"]))
+        except ValueError:
+            return ToolResult(success=False, message="target_date must be in YYYY-MM-DD format.", error="invalid_date")
+
+        settings = await booking_service.get_or_create_availability_settings(db, user)
+        starts = await booking_service.get_available_slots(db, settings=settings, target_date=target_date)
+        duration = timedelta(minutes=settings.duration_minutes)
+        slots = [{"start_time": s.isoformat(), "end_time": (s + duration).isoformat()} for s in starts]
+
+        if not slots:
+            return ToolResult(success=True, message=f"No open slots on {target_date.isoformat()}.", data={"slots": []})
+
+        times = ", ".join(s["start_time"] for s in slots)
+        return ToolResult(success=True, message=f"Open slots on {target_date.isoformat()}: {times}", data={"slots": slots})
 
 
 class ListMyMeetingsTool(BaseTool):
@@ -234,6 +295,7 @@ class RescheduleMeetingTool(BaseTool):
 
 
 registry.register(ScheduleMeetingTool())
+registry.register(FindAvailableSlotsTool())
 registry.register(ListMyMeetingsTool())
 registry.register(CancelMeetingTool())
 registry.register(RescheduleMeetingTool())

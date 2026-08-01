@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useSearchParams, Link as RouterLink } from 'react-router-dom';
-import { Box, Container, Grid, Skeleton, Stack, Tab, Tabs, alpha, useTheme, Alert, Link } from '@mui/material';
+import { Box, Container, Grid, Skeleton, Stack, Tab, Tabs, alpha, useTheme, Alert, Link, Button } from '@mui/material';
 import {
 	HelpOutline as HelpIcon,
 	EventAvailableOutlined as MyLeavesIcon,
@@ -23,6 +23,8 @@ import {
 } from '../../../components/hr/user/leave';
 import { ReportingEmployeesPanel } from '../../../components/hr/shared/ReportingEmployeesPanel';
 import { HelpGuideDrawer } from '../../../components/common/guide/HelpGuideDrawer';
+import IrisLeavePanel from '../../../components/hr/IrisLeavePanel';
+import { AutoAwesome as IrisIcon } from '@mui/icons-material';
 
 const leavesGuideContent = {
 	icon: HelpIcon,
@@ -104,6 +106,7 @@ const LeaveDashboardPage: React.FC = () => {
 	// to this tab via ?tab=calendar instead of landing on the (unrelated) default.
 	const [activeTab, setActiveTab] = useState(() => (searchParams.get('tab') === 'calendar' ? 1 : 0));
 	const [guideOpen, setGuideOpen] = useState(false);
+	const [irisOpen, setIrisOpen] = useState(false);
 
 	const isManagerOrAdmin = useMemo(() => {
 		return user?.role === 'admin' || user?.role === 'manager' || user?.role === 'leadership' || user?.role === 'hr_manager';
@@ -164,6 +167,15 @@ const LeaveDashboardPage: React.FC = () => {
 						subtitle="Request leaves and view your allocations."
 						action={
 							<Stack direction="row" spacing={1.5} alignItems="center">
+								<Button
+									size="small"
+									variant="outlined"
+									startIcon={<IrisIcon fontSize="small" />}
+									onClick={() => setIrisOpen(true)}
+									sx={{ borderRadius: '10px', fontWeight: 700, textTransform: 'none' }}
+								>
+									Ask IRIS
+								</Button>
 								<HelpGuideButton compact onClick={() => setGuideOpen(true)} />
 								<AddButton onClick={() => setApplyOpen(true)} sx={{ borderRadius: 3 }}>
 									Apply Leave
@@ -288,6 +300,13 @@ const LeaveDashboardPage: React.FC = () => {
 						open={guideOpen}
 						onClose={() => setGuideOpen(false)}
 						content={leavesGuideContent}
+					/>
+
+					<IrisLeavePanel
+						open={irisOpen}
+						onClose={() => setIrisOpen(false)}
+						isManagerOrAdmin={isManagerOrAdmin}
+						onActionConfirmed={fetchData}
 					/>
 				</Stack>
 			</Container>

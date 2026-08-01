@@ -34,6 +34,8 @@ from app.schemas.booking import (
     ScheduledMeetingResponse,
 )
 from app.schemas.common import PaginatedResponse
+from app.schemas.project import IrisMessageRequest, IrisPreviewResponse, IrisPlannedStep
+from app.schemas.crm import AuditLogResponse
 from app.services import booking as booking_service
 from app.utils.email import create_meeting_join_token
 
@@ -112,6 +114,81 @@ async def list_org_members_endpoint(
         db, organization_id=current_user.organization_id, exclude_user_id=current_user.id
     )
     return [OrgMemberOption.model_validate(m) for m in members]
+
+
+# ── IRIS assist (propose-then-confirm) ──────────────────────────────────────
+# Same propose-then-confirm shape as the project task drawer's IRIS panel (see
+# preview_iris_action/execute_iris_action in projects.py): /preview plans without touching
+# the DB, /execute only runs after the user confirms, and the reply is recorded as an
+# audit-log row scoped to this user so the panel has a "recent activity" feed for free.
+
+@router.post("/iris/preview", response_model=IrisPreviewResponse, summary="Ask IRIS what it would do for meetings, without executing anything")
+async def preview_meeting_iris_action(
+    payload: IrisMessageRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.ai.brain.engine import AIEngine
+    from app.ai.brain.exceptions import LLMProviderError, LLMResponseParseError, NoPlanGeneratedError, PlanningError
+    from app.ai.schemas.requests import AITaskRunRequest
+    from app.middleware.exceptions import BadRequestError, ServiceUnavailableError
+
+    engine = AIEngine(db, current_user)
+    try:
+        plan = await engine.preview(AITaskRunRequest(trigger_type="manual", task_hint=payload.message, input_data={}))
+    except NoPlanGeneratedError:
+        raise BadRequestError("IRIS couldn't work out a plan for that -- try rephrasing.")
+    except LLMResponseParseError:
+        raise BadRequestError(
+            "IRIS's plan came back malformed -- this can happen when a request needs a lot of "
+            "steps at once. Try a more specific or smaller request."
+        )
+    except PlanningError as e:
+        raise BadRequestError(e.message)
+    except LLMProviderError as e:
+        raise ServiceUnavailableError(e.message)
+
+    return IrisPreviewResponse(
+        task_name=plan.task_name,
+        response_to_user=plan.response_to_user,
+        reasoning=plan.reasoning,
+        estimated_record_impact=plan.estimated_record_impact,
+        steps=[IrisPlannedStep(tool_name=s.tool_name, parameters=s.parameters, reasoning=s.reasoning) for s in plan.steps],
+    )
+
+
+@router.post("/iris/execute", response_model=AuditLogResponse, summary="Confirm and run an IRIS action for meetings")
+async def execute_meeting_iris_action(
+    payload: IrisMessageRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.ai.brain.engine import AIEngine
+    from app.ai.schemas.requests import AITaskRunRequest
+    from app.services.audit import AuditService
+
+    engine = AIEngine(db, current_user)
+    result = await engine.run(AITaskRunRequest(
+        trigger_type="manual", task_hint=payload.message, input_data={}, confirmed=True,
+    ))
+    reply_text = result.summary or (f"⚠️ {result.error}" if result.error else "IRIS didn't return a result.")
+    entry = await AuditService.record(
+        db, entity_type="meeting_iris", entity_id=current_user.id,
+        action="comment", changed_by_user_id=None, new_value=reply_text,
+    )
+    await db.commit()
+    await db.refresh(entry)
+    return entry
+
+
+@router.get("/iris/activity", response_model=list[AuditLogResponse], summary="Recent IRIS activity on meetings for the current user")
+async def get_meeting_iris_activity(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.services.audit import AuditService
+
+    return await AuditService.list_for_entity(db, entity_type="meeting_iris", entity_id=current_user.id, page=1, page_size=5)
 
 
 @router.post("/meetings", response_model=ScheduledMeetingResponse, status_code=status.HTTP_201_CREATED)

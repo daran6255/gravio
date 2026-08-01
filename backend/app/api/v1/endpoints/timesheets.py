@@ -27,6 +27,8 @@ from app.repositories.timesheet import (
 from app.repositories.user import UserRepository
 from app.services.timesheet import TimesheetLockService, TimesheetService, get_week_bounds, is_weekly_off, can_manage_timesheet_for
 from app.middleware.exceptions import NotFoundError, BadRequestError, ForbiddenError
+from app.schemas.project import IrisMessageRequest, IrisPreviewResponse, IrisPlannedStep
+from app.schemas.crm import AuditLogResponse
 
 router = APIRouter(prefix="/timesheets", tags=["timesheets"])
 router_holidays = APIRouter(prefix="/holidays", tags=["holidays"])
@@ -291,73 +293,7 @@ async def update_time_log(
     current_user: User = Depends(get_current_user)
 ):
     """Update a draft or rejected time entry."""
-    log = await ProjectTimeLogRepository.get_by_id(db, log_id)
-    if not log or log.organization_id != current_user.organization_id:
-        raise NotFoundError("Time log entry not found")
-        
-    if log.user_id != current_user.id:
-        raise ForbiddenError("You cannot modify other users' time logs")
-
-    if log.status not in [TimesheetStatus.DRAFT, TimesheetStatus.REJECTED]:
-        raise BadRequestError("You can only modify draft or rejected timesheet entries")
-
-    # Past-week lock -- only applies to DRAFT entries. A REJECTED entry is exempt:
-    # the manager already re-opened it by rejecting, so the user must be able to fix
-    # and resubmit it regardless of how long ago that week ended.
-    if log.status == TimesheetStatus.DRAFT:
-        target_date = payload.log_date if payload.log_date is not None else log.log_date
-        week_start, _ = get_week_bounds(target_date)
-        locked, _ = await TimesheetLockService.check_week_access(
-            db, current_user.organization_id, current_user.id, week_start
-        )
-        if locked:
-            raise BadRequestError(
-                f"The week of {week_start.isoformat()} has already ended and is locked. "
-                "Request access from your manager to edit entries for that week."
-            )
-
-    # Validate 24 Hours cap on update
-    if payload.hours is not None:
-        current_day_total = await ProjectTimeLogRepository.get_day_total_hours(
-            db, current_user.organization_id, current_user.id, log.log_date, exclude_log_id=log.id
-        )
-        if current_day_total + payload.hours > 24.0:
-            raise BadRequestError(f"Logging {payload.hours}h would exceed the maximum limit of 24 hours per day (already logged {current_day_total}h)")
-
-    # Duplicate entry prevention -- same rule as create, applied to whatever the
-    # entry's project/task/category/date will be *after* this update (fields not
-    # included in the payload keep their current stored value).
-    fields_set = payload.model_fields_set
-    target_project_id = payload.project_id if "project_id" in fields_set else log.project_id
-    target_task_id = payload.task_id if "task_id" in fields_set else log.task_id
-    target_category_id = payload.category_id if "category_id" in fields_set else log.category_id
-    target_log_date = payload.log_date if "log_date" in fields_set else log.log_date
-    target_billing_type = payload.billing_type if "billing_type" in fields_set else log.billing_type
-    existing = await ProjectTimeLogRepository.find_existing_entry(
-        db, current_user.organization_id, current_user.id, target_log_date,
-        target_project_id, target_task_id, target_category_id, target_billing_type, exclude_log_id=log.id
-    )
-    if existing:
-        target_desc = "this task" if target_task_id else "this project" if target_project_id else "this category"
-        raise BadRequestError(
-            f"You already have a time entry for {target_desc} on {target_log_date.isoformat()}. "
-            "Edit that entry instead of creating a duplicate."
-        )
-
-    updated = await ProjectTimeLogRepository.update(db, log, **payload.model_dump(exclude_unset=True))
-    await db.commit()
-    stmt = (
-        select(ProjectTimeLog)
-        .options(
-            selectinload(ProjectTimeLog.project),
-            selectinload(ProjectTimeLog.task),
-            selectinload(ProjectTimeLog.category),
-            selectinload(ProjectTimeLog.user)
-        )
-        .where(ProjectTimeLog.id == updated.id)
-    )
-    res = await db.execute(stmt)
-    return res.scalar_one()
+    return await TimesheetService.update_time_log(db, current_user, log_id, payload)
 
 @router.delete("/{log_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_time_log(
@@ -366,30 +302,7 @@ async def delete_time_log(
     current_user: User = Depends(get_current_user)
 ):
     """Soft delete a draft or rejected time entry."""
-    log = await ProjectTimeLogRepository.get_by_id(db, log_id)
-    if not log or log.organization_id != current_user.organization_id:
-        raise NotFoundError("Time log entry not found")
-        
-    if log.user_id != current_user.id:
-        raise ForbiddenError("You cannot delete other users' time logs")
-
-    if log.status not in [TimesheetStatus.DRAFT, TimesheetStatus.REJECTED]:
-        raise BadRequestError("You can only delete draft or rejected timesheet entries")
-
-    # Same past-week lock exemption as update: only DRAFT entries are affected.
-    if log.status == TimesheetStatus.DRAFT:
-        week_start, _ = get_week_bounds(log.log_date)
-        locked, _ = await TimesheetLockService.check_week_access(
-            db, current_user.organization_id, current_user.id, week_start
-        )
-        if locked:
-            raise BadRequestError(
-                f"The week of {week_start.isoformat()} has already ended and is locked. "
-                "Request access from your manager to delete entries for that week."
-            )
-
-    await ProjectTimeLogRepository.delete(db, log)
-    await db.commit()
+    await TimesheetService.delete_time_log(db, current_user, log_id)
 
 @router.post("/submit-week")
 async def submit_weekly_timesheet(
@@ -398,34 +311,7 @@ async def submit_weekly_timesheet(
     current_user: User = Depends(get_current_user)
 ):
     """Submit draft/rejected time entries in a week to the designated reporting manager."""
-    # Ensure reporting manager is assigned
-    if current_user.reporting_manager_id is None:
-        raise BadRequestError("You cannot submit timesheets without an assigned Reporting Manager. Set one in your Profile Settings.")
-
-    # Past-week lock -- once a week has ended, it can only be submitted if the
-    # manager granted an unlock request for it.
-    locked, grant = await TimesheetLockService.check_week_access(
-        db, current_user.organization_id, current_user.id, payload.start_date
-    )
-    if locked:
-        raise BadRequestError(
-            f"The week of {payload.start_date.isoformat()} has already ended and is locked for "
-            "submission. Request access from your manager to submit it."
-        )
-
-    rowcount = await ProjectTimeLogRepository.submit_week(
-        db, organization_id=current_user.organization_id, user_id=current_user.id,
-        start_date=payload.start_date, end_date=payload.end_date
-    )
-    if rowcount == 0:
-        raise BadRequestError("No draft or rejected time entries found to submit for the selected week")
-
-    # The unlock grant that got us past the lock check above is one-shot -- consume
-    # it now that the submission actually went through.
-    if grant is not None:
-        await TimesheetWeekUnlockRequestRepository.consume(db, grant)
-
-    await db.commit()
+    rowcount = await TimesheetService.submit_weekly_timesheet(db, current_user, payload.start_date, payload.end_date)
     return {
         "success": True,
         "message": f"Successfully submitted {rowcount} time log(s) for approval.",
@@ -608,39 +494,9 @@ async def request_week_unlock(
     current_user: User = Depends(get_current_user)
 ):
     """Ask the reporting manager to re-open a past week that ended without being submitted."""
-    if current_user.reporting_manager_id is None:
-        raise BadRequestError("You cannot request a week unlock without an assigned Reporting Manager. Set one in your Profile Settings.")
-
-    week_start, week_end = get_week_bounds(payload.week_start_date)
-    if week_end != payload.week_end_date:
-        raise BadRequestError("week_start_date and week_end_date must be the Monday and Sunday of the same week")
-
-    today_monday, _ = get_week_bounds(date.today())
-    if week_start >= today_monday:
-        raise BadRequestError("Only past weeks can be requested for unlock -- the current week is never locked")
-
-    existing = await TimesheetWeekUnlockRequestRepository.get_pending_for_week(
-        db, current_user.organization_id, current_user.id, week_start
+    return await TimesheetService.request_week_unlock(
+        db, current_user, payload.week_start_date, payload.week_end_date, payload.reason
     )
-    if existing:
-        raise BadRequestError("You already have a pending unlock request for this week")
-
-    active_grant = await TimesheetWeekUnlockRequestRepository.get_active_grant(
-        db, current_user.organization_id, current_user.id, week_start
-    )
-    if active_grant:
-        raise BadRequestError("This week is already unlocked -- you can edit and submit it now")
-
-    req = await TimesheetWeekUnlockRequestRepository.create(
-        db,
-        organization_id=current_user.organization_id,
-        user_id=current_user.id,
-        week_start_date=week_start,
-        week_end_date=week_end,
-        reason=payload.reason,
-    )
-    await db.commit()
-    return req
 
 @router.get("/week-unlock-requests/my", response_model=List[TimesheetWeekUnlockRequestResponse])
 async def my_week_unlock_requests(
@@ -826,3 +682,81 @@ async def get_timesheet_report(
         )
         for row in rows
     ]
+
+
+# ==========================================
+# 7. IRIS ASSIST (propose-then-confirm)
+# ==========================================
+# Powers the "Ask IRIS" panel on the Timesheet page -- same propose-then-confirm shape as
+# the project task drawer's IRIS panel (see preview_iris_action/execute_iris_action in
+# projects.py): /preview plans without touching the DB, /execute only runs after the user
+# confirms, and the reply is recorded as an audit-log row scoped to this user so the panel
+# has a "recent activity" feed to show without a separate history model.
+
+@router.post("/iris/preview", response_model=IrisPreviewResponse, summary="Ask IRIS what it would do, without executing anything")
+async def preview_timesheet_iris_action(
+    payload: IrisMessageRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.ai.brain.engine import AIEngine
+    from app.ai.brain.exceptions import LLMProviderError, LLMResponseParseError, NoPlanGeneratedError, PlanningError
+    from app.ai.schemas.requests import AITaskRunRequest
+    from app.middleware.exceptions import ServiceUnavailableError
+
+    engine = AIEngine(db, current_user)
+    try:
+        plan = await engine.preview(AITaskRunRequest(trigger_type="manual", task_hint=payload.message, input_data={}))
+    except NoPlanGeneratedError:
+        raise BadRequestError("IRIS couldn't work out a plan for that -- try rephrasing.")
+    except LLMResponseParseError:
+        raise BadRequestError(
+            "IRIS's plan came back malformed -- this can happen when a request needs a lot of "
+            "steps at once. Try a more specific or smaller request."
+        )
+    except PlanningError as e:
+        raise BadRequestError(e.message)
+    except LLMProviderError as e:
+        raise ServiceUnavailableError(e.message)
+
+    return IrisPreviewResponse(
+        task_name=plan.task_name,
+        response_to_user=plan.response_to_user,
+        reasoning=plan.reasoning,
+        estimated_record_impact=plan.estimated_record_impact,
+        steps=[IrisPlannedStep(tool_name=s.tool_name, parameters=s.parameters, reasoning=s.reasoning) for s in plan.steps],
+    )
+
+
+@router.post("/iris/execute", response_model=AuditLogResponse, summary="Confirm and run an IRIS action for the current user's timesheet")
+async def execute_timesheet_iris_action(
+    payload: IrisMessageRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.ai.brain.engine import AIEngine
+    from app.ai.schemas.requests import AITaskRunRequest
+    from app.services.audit import AuditService
+
+    engine = AIEngine(db, current_user)
+    result = await engine.run(AITaskRunRequest(
+        trigger_type="manual", task_hint=payload.message, input_data={}, confirmed=True,
+    ))
+    reply_text = result.summary or (f"⚠️ {result.error}" if result.error else "IRIS didn't return a result.")
+    entry = await AuditService.record(
+        db, entity_type="timesheet_iris", entity_id=current_user.id,
+        action="comment", changed_by_user_id=None, new_value=reply_text,
+    )
+    await db.commit()
+    await db.refresh(entry)
+    return entry
+
+
+@router.get("/iris/activity", response_model=List[AuditLogResponse], summary="Recent IRIS activity on the current user's timesheet")
+async def get_timesheet_iris_activity(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.services.audit import AuditService
+
+    return await AuditService.list_for_entity(db, entity_type="timesheet_iris", entity_id=current_user.id, page=1, page_size=5)

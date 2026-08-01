@@ -1,5 +1,6 @@
 import api from './api';
 import type { PaginatedResponse } from '../models/common';
+import type { IrisPreviewResponse, IrisActivityEntry } from '../models/iris';
 import type {
 	ScheduledMeetingHost,
 	ScheduleMeetingRequest,
@@ -143,6 +144,20 @@ const bookingService = {
 	},
 	publicBookSlot: async (token: string, payload: PublicBookingRequest): Promise<PublicBookingConfirmation> => {
 		const response = await api.post<PublicBookingConfirmation>(`/bookings/public/availability/${token}/book`, payload);
+		return response.data;
+	},
+
+	// --- IRIS assist ---
+	previewIrisAction: async (message: string): Promise<IrisPreviewResponse> => {
+		const response = await api.post<IrisPreviewResponse>('/bookings/iris/preview', { message });
+		return response.data;
+	},
+	executeIrisAction: async (message: string): Promise<IrisActivityEntry> => {
+		const response = await api.post<IrisActivityEntry>('/bookings/iris/execute', { message });
+		return response.data;
+	},
+	getIrisActivity: async (): Promise<IrisActivityEntry[]> => {
+		const response = await api.get<IrisActivityEntry[]>('/bookings/iris/activity');
 		return response.data;
 	},
 };

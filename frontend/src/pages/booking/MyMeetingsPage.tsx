@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import { Box, Container, Button, TextField, Tabs, Tab, RadioGroup, FormControlLabel, Radio, Typography, alpha } from '@mui/material';
-import { CalendarMonthOutlined, HistoryOutlined, LinkOutlined } from '@mui/icons-material';
+import { CalendarMonthOutlined, HistoryOutlined, LinkOutlined, AutoAwesome as IrisIcon } from '@mui/icons-material';
 import PageHeader from '../../components/common/page-header';
 import { HelpGuideButton } from '../../components/common/button';
 import { WelcomeBanner } from '../../components/common/guide';
@@ -11,7 +11,7 @@ import ConfirmationDialog from '../../components/common/dialogbox/ConfirmationDi
 import {
 	NewMeetingDialog, RescheduleMeetingDialog, CompleteMeetingDialog,
 	WeekCalendarView, UpcomingMeetingsPanel, MeetingHistoryTable, MeetingsGuideDrawer,
-	AvailabilitySettingsPanel,
+	AvailabilitySettingsPanel, IrisMeetingPanel,
 } from '../../components/booking';
 import { useMeetingHistory } from '../../components/booking/meetings/hooks/useMeetingHistory';
 import { MEETINGS_GUIDE_CONTENT } from '../../data/meetingsGuideData';
@@ -23,6 +23,7 @@ const MyMeetingsPage: React.FC = () => {
 	const toast = useToast();
 
 	const [guideOpen, setGuideOpen] = useState(false);
+	const [irisOpen, setIrisOpen] = useState(false);
 	const { show: showWelcome, dismiss: handleDismissWelcome } = useDismissibleBanner('dismissedMeetingsWelcome');
 
 	const [activeTab, setActiveTab] = useState<'calendar' | 'history' | 'booking-page'>('calendar');
@@ -104,6 +105,14 @@ const MyMeetingsPage: React.FC = () => {
 				subtitle="Manage your upcoming and past meetings and client interactions."
 				action={
 					<Box sx={responsiveStyles.headerActionRow}>
+						<Button
+							variant="outlined"
+							startIcon={<IrisIcon fontSize="small" />}
+							onClick={() => setIrisOpen(true)}
+							sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2, whiteSpace: 'nowrap' }}
+						>
+							Ask IRIS
+						</Button>
 						<HelpGuideButton onClick={() => setGuideOpen(true)} />
 						<Button
 							variant="contained" onClick={() => { setNewMeetingDate(undefined); setNewMeetingTime(undefined); setNewMeetingOpen(true); }}
@@ -261,6 +270,12 @@ const MyMeetingsPage: React.FC = () => {
 			<MeetingsGuideDrawer
 				open={guideOpen}
 				onClose={() => setGuideOpen(false)}
+			/>
+
+			<IrisMeetingPanel
+				open={irisOpen}
+				onClose={() => setIrisOpen(false)}
+				onActionConfirmed={refreshAll}
 			/>
 			</Container>
 		</Box>
