@@ -661,7 +661,6 @@ async def execute_iris_action(
         new_value=reply_text,
     )
     await db.commit()
-    await db.refresh(comment_log)
     return comment_log
 
 

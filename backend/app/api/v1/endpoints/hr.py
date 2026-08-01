@@ -597,7 +597,6 @@ async def execute_leave_iris_action(
         action="comment", changed_by_user_id=None, new_value=reply_text,
     )
     await db.commit()
-    await db.refresh(entry)
     return entry
 
 
@@ -612,7 +611,8 @@ async def get_leave_iris_activity(
 ):
     from app.services.audit import AuditService
 
-    return await AuditService.list_for_entity(db, entity_type="leave_iris", entity_id=current_user.id, page=1, page_size=5)
+    items, _total = await AuditService.list_for_entity(db, entity_type="leave_iris", entity_id=current_user.id, page=1, page_size=5)
+    return items
 
 
 # ===========================================================================
