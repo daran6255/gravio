@@ -167,7 +167,7 @@ class Settings(BaseSettings):
 
     # Model Selection Per Provider (override in .env) — each default is the first entry of
     # AI_AVAILABLE_MODELS below for that provider.
-    AI_MODEL_GEMINI: str = "gemini-flash-lite-latest"
+    AI_MODEL_GEMINI: str = "gemini-3.5-flash-lite"
     AI_MODEL_OPENAI: str = "gpt-4o-mini"
     AI_MODEL_ANTHROPIC: str = "claude-haiku-4-5-20251001"  # Best value Claude model
     AI_MODEL_GROQ: str = "openai/gpt-oss-20b"             # Default Groq model
@@ -182,7 +182,7 @@ class Settings(BaseSettings):
         "groq": ["openai/gpt-oss-20b", "llama-3.1-8b-instant", "llama-3.3-70b-versatile"],
         "openai": ["gpt-4o-mini", "gpt-4o", "gpt-4.1", "gpt-4.1-mini"],
         "anthropic": ["claude-haiku-4-5-20251001", "claude-sonnet-5", "claude-opus-4-8"],
-        "gemini": ["gemini-flash-lite-latest"],
+        "gemini": ["gemini-3.5-flash-lite"],
         "mistral": ["mistral-small-latest", "mistral-large-latest"],
         "together": ["meta-llama/Llama-3.1-8B-Instruct-Turbo"],
         "cohere": ["command-r"],
