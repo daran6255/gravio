@@ -14,7 +14,6 @@ import {
 	alpha,
 } from '@mui/material';
 import {
-	CloseOutlined,
 	AutoAwesome,
 	SendRounded,
 	CheckOutlined,
@@ -30,6 +29,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import timesheetService from '../../services/timesheetService';
 import type { IrisPreviewResponse, IrisActivityEntry } from '../../models/iris';
 import useToast from '../../hooks/useToast';
+import IrisPanelHeader from '../common/iris/IrisPanelHeader';
 
 dayjs.extend(relativeTime);
 
@@ -173,40 +173,7 @@ export const IrisTimesheetPanel: React.FC<IrisTimesheetPanelProps> = ({ open, on
 			}}
 		>
 			<Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-				<Box sx={{ position: 'relative' }}>
-					<Box sx={{ height: 3, background: theme.gradients?.brandDiagonal }} />
-					<Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2.5, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-						<Stack direction="row" alignItems="center" spacing={1.25} sx={{ minWidth: 0 }}>
-							<Box
-								sx={{
-									width: 34,
-									height: 34,
-									borderRadius: '9px',
-									background: theme.gradients?.brandDiagonal,
-									display: 'flex',
-									alignItems: 'center',
-									justifyContent: 'center',
-									flexShrink: 0,
-									boxShadow: `0 2px 10px ${alpha(brand, 0.4)}`,
-								}}
-							>
-								<AutoAwesome sx={{ fontSize: 18, color: '#fff' }} />
-							</Box>
-							<Box sx={{ minWidth: 0 }}>
-								<Stack direction="row" alignItems="center" spacing={0.75}>
-									<Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1.1 }}>IRIS</Typography>
-									<Chip label="AI co-worker" size="small" sx={{ height: 16, fontSize: '0.6rem', fontWeight: 700, bgcolor: alpha(brand, 0.12), color: brand, '& .MuiChip-label': { px: 0.75 } }} />
-								</Stack>
-								<Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }} noWrap>
-									Timesheet assistant
-								</Typography>
-							</Box>
-						</Stack>
-						<IconButton size="small" onClick={onClose}>
-							<CloseOutlined fontSize="small" />
-						</IconButton>
-					</Stack>
-				</Box>
+				<IrisPanelHeader subtitle="Timesheet assistant" onClose={onClose} />
 
 				<Box sx={{ flex: 1, overflowY: 'auto', p: 2.25, display: 'flex', flexDirection: 'column', gap: 2 }}>
 					<Paper elevation={0} sx={sectionCardSx}>
@@ -226,7 +193,7 @@ export const IrisTimesheetPanel: React.FC<IrisTimesheetPanelProps> = ({ open, on
 						)}
 
 						{preview ? (
-							<Stack spacing={1.25} sx={{ p: 1.75, borderRadius: '12px', border: '1px solid', borderColor: alpha(brand, 0.35), bgcolor: alpha(brand, 0.05) }}>
+							<Stack spacing={1.25} sx={{ p: 1.75, borderRadius: '12px', border: '1px solid', borderColor: alpha(brand, 0.35), bgcolor: alpha(brand, 0.05), boxShadow: theme.palette.mode === 'dark' ? '0 4px 16px -8px rgba(0,0,0,0.5)' : '0 4px 16px -8px rgba(0,0,0,0.12)' }}>
 								<Stack direction="row" spacing={0.75} alignItems="center">
 									<AutoAwesome sx={{ fontSize: 15, color: brand }} />
 									<Typography variant="caption" sx={{ fontWeight: 700, color: brand, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>
