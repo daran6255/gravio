@@ -36,7 +36,14 @@ class AIChatSessionBase(BaseModel):
 
 class AIChatSessionCreate(AIChatSessionBase):
     """Schema for creating a new chat session."""
-    pass
+    context_module: str | None = Field(
+        None,
+        description="Set when opened from a per-module IRIS panel, e.g. 'leave' | 'timesheet' | 'meeting' | 'project_task'.",
+    )
+    context_entity_id: str | None = Field(
+        None,
+        description="Optional record id (e.g. a task's public_id) this session was opened against.",
+    )
 
 
 class AIChatSessionRead(AIChatSessionBase):
@@ -45,6 +52,8 @@ class AIChatSessionRead(AIChatSessionBase):
     public_id: uuid.UUID
     user_id: int
     is_active: bool
+    context_module: str | None = None
+    context_entity_id: str | None = None
     created_at: datetime
 
     class Config:

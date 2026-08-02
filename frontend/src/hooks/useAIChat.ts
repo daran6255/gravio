@@ -24,7 +24,12 @@ const nextLocalId = () => localMessageSeq--;
  * SSE reply, and the awaiting_approval pause/decide loop. Kept as a single hook (rather than
  * a redux slice) because none of this needs to survive a drawer close/reopen or be read from
  * outside the drawer -- same reasoning IrisTaskPanel uses for its own local state. */
-export const useAIChat = (enabled: boolean) => {
+/** `contextModule`/`contextEntityId` scope this hook's session list and newly-created sessions
+ * to a single per-module "Ask IRIS" panel (e.g. "leave") instead of the global chat drawer's
+ * unfiltered history -- pass neither for the global drawer. Pass plain string constants (not a
+ * freshly-built object each render) since they're primitives in this hook's own dependency
+ * arrays. */
+export const useAIChat = (enabled: boolean, contextModule?: string, contextEntityId?: string) => {
 	const toast = useToast();
 
 	const [sessions, setSessions] = useState<AIChatSession[]>([]);
@@ -44,7 +49,7 @@ export const useAIChat = (enabled: boolean) => {
 	const loadSessions = useCallback(async () => {
 		setLoadingSessions(true);
 		try {
-			const result = await aiChatService.listSessions();
+			const result = await aiChatService.listSessions(contextModule);
 			setSessions(result);
 			return result;
 		} catch {
@@ -53,7 +58,7 @@ export const useAIChat = (enabled: boolean) => {
 		} finally {
 			setLoadingSessions(false);
 		}
-	}, [toast]);
+	}, [toast, contextModule]);
 
 	useEffect(() => {
 		if (!enabled) return;
@@ -61,7 +66,7 @@ export const useAIChat = (enabled: boolean) => {
 		// Only (re)load the session list the moment the drawer becomes enabled, not on
 		// every render while it stays open.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [enabled]);
+	}, [enabled, contextModule]);
 
 	const openSession = useCallback(async (sessionId: number) => {
 		setPendingApproval(null);
@@ -101,14 +106,14 @@ export const useAIChat = (enabled: boolean) => {
 	 * user can start typing immediately without an explicit "New chat" step. */
 	const ensureSession = useCallback(async (): Promise<number> => {
 		if (activeSessionId != null) return activeSessionId;
-		const created = await aiChatService.createSession();
+		const created = await aiChatService.createSession(undefined, contextModule, contextEntityId);
 		setSessions((prev) => [created, ...prev]);
 		setActiveSessionId(created.id);
 		// Skip the greeting-only history the panel doesn't need to show twice -- the user's
 		// message about to be appended is the first real turn.
 		setMessages([]);
 		return created.id;
-	}, [activeSessionId]);
+	}, [activeSessionId, contextModule, contextEntityId]);
 
 	const sendMessage = useCallback(async (content: string) => {
 		const text = content.trim();

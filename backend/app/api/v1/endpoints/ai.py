@@ -131,11 +131,12 @@ async def create_chat_session(
     summary="List my IRIS chat sessions, most recent first",
 )
 async def list_chat_sessions(
+    context_module: Optional[str] = Query(None, description="Scope to sessions opened from this per-module panel, e.g. 'leave'"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[AIChatSessionRead]:
     service = AIChatService(db, current_user)
-    return await service.get_sessions()
+    return await service.get_sessions(context_module=context_module)
 
 
 @router.get(
@@ -230,6 +231,19 @@ async def _get_org_task_or_404(public_id: uuid.UUID, current_user: User, db: Asy
     return log
 
 
+async def _persist_resume_reply_if_chat(
+    db: AsyncSession, current_user: User, log, result: AITaskRunResponse, *, approved: bool,
+) -> None:
+    """AIEngine.resume() has no notion of chat sessions -- if this task was paused mid-
+    conversation (log.chat_session_id set), append its resumed reply to that session's message
+    thread so reopening the session later doesn't silently drop this turn. useAIChat's own
+    optimistic local append still handles the immediate UI update; this is what makes it durable."""
+    if log.chat_session_id is None:
+        return
+    reply_text = result.summary or ("Done." if approved else "Cancelled.")
+    await AIChatService(db, current_user).append_assistant_reply(log.chat_session_id, reply_text, log.id)
+
+
 @router.get(
     "/tasks/{public_id}",
     response_model=AITaskLogRead,
@@ -256,7 +270,9 @@ async def approve_ai_task(
 ) -> AITaskRunResponse:
     log = await _get_org_task_or_404(public_id, current_user, db)
     engine = AIEngine(db, current_user)
-    return await engine.resume(log, approved=True, approver=current_user, reason=payload.reason)
+    result = await engine.resume(log, approved=True, approver=current_user, reason=payload.reason)
+    await _persist_resume_reply_if_chat(db, current_user, log, result, approved=True)
+    return result
 
 
 @router.post(
@@ -272,7 +288,9 @@ async def reject_ai_task(
 ) -> AITaskRunResponse:
     log = await _get_org_task_or_404(public_id, current_user, db)
     engine = AIEngine(db, current_user)
-    return await engine.resume(log, approved=False, approver=current_user, reason=payload.reason)
+    result = await engine.resume(log, approved=False, approver=current_user, reason=payload.reason)
+    await _persist_resume_reply_if_chat(db, current_user, log, result, approved=False)
+    return result
 
 
 # ── Description Assist ────────────────────────────────────────────────────────

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, Optional
 
 from sqlalchemy import String, Text, Integer, ForeignKey, Uuid, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -49,6 +49,24 @@ class AIChatSession(BaseModel, TenantAwareMixin):
     is_active: Mapped[bool] = mapped_column(
         default=True,
         nullable=False,
+    )
+
+    # ── Module context ──────────────────────────────────────────────────────────
+    # Set when a session is opened from a per-module "Ask IRIS" panel (Leave/Timesheet/
+    # Meetings/a project task) rather than the global chat drawer. Used only to (a) scope
+    # that panel's own history list to its own conversations and (b) ground the planner with
+    # a one-line "opened from the X module" note -- never used for authorization/filtering of
+    # what the session can actually do.
+    context_module: Mapped[Optional[str]] = mapped_column(
+        String(30),
+        nullable=True,
+        index=True,
+        comment="e.g. 'leave' | 'timesheet' | 'meeting' | 'project_task'; null for the global chat drawer",
+    )
+    context_entity_id: Mapped[Optional[str]] = mapped_column(
+        String(64),
+        nullable=True,
+        comment="Optional record id (e.g. a task's public_id) the session was opened against",
     )
 
     # ── Relationships ──────────────────────────────────────────────────────────

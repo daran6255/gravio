@@ -31,6 +31,16 @@ from app.middleware.exceptions import AIServiceUnavailableError
 # journal.error_message (admin-visible), not the chat bubble.
 _GENERIC_FAILURE_MESSAGE = "⚠️ Something went wrong on my end — please try again."
 
+# Human-readable labels for AIChatSession.context_module, used only for the one-line planner
+# grounding note in stream_message -- keep in sync with the contextModule values the frontend
+# panels pass to createSession (IrisTimesheetPanel/IrisLeavePanel/IrisMeetingPanel/IrisTaskPanel).
+_CONTEXT_MODULE_LABELS = {
+    "leave": "Leave",
+    "timesheet": "Timesheets",
+    "meeting": "Meetings",
+    "project_task": "a Project Task",
+}
+
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
     from app.models.user import User
@@ -55,7 +65,9 @@ class AIChatService:
         """Initialize a new chat thread."""
         session = AIChatSession(
             user_id=self._user.id,
-            title=schema.title
+            title=schema.title,
+            context_module=schema.context_module,
+            context_entity_id=schema.context_entity_id,
         )
         self._db.add(session)
         await self._db.flush()
@@ -68,14 +80,18 @@ class AIChatService:
         )
         self._db.add(greeting)
         await self._db.commit()
-        
+
         return await self.get_session_details(session.id)
 
-    async def get_sessions(self) -> list[AIChatSession]:
-        """Retrieve the user's conversation history."""
+    async def get_sessions(self, context_module: str | None = None) -> list[AIChatSession]:
+        """Retrieve the user's conversation history, optionally scoped to a single per-module
+        panel's own conversations (see AIChatSession.context_module)."""
+        conditions = [AIChatSession.user_id == self._user.id]
+        if context_module is not None:
+            conditions.append(AIChatSession.context_module == context_module)
         result = await self._db.execute(
             select(AIChatSession)
-            .where(AIChatSession.user_id == self._user.id)
+            .where(*conditions)
             .order_by(AIChatSession.created_at.desc())
         )
         return list(result.scalars().all())
@@ -119,6 +135,14 @@ class AIChatService:
 
         # 3. Prepare History (cap for TPM/context limits)
         history = [{"role": m.role, "content": m.content} for m in session.messages[-6:]]
+        # A session opened from a per-module panel gets one grounding line prepended so the
+        # planner doesn't need the user to over-specify what "it" means on their first message
+        # -- module-level only (not the specific record), to avoid per-module lookups inside
+        # this generic service. Renders under the planner's existing "## Conversation History"
+        # block for free; nothing in planner.py/engine.py needs to change for this.
+        if session.context_module:
+            module_label = _CONTEXT_MODULE_LABELS.get(session.context_module, session.context_module)
+            history = [{"role": "system", "content": f"This conversation was opened from the {module_label} module."}] + history
 
         # 4. Agentic Execution Flow
         system_prompt_override = None
@@ -222,3 +246,13 @@ class AIChatService:
         await self._db.delete(session)
         await self._db.commit()
         return True
+
+    async def append_assistant_reply(self, session_id: int, content: str, task_log_id: int | None = None) -> None:
+        """Persists a reply produced outside `stream_message` -- specifically, the resumed
+        result of an approve/reject decision on a task that was paused mid-conversation
+        (AIEngine.resume() itself has no notion of chat sessions). Without this, a resumed
+        approval's reply only ever existed as a client-side optimistic message
+        (useAIChat.decideApproval's synthetic local id) and reopening the session later would
+        silently drop that turn."""
+        self._db.add(AIChatMessage(session_id=session_id, role="assistant", content=content, task_log_id=task_log_id))
+        await self._db.commit()

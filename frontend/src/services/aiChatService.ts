@@ -18,6 +18,8 @@ export interface AIChatSession {
 	title: string;
 	user_id: number;
 	is_active: boolean;
+	context_module?: string | null;
+	context_entity_id?: string | null;
 	created_at: string;
 }
 
@@ -55,13 +57,22 @@ export type AIChatStreamEvent =
 	| { session_title_update: string; session_id: number };
 
 const aiChatService = {
-	createSession: async (title?: string): Promise<AIChatSessionDetail> => {
-		const response = await api.post<AIChatSessionDetail>('/ai/chat/sessions', title ? { title } : {});
+	createSession: async (title?: string, contextModule?: string, contextEntityId?: string): Promise<AIChatSessionDetail> => {
+		const response = await api.post<AIChatSessionDetail>('/ai/chat/sessions', {
+			...(title ? { title } : {}),
+			...(contextModule ? { context_module: contextModule } : {}),
+			...(contextEntityId ? { context_entity_id: contextEntityId } : {}),
+		});
 		return response.data;
 	},
 
-	listSessions: async (): Promise<AIChatSession[]> => {
-		const response = await api.get<AIChatSession[]>('/ai/chat/sessions');
+	/** Omit `contextModule` for the global chat drawer's unfiltered history; pass it for a
+	 * per-module panel so its History view only ever shows conversations opened from that
+	 * same module (see AIChatSession.context_module on the backend). */
+	listSessions: async (contextModule?: string): Promise<AIChatSession[]> => {
+		const response = await api.get<AIChatSession[]>('/ai/chat/sessions', {
+			params: contextModule ? { context_module: contextModule } : undefined,
+		});
 		return response.data;
 	},
 
