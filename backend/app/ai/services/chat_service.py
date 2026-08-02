@@ -24,7 +24,7 @@ from app.ai.providers.alerts import alert_full_exhaustion
 from app.ai.brain.exceptions import ToolLimitExceededError
 from app.ai.models.ai_chat import AIChatSession, AIChatMessage
 from app.ai.models.ai_task_log import AITaskStatus, AITaskTrigger
-from app.middleware.exceptions import AIServiceUnavailableError
+from app.middleware.exceptions import AIServiceUnavailableError, AppError
 
 # Fixed, non-alarming copy for unexpected failures -- never interpolate str(exception) into
 # what the user sees (may contain raw provider/API text); the real detail goes to logs and
@@ -219,6 +219,17 @@ class AIChatService:
             await alert_full_exhaustion(
                 self._db, organization_id=self._user.organization_id, errors=errors, context="chat message",
             )
+            yield f"data: {json.dumps({'error': full_content, 'status': 'failed'})}\n\n"
+
+        except AppError as e:
+            # A curated, user-facing application error (e.g. AICreditsExhaustedError) --
+            # `.message` is deliberately written to be shown as-is, unlike an arbitrary
+            # exception's str(), which may contain internal detail. Without this clause these
+            # fell through to the generic handler below and showed a useless "something went
+            # wrong, try again" -- which, for something like exhausted AI credits, is actively
+            # misleading since retrying will just fail again with the same root cause.
+            full_content = f"⚠️ {e.message}"
+            await journal.finalize(status=AITaskStatus.FAILED, summary=full_content, error_message=e.message)
             yield f"data: {json.dumps({'error': full_content, 'status': 'failed'})}\n\n"
 
         except Exception as e:

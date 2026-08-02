@@ -248,7 +248,14 @@ export const IrisChatBody: React.FC<IrisChatBodyProps> = ({
 												{m.content}
 											</Typography>
 										) : m.streaming && !m.content ? (
-											<TypingDots />
+											// Single in-flight indicator: dots plus whatever phase IRIS is
+											// currently in (planning/executing), rather than a bare "..." here
+											// *and* a second, separately-rendered status pill below -- those
+											// used to show at once and read as two different assistant replies.
+											<Stack direction="row" spacing={0.75} alignItems="center">
+												<TypingDots />
+												{statusLabel && <StatusLabel label={statusLabel} />}
+											</Stack>
 										) : (
 											<MarkdownMessage content={m.content} />
 										)}
@@ -256,35 +263,6 @@ export const IrisChatBody: React.FC<IrisChatBodyProps> = ({
 								</Stack>
 							);
 						})
-					)}
-
-					{statusLabel && (
-						<Stack direction="row" spacing={1} alignItems="center" sx={{ alignSelf: 'flex-start', pl: 0.25 }}>
-							<Box
-								sx={{
-									width: 26,
-									height: 26,
-									borderRadius: '8px',
-									background: theme.gradients?.brandDiagonal,
-									display: 'flex',
-									alignItems: 'center',
-									justifyContent: 'center',
-									flexShrink: 0,
-									opacity: 0.85,
-								}}
-							>
-								<AutoAwesome sx={{ fontSize: 14, color: '#fff' }} />
-							</Box>
-							<Stack
-								direction="row"
-								spacing={0.75}
-								alignItems="center"
-								sx={{ px: 1.25, py: 0.5, borderRadius: '10px', bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', border: '1px solid', borderColor: 'divider' }}
-							>
-								<TypingDots />
-								<StatusLabel label={statusLabel} />
-							</Stack>
-						</Stack>
 					)}
 
 					{pendingApproval && (

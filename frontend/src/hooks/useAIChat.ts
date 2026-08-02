@@ -187,15 +187,18 @@ export const useAIChat = (enabled: boolean, contextModule?: string, contextEntit
 						setStatusLabel(null);
 						break;
 					case 'completed':
+						setStatusLabel(null);
 						finalizeStreaming(event.summary);
 						break;
 					case 'failed':
+						setStatusLabel(null);
 						finalizeStreaming(event.error);
 						break;
 				}
 			}, controller.signal);
 		} catch (error: any) {
 			if (error?.name !== 'AbortError') {
+				setStatusLabel(null);
 				finalizeStreaming('IRIS lost its train of thought — please try sending that again.');
 				toast.error('Please try sending that again.');
 			}
