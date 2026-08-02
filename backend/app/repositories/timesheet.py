@@ -17,6 +17,7 @@ class TimesheetCategoryRepository:
     # pick from out of the box, mirroring ProjectService.seed_default_task_statuses.
     DEFAULT_CATEGORIES = [
         {"name": "Meetings", "color": "#3B82F6"},
+        {"name": "Development", "color": "#EC4899"},
         {"name": "Training", "color": "#8B7CF6"},
         {"name": "Administrative", "color": "#F59E0B"},
         {"name": "Leave", "color": "#10B981"},

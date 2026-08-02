@@ -541,10 +541,19 @@ class AIEngine:
             if callable(refund_fn):
                 refunded = await refund_fn()
 
-        synthesis = self._synthesizer.synthesize_tool_results(
-            results=execution_results,
-            planned_response=final_plan.response_to_user if final_plan else None,
-        )
+        if turn > turn_start and final_plan and final_plan.response_to_user:
+            # This turn re-consulted the planner with the real tool outcomes ("Results So
+            # Far") before it decided to stop -- its response_to_user was written with full
+            # knowledge of what actually happened (including any failures), so it's a
+            # professional, synthesized answer (e.g. a clarifying question, or a proposed
+            # fallback) rather than a raw dump of individual tool error messages. Prefer it
+            # over synthesize_tool_results, which only ever echoes each tool's own message.
+            synthesis = final_plan.response_to_user
+        else:
+            synthesis = self._synthesizer.synthesize_tool_results(
+                results=execution_results,
+                planned_response=final_plan.response_to_user if final_plan else None,
+            )
         if refunded:
             synthesis += "\n\n_No credits were charged for this — nothing it tried to do succeeded._"
 
